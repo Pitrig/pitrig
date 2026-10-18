@@ -1102,9 +1102,9 @@
     },
     "profiles": {
       "shiftLights": "Shift lights",
-      "oneStepPerLampFrom": "Up to sixteen steps across the lamps from 70% to 97% of the revs, green through yellow to pink, then the whole run flashes red.",
+      "oneStepPerLampFrom": "Up to sixteen steps across the lamps from 80% to 98% of the current gear's shift point, green through yellow to pink, then the whole run flashes red at the shift point.",
       "gear": "Gear",
-      "theSelectedGearDrawnIn": "The selected gear, drawn in the largest built-in face the panel can hold, turning amber and then red as the revs climb. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.",
+      "theSelectedGearDrawnIn": "The selected gear, drawn in the largest built-in face the panel can hold, turning amber and then red as the revs near the current gear's shift point. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.",
       "aBS": "ABS",
       "redFlashWhileAbsIs": "Red flash while ABS is intervening.",
       "tractionControl": "Traction control",
@@ -1370,6 +1370,11 @@
       "noValidDraft": "No valid draft",
       "baudRateBaud": "{baudRate} baud",
       "baudUnavailable": "Baud unavailable",
+      "fuelReserve": "Fuel reserve",
+      "fuelReserveHint": "Laps of fuel kept on top of what reaching the finish needs. Fuel to add and pit now count it.",
+      "averagesOver": "Tyre and brake averages",
+      "averagesOverHint": "How many laps on track the tyre pressure, tyre temperature and brake temperature averages cover.",
+      "laps": "laps",
       "failedToExportTheSimhub": "Failed to export the SimHub profile.",
       "fileNameSavedWithFields": {
         "$plural": {
@@ -1409,7 +1414,8 @@
     },
     "simHubProfile": {
       "simHubProfileBaudRateMust": "SimHub profile baud rate must be an integer from 9600 to 2000000.",
-      "unknownSimHubTelemetryFields": "Unknown SimHub telemetry fields: {fields}"
+      "unknownSimHubTelemetryFields": "Unknown SimHub telemetry fields: {fields}",
+      "invalidSimHubParameters": "SimHub profile settings out of range: {names}"
     },
     "dialog": {
       "saveTitle": "Save SimHub Custom Serial Device profile",

@@ -1,211 +1,89 @@
 using System;
-using System.Linq;
-using GameReaderCommon;
-using SimHub.Plugins;
 
 namespace Pitrig.SimHub
 {
     internal static class Computed
     {
-        private const double KilopascalsPerBar = 100;
-        private const double MinimumSlipSpeed = 3;
-        private const double DegreesPerRadian = 180 / Math.PI;
-        private const double MaximumLapGain = 0.2;
-        private const int LeaderPosition = 1;
-        private const string LiveDelta = "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds";
-        private const string FuelPerLap = "DataCorePlugin.Computed.Fuel_LitersPerLap";
-        private const string FuelLaps = "DataCorePlugin.Computed.Fuel_RemainingLaps";
-
-        public static object Evaluate(PluginManager pluginManager, StatusDataBase status,
-            SectorTracker sectors, FieldComputation computation)
+        public static object Evaluate(TelemetryState state, FieldComputation computation)
         {
+            if (WheelAverages.Covers(computation)) return state.Averages.Mean(computation);
+            var status = state.Status;
             switch (computation)
             {
                 case FieldComputation.RpmPercent:
-                    return Ratio(pluginManager, "Rpms", "MaxRpm");
+                    return CarComputations.RpmPercent(status);
+                case FieldComputation.ShiftPercent:
+                    return CarComputations.ShiftPercent(status);
                 case FieldComputation.TurboPressure:
-                    return TurboPressure(pluginManager);
-                case FieldComputation.EstimatedLapTime:
-                    return EstimatedLapTime(pluginManager);
-                case FieldComputation.LastLapDeltaBest:
-                    return LastLapDeltaBest(pluginManager);
-                case FieldComputation.LiveDelta:
-                    return Number(pluginManager.GetPropertyValue(LiveDelta)) * 1000;
-                case FieldComputation.SectorDelta:
-                    return sectors.Delta(Number(GameData(pluginManager, "CurrentSectorIndex")),
-                        LiveDeltaSeconds(pluginManager));
-                case FieldComputation.ClassPosition:
-                    return ClassPosition(pluginManager);
-                case FieldComputation.LapsRemaining:
-                    return LapsRemaining(pluginManager);
-                case FieldComputation.GapAhead:
-                    return NeighbourGap(status, -1);
-                case FieldComputation.GapBehind:
-                    return NeighbourGap(status, 1);
-                case FieldComputation.GapLeader:
-                    return LeaderGap(status);
-                case FieldComputation.FuelTimeRemaining:
-                    return Number(pluginManager.GetPropertyValue(FuelLaps)) * BestLapSeconds(pluginManager) * 1000;
-                case FieldComputation.FuelRequired:
-                    return FuelRequired(pluginManager);
-                case FieldComputation.FuelToAdd:
-                    return FuelToAdd(pluginManager);
-                case FieldComputation.SlipAngle:
-                    return SlipAngle(status);
+                    return CarComputations.TurboPressure(status);
                 case FieldComputation.GearNumber:
-                    return GearNumber(GameData(pluginManager, "Gear"));
+                    return CarComputations.GearNumber(status);
                 case FieldComputation.GForceLongitudinal:
-                    return GForce(pluginManager, "AccelerationSurge");
+                    return CarComputations.GForce(status?.AccelerationSurge);
                 case FieldComputation.GForceLateral:
-                    return GForce(pluginManager, "AccelerationSway");
+                    return CarComputations.GForce(status?.AccelerationSway);
                 case FieldComputation.GForceVertical:
-                    return GForce(pluginManager, "AccelerationHeave");
+                    return CarComputations.GForce(status?.AccelerationHeave);
+                case FieldComputation.SlipAngle:
+                    return CarComputations.SlipAngle(status);
+                case FieldComputation.EstimatedLapTime:
+                    return TimingComputations.EstimatedLapTime(state);
+                case FieldComputation.LiveDelta:
+                    return TimingComputations.LiveDelta(state);
+                case FieldComputation.AllTimeLiveDelta:
+                    return TimingComputations.AllTimeLiveDelta(state);
+                case FieldComputation.SessionBestLap:
+                    return TimingComputations.SessionBestLap(status);
+                case FieldComputation.SessionBestDelta:
+                    return TimingComputations.SessionBestDelta(state);
+                case FieldComputation.LastLapDeltaBest:
+                    return TimingComputations.LastLapDeltaBest(status);
+                case FieldComputation.DeltaStatus:
+                    return TimingComputations.DeltaStatus(state);
+                case FieldComputation.LastLapStatus:
+                    return TimingComputations.LastLapStatus(status);
+                case FieldComputation.SectorStatus1:
+                    return TimingComputations.SectorStatus(status, 1);
+                case FieldComputation.SectorStatus2:
+                    return TimingComputations.SectorStatus(status, 2);
+                case FieldComputation.SectorStatus3:
+                    return TimingComputations.SectorStatus(status, 3);
+                case FieldComputation.SectorTime:
+                    return TimingComputations.SectorTime(status);
+                case FieldComputation.SectorDelta:
+                    return state.Sectors.Delta;
+                case FieldComputation.LapsRemaining:
+                    return TimingComputations.LapsRemaining(status);
+                case FieldComputation.TimedSession:
+                    return TimingComputations.TimedSession(status);
+                case FieldComputation.CheckeredShown:
+                    return status == null ? (bool?)null : state.CheckeredShown;
+                case FieldComputation.ClassPosition:
+                    return RaceComputations.ClassPosition(state);
+                case FieldComputation.GapAhead:
+                    return RaceComputations.NeighbourGap(state, -1);
+                case FieldComputation.GapBehind:
+                    return RaceComputations.NeighbourGap(state, 1);
+                case FieldComputation.GapLeader:
+                    return RaceComputations.LeaderGap(state);
+                case FieldComputation.StartingPosition:
+                    return RaceComputations.StartingPosition(state);
+                case FieldComputation.FuelTimeRemaining:
+                    return FuelComputations.TimeRemaining(state);
+                case FieldComputation.FuelRequired:
+                    return FuelComputations.Required(state);
+                case FieldComputation.FuelToAdd:
+                    return FuelComputations.ToAdd(state);
+                case FieldComputation.FuelAtFinish:
+                    return FuelComputations.AtFinish(state);
+                case FieldComputation.FuelPitNow:
+                    return FuelComputations.PitNow(state);
                 default:
                     return null;
             }
         }
 
-        private static object Ratio(PluginManager pluginManager, string value, string reference)
-        {
-            var whole = Number(GameData(pluginManager, reference));
-            var part = Number(GameData(pluginManager, value));
-            if (whole == null || part == null || whole.Value == 0) return null;
-            return part.Value / whole.Value * 100;
-        }
-
-        private static double? TurboPressure(PluginManager pluginManager)
-        {
-            if (Number(GameData(pluginManager, "MaxTurboBar")) > 0)
-                return Number(GameData(pluginManager, "TurboBar")) * KilopascalsPerBar;
-            if (Number(GameData(pluginManager, "MaxTurbo")) > 0)
-                return Number(GameData(pluginManager, "Turbo")) * KilopascalsPerBar;
-            return null;
-        }
-
-        private static double? EstimatedLapTime(PluginManager pluginManager)
-        {
-            return (BestLapSeconds(pluginManager) + LiveDeltaSeconds(pluginManager)) * 1000;
-        }
-
-        private static double? LiveDeltaSeconds(PluginManager pluginManager)
-        {
-            var delta = Number(pluginManager.GetPropertyValue(LiveDelta));
-            return delta >= -BestLapSeconds(pluginManager) * MaximumLapGain ? delta : null;
-        }
-
-        private static object LastLapDeltaBest(PluginManager pluginManager)
-        {
-            var last = GameData(pluginManager, "LastLapTime");
-            var best = GameData(pluginManager, "BestLapTime");
-            if (!(last is TimeSpan lastLap) || !(best is TimeSpan bestLap)) return null;
-            if (lastLap <= TimeSpan.Zero || bestLap <= TimeSpan.Zero) return null;
-            return (lastLap - bestLap).TotalMilliseconds;
-        }
-
-        private static double? NeighbourGap(StatusDataBase status, int offset)
-        {
-            var position = PlayerPosition(status);
-            return position == null ? (double?)null : PositionGap(status, position + offset);
-        }
-
-        private static double? LeaderGap(StatusDataBase status)
-        {
-            var position = PlayerPosition(status);
-            if (position == null) return null;
-            return position == LeaderPosition ? (double?)0 : PositionGap(status, LeaderPosition);
-        }
-
-        private static int? PlayerPosition(StatusDataBase status)
-        {
-            return status?.Opponents?.FirstOrDefault(opponent => opponent.IsPlayer)?.Position;
-        }
-
-        private static double? PositionGap(StatusDataBase status, int? position)
-        {
-            var gap = status.Opponents
-                .FirstOrDefault(opponent => opponent.Position == position)?.GaptoPlayer;
-            return gap == null ? (double?)null : Math.Abs(gap.Value);
-        }
-
-        private static object ClassPosition(PluginManager pluginManager)
-        {
-            var multipleClasses = GameData(pluginManager, "HasMultipleClassOpponents");
-            if (multipleClasses == null || Convert.ToBoolean(multipleClasses)) return null;
-            return GameData(pluginManager, "Position");
-        }
-
-        private static double? LapsRemaining(PluginManager pluginManager)
-        {
-            var total = Number(GameData(pluginManager, "TotalLaps"));
-            if (total > 0) return total - Number(GameData(pluginManager, "CompletedLaps"));
-            var lap = BestLapSeconds(pluginManager);
-            var left = Seconds(GameData(pluginManager, "SessionTimeLeft"));
-            if (lap == null || left == null) return null;
-            if (left <= 0) return 1;
-            var toLine = Math.Max(lap.Value - (Seconds(GameData(pluginManager, "CurrentLapTime")) ?? 0), 0);
-            return 1 + Math.Ceiling(Math.Max(left.Value - toLine, 0) / lap.Value);
-        }
-
-        private static double? FuelRequired(PluginManager pluginManager)
-        {
-            var perLap = Number(pluginManager.GetPropertyValue(FuelPerLap));
-            if (!(perLap > 0)) return null;
-            var position = Number(GameData(pluginManager, "TrackPositionPercent")) ?? 0;
-            var laps = LapsRemaining(pluginManager) - position;
-            return laps < 0 ? 0 : laps * perLap;
-        }
-
-        private static double? FuelToAdd(PluginManager pluginManager)
-        {
-            var missing = FuelRequired(pluginManager) - (Number(GameData(pluginManager, "Fuel")) ?? 0);
-            return missing < 0 ? 0 : missing;
-        }
-
-        private static double? SlipAngle(StatusDataBase status)
-        {
-            var velocity = status?.FeedbackData?.LocalVelocity;
-            if (velocity == null || velocity.Forward < MinimumSlipSpeed) return null;
-            return Math.Atan(velocity.Lateral / velocity.Forward) * DegreesPerRadian;
-        }
-
-        private static double? GearNumber(object gear)
-        {
-            switch (Convert.ToString(gear, FieldReader.Culture))
-            {
-                case "N":
-                    return 0;
-                case "R":
-                    return -1;
-                default:
-                    return Number(gear);
-            }
-        }
-
-        private static object GForce(PluginManager pluginManager, string name)
-        {
-            var acceleration = Number(GameData(pluginManager, name));
-            if (acceleration == null) return null;
-            return acceleration.Value / 9.80665;
-        }
-
-        private static double? BestLapSeconds(PluginManager pluginManager)
-        {
-            var best = Seconds(GameData(pluginManager, "BestLapTime"));
-            return best > 0 ? best : null;
-        }
-
-        private static double? Seconds(object value)
-        {
-            return value is TimeSpan span ? span.TotalSeconds : (double?)null;
-        }
-
-        private static object GameData(PluginManager pluginManager, string name)
-        {
-            return pluginManager.GetPropertyValue("DataCorePlugin.GameData.NewData." + name)
-                ?? pluginManager.GetPropertyValue("DataCorePlugin.GameData." + name);
-        }
-
-        private static double? Number(object value)
+        public static double? Number(object value)
         {
             if (value == null) return null;
             try
@@ -216,6 +94,16 @@ namespace Pitrig.SimHub
             {
                 return null;
             }
+        }
+
+        public static double? Seconds(TimeSpan value)
+        {
+            return value > TimeSpan.Zero ? value.TotalSeconds : (double?)null;
+        }
+
+        public static double? Seconds(TimeSpan? value)
+        {
+            return value.HasValue ? Seconds(value.Value) : null;
         }
     }
 }

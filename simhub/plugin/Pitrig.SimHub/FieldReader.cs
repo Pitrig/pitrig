@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Text;
-using GameReaderCommon;
 using SimHub.Plugins;
 
 namespace Pitrig.SimHub
@@ -13,19 +12,17 @@ namespace Pitrig.SimHub
         private const int ValueCapacity = 63;
 
         private readonly string[] last = new string[TelemetryCatalog.Fields.Length];
-        private readonly SectorTracker sectors = new SectorTracker();
 
         public void Reset()
         {
             Array.Clear(last, 0, last.Length);
-            sectors.Reset();
         }
 
-        public string Read(PluginManager pluginManager, StatusDataBase status, TelemetryField field)
+        public string Read(TelemetryState state, TelemetryField field)
         {
             var value = field.Computation == FieldComputation.None
-                ? Property(pluginManager, field)
-                : Computed.Evaluate(pluginManager, status, sectors, field.Computation);
+                ? Property(state.Manager, field)
+                : Computed.Evaluate(state, field.Computation);
             if (value == null) return field.Fallback;
             try
             {
@@ -43,7 +40,7 @@ namespace Pitrig.SimHub
         {
             if (string.Equals(last[index], text, StringComparison.Ordinal))
             {
-                return keyframe && text != null;
+                return keyframe;
             }
             last[index] = text;
             return true;

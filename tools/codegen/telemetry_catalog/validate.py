@@ -5,6 +5,7 @@ from typing import Any
 from .constants import (
     CANONICAL_NAME_CAPACITY,
     CATEGORY_LABELS,
+    PARAMETER_PATTERN,
     UNAVAILABLE_OPERATORS,
     VALID_AVAILABILITY,
     VALID_RATES,
@@ -21,10 +22,19 @@ def report_key_mismatch(label: str, expected: set[str], actual: set[str]) -> Non
     fail(f"{label} mismatch; missing={missing}, extra={extra}")
 
 
-def validate_simhub_mapping(field: dict[str, str], mapping: dict[str, Any]) -> None:
-    sources = int("property" in mapping) + int("expression" in mapping)
+def validate_simhub_mapping(
+    field: dict[str, str], mapping: dict[str, Any], parameters: dict[str, Any]
+) -> None:
+    sources = sum(int(key in mapping) for key in ("property", "expression", "javascript"))
     if sources != 1:
-        fail(f"SimHub mapping must define exactly one property or expression: {field['name']}")
+        fail(
+            "SimHub mapping must define exactly one property, expression or javascript: "
+            f"{field['name']}"
+        )
+    formula = mapping.get("expression", mapping.get("javascript", ""))
+    for name in PARAMETER_PATTERN.findall(formula):
+        if name not in parameters:
+            fail(f"SimHub mapping uses an undeclared profile parameter {name}: {field['name']}")
     conversion = mapping.get("conversion", "number")
     if conversion not in VALID_SIMHUB_CONVERSIONS:
         fail(f"invalid SimHub conversion for {field['name']}: {conversion}")
@@ -37,8 +47,8 @@ def validate_simhub_mapping(field: dict[str, str], mapping: dict[str, Any]) -> N
         fail(f"numeric SimHub mapping requires a format: {field['name']}")
     if "scale" in mapping and not isinstance(mapping["scale"], (int, float)):
         fail(f"SimHub mapping scale must be numeric: {field['name']}")
-    if ("computed" in mapping) != ("expression" in mapping):
-        fail(f"SimHub expression mapping requires a computed name: {field['name']}")
+    if ("computed" in mapping) == ("property" in mapping):
+        fail(f"SimHub formula mapping requires a computed name: {field['name']}")
     if "unavailable_when" in mapping:
         validate_unavailable_rule(field, mapping, conversion)
 
@@ -58,6 +68,18 @@ def validate_unavailable_rule(
         fail(f"invalid unavailable_when op for {name}: {rule['op']}")
     if isinstance(rule["value"], bool) or not isinstance(rule["value"], (int, float)):
         fail(f"unavailable_when value must be numeric: {name}")
+
+
+def validate_parameters(parameters: dict[str, Any]) -> None:
+    for name, parameter in parameters.items():
+        if not PARAMETER_PATTERN.fullmatch("{{" + name + "}}"):
+            fail(f"SimHub profile parameter name must be snake_case: {name}")
+        if set(parameter) != {"default", "minimum", "maximum"}:
+            fail(f"SimHub profile parameter must hold default, minimum and maximum: {name}")
+        if not all(isinstance(parameter[key], (int, float)) for key in parameter):
+            fail(f"SimHub profile parameter values must be numeric: {name}")
+        if not parameter["minimum"] <= parameter["default"] <= parameter["maximum"]:
+            fail(f"SimHub profile parameter default must lie within its bounds: {name}")
 
 
 def validate_link(link: dict[str, Any]) -> None:

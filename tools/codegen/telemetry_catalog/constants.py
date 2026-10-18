@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 
 VALID_TYPES = {"text", "uint32", "int32", "float32", "boolean"}
 
@@ -25,6 +27,15 @@ UNAVAILABLE_OPERATORS = {
 
 
 UNSIGNED_UNAVAILABLE = {"op": "below", "value": 0}
+
+
+PARAMETER_PATTERN = re.compile(r"\{\{([a-z][a-z0-9_]*)\}\}")
+
+
+JAVASCRIPT_INTERPRETER = 1
+
+
+GAME_RUNNING = "DataCorePlugin.GameRunning"
 
 
 WIRE_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"

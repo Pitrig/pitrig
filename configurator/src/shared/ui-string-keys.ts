@@ -1339,17 +1339,23 @@ export type UiStringKey =
   | 'protocol.protocolPage.telemetrySource'
   | 'protocol.protocolPage.whatProducesTheValuesThe'
   | 'protocol.protocolPage.whereTelemetryComesFromHow'
+  | 'protocol.simHubProfile.invalidSimHubParameters'
   | 'protocol.simHubProfile.simHubProfileBaudRateMust'
   | 'protocol.simHubProfile.unknownSimHubTelemetryFields'
   | 'protocol.simHubProfileSection.allTelemetry'
+  | 'protocol.simHubProfileSection.averagesOver'
+  | 'protocol.simHubProfileSection.averagesOverHint'
   | 'protocol.simHubProfileSection.baudRateBaud'
   | 'protocol.simHubProfileSection.baudUnavailable'
   | 'protocol.simHubProfileSection.dashboardOnly'
   | 'protocol.simHubProfileSection.failedToExportTheSimhub'
   | 'protocol.simHubProfileSection.fileNameSavedWithFields'
+  | 'protocol.simHubProfileSection.fuelReserve'
+  | 'protocol.simHubProfileSection.fuelReserveHint'
   | 'protocol.simHubProfileSection.generateACustomSerialDevice'
   | 'protocol.simHubProfileSection.generateProfile'
   | 'protocol.simHubProfileSection.generating'
+  | 'protocol.simHubProfileSection.laps'
   | 'protocol.simHubProfileSection.lengthFields'
   | 'protocol.simHubProfileSection.noValidDraft'
   | 'protocol.simHubProfileSection.onlyTheBindingsAndModule'
@@ -1933,6 +1939,7 @@ export interface UiStringParameters {
   'modules.spritePalette.inkNumberColour': { color: string | number, number: string | number }
   'modules.spritePalette.removeInkNumber': { number: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
+  'protocol.simHubProfile.invalidSimHubParameters': { names: string | number }
   'protocol.simHubProfile.unknownSimHubTelemetryFields': { fields: string | number }
   'protocol.simHubProfileSection.baudRateBaud': { baudRate: string | number }
   'protocol.simHubProfileSection.fileNameSavedWithFields': { count: number, fileName: string | number }
