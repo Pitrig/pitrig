@@ -11,13 +11,6 @@ namespace Pitrig.SimHub
         private double startDelta;
         private bool boundarySeen;
 
-        public void Reset()
-        {
-            sector = null;
-            previous = null;
-            boundarySeen = false;
-        }
-
         public double? Delta(double? currentSector, double? liveDelta)
         {
             if (currentSector == null || liveDelta == null) return null;

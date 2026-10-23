@@ -102,18 +102,21 @@ in `simhub/plugin/` and this side cannot disagree about those; the header
 length, the sequence's offset inside it and the subscribe interval are written
 out on both sides and stay in step by hand.
 
-The bridge is compiled into development builds only (ADR 0034):
-`TELEMETRY_BRIDGE_INCLUDED` in `shared/telemetry-bridge.ts` is
-`import.meta.env.DEV` and gates `registerTelemetryBridge` in both entry points
-(the service, its IPC handlers and broadcasts, kept out of `AppServices`), the
-optional `telemetryBridge` preload API, and the renderer's panel, subscriptions
-and catalog value column. Put the constant itself in the condition so the
-bundler can drop the branch; CI fails a package whose `app.asar` still carries
-`telemetry-bridge:` or `TelemetryBridgeService`.
+Every build carries the bridge (ADR 0035): `registerTelemetryBridge` starts it
+with the application, dialing the plugin on loopback, and the product entry
+point is the only one that registers it — the debugger has none. Its request
+carries the desired state, `PluginHandover` (`plugin-handover.ts`) keeps the
+ports held and the boards handed back, and every port open goes through
+`PortLeases` in `device/port-leases.ts`: a lease asks the plugin to let go
+before the open, survives a reboot and the scan's second open, and ends with a
+handback on disconnect. A board the plugin feeds counts as found in the scan
+without being opened. The renderer sends what to stream through
+`features/telemetry/telemetry-interest.ts` — the running documents' and the
+draft's bindings, or every field while the catalog table is mounted.
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 228-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 230-row catalog table),
 so nothing re-renders while the bridge is stopped. `PreviewCanvas` reads live
 values per frame and the lamp preview (`features/modules/LedPreview.tsx` over
 `preview-values.ts`) with it, while the catalog table in

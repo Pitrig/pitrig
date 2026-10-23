@@ -1317,6 +1317,44 @@ export type UiStringKey =
   | 'modules.spritePalette.inks'
   | 'modules.spritePalette.removeInkNumber'
   | 'modules.spritePalette.thisPictureNamesAllSixteen'
+  | 'protocol.bridgeSection.addedLatency'
+  | 'protocol.bridgeSection.apply'
+  | 'protocol.bridgeSection.applying'
+  | 'protocol.bridgeSection.asking'
+  | 'protocol.bridgeSection.boardsTitle'
+  | 'protocol.bridgeSection.bytes'
+  | 'protocol.bridgeSection.connection'
+  | 'protocol.bridgeSection.description'
+  | 'protocol.bridgeSection.drainLatency'
+  | 'protocol.bridgeSection.dropped'
+  | 'protocol.bridgeSection.droppedValue'
+  | 'protocol.bridgeSection.fields'
+  | 'protocol.bridgeSection.lines'
+  | 'protocol.bridgeSection.listenPort'
+  | 'protocol.bridgeSection.lostPackets'
+  | 'protocol.bridgeSection.measured'
+  | 'protocol.bridgeSection.noBoards'
+  | 'protocol.bridgeSection.noSamples'
+  | 'protocol.bridgeSection.packets'
+  | 'protocol.bridgeSection.perSecond'
+  | 'protocol.bridgeSection.pluginHint'
+  | 'protocol.bridgeSection.pluginMissing'
+  | 'protocol.bridgeSection.pluginVersion'
+  | 'protocol.bridgeSection.portBusy'
+  | 'protocol.bridgeSection.previewOnly'
+  | 'protocol.bridgeSection.quantiles'
+  | 'protocol.bridgeSection.receiving'
+  | 'protocol.bridgeSection.relaying'
+  | 'protocol.bridgeSection.sending'
+  | 'protocol.bridgeSection.simhubHost'
+  | 'protocol.bridgeSection.simhubHostHint'
+  | 'protocol.bridgeSection.simhubPort'
+  | 'protocol.bridgeSection.suspended'
+  | 'protocol.bridgeSection.title'
+  | 'protocol.bridgeSection.waiting'
+  | 'protocol.bridgeService.invalidRequest'
+  | 'protocol.bridgeService.portTaken'
+  | 'protocol.bridgeService.theLinkClosed'
   | 'protocol.catalogSection.field'
   | 'protocol.catalogSection.fuelRpmLap'
   | 'protocol.catalogSection.lengthOfLength2FieldsA'
@@ -1932,6 +1970,12 @@ export interface UiStringParameters {
   'modules.spritePalette.inkNumber': { number: string | number }
   'modules.spritePalette.inkNumberColour': { color: string | number, number: string | number }
   'modules.spritePalette.removeInkNumber': { number: string | number }
+  'protocol.bridgeSection.droppedValue': { bytes: string | number, errors: string | number }
+  'protocol.bridgeSection.perSecond': { value: string | number }
+  'protocol.bridgeSection.pluginVersion': { version: string | number }
+  'protocol.bridgeSection.portBusy': { path: string | number }
+  'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
+  'protocol.bridgeService.portTaken': { port: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
   'protocol.simHubProfile.unknownSimHubTelemetryFields': { fields: string | number }
   'protocol.simHubProfileSection.baudRateBaud': { baudRate: string | number }

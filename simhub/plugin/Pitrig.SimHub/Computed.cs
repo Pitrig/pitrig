@@ -17,12 +17,18 @@ namespace Pitrig.SimHub
         private const string FuelLaps = "DataCorePlugin.Computed.Fuel_RemainingLaps";
 
         public static object Evaluate(PluginManager pluginManager, StatusDataBase status,
-            SectorTracker sectors, FieldComputation computation)
+            SectorTracker sectors, ShiftLights shifts, FieldComputation computation)
         {
             switch (computation)
             {
                 case FieldComputation.RpmPercent:
                     return Ratio(pluginManager, "Rpms", "MaxRpm");
+                case FieldComputation.ShiftRpm:
+                    return shifts.Rpm(pluginManager);
+                case FieldComputation.ShiftProgress:
+                    return shifts.Progress(pluginManager);
+                case FieldComputation.ShiftNow:
+                    return shifts.Now(pluginManager);
                 case FieldComputation.TurboPressure:
                     return TurboPressure(pluginManager);
                 case FieldComputation.EstimatedLapTime:
@@ -199,13 +205,13 @@ namespace Pitrig.SimHub
             return value is TimeSpan span ? span.TotalSeconds : (double?)null;
         }
 
-        private static object GameData(PluginManager pluginManager, string name)
+        internal static object GameData(PluginManager pluginManager, string name)
         {
             return pluginManager.GetPropertyValue("DataCorePlugin.GameData.NewData." + name)
                 ?? pluginManager.GetPropertyValue("DataCorePlugin.GameData." + name);
         }
 
-        private static double? Number(object value)
+        internal static double? Number(object value)
         {
             if (value == null) return null;
             try

@@ -3,14 +3,15 @@ import { TELEMETRY_CATALOG, type TelemetryValueType } from './telemetry-catalog'
 import type { TelemetryValue } from './telemetry-value'
 
 export const TELEMETRY_BRIDGE_START_CHANNEL = 'telemetry-bridge:start' as const
-export const TELEMETRY_BRIDGE_STOP_CHANNEL = 'telemetry-bridge:stop' as const
 export const TELEMETRY_BRIDGE_STATUS_CHANNEL = 'telemetry-bridge:status' as const
 export const TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL = 'telemetry-bridge:status-changed' as const
 export const TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL = 'telemetry-bridge:snapshot' as const
-
-export const TELEMETRY_BRIDGE_INCLUDED = import.meta.env.DEV
+export const TELEMETRY_BRIDGE_INTEREST_CHANNEL = 'telemetry-bridge:interest' as const
 
 export const SNAPSHOT_INTERVAL_MS = 16
+
+export const PLUGIN_STATUS_MARKER = '@PT:STATUS'
+export const PLUGIN_SILENCE_MS = 3_000
 
 export const LINK_MAGIC = SIMHUB_LINK.magic
 export const LINK_VERSION = SIMHUB_LINK.version
@@ -29,6 +30,26 @@ export interface TelemetryBridgeStartRequest {
   port: number
   simhubPort: number
   simhubHost: string
+}
+
+export interface TelemetryInterest {
+  running: string[]
+  draft: string[]
+  all: boolean
+}
+
+export interface PluginBoard {
+  path: string
+  baudRate: number
+  board: string
+}
+
+export interface PluginStatus {
+  version: string
+  acknowledged: number
+  boards: PluginBoard[]
+  released: string[]
+  busy: string[]
 }
 
 export interface LatencyQuantiles {
@@ -60,6 +81,7 @@ export interface TelemetryBridgeStatus {
   port?: number
   simhubAddress?: string
   sourceAddress?: string
+  plugin?: PluginStatus
   error?: string
 }
 
@@ -83,6 +105,16 @@ export function slotOfName(name: string): number | undefined {
 
 export function slotOfWireId(wireId: string): number | undefined {
   return SLOT_OF_WIRE_ID.get(wireId)
+}
+
+export function wireIdsOf(names: Iterable<string>): string[] {
+  const ids = new Set<string>()
+  for (const name of names) {
+    const slot = SLOT_OF_NAME.get(name)
+    const entry = slot === undefined ? undefined : TELEMETRY_CATALOG[slot]
+    if (entry) ids.add(entry.wireId)
+  }
+  return [...ids].sort()
 }
 
 export function slotType(slot: number): TelemetryValueType {

@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 228;
+inline constexpr std::size_t kFieldCount = 230;
 inline constexpr std::size_t kMaximumFieldCount = 256;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -19,6 +19,8 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"engine.max_rpm", ValueType::float32},
     {"engine.shift_rpm", ValueType::float32},
     {"engine.rpm_percent", ValueType::float32},
+    {"engine.shift_progress", ValueType::float32},
+    {"engine.shift_now", ValueType::boolean},
     {"engine.running", ValueType::boolean},
     {"engine.ignition", ValueType::boolean},
     {"engine.starter", ValueType::boolean},

@@ -24,6 +24,33 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
+## Unreleased
+
+Configuration schema 26, unchanged, and the partition table is the same. The
+firmware has to be updated to read the two new shift-light fields; a board left
+on 0.1.1 ignores them and keeps everything else.
+
+**Added**
+- The Pitrig plugin for SimHub feeds the board by itself: it finds the board on
+  USB, sends only the fields its dashboard and modules use, and needs no profile
+  to import and no port to pick. The Windows installer adds it to SimHub.
+- The configurator connects while SimHub runs: it takes the board over from the
+  plugin and passes the telemetry on, and gives the board back when it
+  disconnects. A Guition ESP32-4848S040 is learned the first time the
+  configurator connects to it.
+- Live values in the dashboard and lamp previews and in the telemetry catalog
+  whenever SimHub runs.
+- `engine.shift_progress` and `engine.shift_now`: shift lights that follow the
+  car's own shift points in each gear — from iRacing, F1 and RaceRoom where the
+  game reports them, otherwise from SimHub's car settings.
+
+**Changed**
+- The shift-light and gear lamp presets follow the car's shift points instead of
+  70–97 % of the maximum revs.
+- `engine.shift_rpm` takes the current gear's shift point from the same source.
+- A dashboard-only SimHub profile now includes `vehicle.speed` for a text source
+  left on its default, and the lap time for any modifier.
+
 ## 0.1.1 — 2026-10-04
 
 Configuration schema 26, unchanged, and the partition table is the same: the

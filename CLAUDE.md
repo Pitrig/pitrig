@@ -67,12 +67,13 @@ the OTA status.
 
 **CI** ([.github/workflows/build.yml](.github/workflows/build.yml)) runs on a push to `release` and
 on demand: `checks` (the five generators with `--check`, `check_debug_isolation.py --check`, the
-configurator's typecheck and lint), `configurator` (electron-builder on macOS, Windows and Linux),
-`firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers and
-four OTA images, its notes written by `tools/release_notes.py` from the files actually built and
-the version's `CHANGELOG.md` entry. Packages are checked for debug traces and for the telemetry bridge, which only
-development builds carry (an `app.asar` grep, ADR 0034); nothing is signed, so macOS needs
-`xattr -dr com.apple.quarantine`.
+configurator's typecheck and lint), `simhub-plugin` (the DLL built on `windows-latest` against a
+SimHub pinned by digest), `configurator` (electron-builder on macOS, Windows and Linux; the Windows
+installer carries the DLL and copies it into SimHub through `configurator/installer/simhub-plugin.nsh`),
+`firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers, the
+DLL and four OTA images, its notes written by `tools/release_notes.py` from the files actually built
+and the version's `CHANGELOG.md` entry. Packages are checked for debug traces (an `app.asar` grep);
+nothing is signed, so macOS needs `xattr -dr com.apple.quarantine`.
 
 **VS Code** ([.vscode/tasks.json](.vscode/tasks.json)) carries twelve `Pitrig: Build …` tasks,
 `Pitrig: Build All Firmware` (sequential, esp32s3 first), `Pitrig: Flash` / `Monitor` /

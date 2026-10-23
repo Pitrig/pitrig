@@ -112,6 +112,20 @@
     },
     {
       "Message": {
+        "Expression": "if('' + isnull(if(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], 0) <= 0, '', Max(0, Min(100, ([DataCorePlugin.GameData.NewData.Rpms] - 0.85 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) / (0.15 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) * 100))), '') = '', 'SP;\\n', 'SP;' + format(if(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], 0) <= 0, '', Max(0, Min(100, ([DataCorePlugin.GameData.NewData.Rpms] - 0.85 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) / (0.15 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) * 100))), '0.#') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(if(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], 0) <= 0, '', [DataCorePlugin.GameData.NewData.Rpms] >= [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]), '') = '', 'SN;\\n', 'SN;' + if(if(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], 0) <= 0, '', [DataCorePlugin.GameData.NewData.Rpms] >= [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
         "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EngineStarted], [DataCorePlugin.GameData.EngineStarted]), '') = '', '09;\\n', '09;' + if(isnull([DataCorePlugin.GameData.NewData.EngineStarted], [DataCorePlugin.GameData.EngineStarted]), '1', '0') + '\\n')"
       },
       "IsEnabled": true,

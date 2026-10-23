@@ -142,7 +142,7 @@
       "deviceScanWasCancelled": "Device scan was cancelled."
     },
     "deviceErrors": {
-      "theSerialPortIsBusy": "The serial port is busy. Close SimHub, a serial monitor, or the other Pitrig app.",
+      "theSerialPortIsBusy": "The serial port is busy. Close the program that uses it: a SimHub Custom Serial device, a serial monitor, or the other Pitrig app.",
       "permissionToOpenTheSerial": "Permission to open the serial port was denied.",
       "theSerialPortIsNo": "The serial port is no longer available."
     },
@@ -1102,7 +1102,7 @@
     },
     "profiles": {
       "shiftLights": "Shift lights",
-      "oneStepPerLampFrom": "Up to sixteen steps across the lamps from 70% to 97% of the revs, green through yellow to pink, then the whole run flashes red.",
+      "oneStepPerLampFrom": "Up to sixteen steps across the lamps, filled by the car's own shift points in the current gear — from the game where it tells, otherwise from SimHub's car settings — green through yellow to pink, then the whole run flashes red when it is time to shift.",
       "gear": "Gear",
       "theSelectedGearDrawnIn": "The selected gear, drawn in the largest built-in face the panel can hold, turning amber and then red as the revs climb. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.",
       "aBS": "ABS",
@@ -1355,7 +1355,49 @@
       "whatProducesTheValuesThe": "What produces the values the dashboard draws.",
       "simHub": "SimHub",
       "inUse": "In use",
-      "aCustomSerialDeviceProfile": "A Custom Serial Device profile on the PC writes one line per field over the same link this configurator uses. It is the source the packaged configurator uses; a second one would be chosen here."
+      "aCustomSerialDeviceProfile": "The Pitrig plugin in SimHub finds the board by itself and sends it one line per field over the link this configurator uses. A Custom Serial Device profile still works without the plugin and is exported below."
+    },
+    "bridgeSection": {
+      "title": "SimHub plugin",
+      "description": "The Pitrig plugin in SimHub feeds the board by itself. While this configurator is connected to a board the plugin hands it over and its telemetry passes through here on the way, so the dashboard, the lamps and the catalog below show it as it arrives.",
+      "pluginVersion": "Plugin {version}",
+      "pluginMissing": "No plugin",
+      "pluginHint": "No Pitrig plugin answers on this PC. The Windows installer of this configurator adds it to SimHub; restart SimHub afterwards and enable Pitrig telemetry when it asks.",
+      "boardsTitle": "Boards the plugin feeds",
+      "noBoards": "None right now.",
+      "portBusy": "{path} is used by another program, perhaps a SimHub Custom Serial device. Remove that device from SimHub so the plugin can feed the board.",
+      "receiving": "Receiving",
+      "waiting": "Waiting for the plugin",
+      "relaying": "Forwarding to the board",
+      "previewOnly": "No board connected — preview only",
+      "suspended": "Held back while the board is busy",
+      "connection": "Connection",
+      "simhubHost": "SimHub machine",
+      "simhubPort": "Plugin port",
+      "listenPort": "Listen on port",
+      "simhubHostHint": "A loopback address keeps everything on this PC. Any other address reaches a plugin over the local network for a preview only: a board is handed over only by a plugin on this PC.",
+      "apply": "Apply",
+      "applying": "Applying…",
+      "asking": "Asking",
+      "sending": "Sending",
+      "measured": "Measured",
+      "addedLatency": "Added by the bridge",
+      "drainLatency": "Through to the board",
+      "lines": "Lines",
+      "fields": "Fields",
+      "bytes": "Bytes",
+      "packets": "Packets",
+      "lostPackets": "Lost packets",
+      "dropped": "Dropped",
+      "droppedValue": "{bytes} · {errors} write errors",
+      "noSamples": "Nothing measured yet.",
+      "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · max {max} ms",
+      "perSecond": "{value}/s"
+    },
+    "bridgeService": {
+      "theLinkClosed": "The telemetry link closed.",
+      "portTaken": "Port {port} is already taken. Choose another one here and in the plugin.",
+      "invalidRequest": "Invalid telemetry bridge request."
     },
     "simHubProfileSection": {
       "simHubProfile": "SimHub profile",

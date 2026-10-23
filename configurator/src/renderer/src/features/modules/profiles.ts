@@ -11,11 +11,11 @@ import { t } from '@shared/ui-text'
 
 export type { LampRange, LedProfile, MatrixSize, ProfileParts } from './profile-types'
 
-const SHIFT_FIRST = 0.7
-const SHIFT_LAST = 0.97
 const SHIFT_RAMP: readonly RgbColor[] = ['#00C853', '#FFD600', '#FF2D95']
-const GEAR_CAUTION = 90
-const GEAR_LIMIT = 97
+const SHIFT_PROGRESS = 'engine.shift_progress'
+const SHIFT_NOW = 'engine.shift_now'
+const GEAR_CAUTION = 60
+const GEAR_LIMIT = 100
 
 function rampAt(position: number): RgbColor {
   const span = SHIFT_RAMP.length - 1
@@ -35,7 +35,7 @@ function shiftSteps(lamps: number): IndicatorSegment[] {
   return Array.from({ length: count }, (_, index) => {
     const position = count === 1 ? 0 : index / (count - 1)
     return {
-      threshold: Number((SHIFT_FIRST + (SHIFT_LAST - SHIFT_FIRST) * position).toFixed(4)),
+      threshold: Number(((index + 1) / count).toFixed(4)),
       color: rampAt(position)
     }
   })
@@ -53,7 +53,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
           type: 'steps',
           id: 'Shift lights',
           ...area(range),
-          source: { binding: 'engine.rpm_percent' },
+          source: { binding: SHIFT_PROGRESS },
           minimum: 0,
           maximum: 100,
           steps: shiftSteps(lamps)
@@ -64,9 +64,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
           color: '#D50000',
           blink_ms: 150,
           ...area(range),
-          gate: 'conditions',
-          condition_source: { binding: 'engine.rpm_percent' },
-          conditions: [{ op: 'at_or_above', value: 97 }]
+          ...whenTrue(SHIFT_NOW)
         }
       ]
     })
@@ -86,7 +84,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
           font: gearFace(matrix),
           color: '#FFFFFF',
           source: { binding: 'transmission.gear' },
-          condition_source: { binding: 'engine.rpm_percent' },
+          condition_source: { binding: SHIFT_PROGRESS },
           color_rules: [
             { op: 'at_or_above', value: GEAR_LIMIT, color: '#D50000' },
             { op: 'at_or_above', value: GEAR_CAUTION, color: '#FFD600' }

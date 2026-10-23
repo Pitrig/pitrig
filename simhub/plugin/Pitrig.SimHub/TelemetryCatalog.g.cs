@@ -38,6 +38,9 @@ namespace Pitrig.SimHub
         LiveDelta,
         RpmPercent,
         SectorDelta,
+        ShiftNow,
+        ShiftProgress,
+        ShiftRpm,
         SlipAngle,
         TurboPressure
     }
@@ -108,7 +111,7 @@ namespace Pitrig.SimHub
     {
         public const string LinkMagic = "PT";
 
-        public const byte LinkVersion = 1;
+        public const byte LinkVersion = 2;
 
         public const int LinkDefaultPort = 45455;
 
@@ -136,8 +139,10 @@ namespace Pitrig.SimHub
             new TelemetryField("BB", "vehicle.brake_bias", "DataCorePlugin.GameData.BrakeBias", null, FieldComputation.None, FieldConversion.Number, "0.0", 1.0, null, FieldComparison.AtOrBelow, 0.0, FieldRate.Normal),
             new TelemetryField("R", "engine.rpm", "DataCorePlugin.GameData.NewData.Rpms", "DataCorePlugin.GameData.Rpms", FieldComputation.None, FieldConversion.Number, "0", 1.0, null, FieldComparison.None, 0.0, FieldRate.Fast),
             new TelemetryField("06", "engine.max_rpm", "DataCorePlugin.GameData.NewData.MaxRpm", "DataCorePlugin.GameData.MaxRpm", FieldComputation.None, FieldConversion.Number, "0", 1.0, null, FieldComparison.None, 0.0, FieldRate.Changes),
-            new TelemetryField("07", "engine.shift_rpm", "DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM", "DataCorePlugin.GameData.CarSettings_CurrentGearRedLineRPM", FieldComputation.None, FieldConversion.Number, "0", 1.0, null, FieldComparison.AtOrBelow, 0.0, FieldRate.Changes),
+            new TelemetryField("07", "engine.shift_rpm", null, null, FieldComputation.ShiftRpm, FieldConversion.Number, "0", 1.0, null, FieldComparison.AtOrBelow, 0.0, FieldRate.Changes),
             new TelemetryField("08", "engine.rpm_percent", null, null, FieldComputation.RpmPercent, FieldConversion.Number, "0.###", 1.0, null, FieldComparison.None, 0.0, FieldRate.Fast),
+            new TelemetryField("SP", "engine.shift_progress", null, null, FieldComputation.ShiftProgress, FieldConversion.Number, "0.#", 1.0, null, FieldComparison.None, 0.0, FieldRate.Fast),
+            new TelemetryField("SN", "engine.shift_now", null, null, FieldComputation.ShiftNow, FieldConversion.Boolean, null, 1.0, null, FieldComparison.None, 0.0, FieldRate.Fast),
             new TelemetryField("09", "engine.running", "DataCorePlugin.GameData.NewData.EngineStarted", "DataCorePlugin.GameData.EngineStarted", FieldComputation.None, FieldConversion.Boolean, null, 1.0, null, FieldComparison.None, 0.0, FieldRate.Normal),
             new TelemetryField("0a", "engine.ignition", "DataCorePlugin.GameData.NewData.EngineIgnitionOn", "DataCorePlugin.GameData.EngineIgnitionOn", FieldComputation.None, FieldConversion.Boolean, null, 1.0, null, FieldComparison.None, 0.0, FieldRate.Normal),
             new TelemetryField("0b", "engine.starter", "DataCorePlugin.GameData.NewData.StarterOn", "DataCorePlugin.GameData.StarterOn", FieldComputation.None, FieldConversion.Boolean, null, 1.0, null, FieldComparison.None, 0.0, FieldRate.Normal),

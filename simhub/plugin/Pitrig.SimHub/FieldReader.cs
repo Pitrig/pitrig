@@ -12,20 +12,21 @@ namespace Pitrig.SimHub
 
         private const int ValueCapacity = 63;
 
-        private readonly string[] last = new string[TelemetryCatalog.Fields.Length];
         private readonly SectorTracker sectors = new SectorTracker();
+        private readonly ShiftLights shifts = new ShiftLights();
 
-        public void Reset()
+        public string ShiftSource => shifts.Source;
+
+        public void BeginTick()
         {
-            Array.Clear(last, 0, last.Length);
-            sectors.Reset();
+            shifts.BeginTick();
         }
 
         public string Read(PluginManager pluginManager, StatusDataBase status, TelemetryField field)
         {
             var value = field.Computation == FieldComputation.None
                 ? Property(pluginManager, field)
-                : Computed.Evaluate(pluginManager, status, sectors, field.Computation);
+                : Computed.Evaluate(pluginManager, status, sectors, shifts, field.Computation);
             if (value == null) return field.Fallback;
             try
             {
@@ -37,16 +38,6 @@ namespace Pitrig.SimHub
             {
                 return field.Fallback;
             }
-        }
-
-        public bool Commit(int index, string text, bool keyframe)
-        {
-            if (string.Equals(last[index], text, StringComparison.Ordinal))
-            {
-                return keyframe && text != null;
-            }
-            last[index] = text;
-            return true;
         }
 
         private static object Property(PluginManager pluginManager, TelemetryField field)

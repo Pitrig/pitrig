@@ -30,7 +30,7 @@ import { ModulesPage } from '@/features/modules/ModulesPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
 import { subscribeToTelemetryBridge } from '@/features/telemetry/bridge-store'
 import { startLiveTelemetry } from '@/features/telemetry/live-telemetry'
-import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
+import { useTelemetryInterest } from '@/features/telemetry/telemetry-interest'
 import { t } from '@shared/ui-text'
 
 export function App(): React.JSX.Element {
@@ -52,8 +52,9 @@ export function App(): React.JSX.Element {
     () => window.pitrig.onImageUploadProgress(useImageUploadStore.getState().setProgress),
     []
   )
-  useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? subscribeToTelemetryBridge() : undefined), [])
-  useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? startLiveTelemetry() : undefined), [])
+  useEffect(() => subscribeToTelemetryBridge(), [])
+  useEffect(() => startLiveTelemetry(), [])
+  useTelemetryInterest()
   useBoardSync(dirtyDocuments)
 
   const mirroring = liveApplyAllowed && !saving && syncQuestion === undefined

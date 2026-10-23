@@ -180,16 +180,15 @@ arc, an indicator and a graph each carry a starting binding and their colours,
 an indicator six segments and a slot two pages, and a new image widget starts on
 the first installed image, because without one it has nothing to draw.
 
-In a development build the canvas draws live telemetry while the **Live
-telemetry** bridge on the Protocol page is running — the packaged configurator
-carries no bridge yet — with the widget's `unavailable_text` for a value the
-stream does not carry, and each source's zero placeholder when it is not, as
-the board does before its first telemetry line. The bridge takes the stream
-from the [SimHub plugin](simhub-plugin.md) and forwards it to the board
-unchanged, which
-is what lets a session drive the canvas and the board at once — the control
-protocol carries no command for reading values, and a board admits one link
-([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). Template thumbnails
+The canvas draws live telemetry whenever the [SimHub plugin](simhub-plugin.md)
+answers the bridge the Protocol page shows, with the widget's `unavailable_text`
+for a value the stream does not carry, and each source's zero placeholder when
+it is not, as the board does before its first telemetry line. While the
+configurator holds a board the bridge forwards the plugin's stream to it
+unchanged, which is what lets a session drive the canvas and the board at
+once — the control protocol carries no command for reading values, and a board
+admits one link ([ADR 0034](adr/0034-configurator-telemetry-bridge.md),
+[ADR 0035](adr/0035-simhub-plugin-feeds-the-board.md)). Template thumbnails
 stay on placeholders. Nothing
 about this touches the document.
 

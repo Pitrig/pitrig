@@ -4,7 +4,9 @@ Status: Accepted. Builds on
 [ADR 0029](0029-single-link-and-composite-usb-gamepad.md), whose single link is
 the reason the bridge has to exist, and on
 [ADR 0005](0005-telemetry-ingestion-boundaries.md), whose fixed slot array the
-bridge mirrors on the host.
+bridge mirrors on the host. [ADR 0035](0035-simhub-plugin-feeds-the-board.md)
+makes the plugin the board's feed and this bridge the configurator's side of a
+handover.
 
 ## Context
 
@@ -23,10 +25,13 @@ macOS and ask for a com0com half elsewhere: a per-platform install step, a
 
 ## Decision
 
-The configurator sits in the middle of the link. Telemetry arrives from the
-**Pitrig SimHub plugin** over a local socket, is forwarded to the board
-unchanged, and is decoded in passing to drive the previews. The plugin replaces
-the Custom Serial profile, which stays supported for a board fed directly
+The configurator sits in the middle of the link while it holds a board.
+Telemetry arrives from the **Pitrig SimHub plugin** over a local socket, is
+forwarded to the board unchanged, and is decoded in passing to drive the
+previews; with no board connected it drives the previews alone. The rest of the
+time the plugin feeds the board itself
+([ADR 0035](0035-simhub-plugin-feeds-the-board.md)), and the Custom Serial
+profile stays supported for a board fed without the plugin
 ([SimHub telemetry](../simhub-custom-serial.md)).
 
 **A datagram per tick.** The plugin sends UDP to a port the configurator binds:
@@ -68,9 +73,12 @@ second toggle to disagree with it. Template thumbnails and the insert ghost keep
 their placeholders — they are specimens, not the dashboard.
 
 **The configurator dials, the plugin answers.** The configurator names the
-machine SimHub runs on and sends a bare header to the plugin once a second; the
-plugin streams to whatever address that request came from and forgets it after
-three seconds of silence. The address is knowledge the authoring side already
+machine SimHub runs on and sends the plugin a request once a second: the header
+and `key=value` lines naming the fields it wants — the running documents' and
+the draft's bindings, or every field while the catalog table is open — and, on
+loopback, the ports it holds (ADR 0035). The plugin streams those fields to
+whatever address the request came from and forgets it after three seconds of
+silence. The address is knowledge the authoring side already
 has and the sim rig does not, so a rig on a second machine is configured where
 someone is already sitting, and the plugin needs nothing typed into it. Naming
 a non-loopback machine is itself the explicit choice to listen beyond
@@ -83,30 +91,23 @@ adds before the write, and what the write itself costs — plus line, field, byt
 and packet rates, lost packets, dropped bytes and write errors, and the Protocol
 page shows them.
 
-**Development builds only, until the plugin ships.** The plugin is not
-distributed yet, so the product must not offer a path that needs it.
-`TELEMETRY_BRIDGE_INCLUDED` in `shared/telemetry-bridge.ts`, which is
-`import.meta.env.DEV`, gates the bridge's service and IPC in the main process,
-the optional `telemetryBridge` preload API, and the renderer's panel,
-subscriptions and catalog value column; a production build drops the code behind
-it, and CI greps the packaged `app.asar` for `telemetry-bridge:` and
-`TelemetryBridgeService`, failing on either. What is asserted is that no path
-reaches the bridge, not that no trace of it survives: the generated string table
-carries the panel's `bridgeSection.*` entries into both bundles whatever the
-flag says, and a dropped module can leave a bare import behind it. Until then
-the packaged configurator's telemetry path is the Custom Serial profile.
+**Every build carries it.** The bridge starts with the application and dials
+the plugin on this machine; the Protocol page can name another machine for a
+preview, and a board is handed over only on loopback. The plugin answers with a
+status datagram — its version, the boards it feeds, the ports it has let go and
+the request it acknowledges — whose `@PT:` line the relay never forwards, since
+a payload with a line starting with `@` is not telemetry.
 
 ## Consequences
 
-- In a development build the dashboard preview, the lamp preview and the
-  telemetry catalog show live values, and a board can be watched at the same
-  time, with nothing to install besides the plugin.
+- The dashboard preview, the lamp preview and the telemetry catalog show live
+  values whenever SimHub runs, and a board can be watched at the same time.
 - The field mapping has one source: `telemetry/simhub_generic_mappings.json`
   generates the NCalc expressions of the Custom Serial profile and the plugin's
   own field table, so the two paths cannot drift.
-- The plugin is a .NET Framework assembly built against the SimHub install, so
-  it is not part of the repository's CI; only its generated field table is
-  checked.
+- The plugin is a .NET Framework assembly built against a SimHub install; CI
+  builds it against a pinned SimHub and the Windows installer ships it
+  (ADR 0035).
 - UDP can drop a datagram. Changes-only fields are the exposed case, and the
   one-second keyframe is what bounds it.
 - Reaching a plugin across the network needs the operating system's permission

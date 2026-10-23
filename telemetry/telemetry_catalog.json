@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maximum_fields": 256,
-  "expected_field_count": 228,
+  "expected_field_count": 230,
   "wheels": ["front_left", "front_right", "rear_left", "rear_right"],
   "fields": [
     {"name":"vehicle.speed","wire_id":"S","type":"text","unit":"source","category":"speed_control","rate":"fast","availability":"common","description":"Vehicle speed formatted by the telemetry source."},
@@ -17,6 +17,8 @@
     {"name":"engine.max_rpm","type":"float32","unit":"rpm","category":"engine","rate":"changes","availability":"common","description":"Maximum engine speed."},
     {"name":"engine.shift_rpm","type":"float32","unit":"rpm","category":"engine","rate":"changes","availability":"optional","description":"Recommended shift engine speed."},
     {"name":"engine.rpm_percent","type":"float32","unit":"percent","category":"engine","rate":"fast","availability":"computed","description":"Engine speed as a percentage of maximum RPM."},
+    {"name":"engine.shift_progress","wire_id":"SP","type":"float32","unit":"percent","category":"engine","rate":"fast","availability":"computed","description":"How far the current gear has gone from the car's first shift light to its full shift-light bar."},
+    {"name":"engine.shift_now","wire_id":"SN","type":"boolean","unit":"boolean","category":"engine","rate":"fast","availability":"computed","description":"Whether the engine has reached the car's shift point in the current gear."},
     {"name":"engine.running","type":"boolean","unit":"boolean","category":"engine","rate":"normal","availability":"optional","description":"Whether the engine is running."},
     {"name":"engine.ignition","type":"boolean","unit":"boolean","category":"engine","rate":"normal","availability":"optional","description":"Whether ignition is enabled."},
     {"name":"engine.starter","type":"boolean","unit":"boolean","category":"engine","rate":"normal","availability":"optional","description":"Whether the starter is active."},
