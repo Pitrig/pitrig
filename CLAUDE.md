@@ -97,8 +97,9 @@ cd configurator && pnpm run package
 
 `dev:debug` starts the second application from the same package (serial console, telemetry bench,
 `@PR:DIAG` charts); `typecheck` covers three projects; `build:debug` and `package:debug` do the same
-for the debugger into `out-debug/` and `dist-debug/`. There is no test runner. `electron` must stay
-in `allowBuilds` in `pnpm-workspace.yaml`, or `pnpm run dev` fails with `Error: Electron uninstall`.
+for the debugger into `out-debug/` and `dist-debug/`. There is no test runner. The package's
+`postinstall` runs `install-electron`, because since 44.9 Electron no longer fetches its binary on
+install; without it `pnpm run dev` fails with `Error: Electron uninstall`.
 
 ## Checks and generated contracts
 

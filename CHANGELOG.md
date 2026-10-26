@@ -111,6 +111,9 @@ fields without moving an identifier.
   same as `session.position`. In ACC, SimHub's leaderboard put the player one
   place behind it, so a dashboard showed class 23 beside position 22. Export the
   SimHub profile again to get the fix there too.
+- Dependencies updated for published vulnerabilities: Electron 44.9.3, Vite
+  7.3.7, and the transitive `undici`, `fast-uri`, `zod`, `source-map-js` and
+  `http-cache-semantics` the build tools pull in.
 
 ## 0.2.0 — 2026-10-18
 

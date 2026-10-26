@@ -177,9 +177,11 @@ not inheritance profiles.
 ## Traps
 
 Every dependency whose install script must run is listed in `allowBuilds` in
-`pnpm-workspace.yaml`, and `electron` is one of them: its install script
-downloads the binary, so without the entry `pnpm run dev` fails with
-`Error: Electron uninstall` while packaging still works. An unanswered entry
+`pnpm-workspace.yaml`. Electron's package has had no install script since 44.9,
+so the configurator's own `postinstall` runs `install-electron`: electron-vite
+reads `node_modules/electron/path.txt` instead of downloading, and without the
+binary `pnpm run dev` fails with `Error: Electron uninstall` while packaging
+still works. An unanswered entry
 (pnpm writes `set this to true or false`) makes every `pnpm run` fail until it
 is decided. Nothing is code-signed (`identity: null`). Test the serial protocol
 under Electron rather than plain node. Both applications show no menu
