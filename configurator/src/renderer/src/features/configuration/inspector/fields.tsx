@@ -125,7 +125,7 @@ export function ColorField({ label, value, onChange, ...meta }: PropertyMeta & {
   )
 }
 
-export function OptionalColorField({ label, value, onChange, hint }: { label: string; value?: string; onChange: (value: RgbColor | undefined) => void; hint?: string }): React.JSX.Element {
+export function OptionalColorField({ label, value, onChange, hint, unsetLabel }: { label: string; value?: string; onChange: (value: RgbColor | undefined) => void; hint?: string; unsetLabel?: string }): React.JSX.Element {
   const id = useId()
   return (
     <PropertyRow
@@ -137,7 +137,7 @@ export function OptionalColorField({ label, value, onChange, hint }: { label: st
     >
       <div className="flex items-center gap-1.5">
         <input id={value === undefined ? id : undefined} type="checkbox" className="size-3.5 flex-none" aria-label={t('inspector.fields.labelSet', { label: label })} checked={value !== undefined} onChange={(event) => onChange(event.target.checked ? '#000000' : undefined)} />
-        {value !== undefined ? <ColorControl label={label} value={value} onChange={onChange} /> : <span className="text-muted-foreground">{t('inspector.fields.notSet')}</span>}
+        {value !== undefined ? <ColorControl label={label} value={value} onChange={onChange} /> : <span className="text-muted-foreground">{unsetLabel ?? t('inspector.fields.notSet')}</span>}
       </div>
     </PropertyRow>
   )

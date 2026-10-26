@@ -216,6 +216,20 @@ board, because saving to the board delivers fonts and restarts it. A copied
 widget travels as JSON through the system clipboard, and a pasted fragment is
 validated against the same schema allow-list the device payload uses.
 
+The Modules page draws every lamp numbered where it is mounted and lit as the
+board would light it: from SimHub while a game or a replay sends values, and
+otherwise from a simulator whose switches and sliders are the values the
+device's layers read. Its colours ignore the device brightness, so a dim strip
+still reads. Clicking a strip's lamp adds it to the selected layer or takes it
+away, dragging does the same for a run, and `Alt`-click picks the layer on top;
+the inspector writes the same set as text, `3-6, 30-27`, a run written high to
+low running backwards. While `Add layer…` asks where a new layer goes, the
+clicks choose its lamps instead, the first one starting afresh; on a matrix they
+paint the selected layer's pixels. `Cmd`/`Ctrl`- or `Shift`-click in the layer
+list picks several layers to edit together, and `Cmd`/`Ctrl` with `Z`,
+`Shift+Z` and `D`, `Delete` and `Escape` undo, redo, duplicate, remove and
+deselect there.
+
 ### Keeping the draft and the board together
 
 Three things can differ, so the configurator tracks three: what the board has
@@ -233,6 +247,12 @@ Live apply stays off until that is answered, so a board is never quietly
 overwritten by a draft its author had forgotten about, and what else holds live
 apply back is named where it happens — safe mode, a draft targeting another
 board, a font the board does not hold, a draft that does not validate.
+
+A board whose firmware reads another configuration schema still connects: its
+documents are read and migrated into the draft, and nothing is written to it
+until the Firmware page has installed firmware for this schema. The board then
+draws its built-in dashboard, because it refuses records of the old schema, and
+`Save to board` puts the draft back.
 
 The board is asked `@PR:INFO` every five seconds while it is connected and no
 operation is running, which is what notices a document written from elsewhere;
@@ -463,7 +483,10 @@ what the document must satisfy:
   zero.
 - An `rgb_strip` is a pin and a `count`; its optional `segments` describe the
   mounting as straight runs in wire order, whose counts must sum to the strip's
-  own, and a matrix carrying any is rejected. An `rgb_matrix` is a pin and a
+  own, and a matrix carrying any is rejected. A layer on a strip lists `parts`,
+  runs of `from`, `count` and `reversed` inside the strip, none covering all of
+  it, and `layout` either joins them into one line or paints the whole effect
+  in each; a layer on a matrix carries none. An `rgb_matrix` is a pin and a
   `width` by `height` grid — eight by eight by default, sixteen at most — with
   its wiring `order`, `origin` corner and quarter-turn `rotation_deg`. The
   device's `brightness` is the one brightness; a layer has none.
@@ -477,12 +500,14 @@ what the document must satisfy:
   and `hold_ms`; a rule that sets none is rejected, as is a `condition_source`
   nothing reads or a gate or rule without one. `color` repaints what the layer
   draws, black pixels of a sprite excepted; `background_color` fills the lamps
-  the layer covers first; a rule's `blink_ms` takes over from the layer's while
-  it holds and `hold_ms` keeps it applied after it stops matching.
+  the layer covers first and stays through the dark half of a blink, so a black
+  one hides the layers below; a rule's `blink_ms` takes over from the layer's
+  while it holds and `hold_ms` keeps it applied after it stops matching.
 - A type the firmware does not know is rejected rather than ignored. Matrix
   artwork travels inside the document as palette-indexed pixels — no partition,
-  no upload, no restart — and a strip carrying sprites is rejected; a digit past
-  the end of the palette leaves the layers below visible. Breaking changes to
+  no upload, no restart — and a strip's sprites are one row tall, a matrix's at
+  most sixteen across; a digit past the end of the palette leaves the layers
+  below visible. Breaking changes to
   public properties require a later schema version; compatible bounded
   extensions must be recorded in an ADR.
 

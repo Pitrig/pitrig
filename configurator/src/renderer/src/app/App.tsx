@@ -16,6 +16,7 @@ import { useDraftState } from '@/features/device/draft-state'
 import { InfoPage } from '@/features/device/InfoPage'
 import { reportLiveApply } from '@/features/device/live-apply-store'
 import { SafeModeBanner } from '@/features/device/SafeModeBanner'
+import { SchemaBanner } from '@/features/device/SchemaBanner'
 import { UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
 import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import { useLiveApply } from '@/features/device/use-live-apply'
@@ -82,6 +83,7 @@ export function App(): React.JSX.Element {
       </header>
 
       <SafeModeBanner />
+      <SchemaBanner />
 
       <main className="flex min-h-0 overflow-hidden">
         <WorkspaceRail />

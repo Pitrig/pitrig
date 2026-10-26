@@ -110,6 +110,10 @@
       "livePreviewFailedError": "Live preview failed: {error}",
       "theBoardIsNotFollowing": "The board is not following the draft. {liveApplyBlockedReason}"
     },
+    "schemaBanner": {
+      "updateTheBoardFirmware": "Update the board's firmware",
+      "explanation": "Its firmware reads configuration schema {schema} and this configurator writes schema {expected}, so its configuration can be read and edited here but not saved to it. Install the firmware from the Firmware page; the board then shows its built-in dashboard until Save to board writes the draft back."
+    },
     "safeModeBanner": {
       "boardIsInSafeMode": "Board is in safe mode",
       "theLastOnePhase": ", the last one {phase}",
@@ -257,6 +261,7 @@
       "writeTheDashboardToThe": "Write the dashboard to the board (fonts install with it)"
     },
     "draftState": {
+      "theBoardFirmwareReadsSchema": "The board's firmware reads configuration schema {schema} and this configurator writes {expected}. Update its firmware on the Firmware page first.",
       "connectAPitrigBoardTo": "Connect a Pitrig board to mirror the draft on it.",
       "theBoardIsInSafe": "The board is in safe mode. It draws nothing until it is repaired and restarted.",
       "theDraftIsNotValid": "The draft is not valid, so the board keeps what it runs. {error}",
@@ -849,37 +854,40 @@
         "name": "What layers name this picture by. Renaming it follows through to every layer that draws it. Two pictures on one panel may not share a name.",
         "size": "Columns and rows of the picture itself, which need not match the panel: a smaller picture is drawn centred on whatever the layer paints on. The bigger it is the fewer frames fit, because each picture has a 1024-digit budget of its own.",
         "palette": "Colours this picture is drawn from, at most fifteen of them. Pick one to paint with, or Clear to leave a pixel unpainted so the layers below stay visible — that is a digit past the end of the palette rather than a colour, which is why the last one is kept free. Entry 1 is the unlit lamp by convention rather than by rule: it paints black over whatever is under it.",
+        "stripSize": "Lamps one frame of this animation spans. A layer plays it from the first lamp it covers, in its own direction, so the same drawing serves both ends of a wheel. The longer the row, the fewer frames fit, because each picture has a 1024-digit budget of its own.",
         "frames": "Frames of the animation, played in order by a layer with Play frames switched on. How many fit follows the size: sixteen of eight by eight, four of sixteen by sixteen. Duplicate a frame to draw the next one from it.",
         "mirror": "Plays this picture on the connected board while you draw, on its own, the way a layer previews. Needs a connected board that is following the draft; the panel goes back to the whole configuration when this is switched off."
       },
       "effect": {
         "stack": "Every layer whose gate holds paints at once. Where two of them cover the same lamp, the one that lit most recently wins it — so a flag comes up over shift lights whichever way round the two are listed — and layers that came up together keep the order they are in here. This is the opposite of a widget’s styling rules, where the first match wins: a widget resolves one appearance, while an output composes a picture out of many things being true at once.",
-        "type": "What this layer paints. steps is the shift-light idiom: thresholds shared out over the lamps it covers. gauge fills in proportion to the value. gradient spreads a colour ramp across the lamps. animation moves on its own timebase. sprite and text draw on a matrix.",
-        "area": "Which run of this device’s lamps the layer paints. Lamps are numbered from 1 here, while the saved document counts them from zero. A count of 0 covers the rest of the device.",
+        "type": "What this layer paints. steps is the shift-light idiom: thresholds shared out over the lamps it covers. gauge fills in proportion to the value. gradient spreads a colour ramp across the lamps. animation moves on its own timebase. sprite plays a picture, a grid on a matrix or a row of lamps on a strip, and text draws on a matrix.",
         "panel": "Which pixels of the panel this layer paints on. Click one to turn it off or on, or drag across several; All and Invert do the whole grid at once. Every pixel is the default and costs the document nothing. The layer works over the smallest box holding what you picked, so text and a picture still centre on the shape rather than on the panel.",
-        "sprite": "Which of the panel’s pictures this layer draws. Pictures are drawn on the Pictures tab, and a profile brings its own — the flags carry their artwork with them; a layer whose picture the panel does not carry is a composition error rather than a blank panel.",
+        "sprite": "Which of the device’s pictures this layer draws. Pictures are drawn on the Pictures tab, and a profile brings its own — the flags carry their artwork with them; a layer whose picture the panel does not carry is a composition error rather than a blank panel.",
         "loop": "Walks the picture’s frames on this layer’s own clock, one every Frame holds interval, which is how artwork moves without telemetry driving it. Left off, the layer holds the one frame named below.",
         "gate": "When this layer paints at all. always paints on every frame; conditions paints while a rule over its own watched value holds; telemetry idle paints only after two seconds of silence, which is what an idle animation and a lost-link warning both want.",
         "hold": "Keeps the layer painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash.",
-        "background": "Fills every lamp this layer covers before it draws, so a glyph or a picture sits on a ground of its own rather than on whatever the layers below left. Off paints no ground, which is what a layer over shift lights wants.",
+        "background": "Fills this layer’s lamps before it draws and keeps them filled while it blinks, so the layers below never show through it. Black hides them; another colour becomes the ground the layer draws on. Off lets the layers below show wherever this layer draws nothing — between blinks, between the dots of an animation, on the steps not yet lit.",
         "ruleTiming": "Blink is the period the whole layer flashes at while this rule holds, so one band of a value can flash without a second layer over it; it takes over from the layer’s own blink. Hold keeps the rule applied for that long after it stops matching, so a momentary trigger still leaves a visible flash of colour.",
         "colors": "Colours this layer takes while the watched value matches, the first matching rule winning — a gear that turns amber and then red as the revs climb. They describe rather than select: the gate says whether the layer paints at all, these say what colour it paints in. On a picture the colour repaints every lit pixel, so one drawing serves every state — the pixels it paints black stay black.",
-        "blink": "Full blink period of everything this layer paints. 0 paints steady.",
+        "blink": "Full blink period of what this layer draws. 0 paints steady. Between flashes the layers below show through, unless Covers is ticked.",
+        "lamps": "Which lamps this layer covers, numbered from 1 as they are wired. Separate runs with commas; a run written high to low, such as 30-27, runs backwards, and the order you write them in is the order a fill takes. Click lamps on the map to add or remove them, or drag across a run.",
+        "spread": "As one line lays the parts end to end, so a fill runs from one into the next. Each part on its own paints the whole effect in every part at once, so the flags at both ends of a wheel flash as one.",
+        "hysteresis": "Once the gate holds, the watched value has to fall this far back past a rule's threshold before the layer lets go, so revs hovering on a shift point cannot switch it on and off every frame. 0 lets go at once.",
+        "span": "How many lamps the motion spans: the comet's tail, the gap of a theater chase, the bouncing block, the sparkles of one pass.",
+        "scaled": "Maps the bound value through Minimum and Maximum onto the picture's frames, the first frame at the minimum and the last at the maximum, so a picture drawn as a sequence follows the revs. Off, the value is the frame number itself.",
         "shape": "Which way the layer fills the lamps it covers. Along the run starts at the first lamp; backwards starts at the last. Out from the middle paints both ways at once from the centre, which is what a centred rev bar wants; in from the ends does the opposite, closing on the centre."
       }
     },
     "effectEditor": {
       "paints": "Paints",
-      "area": "Area",
-      "firstLampOfThisDevice": "First lamp of this device, counted from 1",
-      "lampsCovered0CoversThe": "Lamps covered; 0 covers the rest",
       "from": "From",
-      "count": "Count",
       "colour": "Colour",
       "picture": "Picture",
       "playFrames": "Play frames",
       "frameHolds": "Frame holds",
       "frame": "Frame",
+      "framesFollowTheRange": "Frames follow the range",
+      "span": "Span",
       "whichFrameToHoldStill": "Which frame to hold still. With telemetry bound the value picks it instead.",
       "text": "Text",
       "drawnAsAuthoredWithA": "Drawn in the built-in face, which carries only the digits, N and R — other characters stay dark. With a source bound this becomes the prefix and the source supplies the rest.",
@@ -899,11 +907,64 @@
       "previewIndex": "Preview {index}",
       "moveLayerNumberDownThe": "Move layer {number} down the stack",
       "moveLayerNumberUpThe": "Move layer {number} up the stack",
-      "removeLayerNumber": "Remove layer {number}"
+      "removeLayerNumber": "Remove layer {number}",
+      "ctrlClickOrShiftClick": "Ctrl-click or Shift-click picks several layers to change together.",
+      "pickAll": "Pick all",
+      "groupsDifferOnlyInLamps": "{count} groups of layers differ only in their lamps, so one layer each would do the same.",
+      "merge": "Merge",
+      "mergesNames": "Merges the copies of {names} into one layer each, every part painting on its own as before",
+      "picksEveryLayerInThis": "Picks every layer in this group, to change them together"
+    },
+    "effectRow": {
+      "lampsOfName": "{name}: lamps {lamps}. Click to edit it; Ctrl-click or Shift-click picks several.",
+      "duplicateName": "Duplicate {name}"
+    },
+    "layerGroups": {
+      "whenTelemetryStops": "When telemetry stops",
+      "alwaysOn": "Always on"
+    },
+    "layerWarnings": {
+      "coversNoLamps": "Covers no lamps: its first lamp is past the end of the strip.",
+      "sameAsLayer": "Same as {name}, so one of the two does nothing.",
+      "alwaysHiddenUnder": "Never seen: {name} always paints over every lamp it covers.",
+      "showsThroughBetweenFlashes": "Between flashes {names} show through. Ticking Covers keeps them dark."
+    },
+    "multiEffectEditor": {
+      "countLayers": "{count} layers",
+      "labelMixed": "{label} (mixed)",
+      "whatYouChangeHere": "What you change here is written to every picked layer. A field marked mixed differs between them and shows the first layer’s value.",
+      "duplicateCount": "Duplicate {count}",
+      "removeCount": "Remove {count}"
+    },
+    "simulator": {
+      "drivenBy": "Driven by",
+      "simHub": "SimHub",
+      "simulator": "Simulator",
+      "theLampsFollowTheGame": "The lamps follow the game, as the board does.",
+      "simHubIsSendingTelemetry": "SimHub is sending telemetry, but these values drive the preview instead.",
+      "noTelemetryFromSimHub": "No telemetry from SimHub, so these values drive the preview.",
+      "simHubSendsNoValues": "SimHub sends no values until a game or a replay runs, so these values drive the preview.",
+      "simHubSendsNoValuesDark": "SimHub sends no values until a game or a replay runs, so the lamps stay dark.",
+      "startAGameOrA": "Start a game or a replay in SimHub to follow it here",
+      "reset": "Reset",
+      "resetEveryValue": "Puts every value back where it started",
+      "sweep": "Sweep",
+      "stopSweeping": "Stop sweeping",
+      "sweepsTheValueUpAnd": "Sweeps the value up and down on its own",
+      "telemetryLost": "Telemetry lost",
+      "layersGatedOnTelemetryIdle": "Lights the layers that wait for telemetry to stop, such as a lost-link warning",
+      "noLayerReadsTelemetry": "No layer reads telemetry, so there is nothing to simulate."
     },
     "ledPreview": {
       "preview": "Preview",
-      "darkUntilALayerOr": "Dark until a layer or a picture is played. Press the preview button on one to watch it here.",
+      "everyLampAsTheBoard": "Every lamp numbered and placed as it is mounted, lit the way the board lights it: from SimHub while it sends telemetry, from the simulator below otherwise. A layer’s play button shows it on its own.",
+      "dragAcrossLampsToSet": "Click lamps to add them to {name} or take them away, or drag across a run. Alt-click picks the layer on top.",
+      "clickALampToPick": "Click a lamp to pick the layer on top of it.",
+      "clickLampsForTheNewLayer": "Click lamps to choose where the new layer goes, or drag across a run; the first click starts afresh. Alt-click picks the layer on top.",
+      "clickPixelsToShowName": "Click pixels to show {name} on them or take it off, or drag across several. Alt-click picks the layer on top.",
+      "lampNumberNoLayer": "Lamp {number}: no layer covers it.",
+      "lampNumberLayers": "Lamp {number}: {names}. None of them is lit now.",
+      "lampNumberLayersOnTop": "Lamp {number}: {names}. On top now: {top}.",
       "nameOnItsOwnOver": "{name} on its own, over and over.{note} Press its button again to stop.",
       "namesTogetherOverAndOver": "{names} together, over and over. Where they share a lamp the one played last wins, the way the board resolves it.",
       "pictureSprite": "Picture {sprite}"
@@ -919,6 +980,8 @@
       "pickALayerToEdit": "Pick a layer to edit what it paints.",
       "pictures": "Pictures",
       "artworkThisPanelDrawsDrawn": "Artwork this panel draws, drawn here and carried inside the modules document.",
+      "animations": "Animations",
+      "animationsThisStripPlays": "Animations this strip plays, drawn here lamp by lamp and frame by frame and carried inside the modules document. A sprite layer plays one on the lamps it covers.",
       "pickAPictureToDraw": "Pick a picture to draw it, or make a new one.",
       "lEDs": "LEDs",
       "matrix": "Matrix",
@@ -960,6 +1023,17 @@
       "currentEstimate": "{lamps} lamps could draw about {peak} mA at full white and this brightness.",
       "pinPinLampsLamps": "pin {pin} · {lamps} lamps"
     },
+    "lampsField": {
+      "lamps": "Lamps",
+      "writeLampsLike": "Write lamps like 3-6, 30-27: from 1 to {lamps}, at most {parts} parts.",
+      "clickToRunThisPart": "Click to run this part the other way",
+      "wholeStrip": "Whole strip",
+      "mirror": "Mirror to the other side",
+      "addsTheMirrorImage": "Adds the same lamps on the other side of the strip, running the other way",
+      "spread": "Spread",
+      "asOneLine": "As one line",
+      "eachPartOnItsOwn": "Each part on its own"
+    },
     "panelArea": {
       "showsOn": "Shows on",
       "all": "All",
@@ -975,10 +1049,7 @@
       "closeTheLayerPicker": "Close the layer picker",
       "customLayer": "Custom layer",
       "aBlankLayerWithEvery": "A blank layer with every control open.",
-      "firstLampOfTheProfile": "First lamp of the profile",
-      "to": "to",
-      "lastLampOfTheProfile": "Last lamp of the profile",
-      "theCoveredLampsGlowIn": "The covered lamps glow in the preview above.",
+      "theCoveredLampsGlowIn": "Click lamps in the preview above to choose where the new layer goes, or drag across a run; the first click starts afresh. Written as text, several runs such as 3-6, 27-30 put it on each of them at once.",
       "addToThisDevice": "Add to this device",
       "whatShouldTheNewLayer": "What should the new layer do?",
       "runNumberRange": "Run {number} · {from}–{to}"
@@ -996,6 +1067,10 @@
     },
     "spriteEditor": {
       "fitPanel": "Fit panel",
+      "fitStrip": "Fit strip",
+      "matchesTheStripLamps": "Matches the strip, {lamps} lamps",
+      "showOnStrip": "Show on strip",
+      "showingOnStrip": "Showing on strip",
       "paintsEveryPixelOfThis": "Paints every pixel of this frame with the chosen ink",
       "clearsThisFrameLeavingThe": "Clears this frame, leaving the layers below it visible",
       "valueMs": "{value} ms",
@@ -1011,6 +1086,9 @@
       "ghostPreviousFrame": "Ghost previous frame",
       "fillFrame": "Fill frame",
       "clearFrame": "Clear frame"
+    },
+    "stripTimeline": {
+      "frameLamp": "Frame {frame}, lamp {lamp}"
     },
     "spriteFrames": {
       "frames": "Frames",
@@ -1077,7 +1155,12 @@
       "gate": "Gate",
       "addRule": "Add rule",
       "hold": "Hold",
-      "blink": "Blink"
+      "blink": "Blink",
+      "switchOffMargin": "Switch-off margin",
+      "coversLayersBelow": "Covers",
+      "noTheyShowThrough": "No — the layers below show through",
+      "betweenFlashesNamesShowThrough": "Between flashes {names} show through.",
+      "coverThem": "Cover them"
     },
     "effectPayload": {
       "thresholds": "Thresholds",
@@ -2037,7 +2120,8 @@
     "hardware": {
       "labelIsAMatrixWhose": "{label} is a matrix, whose arrangement is its grid rather than a list of runs.",
       "labelArrangesArrangedLampsOver": "{label} arranges {arranged} lamps over its runs, but the strip drives {lamps}.",
-      "labelIsAStripSo": "{label} is a strip, so it has nothing to draw a sprite on.",
+      "ownerIsWiderThanAPanel": "{owner} is wider than a panel can be: a matrix picture is at most {side} across.",
+      "ownerOnAStripIsOneRow": "{owner} is on a strip, so it is one row of lamps tall.",
       "labelCarriesASpriteWith": "{label} carries a sprite with no id.",
       "labelCarriesTwoSpritesNamed": "{label} carries two sprites named {id}.",
       "ownerNamesNoPaletteColours": "{owner} names no palette colours.",
@@ -2087,6 +2171,9 @@
       "labelHasStepNumberBelow": "{label} has step {number} below the one before it; thresholds climb.",
       "colourRuleOfLabelCompares": "Colour rule {number} of {label} compares against something that is not a number.",
       "labelCoversLampsFromTo": "{label} covers lamps {from} to {to} of a device that has {lamps}.",
+      "labelListsStripLamps": "{label} lists strip lamps, but a layer on a panel says where it paints with its pixels.",
+      "partNumberOfLabel": "Part {number} of {label}",
+      "labelSetsANegativeSwitchOff": "{label} sets a negative switch-off margin; it can only be 0 or more.",
       "colourRuleOfLabel": "Colour rule {number} of {label}",
       "ownerPaintsNothingGiveIt": "{owner} paints nothing: give it a colour, a background or a blink."
     },
