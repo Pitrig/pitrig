@@ -24,7 +24,7 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
-## Unreleased
+## 0.3.0 — 2026-10-27
 
 **Configuration schema 27.** A board updated to this firmware refuses its stored
 documents and draws its built-in dashboard until the configurator saves them
