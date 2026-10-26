@@ -13,7 +13,7 @@ export type { LampRange, LedProfile, MatrixSize, ProfileParts } from './profile-
 
 const SHIFT_RAMP: readonly RgbColor[] = ['#00C853', '#FFD600', '#FF2D95']
 const SHIFT_PROGRESS = 'engine.shift_progress'
-const SHIFT_NOW = 'engine.shift_now'
+const SHIFT_REACHED = 'engine.redline_reached'
 const GEAR_CAUTION = 60
 const GEAR_LIMIT = 100
 
@@ -64,7 +64,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
           color: '#D50000',
           blink_ms: 150,
           ...area(range),
-          ...whenTrue(SHIFT_NOW)
+          ...whenTrue(SHIFT_REACHED)
         }
       ]
     })

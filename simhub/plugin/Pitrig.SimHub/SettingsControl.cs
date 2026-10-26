@@ -12,11 +12,16 @@ namespace Pitrig.SimHub
 {
     internal sealed class SettingsControl : UserControl
     {
+        private const double MaximumReserveLaps = 10;
+        private const int MaximumAverageLaps = 10;
+
         private static readonly Thickness RowMargin = new Thickness(0, 4, 0, 0);
         private static readonly Thickness SectionMargin = new Thickness(0, 14, 0, 0);
 
         private readonly PitrigPlugin plugin;
         private readonly TextBox port = new TextBox();
+        private readonly TextBox reserveLaps = new TextBox();
+        private readonly TextBox averageLaps = new TextBox();
         private readonly CheckBox enabled = new CheckBox { Content = "Send telemetry" };
         private readonly TextBlock boards = Wrapped();
         private readonly TextBlock configurator = Wrapped();
@@ -33,6 +38,8 @@ namespace Pitrig.SimHub
         {
             this.plugin = plugin;
             port.Text = plugin.Settings.Port.ToString(CultureInfo.InvariantCulture);
+            reserveLaps.Text = plugin.Settings.FuelReserveLaps.ToString(CultureInfo.InvariantCulture);
+            averageLaps.Text = plugin.Settings.AverageLaps.ToString(CultureInfo.InvariantCulture);
             enabled.IsChecked = plugin.Settings.Enabled;
             Content = Layout();
             refresh.Tick += (sender, arguments) => ShowState();
@@ -64,6 +71,16 @@ namespace Pitrig.SimHub
             addresses.Margin = RowMargin;
             panel.Children.Add(addresses);
             panel.Children.Add(Row("Listen port", port));
+            panel.Children.Add(Heading("Fuel and averages"));
+            panel.Children.Add(Row("Fuel reserve, laps", reserveLaps));
+            panel.Children.Add(Row("Tyre and brake averages over, laps", averageLaps));
+            panel.Children.Add(new TextBlock
+            {
+                Text = "These match the configurator's SimHub profile export. The averages restart " +
+                       "on leaving the pits and in a new session.",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = RowMargin
+            });
             panel.Children.Add(Heading("Shift lights"));
             panel.Children.Add(shifts);
             panel.Children.Add(Heading("Cost"));
@@ -118,10 +135,24 @@ namespace Pitrig.SimHub
                 state.Text = "The port must be a number between 1024 and 65535.";
                 return;
             }
+            if (!double.TryParse(reserveLaps.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out var reserve) || reserve < 0 || reserve > MaximumReserveLaps)
+            {
+                state.Text = "The fuel reserve must be a number of laps between 0 and 10.";
+                return;
+            }
+            if (!int.TryParse(averageLaps.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var laps) ||
+                laps < 1 || laps > MaximumAverageLaps)
+            {
+                state.Text = "The averages must cover between 1 and 10 laps.";
+                return;
+            }
             plugin.Apply(new PluginSettings
             {
                 Port = number,
                 Enabled = enabled.IsChecked == true,
+                FuelReserveLaps = reserve,
+                AverageLaps = laps,
                 KnownPorts = plugin.Settings.KnownPorts
             });
             ShowState();

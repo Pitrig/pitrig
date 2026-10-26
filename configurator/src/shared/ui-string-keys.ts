@@ -1377,17 +1377,23 @@ export type UiStringKey =
   | 'protocol.protocolPage.telemetrySource'
   | 'protocol.protocolPage.whatProducesTheValuesThe'
   | 'protocol.protocolPage.whereTelemetryComesFromHow'
+  | 'protocol.simHubProfile.invalidSimHubParameters'
   | 'protocol.simHubProfile.simHubProfileBaudRateMust'
   | 'protocol.simHubProfile.unknownSimHubTelemetryFields'
   | 'protocol.simHubProfileSection.allTelemetry'
+  | 'protocol.simHubProfileSection.averagesOver'
+  | 'protocol.simHubProfileSection.averagesOverHint'
   | 'protocol.simHubProfileSection.baudRateBaud'
   | 'protocol.simHubProfileSection.baudUnavailable'
   | 'protocol.simHubProfileSection.dashboardOnly'
   | 'protocol.simHubProfileSection.failedToExportTheSimhub'
   | 'protocol.simHubProfileSection.fileNameSavedWithFields'
+  | 'protocol.simHubProfileSection.fuelReserve'
+  | 'protocol.simHubProfileSection.fuelReserveHint'
   | 'protocol.simHubProfileSection.generateACustomSerialDevice'
   | 'protocol.simHubProfileSection.generateProfile'
   | 'protocol.simHubProfileSection.generating'
+  | 'protocol.simHubProfileSection.laps'
   | 'protocol.simHubProfileSection.lengthFields'
   | 'protocol.simHubProfileSection.noValidDraft'
   | 'protocol.simHubProfileSection.onlyTheBindingsAndModule'
@@ -1977,6 +1983,7 @@ export interface UiStringParameters {
   'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
   'protocol.bridgeService.portTaken': { port: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
+  'protocol.simHubProfile.invalidSimHubParameters': { names: string | number }
   'protocol.simHubProfile.unknownSimHubTelemetryFields': { fields: string | number }
   'protocol.simHubProfileSection.baudRateBaud': { baudRate: string | number }
   'protocol.simHubProfileSection.fileNameSavedWithFields': { count: number, fileName: string | number }

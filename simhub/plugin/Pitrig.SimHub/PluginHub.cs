@@ -18,7 +18,7 @@ namespace Pitrig.SimHub
 
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private readonly FieldValues values = new FieldValues();
-        private readonly FieldReader reader = new FieldReader();
+        private readonly TelemetryState state = new TelemetryState();
         private readonly double[] due = new double[TelemetryCatalog.Fields.Length];
         private readonly bool[] wanted = new bool[TelemetryCatalog.Fields.Length];
         private readonly object settingsGate = new object();
@@ -27,6 +27,7 @@ namespace Pitrig.SimHub
         private PitrigPlugin owner;
         private PluginSettings settings = new PluginSettings();
         private int settingsDirty;
+        private int stateStale = 1;
         private volatile bool running;
         private int linkPort = -1;
         private long costNanoseconds;
@@ -49,7 +50,7 @@ namespace Pitrig.SimHub
 
         public BoardManager Boards => boards;
 
-        public string ShiftSource => reader.ShiftSource;
+        public string ShiftSource => state.Shifts.Source;
 
         public double CostMicroseconds => Interlocked.Read(ref costNanoseconds) / 1000.0;
 
@@ -69,6 +70,7 @@ namespace Pitrig.SimHub
         public void Apply(PluginSettings next)
         {
             lock (settingsGate) settings = next;
+            Interlocked.Exchange(ref stateStale, 1);
             Error = null;
             if (!next.Enabled)
             {
@@ -106,17 +108,19 @@ namespace Pitrig.SimHub
             var started = clock.ElapsedTicks;
             var now = clock.Elapsed.TotalMilliseconds;
             if (Interlocked.Exchange(ref settingsDirty, 0) == 1) owner?.SaveSettings();
+            if (Interlocked.Exchange(ref stateStale, 0) == 1) state.Reset();
+            PluginSettings current;
+            lock (settingsGate) current = settings;
+            state.Update(pluginManager, data, current, now);
             Array.Clear(wanted, 0, wanted.Length);
             boards.CollectWanted(wanted);
             link.CollectWanted(wanted);
-            reader.BeginTick();
-            var status = data?.NewData;
             var fields = TelemetryCatalog.Fields;
             for (var index = 0; index < fields.Length; index += 1)
             {
                 if (!wanted[index] || now < due[index]) continue;
-                due[index] = now + IntervalOf(fields[index].Rate);
-                values.Set(index, reader.Read(pluginManager, status, fields[index]));
+                due[index] = Math.Max(due[index] + IntervalOf(fields[index].Rate), now);
+                values.Set(index, FieldReader.Read(state, fields[index]));
             }
             link.Publish(values);
             boards.WakeAll();

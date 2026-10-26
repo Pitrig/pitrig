@@ -8,6 +8,10 @@ namespace Pitrig.SimHub
 
         public bool Enabled { get; set; } = true;
 
+        public double FuelReserveLaps { get; set; } = TelemetryCatalog.ParameterFuelReserveLaps;
+
+        public int AverageLaps { get; set; } = (int)TelemetryCatalog.ParameterAverageLaps;
+
         public List<KnownPort> KnownPorts { get; set; } = new List<KnownPort>();
     }
 

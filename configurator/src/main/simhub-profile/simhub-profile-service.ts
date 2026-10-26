@@ -18,7 +18,7 @@ export class SimHubProfileService {
   ): Promise<SimHubProfileResult<SimHubProfileExportValue>> {
     let content: string
     try {
-      content = generateSimHubProfile(request.fieldNames, request.baudRate)
+      content = generateSimHubProfile(request.fieldNames, request.baudRate, request.parameters)
     } catch (error) {
       return failure(
         'invalid_request',

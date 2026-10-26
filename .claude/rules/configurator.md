@@ -116,7 +116,7 @@ draft's bindings, or every field while the catalog table is mounted.
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 230-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 252-row catalog table),
 so nothing re-renders while the bridge is stopped. `PreviewCanvas` reads live
 values per frame and the lamp preview (`features/modules/LedPreview.tsx` over
 `preview-values.ts`) with it, while the catalog table in

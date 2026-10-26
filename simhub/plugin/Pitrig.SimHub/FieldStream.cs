@@ -78,8 +78,8 @@ namespace Pitrig.SimHub
                 refreshCursor = (refreshCursor + 1) % fields.Length;
                 var index = fields[refreshCursor];
                 var value = sent[index];
-                if (value == null || ReferenceEquals(value, Unsent)) continue;
-                sink.Add(TelemetryCatalog.Fields[index].WireId, value);
+                if (ReferenceEquals(value, Unsent)) continue;
+                sink.Add(TelemetryCatalog.Fields[index].WireId, value ?? string.Empty);
             }
         }
     }

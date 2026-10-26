@@ -33,16 +33,17 @@ alone until it disappears and comes back.
 
 On a board that answers, the plugin reads the dashboard and modules documents
 and sends the fields they bind, at the catalog rates, changed values only, with
-every value repeated within a second. A board in safe mode is shown and left
+every value repeated within a second, an empty one included, since an empty
+value invalidates the field on the board. A board in safe mode is shown and left
 alone. The panel lists each board, what it is sent and how many bytes a second,
 the shift-light source of the current car, and what the plugin costs SimHub per
 update.
 
 ## Shift lights
 
-`engine.shift_progress` and `engine.shift_now`
-([ADR 0036](adr/0036-per-car-shift-lights.md)) come from the first source that
-answers:
+`engine.shift_rpm`, `engine.shift_percent`, `engine.shift_progress` and
+`engine.redline_reached` ([ADR 0036](adr/0036-per-car-shift-lights.md)) come
+from the first source that answers:
 
 | Game | Source |
 | --- | --- |
@@ -50,7 +51,7 @@ answers:
 | F1 | `GameRawData.PlayerCarTelemetryData.m_revLightsPercent` |
 | RaceRoom | `GameRawData.UpshiftRps`, in radians a second |
 | Any | `CarSettings_CurrentGearRedLineRPM` from SimHub's car settings, the bar starting at 85 % of it |
-| Any | 97 % of `MaxRpm` |
+| Any | 97 % of the maximum RPM, SimHub's car settings first |
 
 The raw paths are the ones SimHub publishes; check them in SimHub's property
 list, with game-specific properties shown, when a game misbehaves.
@@ -60,13 +61,20 @@ list, with game-specific properties shown, when a game misbehaves.
 A mapping's `unavailable_when` names the values a game uses to mean nothing — an
 `EngineMap` of −1, a water temperature of 0 — and both paths send them empty, so
 the board draws the widget's `unavailable_text`. A `uint32` field refuses a
-negative value the same way. The live delta is sent as the game reports it; the
-fifth-of-a-lap bound survives where a delta feeds a computed time — the estimated
-lap time and the sector delta. The sector delta keeps the live delta at the last
-sector boundary and the gaps read the opponent list, neither of which an
-expression can hold, so the Custom Serial profile sends the last completed sector
-against the best lap and PersistantTracker's gap to the neighbouring driver
-instead.
+negative value the same way, because the board cannot parse one. The live delta
+itself is sent as the game reports it, and is empty only when the game reports
+nothing; the fifth-of-a-lap bound survives where a delta feeds a computed time —
+the estimated lap time and the sector delta — because a replay or a switched car
+would otherwise produce a nonsensical clock.
+
+Both paths compute the same fields from the same SimHub data. A field with no
+single property is a formula in the Custom Serial profile and a native twin in
+`Computed.cs` and the classes beside it, named by the mapping's `computed` key,
+so a change to one side is a visible change to the other: the gaps and the
+class position come from SimHub's leaderboard, and the sector delta keeps the
+live delta at the last sector boundary. Only the shift lights go further in the
+plugin, where the game's own data is within reach. The panel's fuel reserve and
+averages take the defaults the profile export offers.
 
 ## The configurator link
 
@@ -111,8 +119,13 @@ dotnet build -c Release -p:SimHubPath="C:\Program Files (x86)\SimHub"
 ```
 
 CI builds it against SimHub 9.13.2, pinned by digest, with the configurator's
-version. `TelemetryCatalog.g.cs` is generated with the rest of the catalog
-(`python3 -m tools.codegen.telemetry_catalog`) and carries every field's wire id,
-SimHub property, conversion, format and rate; the 24 fields without a single
-property are computed in `Computed.cs` and `ShiftLights.cs`, each named by its
-mapping's `computed` key.
+version. `TelemetryCatalog.g.cs` is generated with the rest of the catalog and is
+never edited by hand:
+
+```bash
+python3 -m tools.codegen.telemetry_catalog
+```
+
+It carries every field's wire id, SimHub property, conversion, format and rate,
+from the same `telemetry/simhub_generic_mappings.json` the Custom Serial profile
+is built from.

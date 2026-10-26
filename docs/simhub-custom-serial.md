@@ -13,7 +13,7 @@ The desktop configurator's **SimHub profile** panel provides two export modes:
   text widget composes, the source a gauge maps, and the field a styling rule
   watches even when the widget never shows it. Duplicate bindings are emitted
   once.
-- **All telemetry** includes the complete 230-field catalog.
+- **All telemetry** includes the complete 252-field catalog.
 
 The export uses the current configuration draft. Its explicit
 `telemetry_transport.uart.baud_rate` is used when present; otherwise the baud
@@ -22,9 +22,15 @@ its export already matches the board and the checked-in complete profile does
 not. A dashboard-only export is blocked when the draft contains an
 unknown telemetry binding or requires no telemetry.
 
+Two numbers are chosen beside the export and written into its formulas: the
+**fuel reserve**, in laps, that `vehicle.fuel.to_add` and
+`vehicle.fuel.pit_now` keep on top of what reaching the finish needs, and the
+laps the tyre and brake **averages** cover. The checked-in profile uses no
+reserve and two laps.
+
 As an alternative, download the checked-in complete
 [`simhub/Pitrig-telemetry.shsds`](../simhub/Pitrig-telemetry.shsds). It uses
-921600 baud and enables all 230 fields. Both forms enable automatic reconnect
+921600 baud and enables all 252 fields. Both forms enable automatic reconnect
 and disable RTS and DTR.
 
 Import the resulting file from the Custom Serial Devices plugin's **Import
@@ -51,8 +57,12 @@ python3 -m tools.codegen.telemetry_catalog
 
 Generic property expressions are maintained in
 `telemetry/simhub_generic_mappings.json`. An unsupported SimHub property sends
-an empty value, which marks only that canonical field unavailable. The profile
-does not contain game-specific raw-data mappings. SimHub Free limits update
+an empty value, which marks only that canonical field unavailable, and a
+computed field sends nothing while no game runs. The profile does not contain
+game-specific raw-data mappings. Fields that remember something between updates
+— the tyre and brake averages, the last lap against the best that stood before
+it, the last lap's validity, the live sector delta and the chequered flag — are
+JavaScript messages, SimHub's second formula language; the rest are NCalc. SimHub Free limits update
 messages to 10 Hz, regardless of higher values stored in the profile;
 `dashboard.smoothing` ([dashboard-widgets.md](dashboard-widgets.md#screens-and-widgets))
 is what makes a feed that slow move between its packets.
@@ -132,11 +142,12 @@ Pitrig provides generic SimHub property expressions but no game-specific
 source mappings. The `game_specific` availability label warns that a canonical
 field is not exposed by every simulation.
 
-`session.gap_ahead` and `session.gap_behind` are SimHub's own on-track gaps in
-unsigned seconds, so they stay empty until SimHub sees the other cars; Assetto
-Corsa shares them only through the CrewChief app enabled in the game.
-`session.gap_leader` has no generic property behind it and stays empty here; the
-plugin fills it from the opponent list.
+`session.gap_ahead`, `session.gap_behind` and `session.gap_leader` are unsigned
+gaps in seconds to the cars one race position ahead and behind and to the
+leader, and `session.class_position` and `session.starting_grid_position` come
+from the same leaderboard, through SimHub's `driver…` formula functions. They
+stay empty until SimHub sees the other cars; Assetto Corsa shares them only
+through the CrewChief app enabled in the game.
 
 Configuration control frames begin with `@PR:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,

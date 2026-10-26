@@ -1,32 +1,21 @@
 using System;
 using System.Globalization;
 using System.Text;
-using GameReaderCommon;
 using SimHub.Plugins;
 
 namespace Pitrig.SimHub
 {
-    internal sealed class FieldReader
+    internal static class FieldReader
     {
         public static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
 
         private const int ValueCapacity = 63;
 
-        private readonly SectorTracker sectors = new SectorTracker();
-        private readonly ShiftLights shifts = new ShiftLights();
-
-        public string ShiftSource => shifts.Source;
-
-        public void BeginTick()
-        {
-            shifts.BeginTick();
-        }
-
-        public string Read(PluginManager pluginManager, StatusDataBase status, TelemetryField field)
+        public static string Read(TelemetryState state, TelemetryField field)
         {
             var value = field.Computation == FieldComputation.None
-                ? Property(pluginManager, field)
-                : Computed.Evaluate(pluginManager, status, sectors, shifts, field.Computation);
+                ? Property(state.Manager, field)
+                : Computed.Evaluate(state, field.Computation);
             if (value == null) return field.Fallback;
             try
             {

@@ -55,6 +55,14 @@ uses 921600 baud to provide headroom for the complete stream. A configurator
 export uses an explicit draft UART baud rate when present and otherwise uses
 921600. Game-specific property mappings remain outside the repository.
 
+A field that needs memory between updates — an average over the last laps, a
+flag shown once in a session, the best lap that stood before the last one — is a
+JavaScript message, SimHub's second formula language, whose `root` object keeps
+that state; every other field stays NCalc. The mapping manifest names the
+formula's language, and the numbers a user chooses at export, the fuel reserve
+and the laps the averages cover, are placeholders the export fills in. No
+custom SimHub plugin is needed to feed a board.
+
 Keep parser storage fixed. A telemetry value has 64 bytes including its null
 terminator, and a complete line has a 127-byte bound
 (`telemetry::kMaximumTelemetryLineLength`). The link's router assembles lines

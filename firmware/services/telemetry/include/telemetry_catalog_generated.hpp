@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 230;
+inline constexpr std::size_t kFieldCount = 252;
 inline constexpr std::size_t kMaximumFieldCount = 256;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -19,8 +19,9 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"engine.max_rpm", ValueType::float32},
     {"engine.shift_rpm", ValueType::float32},
     {"engine.rpm_percent", ValueType::float32},
+    {"engine.shift_percent", ValueType::float32},
     {"engine.shift_progress", ValueType::float32},
-    {"engine.shift_now", ValueType::boolean},
+    {"engine.redline_reached", ValueType::boolean},
     {"engine.running", ValueType::boolean},
     {"engine.ignition", ValueType::boolean},
     {"engine.starter", ValueType::boolean},
@@ -44,11 +45,15 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"session.lap.last_time", ValueType::uint32},
     {"session.lap.best_time", ValueType::uint32},
     {"session.lap.session_best_time", ValueType::uint32},
+    {"session.lap.all_time_best_time", ValueType::uint32},
     {"session.lap.estimated_time", ValueType::uint32},
     {"session.lap.delta", ValueType::int32},
     {"session.lap.delta_best", ValueType::int32},
     {"session.lap.delta_session_best", ValueType::int32},
+    {"session.lap.delta_all_time_best", ValueType::int32},
     {"session.lap.last_delta_best", ValueType::int32},
+    {"session.lap.delta_status", ValueType::uint32},
+    {"session.lap.last_status", ValueType::uint32},
     {"session.lap.invalid", ValueType::boolean},
     {"session.lap.valid", ValueType::boolean},
     {"session.sector.current", ValueType::uint32},
@@ -59,6 +64,9 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"session.sector.1_best", ValueType::uint32},
     {"session.sector.2_best", ValueType::uint32},
     {"session.sector.3_best", ValueType::uint32},
+    {"session.sector.1_status", ValueType::uint32},
+    {"session.sector.2_status", ValueType::uint32},
+    {"session.sector.3_status", ValueType::uint32},
     {"session.sector.delta", ValueType::int32},
     {"track.position_percent", ValueType::float32},
     {"session.type", ValueType::text},
@@ -87,6 +95,8 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"vehicle.fuel.time_remaining", ValueType::uint32},
     {"vehicle.fuel.required_to_finish", ValueType::float32},
     {"vehicle.fuel.to_add", ValueType::float32},
+    {"vehicle.fuel.at_finish", ValueType::float32},
+    {"vehicle.fuel.pit_now", ValueType::boolean},
     {"vehicle.fuel.last_lap_consumption", ValueType::float32},
     {"vehicle.energy.level", ValueType::float32},
     {"vehicle.energy.percent", ValueType::float32},
@@ -237,6 +247,18 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"suspension.front_right.damage", ValueType::float32},
     {"suspension.rear_left.damage", ValueType::float32},
     {"suspension.rear_right.damage", ValueType::float32},
+    {"tyre.front_left.pressure_average", ValueType::float32},
+    {"tyre.front_right.pressure_average", ValueType::float32},
+    {"tyre.rear_left.pressure_average", ValueType::float32},
+    {"tyre.rear_right.pressure_average", ValueType::float32},
+    {"tyre.front_left.temperature_average", ValueType::float32},
+    {"tyre.front_right.temperature_average", ValueType::float32},
+    {"tyre.rear_left.temperature_average", ValueType::float32},
+    {"tyre.rear_right.temperature_average", ValueType::float32},
+    {"brake.front_left.temperature_average", ValueType::float32},
+    {"brake.front_right.temperature_average", ValueType::float32},
+    {"brake.rear_left.temperature_average", ValueType::float32},
+    {"brake.rear_right.temperature_average", ValueType::float32},
 }};
 
 static_assert(kFieldCount <= kMaximumFieldCount);

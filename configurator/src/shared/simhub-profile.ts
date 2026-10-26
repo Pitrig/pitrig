@@ -1,8 +1,10 @@
 import { telemetryBindings } from './configuration-access'
 import type { DeviceConfiguration } from './device'
 import {
+  SIMHUB_JAVASCRIPT_INTERPRETER,
   SIMHUB_PROFILE_DEFAULTS,
-  SIMHUB_PROFILE_ENTRIES
+  SIMHUB_PROFILE_ENTRIES,
+  SIMHUB_PROFILE_PARAMETERS
 } from './simhub-profile-data'
 import { t } from './ui-text'
 
@@ -11,9 +13,14 @@ export const SIMHUB_PROFILE_FILE_NAME = 'Pitrig-telemetry.shsds'
 
 export type SimHubProfileMode = 'all' | 'dashboard'
 
+export type SimHubProfileParameterName = keyof typeof SIMHUB_PROFILE_PARAMETERS
+
+export type SimHubProfileParameters = Record<SimHubProfileParameterName, number>
+
 export interface SimHubProfileExportRequest {
   fieldNames: string[]
   baudRate: number
+  parameters: SimHubProfileParameters
 }
 
 export interface SimHubProfileExportValue {
@@ -38,6 +45,28 @@ export interface RequiredTelemetrySelection {
 const PROFILE_FIELD_NAMES = new Set<string>(
   SIMHUB_PROFILE_ENTRIES.map(({ name }) => name)
 )
+
+export const SIMHUB_PROFILE_PARAMETER_NAMES = Object.keys(
+  SIMHUB_PROFILE_PARAMETERS
+) as SimHubProfileParameterName[]
+
+export function defaultSimHubParameters(): SimHubProfileParameters {
+  return Object.fromEntries(
+    SIMHUB_PROFILE_PARAMETER_NAMES.map((name) => [name, SIMHUB_PROFILE_PARAMETERS[name].default])
+  ) as SimHubProfileParameters
+}
+
+export function isValidSimHubParameter(name: SimHubProfileParameterName, value: unknown): boolean {
+  const bounds = SIMHUB_PROFILE_PARAMETERS[name]
+  return typeof value === 'number' && Number.isFinite(value) &&
+    value >= bounds.minimum && value <= bounds.maximum
+}
+
+function withParameters(expression: string, parameters: SimHubProfileParameters): string {
+  return expression.replace(/\{\{([a-z][a-z0-9_]*)\}\}/g, (placeholder, name: string) =>
+    name in parameters ? String(parameters[name as SimHubProfileParameterName]) : placeholder
+  )
+}
 
 export function allTelemetryFieldNames(): string[] {
   return SIMHUB_PROFILE_ENTRIES.map(({ name }) => name)
@@ -69,9 +98,19 @@ export function effectiveSimHubBaudRate(configuration: DeviceConfiguration): num
     : SIMHUB_PROFILE_DEFAULTS.baudRate
 }
 
-export function generateSimHubProfile(fieldNames: readonly string[], baudRate: number): string {
+export function generateSimHubProfile(
+  fieldNames: readonly string[],
+  baudRate: number,
+  parameters: SimHubProfileParameters = defaultSimHubParameters()
+): string {
   if (!Number.isInteger(baudRate) || baudRate < 9_600 || baudRate > 2_000_000) {
     throw new Error(t('protocol.simHubProfile.simHubProfileBaudRateMust'))
+  }
+  const invalid = SIMHUB_PROFILE_PARAMETER_NAMES.filter(
+    (name) => !isValidSimHubParameter(name, parameters[name])
+  )
+  if (invalid.length > 0) {
+    throw new Error(t('protocol.simHubProfile.invalidSimHubParameters', { names: invalid.join(', ') }))
   }
 
   const selected = new Set(fieldNames)
@@ -101,10 +140,15 @@ export function generateSimHubProfile(fieldNames: readonly string[], baudRate: n
     SettingsBuilder: { Settings: [], IsEditMode: false },
     OnConnectMessage: { Expression: '' },
     OnDisconnectMessage: { Expression: '' },
-    UpdateMessages: entries.map(({ expression, maximumFrequency }) => ({
-      Message: { Expression: expression },
+    UpdateMessages: entries.map((entry) => ({
+      Message: {
+        Expression: withParameters(entry.expression, parameters),
+        ...('javascript' in entry && entry.javascript
+          ? { Interpreter: SIMHUB_JAVASCRIPT_INTERPRETER }
+          : {})
+      },
       IsEnabled: true,
-      MaximumFrequency: maximumFrequency
+      MaximumFrequency: entry.maximumFrequency
     }))
   }
 

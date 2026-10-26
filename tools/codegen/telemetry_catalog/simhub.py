@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
-from .constants import UNAVAILABLE_OPERATORS
+from .constants import (
+    GAME_RUNNING,
+    JAVASCRIPT_INTERPRETER,
+    PARAMETER_PATTERN,
+    UNAVAILABLE_OPERATORS,
+)
+
+PROPERTY_REFERENCE = re.compile(r"\[([A-Za-z][\w.]*)\]|\$prop\('([^']+)'\)")
+GUARD_PROPERTIES = {GAME_RUNNING, "DataCorePlugin.GamePaused"}
 
 
 def identifier_key(identifier: str) -> int:
@@ -58,12 +67,65 @@ inline constexpr std::array<LookupEntry, {len(fields)}> kLookup{{{{
 """
 
 
-def generate_simhub_expression(
-    field: dict[str, str], mapping: dict[str, Any]
+def primary_property(mapping: dict[str, Any]) -> str | None:
+    if "property" in mapping:
+        return mapping["property"]
+    formula = mapping.get("expression", mapping.get("javascript", ""))
+    for match in PROPERTY_REFERENCE.finditer(formula):
+        name = match.group(1) or match.group(2)
+        if name not in GUARD_PROPERTIES:
+            return name
+    return None
+
+
+def default_parameters(text: str, parameters: dict[str, Any]) -> str:
+    return PARAMETER_PATTERN.sub(
+        lambda match: str(parameters[match.group(1)]["default"]), text
+    )
+
+
+def generate_javascript_line(
+    field: dict[str, str], mapping: dict[str, Any], prelude: str
 ) -> str:
     identifier = field["wire_id"]
+    empty = f"'{identifier};\\n'"
+    conversion = mapping.get("conversion", "number")
+    number = None
+    if conversion == "timespan_ms":
+        number = "timespantoseconds(value) * 1000"
+        converted = f"format({number}, '0', false)"
+    elif conversion == "boolean":
+        converted = "(value ? '1' : '0')"
+    elif conversion == "text":
+        converted = "String(value).replace(/\\r|\\n/g, ' ')"
+    else:
+        number = f"value * {mapping['scale']}" if "scale" in mapping else "value"
+        converted = f"format({number}, '{mapping['format']}', false)"
+    missing = ["value === null", "value === undefined", "value === ''"]
+    if number is not None:
+        missing.append(f"!isFinite({number})")
+    rule = mapping.get("unavailable_when")
+    if rule is not None:
+        missing.append(f"{number} {UNAVAILABLE_OPERATORS[rule['op']]} {rule['value']}")
+    fallback = mapping.get("fallback")
+    absent = empty if fallback is None else f"'{identifier};{fallback}\\n'"
+    return (
+        f"try {{ {prelude} const value = (function () {{ {mapping['javascript']} }})(); "
+        f"if ({' || '.join(missing)}) return {absent}; "
+        f"return '{identifier};' + {converted} + '\\n'; }} catch (error) {{ return {empty}; }}"
+    )
+
+
+def generate_simhub_expression(
+    field: dict[str, str], mapping: dict[str, Any], prelude: str = ""
+) -> str:
+    if "javascript" in mapping:
+        return generate_javascript_line(field, mapping, prelude)
+    identifier = field["wire_id"]
     source = mapping.get("expression")
-    if source is None:
+    if source is not None:
+        source = f"if([{GAME_RUNNING}], {source}, '')"
+    else:
         property_name = mapping["property"]
         source = f"[{property_name}]"
         new_data_segment = ".GameData.NewData."
@@ -107,13 +169,16 @@ def generate_shsds(
 ) -> str:
     update_messages = []
     for field in fields:
+        mapping = mappings[field["name"]]
+        expression = generate_simhub_expression(field, mapping, profile["javascript_prelude"])
+        message: dict[str, Any] = {
+            "Expression": default_parameters(expression, profile["parameters"])
+        }
+        if "javascript" in mapping:
+            message["Interpreter"] = JAVASCRIPT_INTERPRETER
         update_messages.append(
             {
-                "Message": {
-                    "Expression": generate_simhub_expression(
-                        field, mappings[field["name"]]
-                    )
-                },
+                "Message": message,
                 "IsEnabled": True,
                 "MaximumFrequency": profile["frequencies"][field["rate"]],
             }
@@ -163,30 +228,53 @@ def generate_simhub_typescript(
     }
     records = []
     for field in fields:
+        mapping = mappings[field["name"]]
         record = {
             "name": field["name"],
             "expression": generate_simhub_expression(
-                field, mappings[field["name"]]
+                field, mapping, profile["javascript_prelude"]
             ),
             "maximumFrequency": profile["frequencies"][field["rate"]],
         }
+        if "javascript" in mapping:
+            record["javascript"] = True
+        source = primary_property(mapping)
+        if source is not None:
+            record["property"] = source
         records.append(
             "  " + json.dumps(record, ensure_ascii=False, separators=(",", ":"))
         )
     body = ",\n".join(records)
     defaults_json = json.dumps(defaults, ensure_ascii=False, separators=(",", ":"))
     link_json = json.dumps(link, ensure_ascii=False, separators=(",", ":"))
+    parameters_json = json.dumps(
+        profile["parameters"], ensure_ascii=False, separators=(",", ":")
+    )
     return f"""// Generated by tools/codegen/telemetry_catalog. Do not edit.
 
 export interface SimHubProfileEntry {{
   name: string
   expression: string
   maximumFrequency: number
+  javascript?: boolean
+  property?: string
+}}
+
+export interface SimHubProfileParameter {{
+  default: number
+  minimum: number
+  maximum: number
 }}
 
 export const SIMHUB_PROFILE_DEFAULTS = {defaults_json} as const
 
 export const SIMHUB_LINK = {link_json} as const
+
+export const SIMHUB_JAVASCRIPT_INTERPRETER = {JAVASCRIPT_INTERPRETER}
+
+export const SIMHUB_PROFILE_PARAMETERS = {parameters_json} as const satisfies Readonly<
+  Record<string, SimHubProfileParameter>
+>
 
 export const SIMHUB_PROFILE_ENTRIES = [
 {body}
