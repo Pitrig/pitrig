@@ -46,7 +46,9 @@ namespace Pitrig.SimHub
                     var text = Convert.ToString(value, Culture).Replace('\r', ' ').Replace('\n', ' ');
                     return text.Length == 0 ? null : Bounded(text);
                 case FieldConversion.TimespanMs:
-                    return value is TimeSpan span ? Number(field, span.TotalMilliseconds, "0") : null;
+                    return value is TimeSpan span && span.TotalMilliseconds <= uint.MaxValue
+                        ? Number(field, span.TotalMilliseconds, "0")
+                        : null;
                 default:
                     return Number(field, Convert.ToDouble(value, Culture) * field.Scale, field.Format);
             }

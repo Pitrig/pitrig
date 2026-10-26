@@ -108,9 +108,19 @@ fields without moving an identifier.
   the limiter no longer uncovers the whole shift bar under it. A layer added
   before needs the setting switched on, and the board needs the new firmware.
 - In a race of one class `session.class_position` is the game's own position, the
-  same as `session.position`. In ACC, SimHub's leaderboard put the player one
-  place behind it, so a dashboard showed class 23 beside position 22. Export the
-  SimHub profile again to get the fix there too.
+  same as `session.position`, also when SimHub reports several classes while
+  every car is in the player's. In ACC, SimHub's leaderboard put the player one
+  place behind it, so a dashboard showed class 23 beside position 22.
+- `session.time_remaining` reads as missing before a race run over laps starts.
+  SimHub reports the longest time it can hold there, which the board could not
+  show, so it kept the old value.
+- `vehicle.fuel.current_consumption` reads as missing instead of −1 until SimHub
+  has measured it, and `vehicle.fuel.laps_remaining` and
+  `vehicle.fuel.time_remaining` instead of 0, so a fuel warning built on them no
+  longer fires on the grid.
+- A lap or a sector with no personal best before it counts as a personal best
+  rather than as slower, so the sectors of the first lap no longer read yellow.
+- Export the SimHub profile again to get these telemetry fixes there too.
 - Dependencies updated for published vulnerabilities: Electron 44.9.3, Vite
   7.3.7, and the transitive `undici`, `fast-uri`, `zod`, `source-map-js` and
   `http-cache-semantics` the build tools pull in.

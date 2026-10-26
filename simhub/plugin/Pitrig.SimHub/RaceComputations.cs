@@ -11,7 +11,9 @@ namespace Pitrig.SimHub
         {
             var status = state.Status;
             if (status == null) return null;
-            if (!status.HasMultipleClassOpponents) return status.Position;
+            var oneClass = !status.HasMultipleClassOpponents ||
+                           status.PlayerClassOpponentsCount >= status.OpponentsCount;
+            if (oneClass) return status.Position;
             var inClass = state.Player?.PositionInClass;
             return inClass > 0 ? inClass : null;
         }
