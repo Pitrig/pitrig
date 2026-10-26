@@ -23,7 +23,7 @@ export function PropertyRow({
 }): React.JSX.Element {
   const name = (
     <span className="flex min-w-0 items-center gap-1 text-muted-foreground">
-      <label htmlFor={controlId} className="min-w-0 truncate" title={label}>
+      <label htmlFor={controlId} className="min-w-0 line-clamp-2" title={label}>
         {label}
       </label>
       {hint ? <InfoHint text={hint} label={label} /> : null}

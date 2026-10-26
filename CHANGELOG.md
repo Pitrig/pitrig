@@ -126,6 +126,8 @@ fields without moving an identifier.
 - Dependencies updated for published vulnerabilities: Electron 44.9.3, Vite
   7.3.7, and the transitive `undici`, `fast-uri`, `zod`, `source-map-js` and
   `http-cache-semantics` the build tools pull in.
+- A property name too long for its column wraps onto a second line instead of
+  being cut off, as **Switch-off margin** was.
 
 ## 0.2.0 — 2026-10-18
 
