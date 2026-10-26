@@ -6,6 +6,7 @@ from typing import Any
 from . import SIMHUB_MAPPINGS_SOURCE, SOURCE
 from .constants import UNSIGNED_UNAVAILABLE, VALID_RATES, WHEEL_LABELS
 from .errors import fail
+from .game_sources import validate_games_table
 from .validate import (
     automatic_identifier,
     report_key_mismatch,
@@ -95,28 +96,52 @@ def load_simhub_mappings(
     if not isinstance(prelude, str):
         fail("SimHub javascript_prelude must be a string")
     profile["javascript_prelude"] = prelude
+    games = mappings["games"]
+    validate_games_table(games)
+    profile["games"] = games
 
     expanded = {name: dict(mapping) for name, mapping in mappings["fields"].items()}
-    suffixes = mappings["wheel_suffixes"]
-    if set(suffixes) != set(document["wheels"]):
-        report_key_mismatch("SimHub wheel suffixes", set(document["wheels"]), set(suffixes))
+    placeholders = {
+        "{suffix}": mappings["wheel_suffixes"],
+        "{index}": mappings["wheel_indices"],
+        "{corner}": mappings["wheel_corners"],
+    }
+    for label, table in placeholders.items():
+        if set(table) != set(document["wheels"]):
+            report_key_mismatch(f"SimHub wheel {label}", set(document["wheels"]), set(table))
     for family_name, mapping in mappings["wheel_families"].items():
         for wheel in document["wheels"]:
-            expanded_name = family_name.format(wheel=wheel)
-            expanded_mapping = dict(mapping)
-            for key in ("property", "expression", "javascript", "computed"):
-                if key in expanded_mapping:
-                    expanded_mapping[key] = expanded_mapping[key].replace(
-                        "{suffix}", suffixes[wheel]
-                    )
-            expanded[expanded_name] = expanded_mapping
+            expanded[family_name.format(wheel=wheel)] = wheel_mapping(mapping, wheel, placeholders)
 
     field_names = {field["name"] for field in fields}
     if set(expanded) != field_names:
         report_key_mismatch("expanded SimHub mappings", field_names, set(expanded))
     for field in fields:
         mapping = expanded[field["name"]]
-        validate_simhub_mapping(field, mapping, parameters)
+        validate_simhub_mapping(field, mapping, parameters, games)
         if field["type"] == "uint32":
             mapping.setdefault("unavailable_when", dict(UNSIGNED_UNAVAILABLE))
     return profile, expanded
+
+
+def substitute(text: str, wheel: str, placeholders: dict[str, dict[str, str]]) -> str:
+    for placeholder, table in placeholders.items():
+        text = text.replace(placeholder, table[wheel])
+    return text
+
+
+def wheel_mapping(
+    mapping: dict[str, Any], wheel: str, placeholders: dict[str, dict[str, str]]
+) -> dict[str, Any]:
+    expanded = dict(mapping)
+    for key in ("property", "expression", "javascript", "computed"):
+        if key in expanded:
+            expanded[key] = substitute(expanded[key], wheel, placeholders)
+    if isinstance(mapping.get("games"), dict):
+        expanded["games"] = {
+            game: source
+            if source is True
+            else {**source, "property": substitute(source["property"], wheel, placeholders)}
+            for game, source in mapping["games"].items()
+        }
+    return expanded

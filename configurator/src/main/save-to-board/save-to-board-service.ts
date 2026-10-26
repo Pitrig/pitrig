@@ -27,6 +27,10 @@ import { FontLibraryService } from '../font-library/font-library-service'
 
 type RestartOutcome = { ok: true } | { ok: false; rebooted: boolean; error: SaveToBoardResult }
 
+export interface SaveOptions {
+  keepBoardFonts?: boolean
+}
+
 export class SaveToBoardService {
   constructor(
     private readonly deviceService: DeviceService,
@@ -35,7 +39,7 @@ export class SaveToBoardService {
     private readonly onProgress: (progress: SaveProgress) => void
   ) {}
 
-  async save(request: SaveToBoardRequest): Promise<SaveToBoardResult> {
+  async save(request: SaveToBoardRequest, options: SaveOptions = {}): Promise<SaveToBoardResult> {
     const session = this.deviceService.getState().session
     if (!session) {
       return failure('device_error', t('save.saveToBoardService.noPitrigBoardIsConnected'))
@@ -65,8 +69,9 @@ export class SaveToBoardService {
 
     const safeMode = session.info.health?.safeMode ?? false
 
-    const families =
+    const needed =
       !safeMode && changed.includes('dashboard') ? requiredFamilies(configuration) : []
+    const families = options.keepBoardFonts && boardHolds(session, needed) ? [] : needed
 
     this.report('preparing', 0, 1, t('save.saveToBoardService.checkingTheFontsThisDashboard'))
     const unresolved = await this.library.unresolved(families)
@@ -247,6 +252,15 @@ function requiredFamilies(configuration: DeviceConfiguration): string[] {
         .filter((family): family is string => Boolean(family))
     )
   ].sort()
+}
+
+function boardHolds(session: DeviceSession, families: readonly string[]): boolean {
+  const installed = session.fontAssets
+  return Boolean(
+    installed?.packageAvailable &&
+      !installed.rebootRequired &&
+      families.every((family) => installed.families.includes(family))
+  )
 }
 
 function sameFamilies(installed: readonly string[], wanted: readonly string[]): boolean {

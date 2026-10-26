@@ -1,0 +1,1 @@
+declare const __PITRIG_FIRMWARE_VERSION__: string

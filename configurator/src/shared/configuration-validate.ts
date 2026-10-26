@@ -5,6 +5,7 @@ import {
 } from './configuration-schema'
 import { documentPayloadBytes } from './configuration-documents'
 import { t } from './ui-text'
+import { findControlsError } from './validate/controls'
 import { findFontError } from './validate/fonts'
 import { findHardwareError } from './validate/hardware'
 import { findRangeError } from './validate/ranges'
@@ -54,6 +55,9 @@ function validate(value: unknown, options: ValidateOptions): ValidationResult {
 
   const rangeError = findRangeError(configuration)
   if (rangeError) return { ok: false, error: rangeError }
+
+  const controlsError = findControlsError(configuration)
+  if (controlsError) return { ok: false, error: controlsError }
 
   const transportError = findTransportError(configuration)
   if (transportError) return { ok: false, error: transportError }

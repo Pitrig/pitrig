@@ -34,6 +34,8 @@ function matchingValue(rule: LedColorRule): number {
       return value - NUDGE
     case 'not_equal':
       return value + 1
+    case 'bit_set':
+      return 2 ** (value - 1)
     default:
       return value
   }

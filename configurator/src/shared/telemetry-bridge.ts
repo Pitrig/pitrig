@@ -1,3 +1,4 @@
+import type { InputsConfiguration } from './configuration-schema'
 import { SIMHUB_LINK } from './simhub-profile-data'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from './telemetry-catalog'
 import type { TelemetryValue } from './telemetry-value'
@@ -8,6 +9,7 @@ export const TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL = 'telemetry-bridge:status-
 export const TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL = 'telemetry-bridge:snapshot' as const
 export const TELEMETRY_BRIDGE_INTEREST_CHANNEL = 'telemetry-bridge:interest' as const
 export const TELEMETRY_BRIDGE_SIMULATE_CHANNEL = 'telemetry-bridge:simulate' as const
+export const TELEMETRY_BRIDGE_INPUT_CHANNEL = 'telemetry-bridge:input' as const
 
 export const SIMULATION_LAPSE_MS = 1_500
 export const SIMULATION_PAYLOAD_LIMIT = 16_384
@@ -20,6 +22,7 @@ export interface TelemetrySimulation {
 export const SNAPSHOT_INTERVAL_MS = 16
 
 export const PLUGIN_STATUS_MARKER = '@PT:STATUS'
+export const PLUGIN_INPUT_MARKER = '@PT:INPUT'
 export const PLUGIN_SILENCE_MS = 3_000
 
 export const LINK_MAGIC = SIMHUB_LINK.magic
@@ -45,6 +48,18 @@ export interface TelemetryInterest {
   running: string[]
   draft: string[]
   all: boolean
+  inputs: boolean
+  wiring: InputsConfiguration | null
+}
+
+export interface PluginInput {
+  input?: string
+  action?: number
+  down?: boolean
+  actions: number
+  buttons: number
+  position: number
+  pressed: string[]
 }
 
 export interface PluginBoard {

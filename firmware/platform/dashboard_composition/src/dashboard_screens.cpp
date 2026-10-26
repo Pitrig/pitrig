@@ -192,8 +192,9 @@ bool attach_slots(const configuration::ApplicationConfiguration& configuration,
       attached = false;
       continue;
     }
-    if (!dashboard.slots.add(container, pages, config, *dashboard.slot.registry,
-                             *dashboard.slot.telemetry, dashboard.slot.modifier_readers)) {
+    if (!dashboard.slots.add(container, pages, config, static_cast<std::uint8_t>(index),
+                             *dashboard.slot.registry, *dashboard.slot.telemetry,
+                             dashboard.slot.modifier_readers)) {
       log::error("dashboard", "Failed to bind slot page source");
       attached = false;
     }

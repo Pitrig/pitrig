@@ -121,6 +121,7 @@ export function isNeedleArc(widget: WidgetConfiguration): boolean {
 
 const DEFAULT_TEXT_BINDING = 'vehicle.speed'
 const LAP_TIMER_INPUT = 'session.lap.current_time'
+const CONTROL_INPUTS = ['input.buttons', 'input.switch', 'session.time_elapsed']
 
 export function telemetryBindings(
   configuration: ApplicationConfiguration | undefined
@@ -142,6 +143,11 @@ export function telemetryBindings(
       record(effect?.source)
       record(effect?.condition_source)
     }
+  }
+  const controls = configuration?.dashboard?.controls
+  if (controls) {
+    for (const name of CONTROL_INPUTS) bindings.add(name)
+    for (const rule of arrayOf(controls.rules)) record(rule?.source)
   }
   return [...bindings]
 }

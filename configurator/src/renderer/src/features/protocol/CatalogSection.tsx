@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react'
+import { GameMarks } from '@/features/telemetry/GameMarks'
 import { useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -56,6 +57,7 @@ export function CatalogSection(): React.JSX.Element {
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.wire')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.type')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.unit')}</th>
+                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.games')}</th>
                 <th className="px-4 py-1.5 font-medium">{t('protocol.catalogSection.simHubProperty')}</th>
               </tr>
             </thead>
@@ -74,6 +76,11 @@ export function CatalogSection(): React.JSX.Element {
                   <td className="px-2 py-1.5 font-mono text-muted-foreground">{entry.wireId}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{entry.type}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{entry.unit}</td>
+                  <td className="px-2 py-1.5">
+                    {entry.games ? <GameMarks entry={entry} /> : (
+                      <span className="text-[11px] text-muted-foreground">{t('protocol.catalogSection.anyGame')}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-1.5">
                     <span
                       className="block max-w-xs truncate font-mono text-[11px] text-muted-foreground"

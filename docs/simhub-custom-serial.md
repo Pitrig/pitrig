@@ -13,7 +13,7 @@ The desktop configurator's **SimHub profile** panel provides two export modes:
   text widget composes, the source a gauge maps, and the field a styling rule
   watches even when the widget never shows it. Duplicate bindings are emitted
   once.
-- **All telemetry** includes the complete 252-field catalog.
+- **All telemetry** includes the complete 256-field catalog.
 
 The export uses the current configuration draft. Its explicit
 `telemetry_transport.uart.baud_rate` is used when present; otherwise the baud
@@ -30,7 +30,7 @@ reserve and two laps.
 
 As an alternative, download the checked-in complete
 [`simhub/Pitrig-telemetry.shsds`](../simhub/Pitrig-telemetry.shsds). It uses
-921600 baud and enables all 252 fields. Both forms enable automatic reconnect
+921600 baud and enables all 256 fields. Both forms enable automatic reconnect
 and disable RTS and DTR.
 
 Import the resulting file from the Custom Serial Devices plugin's **Import

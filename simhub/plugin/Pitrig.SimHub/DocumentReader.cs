@@ -12,28 +12,35 @@ namespace Pitrig.SimHub
         private const string BusyReply = "@PR:ERR:busy";
         private const string UnknownDocument = "@PR:ERR:unknown_document";
         private const string ErrorReply = "@PR:ERR:";
+        private const string Modules = "modules";
 
-        private static readonly string[] Names = { "dashboard", "modules" };
+        private static readonly string[] Everything = { "dashboard", Modules };
+        private static readonly string[] ModulesOnly = { Modules };
 
-        private readonly string[] documents = new string[Names.Length];
+        private readonly string[] names;
+        private readonly string[] documents;
         private readonly double startedAt;
         private int current;
         private double sentAt = double.NaN;
         private double sendAt;
 
-        public DocumentReader(double now)
+        public DocumentReader(double now, bool withDashboard)
         {
+            names = withDashboard ? Everything : ModulesOnly;
+            documents = new string[names.Length];
             startedAt = now;
             sendAt = now;
         }
 
-        public bool Done => current == Names.Length;
+        public bool Done => current == names.Length;
 
         public int BusyRetries { get; private set; }
 
         public int Bytes => documents.Sum(document => document?.Length ?? 0);
 
         public int[] Fields => Subscription.Of(documents);
+
+        public InputMapping Mapping => InputMapping.Parse(documents[Array.IndexOf(names, Modules)]);
 
         public double Elapsed(double now)
         {
@@ -50,13 +57,13 @@ namespace Pitrig.SimHub
             if (Done || now < sendAt) return null;
             if (!double.IsNaN(sentAt) && now - sentAt < ReplyTimeoutMs) return null;
             sentAt = now;
-            return "@PR:GET:" + Names[current] + "\n";
+            return "@PR:GET:" + names[current] + "\n";
         }
 
         public void Accept(string line, double now)
         {
             if (Done || double.IsNaN(sentAt)) return;
-            var prefix = ReplyPrefix + Names[current] + ":";
+            var prefix = ReplyPrefix + names[current] + ":";
             if (line.StartsWith(prefix, StringComparison.Ordinal))
             {
                 Next(line.Substring(prefix.Length), now);

@@ -72,7 +72,8 @@ a SimHub pinned by digest, and checked for the development build's `*.Debug.cs` 
 `configurator` (electron-builder on macOS, Windows and Linux; the Windows
 installer carries the DLL and copies it into SimHub through `configurator/installer/simhub-plugin.nsh`),
 `firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers, the
-DLL and four OTA images, its notes written by `tools/release_notes.py` from the files actually built
+Windows `latest.yml` and blockmap the configurator updates itself from (ADR 0037), the DLL and
+four OTA images, its notes written by `tools/release_notes.py` from the files actually built
 and the version's `CHANGELOG.md` entry. Packages are checked for debug traces (an `app.asar` grep);
 nothing is signed, so macOS needs `xattr -dr com.apple.quarantine`.
 

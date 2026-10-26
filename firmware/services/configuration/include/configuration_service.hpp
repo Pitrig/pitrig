@@ -9,6 +9,7 @@
 #include "application_configuration.hpp"
 #include "configuration_json.hpp"
 #include "configuration_storage.hpp"
+#include "device_settings.hpp"
 
 namespace pitrig::configuration {
 
@@ -98,6 +99,9 @@ class ConfigurationService {
   [[nodiscard]] bool erase(ConfigurationDocument document);
   [[nodiscard]] bool reset();
 
+  [[nodiscard]] DeviceSettings settings() const { return settings_; }
+  [[nodiscard]] bool save_settings(const DeviceSettings& settings);
+
   [[nodiscard]] ValidationFailure stage(ConfigurationDocument document,
                                         std::span<const std::uint8_t> payload);
   [[nodiscard]] const ApplicationConfiguration& staged() const { return *scratch_; }
@@ -107,6 +111,7 @@ class ConfigurationService {
  private:
   static constexpr std::uint32_t kRecordMagic = 0x53434647;
   static constexpr std::uint16_t kRecordVersion = 1;
+  static constexpr std::uint8_t kSettingsVersion = 1;
 
   struct LoadedRecord {
     std::uint32_t generation{};
@@ -127,6 +132,7 @@ class ConfigurationService {
 
   void promote_scratch();
   void copy_active_to_scratch();
+  void load_settings();
 
   IConfigurationStorage* storage_{};
   FactoryPayloads factory_payloads_{};
@@ -137,6 +143,7 @@ class ConfigurationService {
   std::span<std::uint8_t> record_buffer_{};
   std::array<std::span<std::uint8_t>, kConfigurationDocumentCount> payloads_{};
   std::array<std::size_t, kConfigurationDocumentCount> payload_sizes_{};
+  DeviceSettings settings_{};
 };
 
 }

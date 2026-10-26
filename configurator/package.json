@@ -16,13 +16,14 @@
     "preview": "electron-vite preview",
     "build": "pnpm run typecheck && electron-vite build",
     "build:debug": "pnpm run typecheck && electron-vite build --config electron.vite.debug.config.ts",
-    "package": "pnpm run build && electron-builder --config electron-builder.yml",
+    "package": "pnpm run build && electron-builder --config electron-builder.yml --publish never",
     "package:debug": "pnpm run build:debug && electron-builder --config electron-builder.debug.yml",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.debug.json --noEmit",
     "lint": "eslint .",
     "postinstall": "install-electron"
   },
   "dependencies": {
+    "electron-updater": "6.8.10",
     "serialport": "^13.0.0"
   },
   "devDependencies": {

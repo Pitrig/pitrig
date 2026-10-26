@@ -11,7 +11,7 @@ The configuration is transferred and stored as three independent documents. Each
 | Document | Carries | Maximum payload | Restart to take effect | Purpose |
 | --- | --- | --- | --- | --- |
 | `dashboard` | `board`, `dashboard` | 131072 bytes | no | The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place. |
-| `modules` | `board`, `hardware` | 32768 bytes | no | Peripherals beyond the display: the addressable LED outputs, and the buttons and encoders that will join them. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset. |
+| `modules` | `board`, `hardware`, `inputs` | 32768 bytes | no | Peripherals beyond the display: the addressable LED outputs, and which PC inputs press the logical buttons the dashboard's controls act on. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset. |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes | yes | Which link carries telemetry and how it is configured. The transport is bound once at startup, so writing this document stores a setting that is not yet in force — which is why it is the one document whose save asks for a restart. |
 
 ## Limits
@@ -66,6 +66,15 @@ The configuration is transferred and stored as three independent documents. Each
 | `kLedPanelMaskCapacity` | 65 | Panel mask storage including the terminator (64 usable digits). Four pixels to a digit covers the whole 16 by 16 panel a matrix may have, and an eight by eight one spends sixteen characters on saying where a layer shows. |
 | `kMaximumLedColorRules` | 4 | Colour rules one layer may carry. Four is the normal, caution, warning and limit band kMaximumWidgetConditions covers for a widget, and a rule costs every layer of every device the room to hold one, which is why it is stated separately rather than shared. |
 | `kLedTextCapacity` | 32 | Static text a text effect may carry including the terminator (31 usable bytes). |
+| `kMaximumInputButtons` | 16 | Logical buttons PC inputs can drive. They reach the board as the bits of input.buttons, so this is also how many of that field's bits mean anything. |
+| `kMaximumInputSources` | 4 | PC inputs one logical button answers to, so a wheel button and a keyboard key can press the same one. |
+| `kMaximumSwitchPositions` | 12 | Positions of the one multi-position switch, the most a rotary switch on a rim offers. Position N reaches the board as the value N of input.switch. |
+| `kInputNameCapacity` | 24 | Bytes for a logical button's name, terminator included. |
+| `kInputSourceCapacity` | 96 | Bytes for one PC input as SimHub names it, terminator included. A joystick button carries the device's whole product name, which is what sizes this. |
+| `kMaximumControlBindings` | 32 | Actions the buttons of one dashboard perform: one for every logical button, with room for as many again for a button that does two things. |
+| `kMaximumControlRules` | 4 | Rules that bring a screen forward on a game event, one per screen a dashboard can have. |
+| `kMaximumIdleReturnMs` | 600000 | Longest wait without a press before a dashboard or a slot goes back home: ten minutes. |
+| `kMaximumDismissMs` | 600000 | Longest a dismissed slot page stays away when its dismissal is timed: ten minutes. |
 | `kLedTelemetryIdleMs` | 2000 | Silence after which the telemetry_idle gate starts holding. Long enough that a pause between lines is not an outage, short enough that a closed game is noticed before the lamps look stuck. |
 
 ## Enumerations
@@ -88,7 +97,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `ValueTransformType` | `none`, `time`, `number` | Presentation transform applied after the modifier pipeline. |
 | `GradientDirection` | `horizontal`, `vertical` | Axis a linear gradient runs along. Only used when a gradient colour is set. |
 | `ColorRampTarget` | `content`, `background`, `border` | Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill. |
-| `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal` | Comparison a styling rule applies to the numeric value of its condition source. |
+| `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal`, `bit_set` | Comparison a styling rule applies to the numeric value of its condition source. bit_set holds while bit number value of the source is 1, counted from 1 like the logical buttons of input.buttons, so a rule can follow one button; it never holds for a value below 1 or above 32. |
 | `WidgetActionType` | `none`, `next_screen`, `previous_screen`, `goto_screen` | What a tap on a widget does. none is the default and leaves the object refusing input, which is what every widget did before actions existed. |
 | `ScreenTransition` | `slide`, `none` | How the dashboard swaps one screen for another. slide is LVGL's animated screen load, the horizontal move a swipe reads as. none replaces the screen in a single frame: the animation composites both screens for its whole duration, which on a screen filled with widgets costs more per frame than either screen alone, so a dashboard that cannot afford it says so here rather than living with the drop. |
 | `ValueSmoothing` | `off`, `interpolate`, `predict` | Whether a mapped value moves between the packets that carry it. off draws each packet as it lands, so a feed slower than the panel steps. interpolate glides from the value shown to the packet just received so as to arrive exactly when the next packet is due: continuous motion with no overshoot, one telemetry period behind - 16 ms at 60 Hz, 50 ms at 20 Hz. predict keeps moving at the rate the last two packets showed and folds the error the next packet reveals into the period that follows: nothing behind on average, but a reversal overshoots by up to one packet's worth of motion. A pause longer than 250 ms between two packets of a field is a jump rather than a movement and is drawn at once, so a value that changes on events never glides. Bars, arcs, needles, graph traces and number-transformed text follow it; conditions, ramps, captions and indicators read the packet itself. |
@@ -99,6 +108,8 @@ The configuration is transferred and stored as three independent documents. Each
 | `ArcMark` | `ring`, `needle` | What an arc draws at the angle its value maps to. ring fills the sector up to it; needle points a line from the centre at it, over the same track. The mark changes, the mapping does not, so a needle needs no geometry of its own: it spans the radius the ring would occupy and takes its width from thickness_px. |
 | `RingCentering` | `circle`, `figure` | What the box centres. circle puts the middle of the ring's circle in the middle of the box, which is what a gauge filling its box wants. figure centres what is actually drawn instead — the band between the sector's ends, thickness included — so a radius larger than the box keeps the band in the middle and drives the circle's centre out of the box rather than the band off it. The offsets move whichever of the two lands there. |
 | `IndicatorShape` | `strip`, `arc` | How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sector, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the ring geometry, and each ignores the other's. |
+| `ControlAction` | `next_screen`, `previous_screen`, `show_screen`, `hold_screen`, `home_screen`, `next_page`, `previous_page`, `show_page`, `hold_page`, `dismiss_page`, `display_brighter`, `display_dimmer`, `leds_brighter`, `leds_dimmer`, `leds_toggle` | What a logical button does. The screen actions move the dashboard, hold_screen only while the button stays down, and home_screen returns to the controls' home screen. The page actions work on one named slot the same way, and dismiss_page sends away the page an event raised there. The display steps its backlight by a tenth between 10 and 100 % and remembers it across restarts; the LED actions scale every output by a tenth or switch them all off and on again until the next restart. |
+| `SlotDismiss` | `next_event`, `timed`, `session` | How long a raised page stays away once a button dismisses it. next_event brings it back the next time its trigger fires anew: a value that changes again, or a comparison that stops holding and then holds again. timed keeps it away for dismiss_ms whatever happens. session keeps it away until the board restarts or the game starts a new session. |
 | `SlotTrigger` | `none`, `value_changed`, `conditions` | How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds. |
 | `WidgetParentKind` | `screen`, `shape`, `slot_page` | Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot. |
 | `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
@@ -571,6 +582,8 @@ One page of a slot: a set of widgets that share the slot's box and are shown or 
 | `trigger` | `SlotTrigger` | `none` |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `duration_ms` | integer, 0..10000 | `0` |
+| `dismiss` | `SlotDismiss` | `next_event` |
+| `dismiss_ms` | integer, 0..600000 | `0` |
 | `conditions` | array of [`ValueCondition`](#valuecondition), max 4 | absent |
 | `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 32, discriminated by `type` | absent |
 
@@ -584,6 +597,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `slot` | required |
 | `clip_children` | boolean | `true` |
+| `home_after_ms` | integer, 0..600000 | `0` |
 | `pages` | array of [`SlotPageConfiguration`](#slotpageconfiguration), max 8 | absent |
 
 ### ScreenConfiguration
@@ -596,6 +610,50 @@ One dashboard screen: the coordinate space its widgets are placed in, and the or
 | `background_color` | string `#RRGGBB` | `#000000` |
 | `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`SlotWidgetConfiguration`](#slotwidgetconfiguration), max 255, discriminated by `type` | absent |
 
+### ControlBinding
+
+One action a logical button performs on this dashboard. A button may carry several, performed in the order they are listed.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `button` | integer, 1..16 | `1` |
+| `action` | `ControlAction` | `next_screen` |
+| `screen` | string, max 15 bytes | empty |
+| `slot` | string, max 15 bytes | empty |
+| `page` | integer, 1..8 | `1` |
+| `wrap` | boolean | `true` |
+| `repeat` | boolean | `false` |
+
+### ControlSwitch
+
+What the multi-position switch drives on this dashboard. Position N brings up page N of the slot, and a position past the slot's last page does nothing.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `slot` | string, max 15 bytes | empty |
+
+### ControlRule
+
+A game event that brings a screen forward: while one of its comparisons holds the screen is shown, and once none does the dashboard goes back to the screen it left, unless a button moved it in the meantime. The first rule that holds wins.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `screen` | string, max 15 bytes | empty |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `conditions` | array of [`ValueCondition`](#valuecondition), max 4 | absent |
+
+### ControlsConfiguration
+
+What the logical buttons do on this dashboard, the rules that switch screens on game events, and where it goes after a while without presses. Which PC input is which logical button belongs to the modules document's inputs, so changing the dashboard keeps that wiring and a template can bring its own actions.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `bindings` | array of [`ControlBinding`](#controlbinding), max 32 | absent |
+| `switch` | [`ControlSwitch`](#controlswitch) | absent |
+| `rules` | array of [`ControlRule`](#controlrule), max 4 | absent |
+| `home_screen` | string, max 15 bytes | empty |
+| `home_after_ms` | integer, 0..600000 | `0` |
+
 ### DashboardConfiguration
 
 Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays.
@@ -604,7 +662,42 @@ Owns the typed widget storage as one pool shared by every screen; a screen holds
 | --- | --- | --- |
 | `transition` | `ScreenTransition` | `slide` |
 | `smoothing` | `ValueSmoothing` | `off` |
+| `controls` | [`ControlsConfiguration`](#controlsconfiguration) | absent |
 | `screens` | array of [`ScreenConfiguration`](#screenconfiguration), max 4 | absent |
+
+### InputSource
+
+One PC input, named as SimHub's Controls and events list shows it.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `id` | string, max 95 bytes | empty |
+
+### InputButton
+
+One logical button: what it is called and the PC inputs that press it. Its number is its place in the list, counted from 1.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `name` | string, max 23 bytes | empty |
+| `sources` | array of [`InputSource`](#inputsource), max 4 | absent |
+
+### InputSwitch
+
+The multi-position switch: one PC input per position, the first being position 1.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `positions` | array of [`InputSource`](#inputsource), max 12 | absent |
+
+### InputsConfiguration
+
+Which PC inputs press the logical buttons and set the switch. Read by the configurator and by the SimHub plugin, which turns the inputs into the input.buttons and input.switch fields; the board keeps the section in its document and never reads it.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `buttons` | array of [`InputButton`](#inputbutton), max 16 | absent |
+| `switch` | [`InputSwitch`](#inputswitch) | absent |
 
 ### ApplicationConfiguration
 
@@ -613,6 +706,7 @@ Also carries the properties of [`BoardConfiguration`](#boardconfiguration), flat
 | Property | Type | Default |
 | --- | --- | --- |
 | `hardware` | array of [`HardwareDeviceConfiguration`](#hardwaredeviceconfiguration), max 4 | absent |
+| `inputs` | [`InputsConfiguration`](#inputsconfiguration) | absent |
 | `telemetry_transport` | [`TelemetryTransportConfiguration`](#telemetrytransportconfiguration) | absent |
 | `dashboard` | [`DashboardConfiguration`](#dashboardconfiguration) | absent |
 
@@ -640,3 +734,4 @@ Also carries the properties of [`BoardConfiguration`](#boardconfiguration), flat
 | `duplicate_property` | Property appears more than once in the same object. |
 | `out_of_range` | Value is well formed but outside the range, longer than the text, or holds more entries than the property can hold. |
 | `unknown_value` | Text is well formed but names none of the values the property accepts. |
+| `invalid_control` | A button action, the switch, a control rule or the home screen names a screen, slot or page that is not there, or carries a target its action has none of. |

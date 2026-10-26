@@ -10,6 +10,11 @@ files:
   - package.json
 asarUnpack:
   - '**/*.node'
+publish:
+  provider: github
+  owner: Pitrig
+  repo: pitrig
+  releaseType: release
 mac:
   icon: resources/icon.png
   category: public.app-category.developer-tools

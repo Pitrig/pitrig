@@ -72,6 +72,7 @@ configuration::ValidationFailure apply_dashboard_document(
     const configuration::ApplicationConfiguration& previous,
     const configuration::ApplicationConfiguration& candidate) {
   if (application.display == nullptr) {
+    (void)restart_module(application, module_composition::Module::controls);
     return {};
   }
   const bool modules_change =
@@ -83,6 +84,7 @@ configuration::ValidationFailure apply_dashboard_document(
       dashboard_composition::apply_incremental(previous, candidate,
                                                dashboard_composition::instance())) {
     dashboard_composition::dismiss_startup_screen(candidate, false);
+    (void)restart_module(application, module_composition::Module::controls);
     return {};
   }
   dashboard_composition::destroy(dashboard_composition::instance());
@@ -90,6 +92,7 @@ configuration::ValidationFailure apply_dashboard_document(
       !modules_change || restart_module(application, module_composition::Module::lap_timer);
   if (create_dashboard(application) && modules_started) {
     dashboard_composition::dismiss_startup_screen(service.current(), false);
+    (void)restart_module(application, module_composition::Module::controls);
     return {};
   }
   log::error(kTag, "Applying configuration failed; restoring the previous one");
@@ -99,6 +102,7 @@ configuration::ValidationFailure apply_dashboard_document(
     (void)restart_module(application, module_composition::Module::lap_timer);
   }
   (void)create_dashboard(application);
+  (void)restart_module(application, module_composition::Module::controls);
   return {.error = configuration::ValidationError::invalid_dashboard};
 }
 

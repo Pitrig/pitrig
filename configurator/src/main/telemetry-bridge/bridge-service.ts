@@ -6,6 +6,7 @@ import {
   SOURCE_IDLE_MS,
   idleBridgeStatus,
   wireIdsOf,
+  type PluginInput,
   type TelemetryBridgeStartRequest,
   type TelemetryBridgeStatus,
   type TelemetryInterest,
@@ -46,7 +47,8 @@ export class TelemetryBridgeService {
   constructor(
     private readonly deviceService: DeviceService,
     private readonly onStatus: (status: TelemetryBridgeStatus) => void,
-    private readonly onSnapshot: (snapshot: TelemetrySnapshot) => void
+    private readonly onSnapshot: (snapshot: TelemetrySnapshot) => void,
+    private readonly onInput: (input: PluginInput) => void
   ) {}
 
   getStatus(): TelemetryBridgeStatus {
@@ -90,6 +92,7 @@ export class TelemetryBridgeService {
       this.metrics.reset()
       this.listener.onPacket(this.receive)
       this.listener.onStatus((status) => this.handover.receive(status))
+      this.listener.onInput(this.onInput)
       this.listener.onClose(this.closed)
       this.snapshotTimer = setInterval(this.publishSnapshot, SNAPSHOT_INTERVAL_MS)
       this.statusTimer = setInterval(this.publishStatus, STATUS_INTERVAL_MS)
@@ -106,7 +109,9 @@ export class TelemetryBridgeService {
     const fields = interest.all
       ? EVERY_FIELD
       : wireIdsOf([...interest.running, ...interest.draft]).join(',')
-    if (this.handover.setInterest(fields, running)) void this.listener?.requestNow()
+    const fieldsChanged = this.handover.setInterest(fields, running)
+    const inputsChanged = this.handover.setInputs(interest.inputs, interest.wiring)
+    if (fieldsChanged || inputsChanged) void this.listener?.requestNow()
   }
 
   simulate(simulation: TelemetrySimulation): void {

@@ -10,6 +10,8 @@ namespace Pitrig.SimHub
         public HashSet<string> Holds { get; set; }
 
         public long Sequence { get; set; }
+
+        public InputMapping Wiring { get; set; }
     }
 
     internal sealed class LinkRelease
@@ -31,10 +33,17 @@ namespace Pitrig.SimHub
 
         public long Sequence { get; private set; }
 
+        public bool Inputs { get; private set; }
+
+        public InputMapping Wiring { get; private set; }
+
         public static LinkRequest Parse(byte[] buffer, int offset, int count)
         {
             var request = new LinkRequest();
-            foreach (var raw in Encoding.ASCII.GetString(buffer, offset, count).Split('\n'))
+            var wired = false;
+            var buttons = new List<KeyValuePair<int, string>>();
+            var positions = new List<KeyValuePair<int, string>>();
+            foreach (var raw in Encoding.UTF8.GetString(buffer, offset, count).Split('\n'))
             {
                 var separator = raw.IndexOf('=');
                 if (separator <= 0) continue;
@@ -52,13 +61,37 @@ namespace Pitrig.SimHub
                     case "hold":
                         if (value.Length > 0) request.Holds.Add(value);
                         break;
+                    case "inputs":
+                        request.Inputs = value == "1";
+                        break;
+                    case "wiring":
+                        wired = value == "1";
+                        break;
+                    case "button":
+                        Numbered(value, buttons);
+                        break;
+                    case "position":
+                        Numbered(value, positions);
+                        break;
                     case "release":
                         var release = Release(value);
                         if (release != null) request.Releases.Add(release);
                         break;
                 }
             }
+            if (wired) request.Wiring = InputMapping.Of(buttons, positions);
             return request;
+        }
+
+        private static void Numbered(string value, List<KeyValuePair<int, string>> entries)
+        {
+            var colon = value.IndexOf(':');
+            if (colon <= 0 || !int.TryParse(value.Substring(0, colon), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out var number))
+            {
+                return;
+            }
+            entries.Add(new KeyValuePair<int, string>(number, value.Substring(colon + 1)));
         }
 
         private static LinkRelease Release(string value)

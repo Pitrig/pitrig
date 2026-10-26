@@ -231,6 +231,16 @@ list picks several layers to edit together, and `Cmd`/`Ctrl` with `Z`,
 `Shift+Z` and `D`, `Delete` and `Escape` undo, redo, duplicate, remove and
 deselect there.
 
+The Modules workspace's **Buttons** page names up to 16 logical buttons and
+the positions of one multi-position switch, and lists what they do on the open
+dashboard: the actions, the slot the switch turns, the screen rules and the
+idle return home. **Assign** takes the next input SimHub reports — the page asks
+the plugin for every input change while it is open and lights each button and
+input as it is held. The wiring goes into the modules document's `inputs` and
+the actions into `dashboard.controls`; while the configurator holds a board,
+the plugin uses the draft's wiring for it, so a new assignment works before it
+is saved ([ADR 0038](adr/0038-pc-buttons-drive-the-board.md)).
+
 ### Keeping the draft and the board together
 
 Three things can differ, so the configurator tracks three: what the board has
@@ -371,8 +381,8 @@ other:
 
 | Document | Top-level properties | Maximum payload |
 | --- | --- | --- |
-| `dashboard` | `board`, `dashboard.transition`, `dashboard.smoothing`, `dashboard.screens` | 131072 bytes |
-| `modules` | `board`, `hardware` | 32768 bytes |
+| `dashboard` | `board`, `dashboard.transition`, `dashboard.smoothing`, `dashboard.controls`, `dashboard.screens` | 131072 bytes |
+| `modules` | `board`, `hardware`, `inputs` | 32768 bytes |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes |
 
 The shape of every root property is in the generated

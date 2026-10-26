@@ -25,7 +25,12 @@ import {
   type DeviceResult,
   type DeviceState
 } from '../../shared/device'
-import { FIRMWARE_UPLOAD_PROGRESS_CHANNEL, type FirmwareUploadProgress } from '../../shared/firmware-update'
+import {
+  BOARD_UPDATE_PROGRESS_CHANNEL,
+  FIRMWARE_UPLOAD_PROGRESS_CHANNEL,
+  type BoardUpdateProgress,
+  type FirmwareUploadProgress
+} from '../../shared/firmware-update'
 import { FONT_LIBRARY_CHANGED_CHANNEL, type FontLibrarySnapshot } from '../../shared/font-library'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
 import {
@@ -44,6 +49,7 @@ export function registerIpcHandlers({
   fontAssetService,
   imageAssetService,
   firmwareUpdateService,
+  boardUpdateService,
   simHubProfileService,
   configurationFileService,
   previewAssetCache,
@@ -64,6 +70,7 @@ export function registerIpcHandlers({
     fontAssetService,
     imageAssetService,
     firmwareUpdateService,
+    boardUpdateService,
     simHubProfileService,
     previewAssetCache,
     fontLibraryService,
@@ -126,6 +133,10 @@ export function broadcastImageUploadProgress(progress: AssetUploadProgress): voi
 
 export function broadcastFirmwareUploadProgress(progress: FirmwareUploadProgress): void {
   broadcastToWindows(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, progress)
+}
+
+export function broadcastBoardUpdateProgress(progress: BoardUpdateProgress): void {
+  broadcastToWindows(BOARD_UPDATE_PROGRESS_CHANNEL, progress)
 }
 
 export function broadcastSaveProgress(progress: SaveProgress): void {

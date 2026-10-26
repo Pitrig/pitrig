@@ -22,12 +22,15 @@ def expected_outputs(
     generators = {
         "cpp": generate_cpp,
         "simhub": generate_simhub,
-        "typescript": generate_typescript,
-        "markdown": generate_markdown,
     }
+    games = simhub_profile["games"]
     outputs = {}
     for path, kind in OUTPUTS.items():
-        if kind == "shsds":
+        if kind == "typescript":
+            outputs[path] = generate_typescript(document, fields, simhub_mappings, games)
+        elif kind == "markdown":
+            outputs[path] = generate_markdown(document, fields, simhub_mappings, games)
+        elif kind == "shsds":
             outputs[path] = generate_shsds(simhub_profile, fields, simhub_mappings)
         elif kind == "csharp":
             outputs[path] = generate_csharp(simhub_profile, fields, simhub_mappings)

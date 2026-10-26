@@ -18,6 +18,7 @@ import { createAppWindow, isDevelopment } from '@main/app-window'
 import { applyBranding, applyDockIcon, DEBUG_APP_NAME } from '@main/branding'
 import {
   broadcastDeviceState,
+  broadcastBoardUpdateProgress,
   broadcastFirmwareUploadProgress,
   broadcastImageUploadProgress,
   broadcastSaveProgress,
@@ -33,6 +34,7 @@ const serialTraffic = new SerialTrafficBatcher()
 const services: AppServices = createAppServices({
   onDeviceState: broadcastDeviceState,
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
+  onBoardUpdateProgress: broadcastBoardUpdateProgress,
   onImageUploadProgress: broadcastImageUploadProgress,
   onSaveProgress: broadcastSaveProgress,
   onSerialTraffic: serialTraffic.push

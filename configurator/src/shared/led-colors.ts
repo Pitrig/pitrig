@@ -1,4 +1,5 @@
 import type { ConditionOperator, LedEffect, RgbColor } from './configuration-schema'
+import { bitSet } from './widget-conditions'
 
 export interface LayerColors {
   ink: RgbColor
@@ -34,8 +35,10 @@ export function conditionHolds(
       return value <= threshold
     case 'equal':
       return value === threshold
-    default:
+    case 'not_equal':
       return value !== threshold
+    case 'bit_set':
+      return bitSet(value, threshold)
   }
 }
 

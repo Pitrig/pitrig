@@ -37,6 +37,7 @@ namespace Pitrig.SimHub
         private const string ErrorReply = "@PR:ERR:";
 
         private readonly FieldValues values;
+        private readonly InputState inputs;
         private readonly int[] handedFields;
         private readonly int[] rememberedFields;
         private readonly FieldStream stream = new FieldStream();
@@ -55,13 +56,14 @@ namespace Pitrig.SimHub
         private long bytesSent;
 
         public BoardSession(string portName, int baudRate, int[] handedFields, int[] rememberedFields,
-            FieldValues values)
+            FieldValues values, InputState inputs)
         {
             PortName = portName;
             BaudRate = baudRate;
             this.handedFields = handedFields;
             this.rememberedFields = rememberedFields;
             this.values = values;
+            this.inputs = inputs;
             thread = new Thread(Run) { IsBackground = true, Name = "Pitrig " + portName };
         }
 
@@ -128,7 +130,7 @@ namespace Pitrig.SimHub
                     Idle();
                     return;
                 }
-                if (handedFields == null) documents = new DocumentReader(clock.Elapsed.TotalMilliseconds);
+                documents = new DocumentReader(clock.Elapsed.TotalMilliseconds, handedFields == null);
                 Subscribe(handedFields ?? rememberedFields ?? new int[0],
                     handedFields != null ? "the configurator" : rememberedFields != null ? "the last session" : "nowhere yet");
                 SetState(BoardState.Streaming);
@@ -220,7 +222,8 @@ namespace Pitrig.SimHub
                 documents = null;
                 PluginTrace.Event(PortName, $"documents read in {reader.Elapsed(now):0} ms, {reader.Bytes} bytes, " +
                                             $"{reader.BusyRetries} busy answers repeated");
-                Subscribe(reader.Fields, "the documents");
+                inputs.Map(PortName, reader.Mapping);
+                if (handedFields == null) Subscribe(reader.Fields, "the documents");
                 return;
             }
             if (reader.Failed(now))

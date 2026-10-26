@@ -2,10 +2,25 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 #include "number_transform.hpp"
 
 namespace pitrig::conditions {
+namespace {
+
+constexpr double kHighestBit = 32.0;
+constexpr double kBitmaskLimit = 4294967296.0;
+
+[[nodiscard]] bool bit_set(const double value, const double bit) {
+  if (!(bit >= 1.0 && bit <= kHighestBit) || !(value >= 0.0 && value < kBitmaskLimit)) {
+    return false;
+  }
+  const auto mask = static_cast<std::uint32_t>(value);
+  return ((mask >> (static_cast<std::uint32_t>(bit) - 1U)) & 1U) != 0;
+}
+
+}
 
 std::uint32_t blend_color(const std::uint32_t from, const std::uint32_t to, const double ratio) {
   std::uint32_t blended{};
@@ -33,6 +48,8 @@ bool condition_holds(const configuration::ConditionOperator op, const double val
       return value == threshold;
     case configuration::ConditionOperator::not_equal:
       return value != threshold;
+    case configuration::ConditionOperator::bit_set:
+      return bit_set(value, threshold);
   }
   return false;
 }

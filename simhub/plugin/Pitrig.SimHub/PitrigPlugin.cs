@@ -15,6 +15,8 @@ namespace Pitrig.SimHub
 
         private static readonly Lazy<ImageSource> Icon = new Lazy<ImageSource>(CreateIcon);
 
+        private InputHooks hooks;
+
         public PluginManager PluginManager { get; set; }
 
         public PluginSettings Settings { get; private set; } = new PluginSettings();
@@ -29,10 +31,13 @@ namespace Pitrig.SimHub
         {
             Settings = this.ReadCommonSettings(SettingsName, () => new PluginSettings());
             Hub.Attach(this);
+            hooks = new InputHooks(Hub.Inputs);
+            hooks.Attach(this, pluginManager);
         }
 
         public void End(PluginManager pluginManager)
         {
+            hooks?.Detach();
             SaveSettings();
             Hub.Detach(this);
         }

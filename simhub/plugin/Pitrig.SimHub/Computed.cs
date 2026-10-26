@@ -84,6 +84,10 @@ namespace Pitrig.SimHub
                     return FuelComputations.AtFinish(state);
                 case FieldComputation.FuelPitNow:
                     return FuelComputations.PitNow(state);
+                case FieldComputation.InputButtons:
+                    return state.Inputs.TakeButtons();
+                case FieldComputation.InputSwitch:
+                    return state.Inputs.Position;
                 default:
                     return null;
             }
