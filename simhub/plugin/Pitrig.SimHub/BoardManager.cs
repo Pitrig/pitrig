@@ -25,6 +25,7 @@ namespace Pitrig.SimHub
         private readonly List<BoardSession> sessions = new List<BoardSession>();
         private readonly Dictionary<string, double> retryAt = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, int[]> handedFields = new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int[]> lastFields = new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, ByteRate> samples = new Dictionary<string, ByteRate>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> silent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> busy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -154,6 +155,7 @@ namespace Pitrig.SimHub
             lock (gate) held = sessions.Where(session => holds.Contains(session.PortName)).ToList();
             foreach (var session in held)
             {
+                Remember(session);
                 session.Stop();
                 PluginLog.Info(session.PortName + " handed to the configurator");
             }
@@ -173,6 +175,14 @@ namespace Pitrig.SimHub
             }
             if (release.Fields != null) handedFields[release.Port] = release.Fields;
             PluginLog.Info(release.Port + " handed back by the configurator");
+            PluginTrace.Event(release.Port, $"handed back at {release.BaudRate} baud with " +
+                                            (release.Fields == null ? "no fields" : release.Fields.Length + " fields"));
+        }
+
+        private void Remember(BoardSession session)
+        {
+            var fields = session.Fields;
+            if (fields.Length > 0) lastFields[session.PortName] = fields;
         }
 
         private void Reap(double now)
@@ -186,6 +196,8 @@ namespace Pitrig.SimHub
             foreach (var session in finished)
             {
                 var port = session.PortName;
+                Remember(session);
+                PluginTrace.Event(port, $"session ended {session.State} {session.Problem}");
                 switch (session.State)
                 {
                     case BoardState.Silent:
@@ -234,8 +246,10 @@ namespace Pitrig.SimHub
                 var baudRate = remembered != null && remembered.BaudRate > 0 ? remembered.BaudRate : NativeBaudRate;
                 handedFields.TryGetValue(name, out var fields);
                 handedFields.Remove(name);
+                lastFields.TryGetValue(name, out var previous);
                 lock (gate) busy.Remove(name);
-                var session = new BoardSession(name, baudRate, fields, values);
+                PluginTrace.Event(name, $"opening at {baudRate} baud, {kind}");
+                var session = new BoardSession(name, baudRate, fields, previous, values);
                 lock (gate) sessions.Add(session);
                 session.Start();
             }

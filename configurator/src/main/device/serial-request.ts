@@ -17,6 +17,8 @@ const MAXIMUM_RESPONSE_BUFFER_SIZE =
 const CONTROL_COMMAND_TIMEOUT_MS = 3_000
 const DEVICE_ERROR_PREFIX = '@PR:ERR:'
 const REQUEST_LABEL_PARTS = 3
+const BUSY_TOKEN = 'busy'
+const BUSY_RETRY_MS = 20
 
 function requestLabel(request: string): string {
   const line = request.trim()
@@ -26,13 +28,43 @@ function requestLabel(request: string): string {
     : line
 }
 
-export function requestResponse(
+export async function requestResponse(
   port: SerialPort,
   request: string,
   responsePrefix: string,
   timeoutMs: number,
   onTraffic: TrafficCallback,
   rejectionCode: DeviceErrorCode = 'not_pitrig'
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    try {
+      return await exchangeResponse(
+        port,
+        request,
+        responsePrefix,
+        Math.max(1, deadline - Date.now()),
+        onTraffic,
+        rejectionCode
+      )
+    } catch (error) {
+      if (!isBusyRefusal(error) || Date.now() + BUSY_RETRY_MS >= deadline) throw error
+      await new Promise<void>((resolve) => setTimeout(resolve, BUSY_RETRY_MS))
+    }
+  }
+}
+
+function isBusyRefusal(error: unknown): boolean {
+  return error instanceof DeviceServiceError && error.token === BUSY_TOKEN
+}
+
+function exchangeResponse(
+  port: SerialPort,
+  request: string,
+  responsePrefix: string,
+  timeoutMs: number,
+  onTraffic: TrafficCallback,
+  rejectionCode: DeviceErrorCode
 ): Promise<string> {
   return exchangeLines<string>(port, {
     timeoutMs,

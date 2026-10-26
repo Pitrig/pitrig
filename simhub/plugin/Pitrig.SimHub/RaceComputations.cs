@@ -11,9 +11,9 @@ namespace Pitrig.SimHub
         {
             var status = state.Status;
             if (status == null) return null;
+            if (!status.HasMultipleClassOpponents) return status.Position;
             var inClass = state.Player?.PositionInClass;
-            if (inClass > 0) return inClass;
-            return status.HasMultipleClassOpponents ? (int?)null : status.Position;
+            return inClass > 0 ? inClass : null;
         }
 
         public static double? NeighbourGap(TelemetryState state, int offset)

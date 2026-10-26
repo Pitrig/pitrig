@@ -34,10 +34,14 @@ alone until it disappears and comes back.
 On a board that answers, the plugin reads the dashboard and modules documents
 and sends the fields they bind, at the catalog rates, changed values only, with
 every value repeated within a second, an empty one included, since an empty
-value invalidates the field on the board. A board in safe mode is shown and left
-alone. The panel lists each board, what it is sent and how many bytes a second,
-the shift-light source of the current car, and what the plugin costs SimHub per
-update.
+value invalidates the field on the board. After a reconnect it sends the fields
+of the board's previous session at once and switches to the documents' when
+they arrive, and a request the board answers `busy` is sent again. A board that
+takes no data for a moment misses updates rather than receiving them late, and
+counts as lost only once a write has waited two seconds. A board in safe mode is
+shown and left alone. The panel lists each board, what it is sent and how many
+bytes a second, the shift-light source of the current car, and what the plugin
+costs SimHub per update.
 
 ## Shift lights
 
@@ -70,9 +74,11 @@ would otherwise produce a nonsensical clock.
 Both paths compute the same fields from the same SimHub data. A field with no
 single property is a formula in the Custom Serial profile and a native twin in
 `Computed.cs` and the classes beside it, named by the mapping's `computed` key,
-so a change to one side is a visible change to the other: the gaps and the
-class position come from SimHub's leaderboard, and the sector delta keeps the
-live delta at the last sector boundary. Only the shift lights go further in the
+so a change to one side is a visible change to the other: the gaps come from
+SimHub's leaderboard, and so does the class position when the session has more
+than one class — in a single-class race it is the game's own position, because
+ACC's leaderboard in SimHub can place the player one behind it. The sector delta
+keeps the live delta at the last sector boundary. Only the shift lights go further in the
 plugin, where the game's own data is within reach. The panel's fuel reserve and
 averages take the defaults the profile export offers.
 
@@ -129,3 +135,10 @@ python3 -m tools.codegen.telemetry_catalog
 It carries every field's wire id, SimHub property, conversion, format and rate,
 from the same `telemetry/simhub_generic_mappings.json` the Custom Serial profile
 is built from.
+
+A Debug build, `dotnet build` without `-c Release`, is the development build: it
+writes `Logs\Pitrig-trace.log` in the SimHub folder — each board's sessions,
+requests and states, and every pause over half a second, whether SimHub sent no
+update or a board took no data — and adds a diagnostics section to the panel.
+The Release build that CI and the installer use carries none of it
+([ADR 0028](adr/0028-debug-build-and-debug-application-boundary.md)).

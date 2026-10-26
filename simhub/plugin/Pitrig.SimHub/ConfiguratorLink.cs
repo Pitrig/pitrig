@@ -17,6 +17,7 @@ namespace Pitrig.SimHub
         private const int ConnectionResetControlCode = -1744830452;
         private const int ReceiveCapacity = 8192;
         private const string StatusMarker = "@PT:STATUS\n";
+        private const string TraceSource = "configurator";
 
         private readonly byte[] datagram = new byte[HeaderBytes + TelemetryCatalog.LinkMaximumPayload];
         private readonly FieldStream stream = new FieldStream();
@@ -270,12 +271,14 @@ namespace Pitrig.SimHub
                 {
                     subscriber = remote;
                     subscriberIsNew = true;
+                    PluginTrace.Event(TraceSource, "requests now come from " + remote);
                 }
                 subscribedAt = clock.Elapsed.TotalMilliseconds;
                 if (control)
                 {
-                    changed = !holds.SetEquals(request.Holds) || request.Releases.Count > 0 ||
-                              request.Sequence != sequence;
+                    var holdsChanged = !holds.SetEquals(request.Holds);
+                    if (holdsChanged) PluginTrace.Event(TraceSource, "holds [" + string.Join(",", request.Holds) + "]");
+                    changed = holdsChanged || request.Releases.Count > 0 || request.Sequence != sequence;
                     holds = request.Holds;
                     holdsAt = subscribedAt;
                     sequence = request.Sequence;

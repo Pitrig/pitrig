@@ -11,6 +11,14 @@
     <SimHubPath Condition="'$(SimHubPath)' == ''">C:\Program Files (x86)\SimHub</SimHubPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);PITRIG_DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <Compile Remove="**\*.Debug.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />

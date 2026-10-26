@@ -92,6 +92,14 @@ jobs:
           New-Item -ItemType Directory -Force simhub-plugin | Out-Null
           Copy-Item (Join-Path $output 'Pitrig.SimHub.dll') simhub-plugin/
 
+      - name: Check the plugin carries no development build
+        shell: pwsh
+        run: |
+          $assembly = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes('simhub-plugin/Pitrig.SimHub.dll'))
+          foreach ($type in 'TraceSubject', 'RollingPeak') {
+            if ($assembly.Contains($type)) { throw "The released plugin carries the development build's $type" }
+          }
+
       - uses: actions/upload-artifact@v7
         with:
           name: simhub-plugin

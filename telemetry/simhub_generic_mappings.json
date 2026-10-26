@@ -83,7 +83,7 @@
     "session.name": { "property": "DataCorePlugin.GameData.NewData.SessionName", "conversion": "text" },
     "session.phase": { "property": "DataCorePlugin.GameData.NewData.SessionPhase", "conversion": "text" },
     "session.position": { "property": "DataCorePlugin.GameData.NewData.Position", "format": "0", "unavailable_when": { "op": "at_or_below", "value": 0 } },
-    "session.class_position": { "computed": "ClassPosition", "expression": "driverclassposition(getplayerleaderboardposition())", "format": "0", "unavailable_when": { "op": "at_or_below", "value": 0 } },
+    "session.class_position": { "computed": "ClassPosition", "expression": "if(isnull([DataCorePlugin.GameData.NewData.HasMultipleClassOpponents], false), driverclassposition(getplayerleaderboardposition()), [DataCorePlugin.GameData.NewData.Position])", "format": "0", "unavailable_when": { "op": "at_or_below", "value": 0 } },
     "session.participants": { "property": "DataCorePlugin.GameData.NewData.OpponentsCount", "format": "0", "unavailable_when": { "op": "at_or_below", "value": 0 } },
     "session.class_participants": { "property": "DataCorePlugin.GameData.NewData.PlayerClassOpponentsCount", "format": "0", "unavailable_when": { "op": "at_or_below", "value": 0 } },
     "session.time_elapsed": { "property": "DataCorePlugin.GameData.NewData.GuessedElaspedGameTime", "conversion": "timespan_ms" },

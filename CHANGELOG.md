@@ -36,6 +36,13 @@ on 0.2.0 ignores it and keeps everything else.
 - The Pitrig plugin for SimHub feeds the board by itself: it finds the board on
   USB, sends only the fields its dashboard and modules use, and needs no profile
   to import and no port to pick. The Windows installer adds it to SimHub.
+  After a restart of SimHub or of the board it resumes at once with the fields it
+  sent before, and a board slow to take data for a moment misses updates rather
+  than receiving them late.
+- A development build of the plugin, built without `-c Release`, writes a trace
+  to SimHub's `Logs\Pitrig-trace.log` and shows each board's state, the longest
+  pauses and the repeated busy answers in its panel. The released plugin carries
+  none of it.
 - The configurator connects while SimHub runs: it takes the board over from the
   plugin and passes the telemetry on, and gives the board back when it
   disconnects. A Guition ESP32-4848S040 is learned the first time the
@@ -55,6 +62,16 @@ on 0.2.0 ignores it and keeps everything else.
   `engine.redline_reached`, and the gear text colours by the same bar.
 - A dashboard-only SimHub profile now includes `vehicle.speed` for a text source
   left on its default, and the lap time for any modifier.
+
+**Fixed**
+
+- The configurator sends a command again when the board answers that it is busy.
+  A board still finishing one reply refuses the next command for a few
+  milliseconds, which could fail a connection or a read of its configuration.
+- In a race of one class `session.class_position` is the game's own position, the
+  same as `session.position`. In ACC, SimHub's leaderboard put the player one
+  place behind it, so a dashboard showed class 23 beside position 22. Export the
+  SimHub profile again to get the fix there too.
 
 ## 0.2.0 — 2026-10-18
 

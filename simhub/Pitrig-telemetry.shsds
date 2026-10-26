@@ -493,7 +493,7 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], driverclassposition(getplayerleaderboardposition()), ''), '') = '', '1b;\\n', if((if([DataCorePlugin.GameRunning], driverclassposition(getplayerleaderboardposition()), '')) <= 0, '1b;\\n', '1b;' + format(if([DataCorePlugin.GameRunning], driverclassposition(getplayerleaderboardposition()), ''), '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.HasMultipleClassOpponents], false), driverclassposition(getplayerleaderboardposition()), [DataCorePlugin.GameData.NewData.Position]), ''), '') = '', '1b;\\n', if((if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.HasMultipleClassOpponents], false), driverclassposition(getplayerleaderboardposition()), [DataCorePlugin.GameData.NewData.Position]), '')) <= 0, '1b;\\n', '1b;' + format(if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.HasMultipleClassOpponents], false), driverclassposition(getplayerleaderboardposition()), [DataCorePlugin.GameData.NewData.Position]), ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20

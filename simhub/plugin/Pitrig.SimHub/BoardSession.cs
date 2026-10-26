@@ -23,21 +23,22 @@ namespace Pitrig.SimHub
         private const int PollMs = 5;
         private const int IdleMs = 250;
         private const int ReplyTimeoutMs = 1500;
-        private const int DocumentTimeoutMs = 15000;
         private const int IdentifyAttempts = 3;
         private const int IdentifyPauseMs = 500;
+        private const int BusyRetryMs = 20;
         private const int StopTimeoutMs = 2000;
         private const int WriteChunkBytes = 1024;
         private const int ReadChunkBytes = 4096;
         private const int MaximumLineBytes = 160 * 1024;
+        private const int OutputHighWater = 512;
         private const string InfoRequest = "\n@PR:INFO\n";
         private const string InfoReply = "@PR:OK:INFO:";
-        private const string DocumentReply = "@PR:OK:CONFIG:";
+        private const string BusyReply = "@PR:ERR:busy";
         private const string ErrorReply = "@PR:ERR:";
-        private const string UnknownDocument = "@PR:ERR:unknown_document";
 
         private readonly FieldValues values;
         private readonly int[] handedFields;
+        private readonly int[] rememberedFields;
         private readonly FieldStream stream = new FieldStream();
         private readonly AutoResetEvent wake = new AutoResetEvent(false);
         private readonly Stopwatch clock = Stopwatch.StartNew();
@@ -46,17 +47,20 @@ namespace Pitrig.SimHub
         private readonly LineAssembler assembler = new LineAssembler(MaximumLineBytes);
         private readonly List<string> lines = new List<string>();
         private readonly Thread thread;
-        private NativeSerial serial;
+        private volatile NativeSerial serial;
+        private DocumentReader documents;
         private volatile bool stopping;
         private int state;
         private int length;
         private long bytesSent;
 
-        public BoardSession(string portName, int baudRate, int[] handedFields, FieldValues values)
+        public BoardSession(string portName, int baudRate, int[] handedFields, int[] rememberedFields,
+            FieldValues values)
         {
             PortName = portName;
             BaudRate = baudRate;
             this.handedFields = handedFields;
+            this.rememberedFields = rememberedFields;
             this.values = values;
             thread = new Thread(Run) { IsBackground = true, Name = "Pitrig " + portName };
         }
@@ -93,6 +97,7 @@ namespace Pitrig.SimHub
         {
             stopping = true;
             wake.Set();
+            serial?.Cancel();
             if (thread.IsAlive) thread.Join(StopTimeoutMs);
         }
 
@@ -107,6 +112,7 @@ namespace Pitrig.SimHub
         {
             try
             {
+                SetState(BoardState.Connecting);
                 serial = NativeSerial.Open(PortName, BaudRate);
                 var info = Identify();
                 if (info == null)
@@ -122,7 +128,9 @@ namespace Pitrig.SimHub
                     Idle();
                     return;
                 }
-                stream.Subscribe(handedFields ?? Subscription.Of(Document("dashboard"), Document("modules")));
+                if (handedFields == null) documents = new DocumentReader(clock.Elapsed.TotalMilliseconds);
+                Subscribe(handedFields ?? rememberedFields ?? new int[0],
+                    handedFields != null ? "the configurator" : rememberedFields != null ? "the last session" : "nowhere yet");
                 SetState(BoardState.Streaming);
                 Stream();
             }
@@ -148,35 +156,44 @@ namespace Pitrig.SimHub
         {
             for (var attempt = 0; attempt < IdentifyAttempts && !stopping; attempt += 1)
             {
-                var reply = Request(InfoRequest, InfoReply, ReplyTimeoutMs, null);
+                var reply = Request(InfoRequest, InfoReply, ReplyTimeoutMs);
                 if (reply != null) return BoardInfo.Parse(reply.Substring(InfoReply.Length));
                 Pause(IdentifyPauseMs);
             }
             return null;
         }
 
-        private string Document(string name)
+        private string Request(string command, string prefix, int timeoutMs)
         {
-            var prefix = DocumentReply + name + ":";
-            var reply = Request("@PR:GET:" + name + "\n", prefix, DocumentTimeoutMs, UnknownDocument);
-            if (reply == null) throw new IOException("The board did not send its " + name + " document.");
-            return reply.StartsWith(prefix, StringComparison.Ordinal) ? reply.Substring(prefix.Length) : string.Empty;
-        }
-
-        private string Request(string command, string prefix, int timeoutMs, string acceptedError)
-        {
+            var started = clock.ElapsedMilliseconds;
+            var busy = 0;
             Send(command);
-            var deadline = clock.ElapsedMilliseconds + timeoutMs;
-            while (!stopping && clock.ElapsedMilliseconds < deadline)
+            while (!stopping && clock.ElapsedMilliseconds - started < timeoutMs)
             {
+                var resend = false;
                 foreach (var line in ReadLines())
                 {
-                    if (line.StartsWith(prefix, StringComparison.Ordinal)) return line;
-                    if (acceptedError != null && line.StartsWith(acceptedError, StringComparison.Ordinal)) return line;
-                    if (line.StartsWith(ErrorReply, StringComparison.Ordinal)) return null;
+                    if (line.StartsWith(prefix, StringComparison.Ordinal))
+                    {
+                        PluginTrace.Request(PortName, command, clock.ElapsedMilliseconds - started, busy, "answered");
+                        return line;
+                    }
+                    resend = string.Equals(line, BusyReply, StringComparison.Ordinal);
+                    if (resend) break;
+                    if (!line.StartsWith(ErrorReply, StringComparison.Ordinal)) continue;
+                    PluginTrace.Request(PortName, command, clock.ElapsedMilliseconds - started, busy, line);
+                    return null;
+                }
+                if (resend)
+                {
+                    busy += 1;
+                    Pause(BusyRetryMs);
+                    Send(command);
+                    continue;
                 }
                 wake.WaitOne(PollMs);
             }
+            PluginTrace.Request(PortName, command, clock.ElapsedMilliseconds - started, busy, "no answer");
             return null;
         }
 
@@ -186,10 +203,41 @@ namespace Pitrig.SimHub
             {
                 wake.WaitOne(PollMs);
                 if (stopping) return;
-                stream.Collect(values, clock.Elapsed.TotalMilliseconds, this);
+                var now = clock.Elapsed.TotalMilliseconds;
+                ReadDocuments(now);
+                if (serial.PendingOutput() <= OutputHighWater) stream.Collect(values, now, this);
                 Flush();
-                ReadLines();
             }
+        }
+
+        private void ReadDocuments(double now)
+        {
+            var reader = documents;
+            foreach (var line in ReadLines()) reader?.Accept(line, now);
+            if (reader == null) return;
+            if (reader.Done)
+            {
+                documents = null;
+                PluginTrace.Event(PortName, $"documents read in {reader.Elapsed(now):0} ms, {reader.Bytes} bytes, " +
+                                            $"{reader.BusyRetries} busy answers repeated");
+                Subscribe(reader.Fields, "the documents");
+                return;
+            }
+            if (reader.Failed(now))
+            {
+                documents = null;
+                if (stream.Indices.Length == 0) throw new IOException("The board did not send its documents.");
+                PluginTrace.Event(PortName, "documents not read, keeping the fields of the last session");
+                return;
+            }
+            var command = reader.Due(now);
+            if (command != null) Append(command);
+        }
+
+        private void Subscribe(int[] fields, string source)
+        {
+            stream.Subscribe(fields);
+            PluginTrace.Event(PortName, $"streaming {fields.Length} fields from {source}");
         }
 
         private void Idle()
@@ -217,16 +265,23 @@ namespace Pitrig.SimHub
 
         private void Send(string text)
         {
+            Append(text);
             Flush();
-            var bytes = Encoding.ASCII.GetBytes(text);
-            serial.Write(bytes, bytes.Length);
-            Interlocked.Add(ref bytesSent, bytes.Length);
+        }
+
+        private void Append(string text)
+        {
+            var count = Encoding.ASCII.GetByteCount(text);
+            if (length + count > output.Length) Flush();
+            length += Encoding.ASCII.GetBytes(text, 0, text.Length, output, length);
         }
 
         private void Flush()
         {
             if (length == 0) return;
+            var started = clock.Elapsed.TotalMilliseconds;
             serial.Write(output, length);
+            PluginTrace.Write(PortName, length, clock.Elapsed.TotalMilliseconds - started);
             Interlocked.Add(ref bytesSent, length);
             length = 0;
         }
@@ -234,6 +289,7 @@ namespace Pitrig.SimHub
         private void SetState(BoardState next)
         {
             Volatile.Write(ref state, (int)next);
+            PluginTrace.State(PortName, next.ToString());
         }
     }
 }

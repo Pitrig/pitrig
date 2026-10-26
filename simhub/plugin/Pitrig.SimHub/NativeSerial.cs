@@ -24,7 +24,7 @@ namespace Pitrig.SimHub
         private const uint PurgeAll = 0x000F;
         private const uint QueueBytes = 16384;
         private const uint Immediate = 0xFFFFFFFF;
-        private const uint WriteTimeoutMs = 250;
+        private const uint WriteTimeoutMs = 2000;
         private const uint ClearRts = 4;
         private const uint ClearDtr = 6;
         private const int AccessDenied = 5;
@@ -73,6 +73,22 @@ namespace Pitrig.SimHub
         {
             if (!ReadFile(handle, buffer, buffer.Length, out var read, IntPtr.Zero)) Fail();
             return read;
+        }
+
+        public int PendingOutput()
+        {
+            return ClearCommError(handle, out _, out var status) ? (int)status.OutQueue : 0;
+        }
+
+        public void Cancel()
+        {
+            try
+            {
+                CancelIoEx(handle, IntPtr.Zero);
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         public void Dispose()
@@ -137,6 +153,14 @@ namespace Pitrig.SimHub
             public uint WriteTotalConstant;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CommStatus
+        {
+            public uint Flags;
+            public uint InQueue;
+            public uint OutQueue;
+        }
+
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security,
             uint creation, uint flags, IntPtr template);
@@ -158,6 +182,12 @@ namespace Pitrig.SimHub
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool EscapeCommFunction(SafeFileHandle file, uint function);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool ClearCommError(SafeFileHandle file, out uint errors, out CommStatus status);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CancelIoEx(SafeFileHandle file, IntPtr overlapped);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool WriteFile(SafeFileHandle file, byte[] buffer, int count, out int written,

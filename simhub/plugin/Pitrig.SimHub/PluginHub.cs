@@ -153,6 +153,7 @@ namespace Pitrig.SimHub
         private void Measure(long started, double now)
         {
             var elapsed = (clock.ElapsedTicks - started) * 1e9 / Stopwatch.Frequency;
+            PluginTrace.Update(now, elapsed / 1000);
             var smoothed = Interlocked.Read(ref costNanoseconds);
             Interlocked.Exchange(ref costNanoseconds, (long)(smoothed + (elapsed - smoothed) * CostWeight));
             updates += 1;

@@ -32,9 +32,13 @@ CH340 is never opened. It identifies the board with `@PR:INFO`, reads
 documents bind — every `binding`, `vehicle.speed` because it is a text source's
 default, and `session.lap.current_time` when any modifier is present — in the
 line format of ADR 0006: changed values only, with every value repeated within
-a second, spread across it. Each board has a thread of its own and is written
-through Win32 directly with DTR and RTS off; a field is evaluated once, on
-SimHub's thread, for every consumer. Boards and the configurator link live in
+a second, spread across it. A board it fed before gets that session's fields at
+once, while the documents are read beside the stream, and a request the board
+answers `busy` is sent again. Each board has a thread of its own and is written
+through Win32 directly with DTR and RTS off; a board slow to take data misses
+updates rather than receiving them late, and is dropped only once a write has
+waited two seconds. A field is evaluated once, on SimHub's thread, for every
+consumer. Boards and the configurator link live in
 one process-wide hub, because SimHub rebuilds its plugins on a game change.
 
 **The configurator takes a board over and relays.** Before it opens any port the

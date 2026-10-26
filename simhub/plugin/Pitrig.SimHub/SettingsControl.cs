@@ -10,7 +10,7 @@ using System.Windows.Threading;
 
 namespace Pitrig.SimHub
 {
-    internal sealed class SettingsControl : UserControl
+    internal sealed partial class SettingsControl : UserControl
     {
         private const double MaximumReserveLaps = 10;
         private const int MaximumAverageLaps = 10;
@@ -85,6 +85,7 @@ namespace Pitrig.SimHub
             panel.Children.Add(shifts);
             panel.Children.Add(Heading("Cost"));
             panel.Children.Add(cost);
+            AddDiagnostics(panel);
             enabled.Margin = SectionMargin;
             panel.Children.Add(enabled);
             panel.Children.Add(apply);
@@ -169,7 +170,12 @@ namespace Pitrig.SimHub
             if (hub.Error != null) state.Text = "Not listening for the configurator: " + hub.Error;
             else if (!plugin.Settings.Enabled) state.Text = "Sending is switched off.";
             else state.Text = string.Empty;
+            ShowDiagnostics();
         }
+
+        partial void AddDiagnostics(StackPanel panel);
+
+        partial void ShowDiagnostics();
 
         private static string BoardsText(PluginHub hub)
         {
