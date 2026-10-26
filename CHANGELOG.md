@@ -95,6 +95,8 @@ fields without moving an identifier.
   strip's brightness, so a dimmed strip still reads on screen.
 - A strip layer's `from` and `count` became `parts`; documents and files are
   converted when they are opened.
+- The timers of the Race DDU template show a zero time in their own format, such
+  as `00:00.000`, until a value exists, instead of `N/A`.
 
 **Fixed**
 
