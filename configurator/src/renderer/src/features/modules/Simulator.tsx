@@ -1,6 +1,7 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 
 import type { HardwareDeviceConfiguration } from '@shared/configuration-schema'
+import { useDeviceStore } from '@/features/device/device-store'
 import { t } from '@shared/ui-text'
 import { gearText, simulatedValue, type SimulatorControl } from './simulator-controls'
 import { followsSimHub, useSimulatorStore, type TelemetryState } from './simulator-store'
@@ -80,6 +81,9 @@ export function Simulator({
   const setIdle = useSimulatorStore((state) => state.setIdle)
   const setSource = useSimulatorStore((state) => state.setSource)
   const reset = useSimulatorStore((state) => state.reset)
+  const onBoard = useSimulatorStore((state) => state.onBoard)
+  const setOnBoard = useSimulatorStore((state) => state.setOnBoard)
+  const connected = useDeviceStore((state) => state.status === 'connected' && state.session !== undefined)
   const live = telemetry !== 'none'
   const following = followsSimHub(source, telemetry)
   const toggles = controls.filter((control) => control.kind === 'toggle')
@@ -124,6 +128,20 @@ export function Simulator({
         {!following ? (
           <button
             type="button"
+            aria-pressed={onBoard && connected}
+            disabled={!connected}
+            title={connected
+              ? t('modules.simulator.feedsTheseValuesToTheBoard')
+              : t('modules.simulator.connectABoardToDrive')}
+            className={`${CHIP} ${onBoard && connected ? CHIP_ON : CHIP_OFF} disabled:opacity-40`}
+            onClick={() => setOnBoard(!onBoard)}
+          >
+            {t('modules.simulator.showOnTheBoard')}
+          </button>
+        ) : null}
+        {!following ? (
+          <button
+            type="button"
             title={t('modules.simulator.resetEveryValue')}
             className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-muted-foreground hover:bg-white/5"
             onClick={reset}
@@ -132,6 +150,9 @@ export function Simulator({
           </button>
         ) : null}
       </div>
+      {!following && onBoard && connected ? (
+        <p className="text-[10px] text-sky-200/80">{t('modules.simulator.theBoardFollowsTheseValues')}</p>
+      ) : null}
       {following ? null : (
         <>
           {toggles.length > 0 || idleLayer ? (

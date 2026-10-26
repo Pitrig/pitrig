@@ -219,8 +219,9 @@ validated against the same schema allow-list the device payload uses.
 The Modules page draws every lamp numbered where it is mounted and lit as the
 board would light it: from SimHub while a game or a replay sends values, and
 otherwise from a simulator whose switches and sliders are the values the
-device's layers read. Its colours ignore the device brightness, so a dim strip
-still reads. Clicking a strip's lamp adds it to the selected layer or takes it
+device's layers read; **Show on the board** sends those values to the connected
+board in place of SimHub's while the page is open. Its colours ignore the device
+brightness, so a dim strip still reads. Clicking a strip's lamp adds it to the selected layer or takes it
 away, dragging does the same for a run, and `Alt`-click picks the layer on top;
 the inspector writes the same set as text, `3-6, 30-27`, a run written high to
 low running backwards. While `Add layer…` asks where a new layer goes, the

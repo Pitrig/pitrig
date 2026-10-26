@@ -7,6 +7,15 @@ export const TELEMETRY_BRIDGE_STATUS_CHANNEL = 'telemetry-bridge:status' as cons
 export const TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL = 'telemetry-bridge:status-changed' as const
 export const TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL = 'telemetry-bridge:snapshot' as const
 export const TELEMETRY_BRIDGE_INTEREST_CHANNEL = 'telemetry-bridge:interest' as const
+export const TELEMETRY_BRIDGE_SIMULATE_CHANNEL = 'telemetry-bridge:simulate' as const
+
+export const SIMULATION_LAPSE_MS = 1_500
+export const SIMULATION_PAYLOAD_LIMIT = 16_384
+
+export interface TelemetrySimulation {
+  payload: string
+  active: boolean
+}
 
 export const SNAPSHOT_INTERVAL_MS = 16
 

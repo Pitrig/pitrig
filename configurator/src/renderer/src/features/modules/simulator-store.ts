@@ -14,10 +14,12 @@ interface SimulatorState {
   sweeping: string | null
   idle: boolean
   source: PreviewSource
+  onBoard: boolean
   setValue: (binding: string, value: number) => void
   setSweeping: (binding: string | null) => void
   setIdle: (idle: boolean) => void
   setSource: (source: PreviewSource) => void
+  setOnBoard: (onBoard: boolean) => void
   reset: () => void
 }
 
@@ -26,6 +28,7 @@ export const useSimulatorStore = create<SimulatorState>((set) => ({
   sweeping: null,
   idle: false,
   source: 'auto',
+  onBoard: false,
   setValue: (binding, value) =>
     set((state) => ({
       values: { ...state.values, [binding]: value },
@@ -34,5 +37,6 @@ export const useSimulatorStore = create<SimulatorState>((set) => ({
   setSweeping: (sweeping) => set({ sweeping }),
   setIdle: (idle) => set({ idle }),
   setSource: (source) => set({ source }),
+  setOnBoard: (onBoard) => set({ onBoard }),
   reset: () => set({ values: {}, sweeping: null, idle: false })
 }))

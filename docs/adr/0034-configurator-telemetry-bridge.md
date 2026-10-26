@@ -50,7 +50,11 @@ no reassembly is needed on either side.
 asset upload owns the port the bridge stops writing and drops what arrives — a
 stale backlog is worse than a gap. Live apply and a save therefore work while
 telemetry streams, and the plugin's periodic keyframe repairs whatever the
-board missed within a second.
+board missed within a second. The Modules page's simulator takes the link the
+same way: while it drives the board the bridge drops the plugin's datagrams and
+writes the simulated fields instead, a simulation not refreshed for a second and
+a half lapses on its own, and stopping it sends every simulated field empty so
+the plugin's next keyframe starts from nothing stale.
 
 **Send what changed, repeat everything once a second.** The plugin evaluates
 each field at its catalog rate, sends a value only when it differs from the one

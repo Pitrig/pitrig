@@ -22,6 +22,7 @@ import {
 } from '../shared/configuration-files'
 import {
   TELEMETRY_BRIDGE_INTEREST_CHANNEL,
+  TELEMETRY_BRIDGE_SIMULATE_CHANNEL,
   TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
   TELEMETRY_BRIDGE_START_CHANNEL,
   TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL,
@@ -89,6 +90,7 @@ const telemetryBridgeApi: TelemetryBridgeApi = {
   getStatus: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STATUS_CHANNEL),
   start: (request) => ipcRenderer.invoke(TELEMETRY_BRIDGE_START_CHANNEL, request),
   setInterest: (interest) => ipcRenderer.invoke(TELEMETRY_BRIDGE_INTEREST_CHANNEL, interest),
+  simulate: (simulation) => ipcRenderer.invoke(TELEMETRY_BRIDGE_SIMULATE_CHANNEL, simulation),
   onStatus: (listener) => {
     const handler = (_event: IpcRendererEvent, status: TelemetryBridgeStatus): void =>
       listener(status)

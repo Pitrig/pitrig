@@ -62,6 +62,7 @@ import type {
   TelemetryBridgeStartRequest,
   TelemetryBridgeStatus,
   TelemetryInterest,
+  TelemetrySimulation,
   TelemetrySnapshot
 } from './telemetry-bridge'
 import type {
@@ -165,6 +166,7 @@ export interface TelemetryBridgeApi {
   getStatus: () => Promise<TelemetryBridgeStatus>
   start: (request: TelemetryBridgeStartRequest) => Promise<DeviceResult<TelemetryBridgeStatus>>
   setInterest: (interest: TelemetryInterest) => Promise<void>
+  simulate: (simulation: TelemetrySimulation) => Promise<void>
   onStatus: (listener: (status: TelemetryBridgeStatus) => void) => () => void
   onSnapshot: (listener: (snapshot: TelemetrySnapshot) => void) => () => void
 }

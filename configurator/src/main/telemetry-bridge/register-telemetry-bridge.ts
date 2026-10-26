@@ -3,13 +3,18 @@ import { ipcMain } from 'electron'
 import { TelemetryBridgeService } from './bridge-service'
 import type { DeviceService } from '../device/device-service'
 import { broadcastToWindows } from '../ipc/broadcast'
-import { isTelemetryBridgeStartRequest, isTelemetryInterest } from '../ipc/request-guards'
+import {
+  isTelemetryBridgeStartRequest,
+  isTelemetryInterest,
+  isTelemetrySimulation
+} from '../ipc/request-guards'
 import type { DeviceResult } from '../../shared/device'
 import {
   LINK_DEFAULT_PORT,
   LINK_DEFAULT_SIMHUB_HOST,
   LINK_SOURCE_PORT,
   TELEMETRY_BRIDGE_INTEREST_CHANNEL,
+  TELEMETRY_BRIDGE_SIMULATE_CHANNEL,
   TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
   TELEMETRY_BRIDGE_START_CHANNEL,
   TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL,
@@ -28,6 +33,9 @@ export function registerTelemetryBridge(deviceService: DeviceService): Telemetry
   ipcMain.handle(TELEMETRY_BRIDGE_STATUS_CHANNEL, () => service.getStatus())
   ipcMain.handle(TELEMETRY_BRIDGE_INTEREST_CHANNEL, (_event, interest: unknown) => {
     if (isTelemetryInterest(interest)) service.setInterest(interest)
+  })
+  ipcMain.handle(TELEMETRY_BRIDGE_SIMULATE_CHANNEL, (_event, simulation: unknown) => {
+    if (isTelemetrySimulation(simulation)) service.simulate(simulation)
   })
   ipcMain.handle(TELEMETRY_BRIDGE_START_CHANNEL, (_event, request: unknown) => {
     if (!isTelemetryBridgeStartRequest(request)) {

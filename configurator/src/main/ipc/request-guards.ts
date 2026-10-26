@@ -1,6 +1,8 @@
-import type {
-  TelemetryBridgeStartRequest,
-  TelemetryInterest
+import {
+  SIMULATION_PAYLOAD_LIMIT,
+  type TelemetryBridgeStartRequest,
+  type TelemetryInterest,
+  type TelemetrySimulation
 } from '../../shared/telemetry-bridge'
 import {
   IMAGE_COLOR_FORMATS,
@@ -249,6 +251,16 @@ export function isTelemetryBridgeStartRequest(
   const request = value as Partial<TelemetryBridgeStartRequest>
   if (typeof request.simhubHost !== 'string' || request.simhubHost.length > 255) return false
   return isLinkPort(request.port) && isLinkPort(request.simhubPort)
+}
+
+export function isTelemetrySimulation(value: unknown): value is TelemetrySimulation {
+  if (!value || typeof value !== 'object') return false
+  const simulation = value as Partial<TelemetrySimulation>
+  return (
+    typeof simulation.active === 'boolean' &&
+    typeof simulation.payload === 'string' &&
+    simulation.payload.length <= SIMULATION_PAYLOAD_LIMIT
+  )
 }
 
 export function isTelemetryInterest(value: unknown): value is TelemetryInterest {

@@ -23,6 +23,8 @@ import { Simulator } from './Simulator'
 import { simulatedDrives, simulatorControls } from './simulator-controls'
 import { followsSimHub, useSimulatorStore, type TelemetryState } from './simulator-store'
 import { useLampPicking } from './use-lamp-picking'
+import { useBoardSimulation } from './board-simulation'
+import { useDeviceStore } from '@/features/device/device-store'
 
 const SWEEP_MS = 4000
 const SHOWN_BRIGHTNESS = 255
@@ -149,7 +151,10 @@ function LivePreview({
   const effect = useModulesStore((state) => state.effect)
   const picked = useModulesStore((state) => state.picked)
   const following = followsSimHub(source, telemetry)
+  const onBoard = useSimulatorStore((state) => state.onBoard)
+  const connected = useDeviceStore((state) => state.status === 'connected' && state.session !== undefined)
   const controls = useMemo(() => simulatorControls(device), [device])
+  useBoardSimulation(controls, onBoard && connected && !following && played.length === 0)
   const coverage = useMemo(() => coverageOf(device), [device])
   const [composer] = useState<Composer>(() => ({ states: [] }))
   const [ruleStates] = useState<LedRuleState[]>(() => played.map(() => newRuleState()))

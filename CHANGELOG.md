@@ -72,7 +72,9 @@ fields without moving an identifier.
 - The Modules page draws every lamp large, numbered and where it is mounted, and
   lights it the way the board does: from SimHub while a game or a replay sends
   values, otherwise from a simulator with a switch for every flag and warning
-  the layers watch and a slider for every value they read.
+  the layers watch and a slider for every value they read. **Show on the
+  board** sends the simulator's values to the connected board instead of
+  SimHub's, so the real lamps can be tried without a game.
 - The layer list groups layers by what they watch and shows the lamps each one
   covers. Several layers can be picked and edited, duplicated or removed
   together, and a layer is marked when it covers no lamp, repeats another, is

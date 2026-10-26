@@ -1,6 +1,7 @@
 import { performance } from 'node:perf_hooks'
 
 import {
+  SIMULATION_LAPSE_MS,
   SNAPSHOT_INTERVAL_MS,
   SOURCE_IDLE_MS,
   idleBridgeStatus,
@@ -8,6 +9,7 @@ import {
   type TelemetryBridgeStartRequest,
   type TelemetryBridgeStatus,
   type TelemetryInterest,
+  type TelemetrySimulation,
   type TelemetrySnapshot
 } from '@shared/telemetry-bridge'
 import type { DeviceError, DeviceResult } from '@shared/device'
@@ -38,6 +40,7 @@ export class TelemetryBridgeService {
   private sourceAddress: string | undefined
   private lastPacketAt = Number.NEGATIVE_INFINITY
   private pendingWrites = 0
+  private simulatedUntil = Number.NEGATIVE_INFINITY
   private error: string | undefined
 
   constructor(
@@ -106,6 +109,19 @@ export class TelemetryBridgeService {
     if (this.handover.setInterest(fields, running)) void this.listener?.requestNow()
   }
 
+  simulate(simulation: TelemetrySimulation): void {
+    this.simulatedUntil = simulation.active
+      ? performance.now() + SIMULATION_LAPSE_MS
+      : Number.NEGATIVE_INFINITY
+    if (simulation.payload === '' || !this.deviceService.relayAvailable()) return
+    if (this.pendingWrites >= MAXIMUM_PENDING_WRITES) return
+    this.pendingWrites += 1
+    this.deviceService.writeTelemetry(simulation.payload, (error) => {
+      this.pendingWrites = Math.max(0, this.pendingWrites - 1)
+      if (error) this.metrics.recordWriteError()
+    })
+  }
+
   async dispose(): Promise<void> {
     await this.listener?.requestNow()
     if (this.listener) await this.stop()
@@ -139,6 +155,10 @@ export class TelemetryBridgeService {
   }
 
   private relay(packet: LinkPacket): void {
+    if (performance.now() < this.simulatedUntil) {
+      this.metrics.recordDropped(packet.payload.length)
+      return
+    }
     if (!this.deviceService.relayAvailable()) {
       if (this.deviceService.telemetryLinkAvailable()) {
         this.metrics.recordDropped(packet.payload.length)

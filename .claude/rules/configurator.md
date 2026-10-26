@@ -93,7 +93,9 @@ seven-byte header, counting loss from the sequence and resyncing on a restarted
 sender rather than reading it as reordering; a datagram carries whole lines, so
 what it hands on can be written to the board as it stands. The relay yields
 while `OperationRunner` holds the link and drops what arrives meanwhile, and
-the plugin's once-a-second repeat is what repairs the gap. `telemetry-tap.ts`
+the plugin's once-a-second repeat is what repairs the gap; it drops the plugin's
+datagrams too while the Modules simulator drives the board through
+`telemetry-bridge:simulate` (`features/modules/board-simulation.ts`). `telemetry-tap.ts`
 decodes into three fixed arrays indexed by catalog slot and keeps the **source
 string** for every field, not only the text ones, so the preview shows what the
 board shows. The magic, the version, the
