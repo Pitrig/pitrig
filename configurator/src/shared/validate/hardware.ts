@@ -11,6 +11,7 @@ import {
   MAXIMUM_LED_EFFECTS,
   MAXIMUM_LED_SEGMENTS,
   MAXIMUM_LED_SPRITES,
+  MAXIMUM_MATRIX_SIDE,
   type ApplicationConfiguration,
   type HardwareDeviceConfiguration,
   type LedEffect
@@ -62,9 +63,6 @@ function findSegmentError(device: HardwareDeviceConfiguration, label: string): s
 
 function findSpriteError(device: HardwareDeviceConfiguration, label: string): string | undefined {
   const sprites = device.sprites ?? []
-  if (sprites.length > 0 && !isMatrix(device)) {
-    return t('validation.hardware.labelIsAStripSo', { label: label })
-  }
   const seen = new Set<string>()
   for (const sprite of sprites) {
     const id = sprite.id ?? ''
@@ -74,6 +72,12 @@ function findSpriteError(device: HardwareDeviceConfiguration, label: string): st
     const owner = t('validation.hardware.spriteId', { id: JSON.stringify(id) })
     const boundError = findBoundError(sprite, FIELD_RANGES['LedSpriteConfiguration'], owner)
     if (boundError) return boundError
+    if (isMatrix(device) && (sprite.width ?? 8) > MAXIMUM_MATRIX_SIDE) {
+      return t('validation.hardware.ownerIsWiderThanAPanel', { owner, side: MAXIMUM_MATRIX_SIDE })
+    }
+    if (!isMatrix(device) && (sprite.height ?? 8) !== 1) {
+      return t('validation.hardware.ownerOnAStripIsOneRow', { owner })
+    }
     const listError = badList(sprite.palette, LED_PALETTE_SIZE, owner, t('validation.hardware.paletteColours'))
     if (listError) return listError
     const colorError = badColors(sprite, owner)

@@ -12,8 +12,14 @@ namespace Pitrig.SimHub
             {
                 case FieldComputation.RpmPercent:
                     return CarComputations.RpmPercent(status);
+                case FieldComputation.ShiftRpm:
+                    return state.Shifts.Rpm;
                 case FieldComputation.ShiftPercent:
-                    return CarComputations.ShiftPercent(status);
+                    return state.Shifts.Percent;
+                case FieldComputation.ShiftProgress:
+                    return state.Shifts.Progress;
+                case FieldComputation.RedlineReached:
+                    return state.Shifts.Reached;
                 case FieldComputation.TurboPressure:
                     return CarComputations.TurboPressure(status);
                 case FieldComputation.GearNumber:

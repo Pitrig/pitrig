@@ -6,6 +6,7 @@ import {
   type DeviceState
 } from '../../shared/device'
 import { DeviceServiceError, failure, toDeviceError } from './device-errors'
+import { samePort } from './port-leases'
 import { serialIdentity, type PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import type { ConnectionManager } from './device-connection'
@@ -32,9 +33,15 @@ export async function scanForDevice(
   const totalAttempts = candidates.length * AUTOMATIC_BAUD_RATES.length
   const matches: Match[] = []
   const blockedErrors: DeviceError[] = []
+  const pluginBoards = connection.leases.pluginBoards()
   let attempt = 0
 
   for (const record of candidates) {
+    const held = pluginBoards.find((board) => samePort(board.path, record.path))
+    if (held) {
+      matches.push({ record, baudRate: held.baudRate })
+      continue
+    }
     for (const baudRate of AUTOMATIC_BAUD_RATES) {
       connection.ensureCurrent(token)
       attempt += 1
@@ -158,6 +165,7 @@ async function attemptReconnect(
     code: 'port_missing',
     message: t('device.deviceScan.theBoardRestartedButDid')
   }
+  manager.leases.dropAll()
   manager.setState({ status: 'error', error })
   return failure(error)
 }

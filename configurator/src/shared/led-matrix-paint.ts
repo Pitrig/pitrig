@@ -1,5 +1,7 @@
 import { glyphRow, textWidth, LED_FACES, type LedFontName } from './led-font'
 import { areaOf, maskHolds, matrixLamp, shapeOf, type LampArea } from './led-render'
+import { place, surfaceSize, type Surface } from './led-surface'
+import { rangeFraction } from './telemetry-value'
 import type {
   HardwareDeviceConfiguration,
   LedEffect,
@@ -38,6 +40,57 @@ export function spriteOf(
   return (device.sprites ?? []).find((sprite) => sprite.id === id)
 }
 
+export function spriteFrameIndex(
+  sprite: LedSpriteConfiguration,
+  effect: LedEffect,
+  value: number | undefined,
+  elapsedMs: number
+): number {
+  const frames = sprite.frame_count ?? 1
+  const last = frames - 1
+  if (value !== undefined && effect.sprite_scaled) {
+    return Math.min(Math.trunc(rangeFraction(value, effect.minimum, effect.maximum) * frames), last)
+  }
+  if (value !== undefined) {
+    const rounded = Math.round(value)
+    return rounded <= 0 ? 0 : Math.min(rounded, last)
+  }
+  if (effect.sprite_loop && frames > 1) {
+    return Math.floor(elapsedMs / ((effect.speed_ms ?? 1000) || 1000)) % frames
+  }
+  return Math.min(effect.sprite_frame ?? 0, last)
+}
+
+function inkOf(
+  sprite: LedSpriteConfiguration,
+  digit: string | undefined,
+  tint: RgbColor | undefined
+): RgbColor | undefined {
+  const index = Number.parseInt(digit ?? '', 16)
+  const entry = (sprite.palette ?? [])[index]
+  if (!Number.isInteger(index) || !entry?.color) return undefined
+  return tint && Number.parseInt(entry.color.slice(1), 16) !== 0 ? tint : entry.color
+}
+
+export function paintStripSprite(
+  surface: Surface,
+  sprite: LedSpriteConfiguration,
+  effect: LedEffect,
+  value: number | undefined,
+  tint: RgbColor | undefined,
+  elapsedMs: number
+): void {
+  const width = sprite.width ?? 8
+  const pixels = sprite.pixels ?? ''
+  const base = spriteFrameIndex(sprite, effect, value, elapsedMs) * width
+  if (base + width > pixels.length) return
+  const shown = Math.min(width, surfaceSize(surface))
+  for (let lamp = 0; lamp < shown; ++lamp) {
+    const ink = inkOf(sprite, pixels[base + lamp], tint)
+    if (ink) place(surface, lamp, ink)
+  }
+}
+
 export function paintSprite(
   panel: Panel,
   device: HardwareDeviceConfiguration,
@@ -50,29 +103,16 @@ export function paintSprite(
   if (!sprite) return
   const width = sprite.width ?? 8
   const height = sprite.height ?? 8
-  const frames = sprite.frame_count ?? 1
-  const palette = sprite.palette ?? []
   const pixels = sprite.pixels ?? ''
   const area = width * height
-  let index = effect.sprite_frame ?? 0
-  if (value !== undefined) {
-    const rounded = Math.round(value)
-    index = rounded <= 0 ? 0 : Math.min(rounded, frames - 1)
-  } else if (effect.sprite_loop && frames > 1) {
-    index = Math.floor(elapsedMs / ((effect.speed_ms ?? 1000) || 1000)) % frames
-  }
-  index = Math.min(index, frames - 1)
-  const base = index * area
+  const base = spriteFrameIndex(sprite, effect, value, elapsedMs) * area
   if (base + area > pixels.length) return
   const originX = Math.trunc((panel.area.width - width) / 2)
   const originY = Math.trunc((panel.area.height - height) / 2)
   for (let y = 0; y < height; ++y) {
     for (let x = 0; x < width; ++x) {
-      const digit = Number.parseInt(pixels[base + y * width + x] ?? '', 16)
-      const entry = palette[digit]
-      if (!Number.isInteger(digit) || !entry?.color) continue
-      const painted = tint && Number.parseInt(entry.color.slice(1), 16) !== 0 ? tint : entry.color
-      put(panel, originX + x, originY + y, painted)
+      const ink = inkOf(sprite, pixels[base + y * width + x], tint)
+      if (ink) put(panel, originX + x, originY + y, ink)
     }
   }
 }

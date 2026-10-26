@@ -50,8 +50,7 @@
                       "size_px": 26
                     },
                     "color": "#D4E3FF",
-                    "alignment": "center",
-                    "unavailable_text": "N/A"
+                    "alignment": "center"
                   },
                   "background_color": "#0E1015",
                   "padding": {
@@ -2082,8 +2081,7 @@
                           "size_px": 30
                         },
                         "color": "#D4E3FF",
-                        "alignment": "center",
-                        "unavailable_text": "N/A"
+                        "alignment": "center"
                       },
                       "background_color": "#141821",
                       "title": {
@@ -2148,8 +2146,7 @@
                           "size_px": 30
                         },
                         "color": "#44D569",
-                        "alignment": "center",
-                        "unavailable_text": "N/A"
+                        "alignment": "center"
                       },
                       "background_color": "#141821",
                       "title": {
@@ -2197,8 +2194,7 @@
                           "size_px": 30
                         },
                         "color": "#219CD7",
-                        "alignment": "center",
-                        "unavailable_text": "N/A"
+                        "alignment": "center"
                       },
                       "background_color": "#141821",
                       "title": {
@@ -2263,8 +2259,7 @@
                           "size_px": 30
                         },
                         "color": "#E0B11F",
-                        "alignment": "center",
-                        "unavailable_text": "N/A"
+                        "alignment": "center"
                       },
                       "background_color": "#141821",
                       "title": {
@@ -2397,8 +2392,7 @@
                           "size_px": 26
                         },
                         "color": "#D4E3FF",
-                        "alignment": "center",
-                        "unavailable_text": "N/A"
+                        "alignment": "center"
                       },
                       "background_color": "#141821",
                       "title": {
@@ -3143,8 +3137,7 @@
                   "size_px": 34
                 },
                 "color": "#2FE85A",
-                "alignment": "center",
-                "unavailable_text": "N/A"
+                "alignment": "center"
               },
               "background_color": "#05300F",
               "title": {
@@ -3288,8 +3281,7 @@
                       "size_px": 22
                     },
                     "color": "#5F6470",
-                    "alignment": "center",
-                    "unavailable_text": "N/A"
+                    "alignment": "center"
                   },
                   "padding": {
                     "top": 2,

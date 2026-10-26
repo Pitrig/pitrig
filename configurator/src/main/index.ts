@@ -21,7 +21,6 @@ import {
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 import { registerTelemetryBridge } from './telemetry-bridge/register-telemetry-bridge'
-import { TELEMETRY_BRIDGE_INCLUDED } from '../shared/telemetry-bridge'
 
 if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)
@@ -34,9 +33,7 @@ const services: AppServices = createAppServices({
   onImageUploadProgress: broadcastImageUploadProgress,
   onSaveProgress: broadcastSaveProgress
 })
-const telemetryBridge = TELEMETRY_BRIDGE_INCLUDED
-  ? registerTelemetryBridge(services.deviceService)
-  : undefined
+const telemetryBridge = registerTelemetryBridge(services.deviceService)
 const CLEANUP_TIMEOUT_MS = 4000
 let quitAfterDeviceCleanup = false
 

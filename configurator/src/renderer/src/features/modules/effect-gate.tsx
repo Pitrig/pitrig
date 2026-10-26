@@ -13,6 +13,7 @@ import { TelemetryBindingField } from '@/features/configuration/inspector/Teleme
 import {
   NumberField,
   NumberInput,
+  OptionalColorField,
   SelectField,
   SelectInput
 } from '@/features/configuration/inspector/fields'
@@ -31,10 +32,12 @@ import {
 
 export function EffectGate({
   effect,
-  update
+  update,
+  showsThrough
 }: {
   effect: LedEffect
   update: (mutation: (next: LedEffect) => void) => void
+  showsThrough?: string
 }): React.JSX.Element {
   const gated = effect.gate === 'conditions'
   const watched = effect.condition_source?.binding ?? ''
@@ -122,6 +125,23 @@ export function EffectGate({
                 })}
               />
             ) : null}
+            {!boolean ? (
+              <NumberField
+                label={t('modules.effectGate.switchOffMargin')}
+                hint={t('modules.hints.effect.hysteresis')}
+                value={effect.hysteresis ?? 0}
+                min={0}
+                step="any"
+                suffix={field?.unit && field.unit !== 'source' ? field.unit : undefined}
+                modified={authored(effect.hysteresis, 0)}
+                onChange={(value) =>
+                  update((next) => {
+                    if (value > 0) next.hysteresis = value
+                    else delete next.hysteresis
+                  })
+                }
+              />
+            ) : null}
           </>
         ) : null}
         <NumberField
@@ -146,6 +166,32 @@ export function EffectGate({
             update((next) => { next.blink_ms = wholeValue('LedEffect', 'blink_ms', blink_ms) })
           }
         />
+        <OptionalColorField
+          label={t('modules.effectGate.coversLayersBelow')}
+          unsetLabel={t('modules.effectGate.noTheyShowThrough')}
+          hint={t('modules.hints.effect.background')}
+          value={effect.background_color}
+          onChange={(color) =>
+            update((next) => {
+              if (color) next.background_color = color
+              else delete next.background_color
+            })
+          }
+        />
+        {showsThrough ? (
+          <div className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+            <span className="min-w-0 flex-1">
+              {t('modules.effectGate.betweenFlashesNamesShowThrough', { names: showsThrough })}
+            </span>
+            <button
+              type="button"
+              className="flex-none rounded border border-amber-500/40 px-1.5 py-0.5 hover:bg-amber-500/20"
+              onClick={() => update((next) => { next.background_color = '#000000' })}
+            >
+              {t('modules.effectGate.coverThem')}
+            </button>
+          </div>
+        ) : null}
       </Subsection>
   )
 }

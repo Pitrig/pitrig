@@ -1,7 +1,9 @@
 # SimHub Custom Serial telemetry
 
 Pitrig accepts newline-delimited telemetry over the board-selected serial
-transport.
+transport. The [SimHub plugin](simhub-plugin.md) writes it with nothing to set
+up; a Custom Serial Device profile writes the same lines without the plugin.
+Use one or the other on a board's port, not both.
 
 ## Generating or downloading a SimHub profile
 
@@ -11,7 +13,7 @@ The desktop configurator's **SimHub profile** panel provides two export modes:
   text widget composes, the source a gauge maps, and the field a styling rule
   watches even when the widget never shows it. Duplicate bindings are emitted
   once.
-- **All telemetry** includes the complete 251-field catalog.
+- **All telemetry** includes the complete 252-field catalog.
 
 The export uses the current configuration draft. Its explicit
 `telemetry_transport.uart.baud_rate` is used when present; otherwise the baud
@@ -28,7 +30,7 @@ reserve and two laps.
 
 As an alternative, download the checked-in complete
 [`simhub/Pitrig-telemetry.shsds`](../simhub/Pitrig-telemetry.shsds). It uses
-921600 baud and enables all 251 fields. Both forms enable automatic reconnect
+921600 baud and enables all 252 fields. Both forms enable automatic reconnect
 and disable RTS and DTR.
 
 Import the resulting file from the Custom Serial Devices plugin's **Import

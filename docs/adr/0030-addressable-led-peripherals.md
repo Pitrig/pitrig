@@ -64,15 +64,19 @@ whose gate just came true is the news, while layers that came up in the same
 frame — every `always` layer — keep authored order. A document that gates
 nothing therefore reads as the array says.
 
-**A layer covers lamps, or pixels.** On a strip a layer addresses `from` and
-`count` in wire order, and `mirrored`/`inverted` are one `Direction` — plain,
-inverted, mirrored, or mirrored from both ends closing on the middle, which is
-the fourth direction a rev bar wants. On a panel it names pixels with
+**A layer covers lamps, or pixels.** On a strip a layer lists `parts`, up to
+sixteen runs of `from`, `count` and `reversed` in wire order, none meaning the
+whole strip. `layout` joins them end to end into one line in the order they are
+listed, or paints the whole effect in each part at once, which is how one layer
+flashes the flags at both ends of a wheel. `mirrored`/`inverted` are one
+`Direction` over that line or over each part — plain, inverted, mirrored, or
+mirrored from both ends closing on the middle, which is the fourth direction a
+rev bar wants. On a panel it names pixels with
 `panel_mask`, four to a hexadecimal digit, because wire order on a serpentine
 panel is not a shape anyone can see; the layer works over the smallest box
 holding the chosen pixels, the mask clips inside it, and an empty mask means the
 whole panel. Underneath, a strip is a matrix one row tall and `Surface` walks a
-box in both cases.
+box, or the parts in their order.
 
 **The value pipeline is reused unchanged.** An effect binds telemetry through
 the same `ValueSourceConfiguration`, maps it through the same `ValueRange`,
@@ -89,10 +93,12 @@ the way a widget's styling rule describes one widget. `color` repaints what the
 layer draws: the ink of `text`, the colour of `solid` and `animation`, the fill
 of a `gauge` with no ramp, and every lit pixel of a `sprite` except black, which
 is the unlit lamp by convention. `background_color`, on the layer or on a rule,
-fills the lamps the layer covers before it draws. The layer still watches
-exactly one value: the validator requires `condition_source` when the gate or a
-rule reads it, rejects it when neither does, and rejects a rule that paints
-nothing. A rule's `hold_ms` keeps it applied after it stops matching and its
+fills the lamps the layer covers before it draws, and a blink takes away only
+what is drawn over it: a black ground is how a flashing warning hides the shift
+lights under it, and a layer without one stays an overlay. The layer still
+watches exactly one value: the validator requires `condition_source` when the
+gate or a rule reads it, rejects it when neither does, and rejects a rule that
+paints nothing. A rule's `hold_ms` keeps it applied after it stops matching and its
 `blink_ms` takes over from the layer's while it holds; a rule carries no
 `hidden`, because that would be a second gate wearing the clothes of a
 description.
@@ -113,8 +119,11 @@ artwork. The last palette digit is the clear ink, so a picture leaves the layers
 under it visible. The Pictures page draws them — pixels, frames, palette,
 playback through the real painter — and `sprite_loop` walks a sprite's frames on
 the layer's own timebase, one every `speed_ms`, while `sprite_frame` still means
-one held frame. There is no import: a picture this size is drawn faster than it
-is sourced.
+one held frame, and `sprite_scaled` maps a bound value through the layer's range
+onto the frames. A strip carries pictures one row tall and as long as the strip,
+played from the first lamp of the layer's parts in its direction: that is the
+hand-drawn animation, drawn on a frames-by-lamps grid. There is no import: a
+picture this size is drawn faster than it is sourced.
 
 **Text uses a compiled bitmap face.** The faces — `regular_4x6`, `bold_4x6`,
 `regular_6x8`, `bold_6x8`, named by the pixels a glyph occupies and its weight
@@ -181,7 +190,9 @@ using it.
 - The preview in the configurator is a second implementation of the painters,
   kept in step by mirroring the firmware's painting code line for line; there
   is no automated lamp-for-lamp comparison. Playing a picture or a layer goes
-  through the same `paintOutput` the layers use, so it is not a third.
+  through the same `paintOutput` the layers use, so it is not a third, and
+  `led-compose.ts` mirrors the gate, the hold and the order by activation of
+  `rgb_frames.cpp`, so the Modules page composes every layer as the board does.
 - Indexed sprite colour means a sprite cannot fade; a frame is a lookup, not a
   gradient. Animation belongs to the `animation` effect, which is not indexed.
 - A board that declares no free LED pins can carry no LED output at all. Every
@@ -199,9 +210,11 @@ using it.
   plain `LedEffect` entries over the contract above, generating flag artwork
   into `sprites` on a matrix — a moving picture takes as many frames as the
   1024-digit budget holds, sixteen of eight by eight or four of sixteen by
-  sixteen — and the firmware knows nothing of them. With no game attached, the
-  preview holds each colour rule's threshold in turn and cycles a gear readout
-  through `R`, `N` and 1 to 9; neither reaches the board.
+  sixteen — and the firmware knows nothing of them. With no game attached, a
+  played layer holds each colour rule's threshold in turn and cycles a gear
+  readout through `R`, `N` and 1 to 9, and the whole device is driven by a
+  simulator built from the values its layers read; none of it reaches the
+  board.
 
 ## Amendments
 
@@ -248,3 +261,26 @@ until both conditions hold at once, on track. The timestamp is
 timebase, so no new state was added. The preview plays several layers at once,
 in the order they were pressed, and the board preview applies that set over
 `@PR:APPLY`.
+
+**Schema 27 — lamp sets, strip pictures, a switch-off margin, five motions.**
+`from` and `count` gave a layer one run, so the same flag at both ends of a
+wheel was two layers kept in step by hand — fourteen of the first board's
+twenty-four. `parts` replaced them, with `layout`, `reversed` and a
+configurator action that merges layers differing only in their lamps into one
+layer each, lamps in `each` layout so nothing changes how it looks. Pictures
+came to strips, and with them `sprite_scaled`. A gate gained `hysteresis`: that
+board's limiter at 94 % of the maximum revs sat just under a car's shift point
+and flickered as the revs hovered across it. `LedAnimationKind` gained `comet`,
+`theater`, `sparkle`, `strobe` and `bounce`, sized by `span`; sparkle scatters
+its lamps with the same integer hash on both sides, so the preview and the
+board agree. The configurator migrates `from`/`count` itself, and connects to a
+board whose firmware reads an older schema: it reads and edits that board's
+documents, migrated, and refuses to write them until the firmware is updated,
+since the firmware page is how that board gets there.
+
+**No schema change — a blink keeps its ground.** The dark half of a blink used
+to skip the layer whole, ground included, so the shift-lights preset's flashing
+limiter uncovered the full bar under it half the time. The ground is now laid
+before the blink is decided, in the firmware and the preview alike, and the
+presets give their flashing layers a black one. No bundled template had a
+ground and a blink together, so none of them changes how it looks.

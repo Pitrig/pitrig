@@ -67,12 +67,14 @@ the OTA status.
 
 **CI** ([.github/workflows/build.yml](.github/workflows/build.yml)) runs on a push to `release` and
 on demand: `checks` (the five generators with `--check`, `check_debug_isolation.py --check`, the
-configurator's typecheck and lint), `configurator` (electron-builder on macOS, Windows and Linux),
-`firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers and
-four OTA images, its notes written by `tools/release_notes.py` from the files actually built and
-the version's `CHANGELOG.md` entry. Packages are checked for debug traces and for the telemetry bridge, which only
-development builds carry (an `app.asar` grep, ADR 0034); nothing is signed, so macOS needs
-`xattr -dr com.apple.quarantine`.
+configurator's typecheck and lint), `simhub-plugin` (the Release DLL built on `windows-latest` against
+a SimHub pinned by digest, and checked for the development build's `*.Debug.cs` types),
+`configurator` (electron-builder on macOS, Windows and Linux; the Windows
+installer carries the DLL and copies it into SimHub through `configurator/installer/simhub-plugin.nsh`),
+`firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers, the
+DLL and four OTA images, its notes written by `tools/release_notes.py` from the files actually built
+and the version's `CHANGELOG.md` entry. Packages are checked for debug traces (an `app.asar` grep);
+nothing is signed, so macOS needs `xattr -dr com.apple.quarantine`.
 
 **VS Code** ([.vscode/tasks.json](.vscode/tasks.json)) carries twelve `Pitrig: Build …` tasks,
 `Pitrig: Build All Firmware` (sequential, esp32s3 first), `Pitrig: Flash` / `Monitor` /
@@ -95,8 +97,9 @@ cd configurator && pnpm run package
 
 `dev:debug` starts the second application from the same package (serial console, telemetry bench,
 `@PR:DIAG` charts); `typecheck` covers three projects; `build:debug` and `package:debug` do the same
-for the debugger into `out-debug/` and `dist-debug/`. There is no test runner. `electron` must stay
-in `allowBuilds` in `pnpm-workspace.yaml`, or `pnpm run dev` fails with `Error: Electron uninstall`.
+for the debugger into `out-debug/` and `dist-debug/`. There is no test runner. The package's
+`postinstall` runs `install-electron`, because since 44.9 Electron no longer fetches its binary on
+install; without it `pnpm run dev` fails with `Error: Electron uninstall`.
 
 ## Checks and generated contracts
 

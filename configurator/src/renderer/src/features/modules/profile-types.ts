@@ -1,9 +1,6 @@
-import type { LedEffect, LedSpriteConfiguration } from '@shared/configuration-schema'
+import type { LedEffect, LedPart, LedSpriteConfiguration } from '@shared/configuration-schema'
 
-export interface LampRange {
-  from: number
-  count: number
-}
+export type LampSet = readonly LedPart[] | undefined
 
 export interface MatrixSize {
   width: number
@@ -20,13 +17,16 @@ export interface LedProfile {
   label: string
   description: string
   panelOnly?: boolean
-  build: (range: LampRange, lamps: number, matrix?: MatrixSize) => ProfileParts
+  build: (zone: LampSet, lamps: number, matrix?: MatrixSize) => ProfileParts
 }
 
-export function area({ from, count }: LampRange): Partial<LedEffect> {
+export const COVER_BELOW: Partial<LedEffect> = { background_color: '#000000' }
+
+export function area(zone: LampSet): Partial<LedEffect> {
+  if (!zone || zone.length === 0) return {}
   return {
-    ...(from > 0 ? { from } : {}),
-    ...(count > 0 ? { count } : {})
+    parts: zone.map((part) => ({ ...part })),
+    ...(zone.length > 1 ? { layout: 'each' as const } : {})
   }
 }
 

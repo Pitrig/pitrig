@@ -13,14 +13,12 @@ namespace Pitrig.SimHub
 
         public static double? RpmPercent(StatusDataBase status)
         {
-            if (status == null) return null;
-            var maximum = status.CarSettings_MaxRPM > 0 ? status.CarSettings_MaxRPM : status.MaxRpm;
-            return Percent(status.Rpms, maximum);
+            return status == null ? null : Percent(status.Rpms, MaximumRpm(status));
         }
 
-        public static double? ShiftPercent(StatusDataBase status)
+        public static double MaximumRpm(StatusDataBase status)
         {
-            return status == null ? null : Percent(status.Rpms, status.CarSettings_CurrentGearRedLineRPM);
+            return status.CarSettings_MaxRPM > 0 ? status.CarSettings_MaxRPM : status.MaxRpm;
         }
 
         public static double? TurboPressure(StatusDataBase status)

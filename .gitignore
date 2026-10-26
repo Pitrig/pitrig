@@ -22,6 +22,7 @@ configurator/out/
 configurator/out-debug/
 configurator/dist/
 configurator/dist-debug/
+configurator/simhub-plugin/
 
 # .NET generated files
 simhub/plugin/**/bin/

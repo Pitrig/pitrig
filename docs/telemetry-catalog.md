@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 251. Static limit: 256.
+Catalog version: 1. Fields: 252. Static limit: 256.
 
 ## Speed and controls
 
@@ -25,6 +25,7 @@ Catalog version: 1. Fields: 251. Static limit: 256.
 | `engine.shift_rpm` | `07` | `float32` | `rpm` | `changes` | `optional` | Recommended shift engine speed. |
 | `engine.rpm_percent` | `08` | `float32` | `percent` | `fast` | `computed` | Engine speed as a percentage of maximum RPM. |
 | `engine.shift_percent` | `5y` | `float32` | `percent` | `fast` | `computed` | Engine speed as a percentage of the current gear's shift point. |
+| `engine.shift_progress` | `SP` | `float32` | `percent` | `fast` | `computed` | How far the current gear has gone from the car's first shift light to its full shift-light bar. |
 | `engine.redline_reached` | `5z` | `boolean` | `boolean` | `fast` | `computed` | Whether engine speed has reached the current gear's shift point. |
 | `engine.running` | `09` | `boolean` | `boolean` | `normal` | `optional` | Whether the engine is running. |
 | `engine.ignition` | `0a` | `boolean` | `boolean` | `normal` | `optional` | Whether ignition is enabled. |

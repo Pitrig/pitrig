@@ -24,6 +24,111 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
+## Unreleased
+
+**Configuration schema 27.** A board updated to this firmware refuses its stored
+documents and draws its built-in dashboard until the configurator saves them
+again; nothing is erased. The configurator converts its own files and a board's
+documents on the way in, and connects to a board still on 0.2.0 to read its
+configuration and update its firmware, but writes nothing to it before that:
+connect, install the firmware from the Firmware page, then **Save to board**.
+The partition table is the same. The telemetry catalog grows from 251 to 252
+fields without moving an identifier.
+
+**Added**
+
+- The Pitrig plugin for SimHub feeds the board by itself: it finds the board on
+  USB, sends only the fields its dashboard and modules use, and needs no profile
+  to import and no port to pick. The Windows installer adds it to SimHub.
+  After a restart of SimHub or of the board it resumes at once with the fields it
+  sent before, and a board slow to take data for a moment misses updates rather
+  than receiving them late.
+- A development build of the plugin, built without `-c Release`, writes a trace
+  to SimHub's `Logs\Pitrig-trace.log` and shows each board's state, the longest
+  pauses and the repeated busy answers in its panel. The released plugin carries
+  none of it.
+- The configurator connects while SimHub runs: it takes the board over from the
+  plugin and passes the telemetry on, and gives the board back when it
+  disconnects. A Guition ESP32-4848S040 is learned the first time the
+  configurator connects to it.
+- Live values in the dashboard and lamp previews and in the telemetry catalog
+  whenever SimHub runs.
+- `engine.shift_progress`, a shift-light bar from the car's first light to its
+  full bar in the current gear.
+- An LED layer on a strip covers any set of lamps, written like `3-6, 27-30` or
+  clicked on the map, instead of one run, and each part can run the other way:
+  one layer now flashes the flags at both ends of a wheel. **Spread** joins the
+  parts into one line for a fill, or paints the effect in each part on its own.
+  The layer list offers to merge layers that differ only in their lamps. The
+  lamps of a new layer are picked on the map the same way, and on a matrix the
+  map paints the selected layer's pixels.
+- Strips play animations drawn by hand, frame by frame on a frames-by-lamps grid
+  in the Pictures tab, looping or with the frame chosen by a value mapped
+  through the layer's range — a shift-light picture per step of the revs.
+- Five more animations: comet, theater chase, sparkle, strobe and bounce, with
+  **Span** setting the tail, the gap or the block.
+- **Switch-off margin** on a layer's gate: on at 94, off only below 92, so revs
+  hovering on a threshold cannot flicker a layer.
+- The Modules page draws every lamp large, numbered and where it is mounted, and
+  lights it the way the board does: from SimHub while a game or a replay sends
+  values, otherwise from a simulator with a switch for every flag and warning
+  the layers watch and a slider for every value they read. **Show on the
+  board** sends the simulator's values to the connected board instead of
+  SimHub's, so the real lamps can be tried without a game.
+- The layer list groups layers by what they watch and shows the lamps each one
+  covers. Several layers can be picked and edited, duplicated or removed
+  together, and a layer is marked when it covers no lamp, repeats another, is
+  never seen, or lets the layers under it show between flashes. Undo, redo,
+  duplicate and delete work from the keyboard on that page.
+
+**Changed**
+
+- With the plugin, `engine.shift_rpm`, `engine.shift_percent` and
+  `engine.redline_reached` follow the car's own shift points — from iRacing, F1
+  and RaceRoom where the game reports them, otherwise from SimHub's car
+  settings, which the profile keeps using.
+- The shift-lights preset steps across `engine.shift_progress` and flashes on
+  `engine.redline_reached`, and the gear text colours by the same bar.
+- A dashboard-only SimHub profile now includes `vehicle.speed` for a text source
+  left on its default, and the lap time for any modifier.
+- The lamp preview shows colours at full strength rather than scaled by the
+  strip's brightness, so a dimmed strip still reads on screen.
+- A strip layer's `from` and `count` became `parts`; documents and files are
+  converted when they are opened.
+- The timers of the Race DDU template show a zero time in their own format, such
+  as `00:00.000`, until a value exists, instead of `N/A`.
+
+**Fixed**
+
+- The configurator sends a command again when the board answers that it is busy.
+  A board still finishing one reply refuses the next command for a few
+  milliseconds, which could fail a connection or a read of its configuration.
+- A flashing LED layer can hide the layers under it between flashes. Its
+  background now stays lit through the dark half of a blink, and the layer
+  editor offers it beside Blink as **Covers**. The shift-lights limiter, ABS,
+  traction control and the flashing flags of the presets use a black one, so
+  the limiter no longer uncovers the whole shift bar under it. A layer added
+  before needs the setting switched on, and the board needs the new firmware.
+- In a race of one class `session.class_position` is the game's own position, the
+  same as `session.position`, also when SimHub reports several classes while
+  every car is in the player's. In ACC, SimHub's leaderboard put the player one
+  place behind it, so a dashboard showed class 23 beside position 22.
+- `session.time_remaining` reads as missing before a race run over laps starts.
+  SimHub reports the longest time it can hold there, which the board could not
+  show, so it kept the old value.
+- `vehicle.fuel.current_consumption` reads as missing instead of −1 until SimHub
+  has measured it, and `vehicle.fuel.laps_remaining` and
+  `vehicle.fuel.time_remaining` instead of 0, so a fuel warning built on them no
+  longer fires on the grid.
+- A lap or a sector with no personal best before it counts as a personal best
+  rather than as slower, so the sectors of the first lap no longer read yellow.
+- Export the SimHub profile again to get these telemetry fixes there too.
+- Dependencies updated for published vulnerabilities: Electron 44.9.3, Vite
+  7.3.7, and the transitive `undici`, `fast-uri`, `zod`, `source-map-js` and
+  `http-cache-semantics` the build tools pull in.
+- A property name too long for its column wraps onto a second line instead of
+  being cut off, as **Switch-off margin** was.
+
 ## 0.2.0 — 2026-10-18
 
 Configuration schema 26, unchanged, and the partition table is the same: the

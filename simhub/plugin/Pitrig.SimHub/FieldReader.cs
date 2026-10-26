@@ -5,20 +5,13 @@ using SimHub.Plugins;
 
 namespace Pitrig.SimHub
 {
-    internal sealed class FieldReader
+    internal static class FieldReader
     {
         public static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
 
         private const int ValueCapacity = 63;
 
-        private readonly string[] last = new string[TelemetryCatalog.Fields.Length];
-
-        public void Reset()
-        {
-            Array.Clear(last, 0, last.Length);
-        }
-
-        public string Read(TelemetryState state, TelemetryField field)
+        public static string Read(TelemetryState state, TelemetryField field)
         {
             var value = field.Computation == FieldComputation.None
                 ? Property(state.Manager, field)
@@ -34,16 +27,6 @@ namespace Pitrig.SimHub
             {
                 return field.Fallback;
             }
-        }
-
-        public bool Commit(int index, string text, bool keyframe)
-        {
-            if (string.Equals(last[index], text, StringComparison.Ordinal))
-            {
-                return keyframe;
-            }
-            last[index] = text;
-            return true;
         }
 
         private static object Property(PluginManager pluginManager, TelemetryField field)
@@ -63,7 +46,9 @@ namespace Pitrig.SimHub
                     var text = Convert.ToString(value, Culture).Replace('\r', ' ').Replace('\n', ' ');
                     return text.Length == 0 ? null : Bounded(text);
                 case FieldConversion.TimespanMs:
-                    return value is TimeSpan span ? Number(field, span.TotalMilliseconds, "0") : null;
+                    return value is TimeSpan span && span.TotalMilliseconds <= uint.MaxValue
+                        ? Number(field, span.TotalMilliseconds, "0")
+                        : null;
                 default:
                     return Number(field, Convert.ToDouble(value, Culture) * field.Scale, field.Format);
             }

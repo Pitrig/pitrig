@@ -57,17 +57,6 @@ export function EffectColors({
 
   return (
     <Subsection title={t('modules.effectColors.colourWhen')}>
-      <OptionalColorField
-        label={t('modules.effectColors.background')}
-        hint={t('modules.hints.effect.background')}
-        value={effect.background_color}
-        onChange={(color) =>
-          update((next) => {
-            if (color) next.background_color = color
-            else delete next.background_color
-          })
-        }
-      />
       {rules.length > 0 && effect.gate !== 'conditions' ? (
         <TelemetryBindingField
           label={t('modules.effectColors.watches')}

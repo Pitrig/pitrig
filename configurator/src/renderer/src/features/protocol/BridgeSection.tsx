@@ -7,89 +7,40 @@ import { NumberField, TextField } from '@/features/configuration/inspector/field
 import {
   setBridgeRequest,
   startTelemetryBridge,
-  stopTelemetryBridge,
   useBridgeStore
 } from '@/features/telemetry/bridge-store'
-import type { LatencyQuantiles, TelemetryBridgeStatus } from '@shared/telemetry-bridge'
-
-const text = {
-  title: 'Live telemetry',
-  description: 'Telemetry from the SimHub plugin, forwarded to the board and decoded on the way, so the dashboard, the lamps and the catalog below show it as it arrives.',
-  pluginTitle: 'SimHub plugin',
-  pluginHint: 'Install the Pitrig plugin in SimHub and name the machine it runs on. The configurator asks that machine for the stream and forwards what arrives to the board unchanged.',
-  listenPort: 'Listen on port',
-  simhubHost: 'SimHub machine',
-  simhubPort: 'Plugin port',
-  simhubHostHint: 'A loopback address keeps everything on this machine. Any other address reaches a plugin over the local network, and telemetry from anywhere else is ignored. The plugin panel shows the addresses of the machine SimHub runs on.',
-  simhubAddress: 'Asking',
-  source: 'Sending',
-  start: 'Start',
-  stop: 'Stop',
-  starting: 'Starting…',
-  running: 'Running',
-  stopped: 'Stopped',
-  waiting: 'Waiting for the plugin',
-  receiving: 'Receiving',
-  relaying: 'Forwarding to the board',
-  previewOnly: 'No board connected — preview only',
-  suspended: 'Held back while the board is busy',
-  measured: 'Measured',
-  addedLatency: 'Added by the bridge',
-  drainLatency: 'Through to the board',
-  lines: 'Lines',
-  fields: 'Fields',
-  bytes: 'Bytes',
-  packets: 'Packets',
-  lostPackets: 'Lost packets',
-  dropped: 'Dropped',
-  writeErrors: 'Write errors',
-  perSecond: '/s',
-  noSamples: 'Nothing measured yet.'
-}
+import type {
+  LatencyQuantiles,
+  PluginStatus,
+  TelemetryBridgeStatus
+} from '@shared/telemetry-bridge'
+import { t } from '@shared/ui-text'
 
 export function BridgeSection(): React.JSX.Element {
   const status = useBridgeStore((state) => state.status)
   const busy = useBridgeStore((state) => state.busy)
   const request = useBridgeStore((state) => state.request)
   const [error, setError] = useState<string>()
-  const shown = status.running
-    ? {
-        port: status.port ?? request.port,
-        simhubHost: status.simhubAddress ?? request.simhubHost,
-        simhubPort: request.simhubPort
-      }
-    : request
 
-  const start = async (): Promise<void> => {
+  const apply = async (): Promise<void> => {
     setError(await startTelemetryBridge(request))
   }
 
   return (
     <PageSection
-      title={text.title}
-      description={text.description}
-      actions={
-        status.running ? (
-          <Button disabled={busy} variant="outline" onClick={() => void stopTelemetryBridge()}>
-            {text.stop}
-          </Button>
-        ) : (
-          <Button disabled={busy} onClick={() => void start()}>
-            {busy ? text.starting : text.start}
-          </Button>
-        )
-      }
+      title={t('protocol.bridgeSection.title')}
+      description={t('protocol.bridgeSection.description')}
     >
       <div className="space-y-3">
         <StateChips status={status} />
+        <PluginBoards plugin={status.plugin} />
         <PluginSource
-          port={shown.port}
-          simhubHost={shown.simhubHost}
-          simhubPort={shown.simhubPort}
+          busy={busy}
+          port={request.port}
+          simhubHost={request.simhubHost}
+          simhubPort={request.simhubPort}
           status={status}
-          onPort={(value) => setBridgeRequest({ port: value })}
-          onSimhubHost={(value) => setBridgeRequest({ simhubHost: value })}
-          onSimhubPort={(value) => setBridgeRequest({ simhubPort: value })}
+          onApply={() => void apply()}
         />
         {status.running ? <Measured status={status} /> : null}
         {error ?? status.error ? (
@@ -103,88 +54,111 @@ export function BridgeSection(): React.JSX.Element {
 }
 
 function StateChips({ status }: { status: TelemetryBridgeStatus }): React.JSX.Element {
+  const relay = status.suspended
+    ? t('protocol.bridgeSection.suspended')
+    : status.relaying
+      ? t('protocol.bridgeSection.relaying')
+      : t('protocol.bridgeSection.previewOnly')
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge variant={status.running ? 'default' : 'outline'}>
-        {status.running ? text.running : text.stopped}
+      <Badge variant={status.plugin ? 'default' : 'outline'}>
+        {status.plugin
+          ? t('protocol.bridgeSection.pluginVersion', { version: status.plugin.version })
+          : t('protocol.bridgeSection.pluginMissing')}
       </Badge>
       {status.running ? (
         <Badge variant="outline">
           {status.receiving
-            ? text.receiving
-            : text.waiting}
+            ? t('protocol.bridgeSection.receiving')
+            : t('protocol.bridgeSection.waiting')}
         </Badge>
       ) : null}
-      {status.running ? (
-        <Badge variant="outline">
-          {status.suspended
-            ? text.suspended
-            : status.relaying
-              ? text.relaying
-              : text.previewOnly}
-        </Badge>
-      ) : null}
+      {status.running ? <Badge variant="outline">{relay}</Badge> : null}
+    </div>
+  )
+}
+
+function PluginBoards({ plugin }: { plugin: PluginStatus | undefined }): React.JSX.Element {
+  if (!plugin) {
+    return (
+      <p className="text-[11px] leading-4 text-muted-foreground">
+        {t('protocol.bridgeSection.pluginHint')}
+      </p>
+    )
+  }
+  return (
+    <div className="space-y-1 rounded-md border bg-muted/20 p-3">
+      <div className="font-medium text-foreground">{t('protocol.bridgeSection.boardsTitle')}</div>
+      {plugin.boards.length === 0 ? (
+        <p className="text-muted-foreground">{t('protocol.bridgeSection.noBoards')}</p>
+      ) : (
+        plugin.boards.map((board) => (
+          <p key={board.path} className="font-mono text-muted-foreground">
+            {board.board.length > 0 ? `${board.path} · ${board.board}` : board.path}
+          </p>
+        ))
+      )}
+      {plugin.busy.map((path) => (
+        <p key={path} className="text-amber-200">
+          {t('protocol.bridgeSection.portBusy', { path })}
+        </p>
+      ))}
     </div>
   )
 }
 
 function PluginSource({
+  busy,
   port,
   simhubHost,
   simhubPort,
   status,
-  onPort,
-  onSimhubHost,
-  onSimhubPort
+  onApply
 }: {
+  busy: boolean
   port: number
   simhubHost: string
   simhubPort: number
   status: TelemetryBridgeStatus
-  onPort: (value: number) => void
-  onSimhubHost: (value: string) => void
-  onSimhubPort: (value: number) => void
+  onApply: () => void
 }): React.JSX.Element {
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-      <div className="font-medium text-foreground">{text.pluginTitle}</div>
-      <p className="text-[11px] leading-4 text-muted-foreground">
-        {text.pluginHint}
-      </p>
-      <fieldset className="space-y-1 disabled:opacity-50" disabled={status.running}>
+      <div className="font-medium text-foreground">{t('protocol.bridgeSection.connection')}</div>
+      <fieldset className="space-y-1 disabled:opacity-50" disabled={busy}>
         <TextField
-          label={text.simhubHost}
+          label={t('protocol.bridgeSection.simhubHost')}
           value={simhubHost}
-          onChange={onSimhubHost}
+          onChange={(value) => setBridgeRequest({ simhubHost: value })}
         />
         <NumberField
-          label={text.simhubPort}
+          label={t('protocol.bridgeSection.simhubPort')}
           max={65_535}
           min={1_024}
           step={1}
           value={simhubPort}
-          onChange={onSimhubPort}
+          onChange={(value) => setBridgeRequest({ simhubPort: value })}
         />
         <NumberField
-          label={text.listenPort}
+          label={t('protocol.bridgeSection.listenPort')}
           max={65_535}
           min={1_024}
           step={1}
           value={port}
-          onChange={onPort}
+          onChange={(value) => setBridgeRequest({ port: value })}
         />
       </fieldset>
       <p className="text-[11px] leading-4 text-muted-foreground">
-        {text.simhubHostHint}
+        {t('protocol.bridgeSection.simhubHostHint')}
       </p>
+      <Button disabled={busy} variant="outline" onClick={onApply}>
+        {busy ? t('protocol.bridgeSection.applying') : t('protocol.bridgeSection.apply')}
+      </Button>
       {status.simhubAddress ? (
-        <ReadOnlyField
-          label={text.simhubAddress}
-          value={status.simhubAddress}
-        />
+        <ReadOnlyField label={t('protocol.bridgeSection.asking')} value={status.simhubAddress} />
       ) : null}
       {status.sourceAddress ? (
-        <ReadOnlyField label={text.source} value={status.sourceAddress} />
+        <ReadOnlyField label={t('protocol.bridgeSection.sending')} value={status.sourceAddress} />
       ) : null}
     </div>
   )
@@ -194,33 +168,36 @@ function Measured({ status }: { status: TelemetryBridgeStatus }): React.JSX.Elem
   const { metrics } = status
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-      <div className="font-medium text-foreground">{text.measured}</div>
+      <div className="font-medium text-foreground">{t('protocol.bridgeSection.measured')}</div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <Quantiles label={text.addedLatency} value={metrics.handoff} />
-        <Quantiles label={text.drainLatency} value={metrics.drain} />
+        <Quantiles label={t('protocol.bridgeSection.addedLatency')} value={metrics.handoff} />
+        <Quantiles label={t('protocol.bridgeSection.drainLatency')} value={metrics.drain} />
         <ReadOnlyField
-          label={text.lines}
+          label={t('protocol.bridgeSection.lines')}
           value={perSecond(metrics.linesPerSecond)}
         />
         <ReadOnlyField
-          label={text.fields}
+          label={t('protocol.bridgeSection.fields')}
           value={perSecond(metrics.fieldsPerSecond)}
         />
         <ReadOnlyField
-          label={text.bytes}
+          label={t('protocol.bridgeSection.bytes')}
           value={perSecond(metrics.bytesPerSecond)}
         />
         <ReadOnlyField
-          label={text.packets}
+          label={t('protocol.bridgeSection.packets')}
           value={perSecond(metrics.packetsPerSecond)}
         />
         <ReadOnlyField
-          label={text.lostPackets}
+          label={t('protocol.bridgeSection.lostPackets')}
           value={String(metrics.lostPackets)}
         />
         <ReadOnlyField
-          label={text.dropped}
-          value={`${metrics.droppedBytes} · ${metrics.writeErrors} ${text.writeErrors}`}
+          label={t('protocol.bridgeSection.dropped')}
+          value={t('protocol.bridgeSection.droppedValue', {
+            bytes: metrics.droppedBytes,
+            errors: metrics.writeErrors
+          })}
         />
       </div>
     </div>
@@ -239,13 +216,18 @@ function Quantiles({
       label={label}
       value={
         value.samples === 0
-          ? text.noSamples
-          : `p50 ${value.p50.toFixed(3)} · p95 ${value.p95.toFixed(3)} · p99 ${value.p99.toFixed(3)} · max ${value.max.toFixed(3)} ms`
+          ? t('protocol.bridgeSection.noSamples')
+          : t('protocol.bridgeSection.quantiles', {
+              p50: value.p50.toFixed(3),
+              p95: value.p95.toFixed(3),
+              p99: value.p99.toFixed(3),
+              max: value.max.toFixed(3)
+            })
       }
     />
   )
 }
 
 function perSecond(value: number): string {
-  return `${Math.round(value)}${text.perSecond}`
+  return t('protocol.bridgeSection.perSecond', { value: Math.round(value) })
 }

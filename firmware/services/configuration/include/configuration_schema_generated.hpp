@@ -109,6 +109,12 @@ inline constexpr std::array<std::string_view, 6> kLedSpriteConfigurationKeys{{
     "pixels",
 }};
 
+inline constexpr std::array<std::string_view, 3> kLedPartKeys{{
+    "from",
+    "count",
+    "reversed",
+}};
+
 inline constexpr std::array<std::string_view, 6> kLedColorRuleKeys{{
     "op",
     "value",
@@ -118,11 +124,11 @@ inline constexpr std::array<std::string_view, 6> kLedColorRuleKeys{{
     "hold_ms",
 }};
 
-inline constexpr std::array<std::string_view, 27> kLedEffectKeys{{
+inline constexpr std::array<std::string_view, 30> kLedEffectKeys{{
     "type",
     "id",
-    "from",
-    "count",
+    "parts",
+    "layout",
     "panel_mask",
     "source",
     "minimum",
@@ -130,6 +136,7 @@ inline constexpr std::array<std::string_view, 27> kLedEffectKeys{{
     "gate",
     "condition_source",
     "conditions",
+    "hysteresis",
     "hold_ms",
     "blink_ms",
     "mirrored",
@@ -141,8 +148,10 @@ inline constexpr std::array<std::string_view, 27> kLedEffectKeys{{
     "steps",
     "animation",
     "speed_ms",
+    "span",
     "sprite",
     "sprite_frame",
+    "sprite_scaled",
     "sprite_loop",
     "text",
     "font",
@@ -588,7 +597,7 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
 }
 
 [[nodiscard]] inline std::string_view range_error(const LedSpriteConfiguration& config) {
-  if (config.width < 1 || config.width > kMaximumMatrixSide) {
+  if (config.width < 1 || config.width > kMaximumLedsPerOutput) {
     return "width";
   }
   if (config.height < 1 || config.height > kMaximumMatrixSide) {
@@ -596,6 +605,16 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   }
   if (config.frame_count < 1 || config.frame_count > kMaximumLedSpriteFrames) {
     return "frame_count";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const LedPart& config) {
+  if (config.from > kMaximumLedsPerOutput) {
+    return "from";
+  }
+  if (config.count < 1 || config.count > kMaximumLedsPerOutput) {
+    return "count";
   }
   return {};
 }
@@ -612,13 +631,6 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
 }
 
 [[nodiscard]] inline std::string_view range_error(const LedEffect& config) {
-  if (config.from > kMaximumLedsPerOutput) {
-    return "from";
-  }
-  if (config.count != 0 &&
-      (config.count < 1 || config.count > kMaximumLedsPerOutput)) {
-    return "count";
-  }
   if (config.hold_ms > kMaximumHoldMs) {
     return "hold_ms";
   }
@@ -628,6 +640,9 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   }
   if (config.speed_ms < 50 || config.speed_ms > 60000) {
     return "speed_ms";
+  }
+  if (config.span < 1 || config.span > 64) {
+    return "span";
   }
   if (config.sprite_frame > kMaximumLedSpriteFrames) {
     return "sprite_frame";

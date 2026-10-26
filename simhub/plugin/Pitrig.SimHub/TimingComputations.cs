@@ -142,7 +142,7 @@ namespace Pitrig.SimHub
         private static int Grade(double time, double? personalBest, double? sessionBest)
         {
             if (time <= sessionBest) return StatusSessionBest;
-            if (time <= personalBest) return StatusPersonalBest;
+            if (personalBest == null || time <= personalBest) return StatusPersonalBest;
             return StatusSlower;
         }
 

@@ -61,6 +61,8 @@ import type {
 import type {
   TelemetryBridgeStartRequest,
   TelemetryBridgeStatus,
+  TelemetryInterest,
+  TelemetrySimulation,
   TelemetrySnapshot
 } from './telemetry-bridge'
 import type {
@@ -157,13 +159,14 @@ export interface PitrigApi {
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
-  telemetryBridge?: TelemetryBridgeApi
+  telemetryBridge: TelemetryBridgeApi
 }
 
 export interface TelemetryBridgeApi {
   getStatus: () => Promise<TelemetryBridgeStatus>
   start: (request: TelemetryBridgeStartRequest) => Promise<DeviceResult<TelemetryBridgeStatus>>
-  stop: () => Promise<DeviceResult<TelemetryBridgeStatus>>
+  setInterest: (interest: TelemetryInterest) => Promise<void>
+  simulate: (simulation: TelemetrySimulation) => Promise<void>
   onStatus: (listener: (status: TelemetryBridgeStatus) => void) => () => void
   onSnapshot: (listener: (snapshot: TelemetrySnapshot) => void) => () => void
 }

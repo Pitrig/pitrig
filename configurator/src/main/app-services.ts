@@ -99,6 +99,6 @@ export async function disposeAppServices(
   services.fontAssetService.cancel()
   services.imageAssetService.cancel()
   services.firmwareUpdateService.cancel()
-  await telemetryBridge?.dispose()
   await services.deviceService.dispose()
+  await telemetryBridge?.dispose()
 }
