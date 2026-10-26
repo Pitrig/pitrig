@@ -36,6 +36,27 @@ namespace {
   return nullptr;
 }
 
+[[nodiscard]] bool validate_parts(const HardwareDeviceConfiguration& device,
+                                  const LedEffect& effect, ValidationFailure& failure) {
+  if (effect.part_count == 0) {
+    return true;
+  }
+  if (device.type != HardwareDeviceType::rgb_strip) {
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.parts");
+  }
+  const std::size_t lamps = led_device_lamps(device);
+  for (std::uint8_t index = 0; index < effect.part_count; ++index) {
+    const LedPart& part = effect.parts[index];
+    if (const std::string_view out_of_range = schema::range_error(part); !out_of_range.empty()) {
+      return reject(failure, ValidationError::invalid_module, out_of_range);
+    }
+    if (static_cast<std::size_t>(part.from) + part.count > lamps) {
+      return reject(failure, ValidationError::invalid_module, "hardware.effects.parts");
+    }
+  }
+  return true;
+}
+
 [[nodiscard]] bool validate_panel_area(const HardwareDeviceConfiguration& device,
                                        const LedEffect& effect, ValidationFailure& failure) {
   const std::string_view mask = text_view(effect.panel_mask);
@@ -100,15 +121,13 @@ namespace {
   if (const std::string_view out_of_range = schema::range_error(effect); !out_of_range.empty()) {
     return reject(failure, ValidationError::invalid_module, out_of_range);
   }
-  const std::size_t lamps = led_device_lamps(device);
-  if (effect.from >= lamps ||
-      (effect.count != 0 && static_cast<std::size_t>(effect.from) + effect.count > lamps)) {
-    return reject(failure, ValidationError::invalid_module, "hardware.effects.from");
-  }
-  if (led_effect_draws_pixels(effect.type) && device.type != HardwareDeviceType::rgb_matrix) {
+  if (effect.type == LedEffectType::text && device.type != HardwareDeviceType::rgb_matrix) {
     return reject(failure, ValidationError::invalid_module, "hardware.effects.type");
   }
-  if (!validate_panel_area(device, effect, failure)) {
+  if (effect.hysteresis < 0.0F) {
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.hysteresis");
+  }
+  if (!validate_parts(device, effect, failure) || !validate_panel_area(device, effect, failure)) {
     return false;
   }
   if (effect.source.modifier_count != 0 || effect.condition_source.modifier_count != 0) {

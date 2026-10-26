@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string_view>
 
 #include "application_configuration.hpp"
@@ -27,6 +28,8 @@ struct Area {
 
 [[nodiscard]] std::uint64_t effect_period_us(const configuration::LedEffect& effect);
 
+using Parts = std::span<const configuration::LedPart>;
+
 class Surface final {
  public:
   Surface(led::Output& output, const led::Matrix& matrix, const Area& area, bool inverted,
@@ -38,20 +41,33 @@ class Surface final {
         inverted_(inverted),
         mirrored_(mirrored) {}
 
+  Surface(led::Output& output, const Parts parts, bool inverted, bool mirrored)
+      : output_(&output),
+        parts_(parts),
+        count_(lamps_in(parts)),
+        inverted_(inverted),
+        mirrored_(mirrored) {}
+
   [[nodiscard]] std::size_t size() const { return mirrored_ ? (count_ + 1U) / 2U : count_; }
 
   void set(std::size_t index, led::Color color) const;
 
  private:
+  [[nodiscard]] static std::uint16_t lamps_in(Parts parts);
   void put(std::size_t offset, led::Color color) const;
 
   led::Output* output_;
-  const led::Matrix* matrix_;
-  Area area_;
+  const led::Matrix* matrix_{};
+  Area area_{};
+  Parts parts_{};
   std::uint16_t count_;
   bool inverted_;
   bool mirrored_;
 };
+
+[[nodiscard]] inline Parts parts_of(const configuration::LedEffect& effect) {
+  return {effect.parts.data(), effect.part_count};
+}
 
 struct LayerColors {
   led::Color ink{};
@@ -75,6 +91,8 @@ struct ColorRuleState {
                                  const configuration::LedEffect& effect);
 
 void fill_area(led::Output& output, const led::Matrix& matrix, const Area& area, led::Color color);
+
+void fill_parts(led::Output& output, Parts parts, led::Color color);
 
 void paint(const Surface& surface, const configuration::LedEffect& effect, led::Color color,
            std::optional<double> value, std::uint64_t elapsed_us);

@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 26. Narrative rules and presence semantics live in [device-configuration.md](device-configuration.md); the control protocol in [control-protocol.md](control-protocol.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 27. Narrative rules and presence semantics live in [device-configuration.md](device-configuration.md); the control protocol in [control-protocol.md](control-protocol.md).
 
-Schema version: 26.
+Schema version: 27.
 
 ## Documents
 
@@ -57,7 +57,8 @@ The configuration is transferred and stored as three independent documents. Each
 | `kMaximumLedsPerOutput` | 512 | Lamps on one data line. What sets it is time rather than memory: 512 lamps take 12 ms to clock out at 800 kHz, which is already most of a frame at 60 Hz, and an RGBW chain takes a third longer again. |
 | `kMaximumLedsTotal` | 1024 | Lamps across every output. Outputs transmit on their own channels at the same time, so what this bounds is the frame buffer and the current the board can plausibly be asked to switch, not the frame time. |
 | `kMaximumLedSegments` | 8 | Straight runs one strip's physical arrangement may describe. A wheel rim is three runs and a halo around a screen is four, so eight covers every mounting anyone has asked for while keeping the description readable. |
-| `kMaximumMatrixSide` | 16 | Columns or rows one matrix panel may have, and the same ceiling on a sprite's own geometry. Sixteen is where the panels stop rather than where the lamp budget does - a square panel at this bound is 256 lamps, half of what one output may drive - and eight by eight, the default above, is what nearly everyone mounts. It is also what keeps a layer's panel mask to sixty-four digits. |
+| `kMaximumLedParts` | 16 | Runs of lamps one strip layer may cover. Two cover the flags at both ends of a wheel, four its corners, and sixteen leave room for a layer whose lamps light in an order of their own, one part a lamp. |
+| `kMaximumMatrixSide` | 16 | Columns or rows one matrix panel may have, and the same ceiling on a matrix picture's geometry; a strip's picture is one row as long as the strip. Sixteen is where the panels stop rather than where the lamp budget does - a square panel at this bound is 256 lamps, half of what one output may drive - and eight by eight, the default above, is what nearly everyone mounts. It is also what keeps a layer's panel mask to sixty-four digits. |
 | `kMaximumLedSprites` | 8 | Pictures one output may carry. They travel inside the document, so this and the pixel capacity below are what keep a matrix's artwork inside the payload bound. |
 | `kMaximumLedSpriteFrames` | 16 | Frames one sprite may hold. Frames share a geometry and a palette and are stored back to back, so a frame is an offset rather than an entry. |
 | `kLedPaletteSize` | 16 | Colours one sprite names. Sixteen is what one hexadecimal digit addresses, which is why a pixel costs half a byte. |
@@ -77,7 +78,8 @@ The configuration is transferred and stored as three independent documents. Each
 | `MatrixOrigin` | `top_left`, `top_right`, `bottom_left`, `bottom_right` | Corner the first lamp of a matrix sits in. Ignored by a strip. |
 | `LedSegmentDirection` | `right`, `left`, `up`, `down` | Way a run of a strip's arrangement extends across the mounting, read while drawing the strip rather than while driving it. Each run starts one step from where the previous one ended, in its own direction, which is how a chain bends around a corner. |
 | `LedEffectType` | `solid`, `gradient`, `steps`, `gauge`, `animation`, `sprite`, `text` | What an effect paints over the lamps it covers. The order of these values indexes the generated painter table, so a new kind is appended rather than inserted. |
-| `LedAnimationKind` | `rainbow`, `scan`, `pulse`, `wipe`, `chase` | Motion an animation effect draws. Read only by that kind. |
+| `LedAnimationKind` | `rainbow`, `scan`, `pulse`, `wipe`, `chase`, `comet`, `theater`, `sparkle`, `strobe`, `bounce` | Motion an animation effect draws. Read only by that kind. comet trails span lamps of fading tail behind its head, theater lights every span-th lamp and steps them along, sparkle flashes span lamps at random spots each pass, strobe flashes the whole layer briefly once a pass, and bounce runs a block of span lamps to the end and back. A new kind is appended rather than inserted. |
+| `LedPartLayout` | `joined`, `each` | How a strip layer spreads what it paints over its parts. joined lays them end to end in the order they are listed, so a fill runs from the first part into the next; each paints the whole effect in every part at once, so the flags at both ends of a wheel flash as one. |
 | `LedGate` | `always`, `conditions`, `telemetry_idle` | When an effect paints at all. always paints on every frame; conditions paints while a rule over condition_source holds; telemetry_idle paints only after kLedTelemetryIdleMs of silence, which is what an idle animation and a lost-link warning both want. |
 | `LedFont` | `regular_4x6`, `bold_4x6`, `regular_6x8`, `bold_6x8` | Built-in bitmap face a text effect draws with, named by the pixels one glyph occupies and its weight. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no display to install a font package for. Each face carries only the digits, N and R, which is what a gear readout spells and all a panel this small can spell legibly. |
 | `BoardId` | `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c`, `esp32s3_devkit` | Immutable hardware identity. Must match the firmware build or the configuration is rejected. A board that declares no display carries no dashboard either: a dashboard section on one is rejected rather than quietly ignored, because an author who wrote it meant it to be drawn somewhere. |
@@ -119,16 +121,26 @@ One colour a sprite's pixel digits name.
 
 ### LedSpriteConfiguration
 
-A picture, or several frames of one, drawn on a matrix. Stored palette-indexed at four bits a pixel and carried inside this document rather than uploaded, because a whole icon set is a few kilobytes: nothing to install, nothing to claim the serial link while it installs, no partition to add, and a template carries its artwork with it.
+A picture, or several frames of one, drawn on a matrix or along a strip. Stored palette-indexed at four bits a pixel and carried inside this document rather than uploaded, because a whole icon set is a few kilobytes: nothing to install, nothing to claim the serial link while it installs, no partition to add, and a template carries its artwork with it.
 
 | Property | Type | Default |
 | --- | --- | --- |
 | `id` | string, max 31 bytes | empty |
-| `width` | integer, 1..16 | `8` |
+| `width` | integer, 1..512 | `8` |
 | `height` | integer, 1..16 | `8` |
 | `frame_count` | integer, 1..16 | `1` |
 | `palette` | array of [`LedPaletteEntry`](#ledpaletteentry), max 16 | absent |
 | `pixels` | string, max 1024 bytes | empty |
+
+### LedPart
+
+One run of a strip's lamps a layer covers, in the strip's own order.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `from` | integer, 0..512 | `0` |
+| `count` | integer, 1..512 | `1` |
+| `reversed` | boolean | `false` |
 
 ### LedColorRule
 
@@ -153,13 +165,14 @@ Also carries the properties of [`ValueRange`](#valuerange), flattened: they are 
 | --- | --- | --- |
 | `type` | `LedEffectType` | `solid` |
 | `id` | string, max 15 bytes | empty |
-| `from` | integer, 0..512 | `0` |
-| `count` | integer, 0 or 1..512 | `0` |
+| `parts` | array of [`LedPart`](#ledpart), max 16 | absent |
+| `layout` | `LedPartLayout` | `joined` |
 | `panel_mask` | string, max 64 bytes | empty |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `gate` | `LedGate` | `always` |
 | `condition_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `conditions` | array of [`ValueCondition`](#valuecondition), max 4 | absent |
+| `hysteresis` | number | `0` |
 | `hold_ms` | integer, 0..10000 | `0` |
 | `blink_ms` | integer, 0 or 100..5000 | `0` |
 | `mirrored` | boolean | `false` |
@@ -171,8 +184,10 @@ Also carries the properties of [`ValueRange`](#valuerange), flattened: they are 
 | `steps` | array of [`IndicatorSegment`](#indicatorsegment), max 16 | absent |
 | `animation` | `LedAnimationKind` | `rainbow` |
 | `speed_ms` | integer, 50..60000 | `1000` |
+| `span` | integer, 1..64 | `3` |
 | `sprite` | string, max 31 bytes | empty |
 | `sprite_frame` | integer, 0..16 | `0` |
+| `sprite_scaled` | boolean | `false` |
 | `sprite_loop` | boolean | `false` |
 | `text` | string, max 31 bytes | empty |
 | `font` | `LedFont` | `regular_4x6` |

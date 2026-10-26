@@ -13,7 +13,7 @@
 
 namespace pitrig::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 26;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 27;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -56,6 +56,7 @@ inline constexpr std::size_t kMaximumLedEffects = 32;
 inline constexpr std::size_t kMaximumLedsPerOutput = 512;
 inline constexpr std::size_t kMaximumLedsTotal = 1024;
 inline constexpr std::size_t kMaximumLedSegments = 8;
+inline constexpr std::size_t kMaximumLedParts = 16;
 inline constexpr std::size_t kMaximumMatrixSide = 16;
 inline constexpr std::size_t kMaximumLedSprites = 8;
 inline constexpr std::size_t kMaximumLedSpriteFrames = 16;
@@ -172,6 +173,16 @@ enum class LedAnimationKind : std::uint8_t {
   pulse,
   wipe,
   chase,
+  comet,
+  theater,
+  sparkle,
+  strobe,
+  bounce,
+};
+
+enum class LedPartLayout : std::uint8_t {
+  joined,
+  each,
 };
 
 enum class LedGate : std::uint8_t {
@@ -323,12 +334,18 @@ struct LedPaletteEntry {
 
 struct LedSpriteConfiguration {
   std::array<char, kImageIdCapacity> id{};
-  std::uint8_t width{8};
+  std::uint16_t width{8};
   std::uint8_t height{8};
   std::uint8_t frame_count{1};
   std::uint8_t palette_count{};
   std::array<LedPaletteEntry, kLedPaletteSize> palette{};
   std::array<char, kLedSpritePixelCapacity> pixels{};
+};
+
+struct LedPart {
+  std::uint16_t from{};
+  std::uint16_t count{1};
+  bool reversed{false};
 };
 
 struct LedColorRule {
@@ -373,8 +390,9 @@ struct IndicatorSegment {
 struct LedEffect {
   LedEffectType type{LedEffectType::solid};
   std::array<char, kWidgetIdCapacity> id{};
-  std::uint16_t from{};
-  std::uint16_t count{};
+  std::uint8_t part_count{};
+  std::array<LedPart, kMaximumLedParts> parts{};
+  LedPartLayout layout{LedPartLayout::joined};
   std::array<char, kLedPanelMaskCapacity> panel_mask{};
   ValueSourceConfiguration source{};
   ValueRange range{};
@@ -382,6 +400,7 @@ struct LedEffect {
   ValueSourceConfiguration condition_source{};
   std::uint8_t condition_count{};
   std::array<ValueCondition, kMaximumWidgetConditions> conditions{};
+  float hysteresis{};
   std::uint16_t hold_ms{};
   std::uint16_t blink_ms{};
   bool mirrored{false};
@@ -396,8 +415,10 @@ struct LedEffect {
   std::array<IndicatorSegment, kMaximumIndicatorSegments> steps{};
   LedAnimationKind animation{LedAnimationKind::rainbow};
   std::uint16_t speed_ms{1000};
+  std::uint8_t span{3};
   std::array<char, kImageIdCapacity> sprite{};
   std::uint8_t sprite_frame{};
+  bool sprite_scaled{false};
   bool sprite_loop{false};
   std::array<char, kLedTextCapacity> text{};
   LedFont font{LedFont::regular_4x6};
@@ -837,12 +858,17 @@ inline constexpr std::array<std::string_view, 7> kLedEffectTypeNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 5> kLedAnimationKindNames{{
+inline constexpr std::array<std::string_view, 10> kLedAnimationKindNames{{
     "rainbow",
     "scan",
     "pulse",
     "wipe",
     "chase",
+    "comet",
+    "theater",
+    "sparkle",
+    "strobe",
+    "bounce",
 }};
 
 [[nodiscard]] inline std::string_view led_animation_kind_name(const LedAnimationKind value) {
@@ -855,6 +881,27 @@ inline constexpr std::array<std::string_view, 5> kLedAnimationKindNames{{
   for (std::size_t index = 0; index < kLedAnimationKindNames.size(); ++index) {
     if (kLedAnimationKindNames[index] == name) {
       value = static_cast<LedAnimationKind>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kLedPartLayoutNames{{
+    "joined",
+    "each",
+}};
+
+[[nodiscard]] inline std::string_view led_part_layout_name(const LedPartLayout value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedPartLayoutNames.size() ? kLedPartLayoutNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_part_layout_from_name(const std::string_view name,
+                                                  LedPartLayout& value) {
+  for (std::size_t index = 0; index < kLedPartLayoutNames.size(); ++index) {
+    if (kLedPartLayoutNames[index] == name) {
+      value = static_cast<LedPartLayout>(index);
       return true;
     }
   }

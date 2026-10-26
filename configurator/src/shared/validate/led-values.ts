@@ -5,15 +5,17 @@ import {
   LED_EFFECT_TYPE_VALUES,
   LED_FONT_VALUES,
   LED_GATE_VALUES,
+  LED_PART_LAYOUT_VALUES,
   MAXIMUM_COLOR_STOPS,
   MAXIMUM_INDICATOR_SEGMENTS,
   MAXIMUM_LED_COLOR_RULES,
+  MAXIMUM_LED_PARTS,
   MAXIMUM_WIDGET_CONDITIONS,
   type HardwareDeviceConfiguration,
   type LedEffect
 } from '../configuration-schema'
 import {
-  LED_EFFECT_DRAWS_PIXELS,
+  LED_EFFECT_NEEDS_PANEL,
   LED_EFFECT_NEEDS_VALUE,
   LED_EFFECT_READS_VALUE,
   drawnSize,
@@ -33,13 +35,14 @@ function badNumber(value: unknown, label: string, key: string): string | undefin
 }
 
 const LED_EFFECT_WHOLE_KEYS: readonly string[] = [
-  'from',
-  'count',
   'hold_ms',
   'blink_ms',
   'speed_ms',
+  'span',
   'sprite_frame'
 ]
+
+const LED_PART_WHOLE_KEYS: readonly string[] = ['from', 'count']
 
 const LED_RULE_WHOLE_KEYS: readonly string[] = ['blink_ms', 'hold_ms']
 
@@ -97,6 +100,30 @@ function findContentError(
   }
 }
 
+function findPartsError(
+  device: HardwareDeviceConfiguration,
+  effect: LedEffect,
+  label: string
+): string | undefined {
+  const parts = effect.parts ?? []
+  if (parts.length === 0) return undefined
+  if (isMatrix(device)) return t('validation.ledValues.labelListsStripLamps', { label })
+  const lamps = lampsOf(device)
+  for (const [index, part] of parts.entries()) {
+    const owner = t('validation.ledValues.partNumberOfLabel', { number: index + 1, label })
+    const whole = findWholeError(part, LED_PART_WHOLE_KEYS, owner)
+    if (whole) return whole
+    const range = findBoundError(part, FIELD_RANGES['LedPart'], owner)
+    if (range) return range
+    const from = part.from ?? 0
+    const count = part.count ?? 1
+    if (from + count > lamps) {
+      return t('validation.ledValues.labelCoversLampsFromTo', { label: owner, from: from + 1, to: from + count, lamps })
+    }
+  }
+  return undefined
+}
+
 function findPanelAreaError(
   device: HardwareDeviceConfiguration,
   effect: LedEffect,
@@ -127,6 +154,7 @@ function findListError(effect: LedEffect, label: string): string | undefined {
     badList(effect.stops, MAXIMUM_COLOR_STOPS, label, t('validation.ledValues.colourStops')) ??
     badList(effect.steps, MAXIMUM_INDICATOR_SEGMENTS, label, 'steps') ??
     badList(effect.conditions, MAXIMUM_WIDGET_CONDITIONS, label, 'rules') ??
+    badList(effect.parts, MAXIMUM_LED_PARTS, label, 'parts') ??
     badList(effect.color_rules, MAXIMUM_LED_COLOR_RULES, label, t('validation.ledValues.colourRules'))
   )
 }
@@ -135,6 +163,7 @@ function findEnumError(effect: LedEffect, label: string): string | undefined {
   const error =
     badEnum(effect.type, LED_EFFECT_TYPE_VALUES, label, 'type') ??
     badEnum(effect.gate, LED_GATE_VALUES, label, 'gate') ??
+    badEnum(effect.layout, LED_PART_LAYOUT_VALUES, label, 'layout') ??
     badEnum(effect.animation, LED_ANIMATION_KIND_VALUES, label, 'animation') ??
     badEnum(effect.font, LED_FONT_VALUES, label, 'font')
   if (error) return error
@@ -212,16 +241,16 @@ export function findEffectError(
   if (wholeError) return wholeError
   const rangeError = findBoundError(effect, FIELD_RANGES['LedEffect'], label)
   if (rangeError) return rangeError
-  const lamps = lampsOf(device)
-  const from = effect.from ?? 0
-  const count = effect.count ?? 0
-  if (from >= lamps || (count !== 0 && from + count > lamps)) {
-    return t('validation.ledValues.labelCoversLampsFromTo', { label, from, to: from + count, lamps })
+  const partsError = findPartsError(device, effect, label)
+  if (partsError) return partsError
+  const hysteresis = effect.hysteresis ?? 0
+  if (!Number.isFinite(hysteresis) || hysteresis < 0) {
+    return t('validation.ledValues.labelSetsANegativeSwitchOff', { label })
   }
   const panelError = findPanelAreaError(device, effect, label)
   if (panelError) return panelError
   const type = effect.type ?? 'solid'
-  if (LED_EFFECT_DRAWS_PIXELS.has(type) && !isMatrix(device)) {
+  if (LED_EFFECT_NEEDS_PANEL.has(type) && !isMatrix(device)) {
     return t('validation.ledValues.labelIsATypeLayer', { label: label, type: type })
   }
   const modifierError = findModifierError(effect, label)

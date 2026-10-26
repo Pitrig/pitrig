@@ -11,6 +11,7 @@ import type {
 import {
   CONFIGURATION_DOCUMENTS,
   CONFIGURATION_DOCUMENT_IDS,
+  CONFIGURATION_SCHEMA_VERSION,
   type ConfigurationDocumentId
 } from '../../shared/configuration-schema'
 import { documentOf, mergeDocument } from '../../shared/configuration-documents'
@@ -185,6 +186,15 @@ function prepareConfiguration(
   configuration: DeviceConfiguration
   payloads: Record<ConfigurationDocumentId, string>
 }> {
+  if (session.info.schemaVersion !== CONFIGURATION_SCHEMA_VERSION) {
+    return failure({
+      code: 'configuration_rejected',
+      message: t('device.draftState.theBoardFirmwareReadsSchema', {
+        schema: session.info.schemaVersion,
+        expected: CONFIGURATION_SCHEMA_VERSION
+      })
+    })
+  }
   try {
     return success(prepareDeviceConfigurationJson(json, session.info.boardId))
   } catch (error) {

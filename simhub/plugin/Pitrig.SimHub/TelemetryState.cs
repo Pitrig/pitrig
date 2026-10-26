@@ -27,6 +27,8 @@ namespace Pitrig.SimHub
 
         public WheelAverages Averages { get; } = new WheelAverages();
 
+        public ShiftLights Shifts { get; } = new ShiftLights();
+
         public void Reset()
         {
             session = null;
@@ -43,6 +45,7 @@ namespace Pitrig.SimHub
             Status = data?.GameRunning == true ? data.NewData : null;
             Player = Status?.Opponents?.FirstOrDefault(opponent => opponent.IsPlayer);
             ReserveLaps = Math.Max(settings.FuelReserveLaps, 0);
+            Shifts.Update(manager, Status, data?.GameName);
             if (Status == null) return;
             if (NewSession())
             {

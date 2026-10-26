@@ -28,6 +28,44 @@ void order_by_activation(const std::span<std::uint8_t> order, const EffectState*
   }
 }
 
+[[nodiscard]] bool holds_within(const configuration::ConditionOperator op, const double value,
+                                const double threshold, const double margin) {
+  switch (op) {
+    case configuration::ConditionOperator::above:
+      return value > threshold - margin;
+    case configuration::ConditionOperator::at_or_above:
+      return value >= threshold - margin;
+    case configuration::ConditionOperator::below:
+      return value < threshold + margin;
+    case configuration::ConditionOperator::at_or_below:
+      return value <= threshold + margin;
+    default:
+      return conditions::condition_holds(op, value, threshold);
+  }
+}
+
+void paint_lamps(led::Output& output, const led::Matrix& matrix, const EffectBinding& binding,
+                 const configuration::LedEffect& effect, const LayerColors& colors,
+                 const std::optional<double> value, const std::uint64_t elapsed_us) {
+  const auto draw = [&](const Surface& surface) {
+    if (effect.type == configuration::LedEffectType::sprite) {
+      paint_strip_sprite(surface, binding.sprite, effect, value, colors.tint, elapsed_us);
+    } else {
+      paint(surface, effect, colors.ink, value, elapsed_us);
+    }
+  };
+  const Parts parts = parts_of(effect);
+  if (parts.empty()) {
+    draw(surface_of(output, matrix, binding.area, effect));
+  } else if (effect.layout == configuration::LedPartLayout::each) {
+    for (const configuration::LedPart& part : parts) {
+      draw(Surface{output, Parts{&part, 1}, effect.inverted, effect.mirrored});
+    }
+  } else {
+    draw(Surface{output, parts, effect.inverted, effect.mirrored});
+  }
+}
+
 }
 
 void RgbLeds::task_entry(void* const context) { static_cast<RgbLeds*>(context)->run(); }
@@ -85,6 +123,16 @@ bool RgbLeds::paint_output(const std::size_t output, const std::uint64_t now_us)
     const configuration::LedEffect& effect = device.effects[index];
     EffectState& state = states_[output * kMaximumEffects + index];
     const LayerColors colors = colors_of(effect, watched, state.colors, now_us);
+    if (binding.area.width == 0) {
+      continue;
+    }
+    if (colors.background.has_value()) {
+      if (effect.part_count == 0) {
+        fill_area(outputs_[output], geometry_[output], binding.area, *colors.background);
+      } else {
+        fill_parts(outputs_[output], parts_of(effect), *colors.background);
+      }
+    }
     const std::uint16_t blink_ms = colors.blink_ms != 0 ? colors.blink_ms : effect.blink_ms;
     const std::uint64_t blink_since = colors.blink_ms != 0 ? colors.since_us : state.started_us;
     if (blink_ms != 0) {
@@ -99,25 +147,19 @@ bool RgbLeds::paint_output(const std::size_t output, const std::uint64_t now_us)
     if (binding.value.valid()) {
       value = conditions::condition_value(read);
     }
-    if (binding.area.width == 0) {
-      continue;
-    }
-    if (colors.background.has_value()) {
-      fill_area(outputs_[output], geometry_[output], binding.area, *colors.background);
-    }
-    if (configuration::led_effect_draws_pixels(effect.type)) {
+    const std::uint64_t elapsed_us = now_us - state.started_us;
+    if (device.type == configuration::HardwareDeviceType::rgb_matrix &&
+        configuration::led_effect_draws_pixels(effect.type)) {
       const Panel panel = panel_of(outputs_[output], geometry_[output], binding.area);
       if (effect.type == configuration::LedEffectType::sprite) {
-        paint_sprite(panel, binding.sprite, effect, value, colors.tint, now_us - state.started_us);
+        paint_sprite(panel, binding.sprite, effect, value, colors.tint, elapsed_us);
       } else {
         std::array<char, configuration::kLedTextCapacity + 24> scratch{};
-        paint_text(panel, effect, effect_text(effect, read, scratch), colors.ink,
-                   now_us - state.started_us);
+        paint_text(panel, effect, effect_text(effect, read, scratch), colors.ink, elapsed_us);
       }
       continue;
     }
-    const Surface surface = surface_of(outputs_[output], geometry_[output], binding.area, effect);
-    paint(surface, effect, colors.ink, value, now_us - state.started_us);
+    paint_lamps(outputs_[output], geometry_[output], binding, effect, colors, value, elapsed_us);
   }
   if (outputs_[output].changed()) {
     quiet_frames_[output] = 0;
@@ -158,9 +200,10 @@ bool RgbLeds::gate_holds(const std::size_t output, const std::size_t index,
     case configuration::LedGate::conditions: {
       matched = false;
       if (watched.has_value()) {
+        const double margin = state.holding ? effect.hysteresis : 0.0;
         for (std::uint8_t rule = 0; rule < effect.condition_count; ++rule) {
-          if (conditions::condition_holds(effect.conditions[rule].op, *watched,
-                                          effect.conditions[rule].value)) {
+          if (holds_within(effect.conditions[rule].op, *watched, effect.conditions[rule].value,
+                           margin)) {
             matched = true;
             break;
           }

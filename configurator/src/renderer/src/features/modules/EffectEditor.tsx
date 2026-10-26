@@ -5,21 +5,19 @@ import {
   type HardwareDeviceConfiguration,
   type LedEffect
 } from '@shared/configuration-schema'
-import { LED_EFFECT_READS_VALUE, LED_EFFECT_USES_RANGE } from '@shared/led-render'
+import { LED_EFFECT_READS_VALUE, LED_EFFECT_USES_RANGE, lampsOf } from '@shared/led-render'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { fieldBounds } from '@shared/validate/ranges'
 import { SlidersHorizontal } from 'lucide-react'
 
 import { authored } from '@/features/configuration/inspector/authored'
 import { Group } from '@/features/configuration/inspector/Group'
-import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { TelemetryBindingField } from '@/features/configuration/inspector/TelemetryBindingField'
 import { RangeRow } from '@/features/configuration/inspector/section-editors'
 import {
   CheckboxField,
   ColorField,
   NumberField,
-  NumberInput,
   SelectField,
   TextField
 } from '@/features/configuration/inspector/fields'
@@ -34,10 +32,15 @@ import { applyEffectType } from './effect-type'
 import { layerName } from './layer-name'
 import { wholeValue } from './field-values'
 import { PanelAreaField } from './PanelArea'
+import { LampsField } from './LampsField'
+import { applyLayout, applyParts } from './lamp-parts'
 import { mutateEffects } from './modules-document'
 import { EffectColors } from './effect-colors'
 import { EffectGate } from './effect-gate'
 import { EffectPayload } from './effect-payload'
+import { layerWarnings } from './layer-warnings'
+
+const SPANNED: ReadonlySet<string> = new Set(['comet', 'theater', 'sparkle', 'bounce'])
 
 export function EffectEditor({
   output,
@@ -56,15 +59,18 @@ export function EffectEditor({
   const offered = LED_EFFECT_TYPE_VALUES.filter(
     (value) =>
       value === type ||
-      (value === 'sprite'
-        ? matrix && pictures.length > 0
-        : matrix || value !== 'text')
+      (value === 'sprite' ? pictures.length > 0 : matrix || value !== 'text')
   )
   const update = (mutation: (next: LedEffect) => void): void =>
     mutateEffects(output, (effects) => {
       const next = effects[index]
       if (next) mutation(next)
     })
+  const through = layerWarnings(device)[index]?.find((warning) => warning.kind === 'shows_through')
+  const showsThrough =
+    through?.kind === 'shows_through'
+      ? [...new Set(through.below.map((at) => layerName((device.effects ?? [])[at] ?? {}, at)))].join(', ')
+      : undefined
 
   return (
     <>
@@ -91,30 +97,13 @@ export function EffectEditor({
         {matrix ? (
           <PanelAreaField device={device} effect={effect} update={update} />
         ) : (
-        <PropertyRow label={t('modules.effectEditor.area')} hint={t('modules.hints.effect.area')}>
-          <div className="grid grid-cols-2 gap-1">
-            <NumberInput
-              title={t('modules.effectEditor.firstLampOfThisDevice')}
-              value={(effect.from ?? 0) + 1}
-              min={1}
-              onChange={(from) =>
-                update((next) => { next.from = wholeValue('LedEffect', 'from', from - 1) })
-              }
-            />
-            <NumberInput
-              title={t('modules.effectEditor.lampsCovered0CoversThe')}
-              value={effect.count ?? 0}
-              min={0}
-              onChange={(count) =>
-                update((next) => { next.count = wholeValue('LedEffect', 'count', count) })
-              }
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground">
-            <span>{t('modules.effectEditor.from')}</span>
-            <span>{t('modules.effectEditor.count')}</span>
-          </div>
-        </PropertyRow>
+          <LampsField
+            device={device}
+            parts={effect.parts}
+            layout={effect.layout}
+            onParts={(parts) => update((next) => applyParts(next, parts, lampsOf(device)))}
+            onLayout={(layout) => update((next) => applyLayout(next, layout))}
+          />
         )}
         {LED_EFFECT_READS_VALUE.has(type) ? (
           <TelemetryBindingField
@@ -161,6 +150,18 @@ export function EffectEditor({
                 else delete next.sprite
               })}
             />
+            {effect.source?.binding ? (
+              <CheckboxField
+                label={t('modules.effectEditor.framesFollowTheRange')}
+                hint={t('modules.hints.effect.scaled')}
+                checked={effect.sprite_scaled ?? false}
+                modified={authored(effect.sprite_scaled, false)}
+                onChange={(checked) => update((next) => {
+                  if (checked) next.sprite_scaled = true
+                  else delete next.sprite_scaled
+                })}
+              />
+            ) : null}
             <CheckboxField
               label={t('modules.effectEditor.playFrames')}
               hint={t('modules.hints.effect.loop')}
@@ -238,6 +239,17 @@ export function EffectEditor({
                 update((next) => { next.speed_ms = wholeValue('LedEffect', 'speed_ms', speed_ms) })
               }
             />
+            {SPANNED.has(effect.animation ?? 'rainbow') ? (
+              <NumberField
+                label={t('modules.effectEditor.span')}
+                hint={t('modules.hints.effect.span')}
+                value={effect.span ?? 3}
+                {...fieldBounds('LedEffect', 'span')}
+                onChange={(span) =>
+                  update((next) => { next.span = wholeValue('LedEffect', 'span', span) })
+                }
+              />
+            ) : null}
           </>
         ) : null}
         {LED_EFFECT_USES_DIRECTION.has(type) ? (
@@ -251,7 +263,7 @@ export function EffectEditor({
           />
         ) : null}
         <EffectPayload effect={effect} type={type} update={update} />
-        <EffectGate effect={effect} update={update} />
+        <EffectGate effect={effect} update={update} showsThrough={showsThrough} />
         <EffectColors effect={effect} update={update} />
       </Group>
     </>

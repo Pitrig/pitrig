@@ -17,6 +17,7 @@ import type {
 import { EffectEditor } from './EffectEditor'
 import { EffectList } from './EffectList'
 import { LedPreview } from './LedPreview'
+import { MultiEffectEditor } from './MultiEffectEditor'
 import { NoConfiguration } from './NoConfiguration'
 import { OutputEditor } from './OutputEditor'
 import { ProfilePicker } from './ProfilePicker'
@@ -33,6 +34,7 @@ import {
 } from './modules-document'
 import type { DeviceConfiguration } from '@shared/device'
 import { useModulesStore, type DeviceView } from './modules-store'
+import { useModulesShortcuts } from './use-modules-shortcuts'
 import { t } from '@shared/ui-text'
 
 const TABS: ReadonlyArray<{ id: ModulesView; label: string; icon: typeof Lightbulb }> = [
@@ -74,6 +76,7 @@ export function ModulesPage(): React.JSX.Element {
   const selected = useModulesStore((state) => state.output)
   const select = useModulesStore((state) => state.select)
   const effect = useModulesStore((state) => state.effect)
+  const picked = useModulesStore((state) => state.picked)
   const view = useWorkspaceStore((state) => state.modulesView)
   const setView = useWorkspaceStore((state) => state.setModulesView)
   const clearPreview = useModulesStore((state) => state.clearPreview)
@@ -90,9 +93,9 @@ export function ModulesPage(): React.JSX.Element {
   const active = mine.find(({ index }) => index === selected) ?? mine[0]
   const noun = view === 'matrix' ? 'matrix' : 'strip'
   const blocked = draft ? addBlocked(draft, all, noun) : undefined
-  const matrix = active?.device.type === 'rgb_matrix'
-  const tabs = DEVICE_TABS.filter((tab) => tab.id !== 'pictures' || matrix)
-  const page = deviceView === 'pictures' && !matrix ? 'wiring' : deviceView
+  const tabs = DEVICE_TABS
+  const page = deviceView
+  useModulesShortcuts(active?.index ?? -1, page === 'layers' && active !== undefined)
 
   return (
     <PageShell
@@ -217,7 +220,9 @@ export function ModulesPage(): React.JSX.Element {
                   <EffectList output={active.index} device={active.device}>
                     <ProfilePicker output={active.index} device={active.device} />
                   </EffectList>
-                  {effect >= 0 && (active.device.effects ?? [])[effect] ? (
+                  {picked.length > 1 ? (
+                    <MultiEffectEditor output={active.index} device={active.device} indices={picked} />
+                  ) : effect >= 0 && (active.device.effects ?? [])[effect] ? (
                     <EffectEditor output={active.index} device={active.device} index={effect} />
                   ) : (
                     <p className="text-[11px] text-muted-foreground">
@@ -245,8 +250,10 @@ function PicturesSection({
 
   return (
     <PageSection
-      title={t('modules.modulesPage.pictures')}
-      description={t('modules.modulesPage.artworkThisPanelDrawsDrawn')}
+      title={device.type === 'rgb_strip' ? t('modules.modulesPage.animations') : t('modules.modulesPage.pictures')}
+      description={device.type === 'rgb_strip'
+        ? t('modules.modulesPage.animationsThisStripPlays')
+        : t('modules.modulesPage.artworkThisPanelDrawsDrawn')}
     >
       <SpriteList output={output} device={device} />
       {sprite ? (

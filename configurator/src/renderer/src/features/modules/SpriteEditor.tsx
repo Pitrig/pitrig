@@ -11,6 +11,7 @@ import {
 import {
   SPRITE_DIGIT_BUDGET,
   TRANSPARENT_INK,
+  clampRow,
   clampSide,
   spriteDigits,
   spriteGeometry
@@ -24,6 +25,7 @@ import { playingSprite, useModulesStore } from './modules-store'
 import { SpriteCanvas } from './SpriteCanvas'
 import { SpriteFrames } from './SpriteFrames'
 import { SpritePalette } from './SpritePalette'
+import { StripTimeline } from './StripTimeline'
 import {
   fillFrame,
   renameSprite,
@@ -73,6 +75,7 @@ export function SpriteEditor({
   if (!sprite) return null
   const { width, height } = spriteGeometry(sprite)
   const panel = drawnOf(device)
+  const strip = device.type === 'rgb_strip'
   const fitted = width === panel.width && height === panel.height
   const mirrored = preview.some(playingSprite(output, sprite.id ?? ''))
   const layers = device.effects ?? []
@@ -107,30 +110,39 @@ export function SpriteEditor({
         capacity={IMAGE_ID_CAPACITY}
         onCommit={(name) => renameSprite(output, device, at, name)}
       />
-      <PropertyRow label={t('modules.outputEditor.size')} hint={t('modules.hints.sprite.size')}>
+      <PropertyRow
+        label={strip ? t('modules.outputEditor.lamps') : t('modules.outputEditor.size')}
+        hint={strip ? t('modules.hints.sprite.stripSize') : t('modules.hints.sprite.size')}
+      >
         <div className="flex items-center gap-1">
           <NumberInput
-            title={t('modules.outputEditor.columns')}
+            title={strip ? t('modules.outputEditor.lamps') : t('modules.outputEditor.columns')}
             value={width}
             min={1}
-            max={MAXIMUM_MATRIX_SIDE}
-            onChange={(value) => resizeSprite(output, at, clampSide(value), height)}
+            max={strip ? SPRITE_DIGIT_BUDGET : MAXIMUM_MATRIX_SIDE}
+            onChange={(value) =>
+              resizeSprite(output, at, strip ? clampRow(value) : clampSide(value), height)
+            }
           />
-          <NumberInput
-            title={t('modules.outputEditor.rows')}
-            value={height}
-            min={1}
-            max={MAXIMUM_MATRIX_SIDE}
-            onChange={(value) => resizeSprite(output, at, width, clampSide(value))}
-          />
+          {strip ? null : (
+            <NumberInput
+              title={t('modules.outputEditor.rows')}
+              value={height}
+              min={1}
+              max={MAXIMUM_MATRIX_SIDE}
+              onChange={(value) => resizeSprite(output, at, width, clampSide(value))}
+            />
+          )}
           <button
             type="button"
             disabled={fitted}
-            title={t('modules.spriteEditor.matchesThePanelWidthBy', { width: panel.width, height: panel.height })}
+            title={strip
+              ? t('modules.spriteEditor.matchesTheStripLamps', { lamps: panel.width })
+              : t('modules.spriteEditor.matchesThePanelWidthBy', { width: panel.width, height: panel.height })}
             className="flex-none rounded border px-1.5 py-1 text-[10px] hover:bg-white/5 disabled:opacity-30"
             onClick={() => resizeSprite(output, at, panel.width, panel.height)}
           >
-            {t('modules.spriteEditor.fitPanel')}</button>
+            {strip ? t('modules.spriteEditor.fitStrip') : t('modules.spriteEditor.fitPanel')}</button>
         </div>
       </PropertyRow>
       <SpritePalette output={output} at={at} sprite={sprite} ink={ink} onPick={selectInk} />
@@ -151,14 +163,16 @@ export function SpriteEditor({
         >
           <Eraser className="size-3" /> {t('modules.spriteEditor.clearFrame')}
         </button>
-        <label className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px]">
-          <input
-            type="checkbox"
-            className="size-3"
-            checked={onion}
-            onChange={(event) => setOnion(event.target.checked)}
-          />
-          {t('modules.spriteEditor.ghostPreviousFrame')}</label>
+        {strip ? null : (
+          <label className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px]">
+            <input
+              type="checkbox"
+              className="size-3"
+              checked={onion}
+              onChange={(event) => setOnion(event.target.checked)}
+            />
+            {t('modules.spriteEditor.ghostPreviousFrame')}</label>
+        )}
         <label className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px]">
           {t('modules.effectEditor.frameHolds')}<Select
             className="h-5 border-0 px-1 text-[10px]"
@@ -192,17 +206,33 @@ export function SpriteEditor({
           }`}
           onClick={() => toggleSpritePreview(output, sprite.id, speed)}
         >
-          <Monitor className="size-3" /> {mirrored ? t('modules.spriteEditor.showingOnPanel') : t('modules.spriteEditor.showOnPanel')}
+          <Monitor className="size-3" /> {mirrored
+            ? (strip ? t('modules.spriteEditor.showingOnStrip') : t('modules.spriteEditor.showingOnPanel'))
+            : (strip ? t('modules.spriteEditor.showOnStrip') : t('modules.spriteEditor.showOnPanel'))}
         </button>
       </div>
-      <SpriteCanvas
-        output={output}
-        at={at}
-        sprite={sprite}
-        frame={shown}
-        ink={ink}
-        onion={onion}
-      />
+      {strip ? (
+        <StripTimeline
+          output={output}
+          at={at}
+          sprite={sprite}
+          frame={shown}
+          ink={ink}
+          onSelect={(next) => {
+            setPlaying(false)
+            selectFrame(next)
+          }}
+        />
+      ) : (
+        <SpriteCanvas
+          output={output}
+          at={at}
+          sprite={sprite}
+          frame={shown}
+          ink={ink}
+          onion={onion}
+        />
+      )}
       <SpriteFrames
         output={output}
         at={at}

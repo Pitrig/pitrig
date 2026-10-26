@@ -19,7 +19,8 @@
     "package": "pnpm run build && electron-builder --config electron-builder.yml",
     "package:debug": "pnpm run build:debug && electron-builder --config electron-builder.debug.yml",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.debug.json --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postinstall": "install-electron"
   },
   "dependencies": {
     "serialport": "^13.0.0"
@@ -33,7 +34,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "electron": "^44.0.0",
+    "electron": "^44.9.3",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "eslint": "^10.8.0",
@@ -47,7 +48,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.65.0",
-    "vite": "^7.3.6",
+    "vite": "^7.3.7",
     "zustand": "^5.0.14"
   }
 }

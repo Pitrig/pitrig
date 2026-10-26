@@ -180,13 +180,19 @@ export function clampSide(side: number): number {
   return Math.max(1, Math.min(MAXIMUM_MATRIX_SIDE, Math.round(side)))
 }
 
+export function clampRow(lamps: number): number {
+  return Math.max(1, Math.min(SPRITE_DIGIT_BUDGET, Math.round(lamps)))
+}
+
 export function emptySprite(
   id: string,
   width: number,
   height: number,
   palette: readonly RgbColor[]
 ): LedSpriteConfiguration {
-  const side = { width: clampSide(width), height: clampSide(height) }
+  const side = height === 1
+    ? { width: clampRow(width), height: 1 }
+    : { width: clampSide(width), height: clampSide(height) }
   return {
     id,
     ...side,

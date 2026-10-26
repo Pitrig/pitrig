@@ -188,7 +188,7 @@ export interface DeviceHealth {
 export interface DeviceInfo {
   boardId: PitrigBoardId
   firmwareVersion: string
-  schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION
+  schemaVersion: number
   display?: DisplayDescriptor
   documents: Record<ConfigurationDocumentId, ConfigurationDocumentState>
   storageAvailable: boolean

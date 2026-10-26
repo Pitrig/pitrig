@@ -15,6 +15,8 @@ INSTALLERS = [
     ("Linux, Debian and Ubuntu", re.compile(r"\.deb$")),
 ]
 
+PLUGIN = "Pitrig.SimHub.dll"
+
 BOARDS = [
     ("t-display-s3", "LilyGO T-Display-S3"),
     ("guition-4848s040", "Guition ESP32-4848S040"),
@@ -41,6 +43,16 @@ def installer_rows(names: list[str], repo: str, tag: str) -> list[str]:
         cells = "<br>".join(link(repo, tag, name) for name in found)
         rows.append(f"| {platform} | {cells} |")
     return rows
+
+
+def plugin_paragraph(names: list[str], repo: str, tag: str) -> str:
+    if PLUGIN not in names:
+        fail(f"{PLUGIN} is missing from the release files")
+    return (
+        "The Windows installer adds the SimHub plugin to SimHub: restart SimHub and enable "
+        "Pitrig telemetry when it asks. To add it by hand, close SimHub, copy "
+        f"{link(repo, tag, PLUGIN)} next to `SimHubWPF.exe` and unblock it in its file properties."
+    )
 
 
 def board_rows(names: list[str], repo: str, tag: str) -> list[str]:
@@ -77,6 +89,8 @@ def render(args: argparse.Namespace) -> str:
         "Nothing here is signed. On macOS run `xattr -dr com.apple.quarantine "
         "/Applications/Pitrig.app` once after installing. On Windows, SmartScreen warns about "
         "the installer: choose More info, then Run anyway.",
+        "",
+        plugin_paragraph(names, args.repo, args.tag),
         "",
         f"## Firmware {args.firmware}",
         "",

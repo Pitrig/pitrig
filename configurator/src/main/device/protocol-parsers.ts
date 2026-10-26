@@ -1,6 +1,5 @@
 import {
   BOARD_PROFILES,
-  CONFIGURATION_SCHEMA_VERSION,
   PITRIG_BOARD_IDS,
   type ConfigurationDocumentOutcome,
   type ConfigurationDocumentState,
@@ -104,7 +103,8 @@ export function parseDeviceInfo(line: string): DeviceInfo {
       t('firmware.firmwarePackage.unsupportedPitrigBoardBoard', { board: board ?? 'unknown' })
     )
   }
-  if (fields.get('schema') !== String(CONFIGURATION_SCHEMA_VERSION)) {
+  const schemaVersion = Number(fields.get('schema'))
+  if (!Number.isInteger(schemaVersion) || schemaVersion <= 0) {
     throw new DeviceServiceError(
       'not_pitrig',
       t('device.protocolParsers.unsupportedConfigurationSchemaSchema', {
@@ -124,7 +124,7 @@ export function parseDeviceInfo(line: string): DeviceInfo {
   return {
     boardId: board,
     firmwareVersion,
-    schemaVersion: CONFIGURATION_SCHEMA_VERSION,
+    schemaVersion,
     display: BOARD_PROFILES[board].display,
     documents,
     storageAvailable: fields.get('storage') === '1',

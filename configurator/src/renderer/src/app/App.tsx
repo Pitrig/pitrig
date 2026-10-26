@@ -16,6 +16,7 @@ import { useDraftState } from '@/features/device/draft-state'
 import { InfoPage } from '@/features/device/InfoPage'
 import { reportLiveApply } from '@/features/device/live-apply-store'
 import { SafeModeBanner } from '@/features/device/SafeModeBanner'
+import { SchemaBanner } from '@/features/device/SchemaBanner'
 import { UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
 import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import { useLiveApply } from '@/features/device/use-live-apply'
@@ -30,7 +31,7 @@ import { ModulesPage } from '@/features/modules/ModulesPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
 import { subscribeToTelemetryBridge } from '@/features/telemetry/bridge-store'
 import { startLiveTelemetry } from '@/features/telemetry/live-telemetry'
-import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
+import { useTelemetryInterest } from '@/features/telemetry/telemetry-interest'
 import { t } from '@shared/ui-text'
 
 export function App(): React.JSX.Element {
@@ -52,8 +53,9 @@ export function App(): React.JSX.Element {
     () => window.pitrig.onImageUploadProgress(useImageUploadStore.getState().setProgress),
     []
   )
-  useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? subscribeToTelemetryBridge() : undefined), [])
-  useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? startLiveTelemetry() : undefined), [])
+  useEffect(() => subscribeToTelemetryBridge(), [])
+  useEffect(() => startLiveTelemetry(), [])
+  useTelemetryInterest()
   useBoardSync(dirtyDocuments)
 
   const mirroring = liveApplyAllowed && !saving && syncQuestion === undefined
@@ -81,6 +83,7 @@ export function App(): React.JSX.Element {
       </header>
 
       <SafeModeBanner />
+      <SchemaBanner />
 
       <main className="flex min-h-0 overflow-hidden">
         <WorkspaceRail />

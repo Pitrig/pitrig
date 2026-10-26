@@ -40,10 +40,12 @@ screen. Drag widgets, bind them to telemetry, preview the result, and save to th
 board. macOS does not yet get signed packages, so run
 `xattr -dr com.apple.quarantine` on the app once after installing.
 
-**3. Connect SimHub.** Export a profile from the configurator's SimHub panel,
-import it in SimHub under Custom Serial Devices, select the Pitrig port and
-start the game. Close the configurator first — one serial port admits one
-process.
+**3. Connect SimHub.** On Windows the configurator's installer adds the Pitrig
+plugin to SimHub: restart SimHub, enable Pitrig telemetry when it asks, and
+start the game. The plugin finds the board and feeds it; the configurator can
+stay open, because it takes the board over while connected and passes the
+telemetry on. Without the plugin, export a profile from the configurator's
+SimHub panel and import it under Custom Serial Devices instead.
 
 ## Supported boards
 
@@ -56,14 +58,15 @@ process.
 
 The DevKitC-1 has no display and carries no dashboard; it is for LED strips,
 matrices and bring-up work. The 4848S040 talks at 460800 baud because its CH340
-bridge does not hold 921600 — the exported SimHub profile already accounts for
-this.
+bridge does not hold 921600 — the exported SimHub profile accounts for this, and
+the plugin learns the board and its rate the first time the configurator
+connects to it.
 
 ## What it can show
 
 - **Widgets** — text, arcs, bars, indicator strips, graphs, images and shaped
   containers, composed freely on the screen.
-- **251 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
+- **252 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
   flags, session state and the rest of the catalogue.
 - **Conditional styling** — colour ramps, gradients, visibility and blink driven
   by the values themselves, so a readout goes red on its own.
@@ -140,7 +143,7 @@ may implement a compatible client, tool or firmware without adopting a copyleft 
 | --- | --- |
 | [configuration/](configuration) | The configuration schema every document is validated against |
 | [telemetry/](telemetry) | The telemetry catalogue and the SimHub property mappings |
-| [simhub/](simhub) | The generated SimHub Custom Serial profile |
+| [simhub/](simhub) | The SimHub plugin and the generated Custom Serial profile |
 | [docs/](docs) | The control protocol, the schema reference and the architecture records |
 
 Pitrig is a name, not just code: the licences above cover the source, not the brand. What may be

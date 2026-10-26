@@ -29,6 +29,9 @@ UNAVAILABLE_OPERATORS = {
 UNSIGNED_UNAVAILABLE = {"op": "below", "value": 0}
 
 
+MAXIMUM_TIMESPAN_MS = 4294967295
+
+
 PARAMETER_PATTERN = re.compile(r"\{\{([a-z][a-z0-9_]*)\}\}")
 
 
