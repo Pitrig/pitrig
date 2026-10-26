@@ -3,11 +3,17 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'electron-vite'
 import { resolve } from 'node:path'
 
-import { developmentCspPlugin, rendererAlias, sharedAlias } from './electron.vite.shared'
+import {
+  developmentCspPlugin,
+  releaseDefine,
+  rendererAlias,
+  sharedAlias
+} from './electron.vite.shared'
 
 export default defineConfig(({ command }) => ({
   main: {
     resolve: { alias: sharedAlias },
+    define: releaseDefine,
     build: {
       lib: {
         entry: resolve('src/main/index.ts')

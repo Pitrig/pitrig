@@ -20,6 +20,7 @@ namespace Pitrig.SimHub
         private readonly FieldValues values;
         private readonly ConfiguratorLink link;
         private readonly Stopwatch clock;
+        private readonly InputState inputs;
         private readonly AutoResetEvent nudge = new AutoResetEvent(false);
         private readonly object gate = new object();
         private readonly List<BoardSession> sessions = new List<BoardSession>();
@@ -38,11 +39,12 @@ namespace Pitrig.SimHub
         private double startAt;
         private double nextScan;
 
-        public BoardManager(FieldValues values, ConfiguratorLink link, Stopwatch clock)
+        public BoardManager(FieldValues values, ConfiguratorLink link, Stopwatch clock, InputState inputs)
         {
             this.values = values;
             this.link = link;
             this.clock = clock;
+            this.inputs = inputs;
         }
 
         public void Start(Func<List<KnownPort>> known, Action<KnownPort> learn)
@@ -137,6 +139,7 @@ namespace Pitrig.SimHub
             var now = clock.Elapsed.TotalMilliseconds;
             var desired = link.Desired();
             Release(desired.Holds);
+            if (desired.Wiring != null) foreach (var port in desired.Holds) inputs.Map(port, desired.Wiring);
             foreach (var release in link.TakeReleases()) Learn(release);
             Reap(now);
             if (now >= nextScan)
@@ -221,6 +224,7 @@ namespace Pitrig.SimHub
             var names = BoardPorts.Present();
             foreach (var gone in present.Where(name => !names.Contains(name)).ToList())
             {
+                inputs.Forget(gone);
                 silent.Remove(gone);
                 lock (gate) busy.Remove(gone);
             }
@@ -249,7 +253,7 @@ namespace Pitrig.SimHub
                 lastFields.TryGetValue(name, out var previous);
                 lock (gate) busy.Remove(name);
                 PluginTrace.Event(name, $"opening at {baudRate} baud, {kind}");
-                var session = new BoardSession(name, baudRate, fields, previous, values);
+                var session = new BoardSession(name, baudRate, fields, previous, values, inputs);
                 lock (gate) sessions.Add(session);
                 session.Start();
             }

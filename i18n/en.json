@@ -112,7 +112,7 @@
     },
     "schemaBanner": {
       "updateTheBoardFirmware": "Update the board's firmware",
-      "explanation": "Its firmware reads configuration schema {schema} and this configurator writes schema {expected}, so its configuration can be read and edited here but not saved to it. Install the firmware from the Firmware page; the board then shows its built-in dashboard until Save to board writes the draft back."
+      "explanation": "Its firmware reads configuration schema {schema} and this configurator writes schema {expected}, so its configuration can be read here but not saved to it. Update board on the Firmware page installs the new firmware and puts the board's configuration back."
     },
     "safeModeBanner": {
       "boardIsInSafeMode": "Board is in safe mode",
@@ -210,7 +210,8 @@
         "unknown_property": "The configuration contains a property this firmware version does not know.",
         "duplicate_property": "The same property appears twice within one object.",
         "out_of_range": "A value in the configuration is outside the range, longer than the text, or holds more entries than the property can hold.",
-        "unknown_value": "A value in the configuration names none of the options the property accepts."
+        "unknown_value": "A value in the configuration names none of the options the property accepts.",
+        "invalid_control": "A button action, the switch, a control rule or the home screen names a screen, slot or page the dashboard does not have, or carries a target its action does not use."
       },
       "request": {
         "storage": "The device could not write to its configuration storage.",
@@ -568,7 +569,9 @@
         "pages": "A tap on the board cycles the pages that are in the loop. Page order is priority: when two are triggered at once the device shows the earlier one.",
         "loop": "Whether a tap on the slot can reach this page. A page out of the loop is only ever raised by its trigger.",
         "trigger": "What raises this page over the loop on its own. Without one the page is reached only by tapping the slot.",
-        "duration": "How long the page stays up. A value-changed trigger needs one; with rules, zero shows the page only while a rule holds."
+        "duration": "How long the page stays up. A value-changed trigger needs one; with rules, zero shows the page only while a rule holds.",
+        "homeAfter": "How long without a tap or a button working on this slot before it goes back to its first page in the loop. 0 never does.",
+        "dismiss": "How long this page stays away once a button dismisses it: until its trigger fires anew (next_event), for a set time (timed), or until the session starts again (session)."
       },
       "dashboard": {
         "transition": "How the board swaps one screen for another, whether a swipe or a tap asked for it. slide is the sliding animation; none replaces the screen in a single frame. The slide draws both screens for every one of its frames, so a screen full of widgets is where it is felt — set this to none if swiping stutters.",
@@ -832,6 +835,11 @@
     "valueColorList": {
       "positionColour": "{position} colour",
       "removeNounPosition": "Remove {noun} {position}"
+    },
+    "slotControls": {
+      "firstPageAfter": "First page after",
+      "dismissedUntil": "Dismissed until",
+      "dismissedFor": "Dismissed for"
     }
   },
   "modules": {
@@ -998,7 +1006,8 @@
       "noMatrices": "No matrices",
       "noStrips": "No strips",
       "pinNumber": "pin {pin}",
-      "removeDeviceNumber": "Remove device {number}"
+      "removeDeviceNumber": "Remove device {number}",
+      "buttons": "Buttons"
     },
     "noConfiguration": {
       "peripheralsLiveInTheSame": "Peripherals live in the same draft the dashboard uses, so this needs no board plugged in.",
@@ -1359,7 +1368,6 @@
     "reset": "Reset",
     "open": "Open",
     "delete": "Delete",
-    "install": "Install",
     "none": "None",
     "listAndMore": "{shown} and {rest} more",
     "add": "Add",
@@ -1377,7 +1385,6 @@
       "running": "Running",
       "installsInto": "Installs into",
       "thisImageHasNotBeen": "This image has not been confirmed yet. A restart now returns the board to the previous firmware.",
-      "restartTheBoardToRun": "Restart the board to run the firmware already installed.",
       "image": "Image",
       "aPackagedPitrigFirmwareImage": "A packaged Pitrig firmware image, named for the board it was built for.",
       "noImageSelected": "No image selected.",
@@ -1387,9 +1394,39 @@
       "noSecondSlot": "No second slot",
       "sizeBytes": "{size} bytes",
       "percent": " ({percent}%)",
-      "installing": "Installing…",
       "theConnectedFirmwarePredatesThe": "The connected firmware predates the two-slot partition layout, so it cannot replace itself over serial. Flash it once over USB with idf.py, and every update after that can come this way.",
-      "connectABoardWithTwo": "Connect a board with two firmware slots."
+      "connectABoardWithTwo": "Connect a board with two firmware slots.",
+      "anImageIsWaiting": "An image is installed and waits for a restart. Restarting into it keeps the board's configuration the same way an update does.",
+      "updateBoard": "Update board",
+      "updating": "Updating…",
+      "restartIntoTheInstalledImage": "Restart into the installed image",
+      "updateKeepsTheConfiguration": "The update keeps a copy of the board's configuration in the library, installs the image, restarts the board and puts the configuration back. A draft you have not saved stays a draft."
+    },
+    "boardUpdate": {
+      "alreadyRunning": "A board update is already running.",
+      "readingTheBoard": "Reading what the board holds…",
+      "keepingACopy": "Keeping a copy of the board's configuration in the library…",
+      "backupName": "Before update · {date} · firmware {version}",
+      "backupFailed": "The board was not touched: its configuration could not be copied to the library. {reason}",
+      "restarting": "Restarting the board…",
+      "didNotComeBack": "The board did not come back after restarting. Reconnect it, then open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "rolledBack": "The new firmware did not start, so the board went back to {version}. Its configuration is untouched.",
+      "puttingBack": "Putting back the {documents} configuration…",
+      "checking": "Checking what the board holds…",
+      "cancelled": "Update cancelled. The board was not changed.",
+      "updatedNothingStored": "The board runs {version}. It held no saved configuration, so there was nothing to put back.",
+      "updatedAndRestored": "The board runs {version} with its configuration put back. A copy stays in the library as “{backup}”.",
+      "updatedUnchanged": "The board runs {version} and kept its configuration. A copy stays in the library as “{backup}”.",
+      "restoreFailed": "The board runs {version}, but its configuration could not be put back: {reason} Open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "notVerified": "The board runs {version}, but what it holds differs from the copy. Open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "restoredNotShown": "The board runs {version} and holds its configuration again, but shows it only after the next restart. A copy stays in the library as “{backup}”.",
+      "step": {
+        "backup": "Copy",
+        "install": "Install",
+        "restart": "Restart",
+        "restore": "Restore",
+        "verify": "Check"
+      }
     },
     "firmwareUpdateService": {
       "readingName": "Reading {name}",
@@ -1420,6 +1457,75 @@
       "filter": "Pitrig firmware"
     }
   },
+  "updates": {
+    "releaseFeed": {
+      "downloadFailed": "Could not download {name}: GitHub answered {status}.",
+      "downloadDamaged": "{name} arrived damaged. Try again.",
+      "githubAnswered": "GitHub answered {status} to the update check."
+    },
+    "banner": {
+      "appReady": "Pitrig {version} has been downloaded and installs when the configurator restarts.",
+      "restartAndUpdate": "Restart and update",
+      "appAvailable": "Pitrig {version} is available.",
+      "download": "Download",
+      "firmwareAvailable": "Firmware {version} is available for this board, which runs {running}.",
+      "openFirmware": "Open Firmware page",
+      "pluginStale": "The Pitrig plugin in SimHub is {installed}; this version of Pitrig brings {bundled}.",
+      "pluginMissing": "SimHub does not have the Pitrig plugin yet.",
+      "updatePlugin": "Update plugin",
+      "addPlugin": "Add plugin",
+      "simhubOld": "SimHub {version} is older than {minimum}, the oldest version the Pitrig plugin has been checked with.",
+      "getSimHub": "Get SimHub",
+      "later": "Later"
+    },
+    "section": {
+      "title": "Updates",
+      "description": "Checked when the configurator starts and once a day against the published Pitrig releases on GitHub.",
+      "disabled": "This is a development build, so it does not check for updates.",
+      "checking": "Checking…",
+      "checkNow": "Check now",
+      "configurator": "Configurator",
+      "boardFirmware": "Board firmware",
+      "simhub": "SimHub",
+      "plugin": "Pitrig plugin in SimHub",
+      "lastChecked": "Last checked {time}."
+    },
+    "app": {
+      "notChecked": "{current}, not checked yet",
+      "checking": "{current}, checking…",
+      "current": "{current}, up to date",
+      "available": "{current}; {latest} is available",
+      "downloading": "{current}; downloading {latest} ({progress}%)",
+      "ready": "{current}; {latest} installs on restart",
+      "failed": "{current}; the check failed: {error}",
+      "noWindowsUpdate": "the newest release carries no Windows update yet"
+    },
+    "firmware": {
+      "notInRelease": "The Pitrig {version} release has no {name}.",
+      "nothingNewer": "This board already runs the firmware that comes with this version of Pitrig.",
+      "alreadyDownloading": "The firmware is already downloading.",
+      "released": "This version of Pitrig brings firmware {version}",
+      "behind": "The board runs {running}; {version} is available",
+      "current": "The board runs {running}, up to date",
+      "downloading": "Downloading the firmware… {progress}%",
+      "offer": "Firmware {version} for this board comes with this version of Pitrig.",
+      "downloadAndUpdate": "Download and update"
+    },
+    "simhub": {
+      "noSimHubFound": "SimHub was not found on this PC.",
+      "stillRunning": "SimHub is still running. Close it, including its icon in the system tray, and try again.",
+      "copyFailed": "The plugin could not be copied into {directory}. Close SimHub and copy Pitrig.SimHub.dll there by hand.",
+      "copyFailedPlain": "The plugin could not be added to SimHub.",
+      "invalidRequest": "Invalid plugin request.",
+      "closeToReplace": "SimHub is running. Close it now so the Pitrig plugin can be replaced? SimHub starts again afterwards.",
+      "pluginInstalled": "The Pitrig plugin in SimHub is up to date.",
+      "unknownVersion": "Version unknown",
+      "versionTooOld": "{version}, older than {minimum}",
+      "pluginMissing": "Not installed",
+      "pluginStale": "{installed}; {bundled} is ready to install",
+      "noBundledPlugin": "This build of the configurator carries no SimHub plugin."
+    }
+  },
   "protocol": {
     "catalogSection": {
       "telemetryCatalog": "Telemetry catalog",
@@ -1434,7 +1540,9 @@
       "simHubProperty": "SimHub property",
       "lengthOfLength2FieldsA": "{length} of {length2} fields. A widget binds one of these names; the wire id is what actually travels.",
       "value": "Value",
-      "live": "Live"
+      "live": "Live",
+      "games": "Games",
+      "anyGame": "any"
     },
     "protocolPage": {
       "whereTelemetryComesFromHow": "Where telemetry comes from, how it reaches the board, and what the fields are called.",
@@ -2256,7 +2364,8 @@
       "sourceOfLabelHasAModifiers": "Source {number} of {label} has a \"modifiers\" that is not an array.",
       "sourceOfLabelHasLengthModifiers": "Source {number} of {label} has {length} modifiers; the device holds {maximum}.",
       "sourceOfLabelUsesTheLap": "Source {number} of {label} uses the lap timer {lapTimers} times; once is all it means.",
-      "sourceOfLabelUsesTheLap2": "Source {number} of {label} uses the lap timer on \"{binding}\"; it stands in for \"{lapTimer}\"."
+      "sourceOfLabelUsesTheLap2": "Source {number} of {label} uses the lap timer on \"{binding}\"; it stands in for \"{lapTimer}\".",
+      "whereDismissesForATime": "{where} needs dismiss_ms with a timed dismissal, and no dismiss_ms otherwise."
     },
     "widgetValues": {
       "labelSetsAMiddleGradient": "{label} sets a middle gradient colour without an end colour; turn the gradient on first.",
@@ -2289,12 +2398,27 @@
       "theConfigurationCouldNotBe": "The configuration could not be read{detail}.",
       "configurationMustBeAJson": "Configuration must be a JSON object.",
       "configurationMustTargetASupported": "Configuration must target a supported board."
+    },
+    "controls": {
+      "thePcButtons": "The PC buttons",
+      "theDashboardSControls": "The dashboard's controls",
+      "actionNumber": "Action {number}",
+      "screenRuleNumber": "Screen rule {number}",
+      "ownerShowsAScreenThe": "{owner} shows screen \"{screen}\", which the dashboard does not have.",
+      "ownerNamesAScreenIt": "{owner} ({action}) names a screen it does not use.",
+      "ownerNamesASlotIt": "{owner} ({action}) names a slot it does not use.",
+      "ownerWorksOnASlot": "{owner} works on slot \"{slot}\", which the dashboard does not have.",
+      "ownerShowsPageOfA": "{owner} shows page {page}, but slot \"{slot}\" has {pages} pages.",
+      "ownerWatchesALapTimer": "{owner} watches a lap timer, which a screen rule cannot.",
+      "ownerHasNoComparison": "{owner} has no comparison to watch.",
+      "theSwitchTurnsSlotSlot": "The switch turns slot \"{slot}\", which the dashboard does not have.",
+      "theHomeScreenScreenIs": "The home screen \"{screen}\" is not on the dashboard."
     }
   },
   "misc": {
     "workspaceRail": {
       "drawTheDashboardAndThe": "Draw the dashboard, and the fonts, images and templates it is made of",
-      "buttonsEncodersAndLeds": "LED strips and matrices",
+      "buttonsEncodersAndLeds": "Buttons, LED strips and matrices",
       "telemetryLinkAndSimhub": "Telemetry link and SimHub",
       "filesSavedConfigurationsAndJson": "Files, saved configurations and JSON",
       "installAFirmwareImageOver": "Install a firmware image over serial",
@@ -2314,6 +2438,116 @@
     "chooseFile": {
       "fontTitle": "Select a font face",
       "fontFilter": "Fonts"
+    }
+  },
+  "controls": {
+    "document": {
+      "buttonNumber": "Button {number}"
+    },
+    "actions": {
+      "next_screen": "Next screen",
+      "previous_screen": "Previous screen",
+      "show_screen": "Show screen",
+      "hold_screen": "Screen while held",
+      "home_screen": "Home screen",
+      "next_page": "Next page",
+      "previous_page": "Previous page",
+      "show_page": "Show page",
+      "hold_page": "Page while held",
+      "dismiss_page": "Dismiss a raised page",
+      "display_brighter": "Display brighter",
+      "display_dimmer": "Display dimmer",
+      "leds_brighter": "LEDs brighter",
+      "leds_dimmer": "LEDs dimmer",
+      "leds_toggle": "LEDs on or off"
+    },
+    "inputParts": {
+      "assign": "Assign",
+      "pressAButton": "Press a button…",
+      "removeInput": "Remove {input}"
+    },
+    "inputButtonList": {
+      "noButtonsYet": "No buttons yet. Add one, then press the button on your wheel or button box.",
+      "addButton": "Add button",
+      "allButtonsUsed": "All {count} buttons are in use.",
+      "clearButtonNumber": "Clear button {number}",
+      "startSimhubToAssign": "Start SimHub with the Pitrig plugin to assign buttons.",
+      "fourInputsAtMost": "A button takes {count} inputs at most.",
+      "pressAssignThenTheButton": "Press Assign, then the button on your wheel, button box, gamepad or keyboard."
+    },
+    "switchSection": {
+      "addPosition": "Add position",
+      "removePositionNumber": "Remove position {number}",
+      "turnTheSwitchToThe": "Press Add position, then turn the switch to the next position.",
+      "noPositionsYet": "No positions yet. Press Add position and turn the switch, one position at a time.",
+      "turnsThePagesOf": "Turns the pages of",
+      "noSlot": "No slot",
+      "morePositionsThanPages": "The switch has {positions} positions but the slot only {pages} pages; the extra positions do nothing."
+    },
+    "bindingList": {
+      "noActionsYet": "No actions yet. A button does nothing on the board until it has one.",
+      "addAction": "Add action",
+      "button": "Button",
+      "action": "Action",
+      "screen": "Screen",
+      "slot": "Slot",
+      "page": "Page",
+      "pageNumber": "Page {number}",
+      "wrap": "Wrap around",
+      "repeatWhileHeld": "Repeat while held",
+      "removeActionNumber": "Remove action {number}"
+    },
+    "ruleList": {
+      "noRulesYet": "No rules. A rule brings a screen forward while a value holds, such as the pit screen in the pit lane.",
+      "addRule": "Add rule",
+      "show": "Show",
+      "while": "while",
+      "screen": "Screen",
+      "value": "Value",
+      "watch": "Watch",
+      "removeRuleNumber": "Remove rule {number}",
+      "moreConditions": {
+        "$plural": {
+          "one": "and {count} more condition, kept as written",
+          "other": "and {count} more conditions, kept as written"
+        }
+      }
+    },
+    "homeSection": {
+      "homeScreen": "Home screen",
+      "theFirstScreen": "The first screen",
+      "returnAfter": "Return home after",
+      "seconds": "s"
+    },
+    "buttonsView": {
+      "buttons": "Buttons",
+      "buttonsDescription": "Up to 16 buttons on the PC, each with a name and up to four inputs. The wiring is kept with this board and works in every game.",
+      "multiPositionSwitch": "Multi-position switch",
+      "switchDescription": "One input per position. Turning the switch shows the page of the slot below with the same number.",
+      "whatTheButtonsDo": "What the buttons do",
+      "whatTheButtonsDoDescription": "Actions belong to the dashboard, so another dashboard brings its own. One button can do several things.",
+      "screenRules": "Screen rules",
+      "screenRulesDescription": "Bring a screen forward while a value holds. The dashboard goes back when it stops, unless a button moved it meanwhile.",
+      "home": "Home",
+      "homeDescription": "Where the home action and the idle return go, and after how long without a screen change.",
+      "startSimhubWithThePlugin": "SimHub is not answering. Start SimHub with the Pitrig plugin to read your buttons.",
+      "pressTheButtonToAssign": "Press the button to assign, or Esc to cancel.",
+      "pressAnyButton": "Press any button to see it here.",
+      "lastInput": "Last input: {input}, {state}",
+      "down": "pressed",
+      "up": "released"
+    },
+    "hints": {
+      "switchSlot": "The slot whose pages the switch turns: position 1 shows its first page.",
+      "ruleSource": "The telemetry value the rule watches.",
+      "homeScreen": "The screen the home action and the idle return show.",
+      "homeAfter": "How long without a screen change before the dashboard returns home. 0 never does."
+    }
+  },
+  "telemetry": {
+    "gameMarks": {
+      "sentBy": "Sent by {games}; the others keep the placeholder",
+      "noneOfTheGames": "ACC, AC, iRacing and LMU do not send it"
     }
   }
 }

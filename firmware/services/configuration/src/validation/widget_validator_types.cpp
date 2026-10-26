@@ -42,6 +42,9 @@ bool Validator::slot_page(const SlotPageConfiguration& config) {
   if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_slot_page, out_of_range);
   }
+  if ((config.dismiss == SlotDismiss::timed) != (config.dismiss_ms != 0)) {
+    return reject(failure_, ValidationError::invalid_slot_page, "dismiss_ms");
+  }
   const bool bound = registry_.resolve(value_binding_view(config.source.binding)).valid();
   switch (config.trigger) {
     case SlotTrigger::none:
@@ -61,7 +64,7 @@ bool Validator::slot_page(const SlotPageConfiguration& config) {
       for (std::size_t index = 0; index < config.condition_count; ++index) {
         const ValueCondition& rule = config.conditions[index];
         if (!std::isfinite(rule.value) || rule.op < ConditionOperator::above ||
-            rule.op > ConditionOperator::not_equal) {
+            rule.op > ConditionOperator::bit_set) {
           return reject(failure_, ValidationError::invalid_slot_page, "conditions");
         }
       }

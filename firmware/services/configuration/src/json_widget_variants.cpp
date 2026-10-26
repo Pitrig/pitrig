@@ -52,6 +52,8 @@ namespace {
          read_boolean(object, "in_loop", config.in_loop, kName, failure) &&
          read_enum(object, "trigger", config.trigger, slot_trigger_from_name, kName, failure) &&
          read_integer(object, "duration_ms", config.duration_ms, kName, failure) &&
+         read_enum(object, "dismiss", config.dismiss, slot_dismiss_from_name, kName, failure) &&
+         read_integer(object, "dismiss_ms", config.dismiss_ms, kName, failure) &&
          parse_slot_page_trigger(object, config, failure);
 }
 
@@ -60,7 +62,8 @@ namespace {
   constexpr std::string_view kName = "widget.slot";
   if (!valid_object(object, schema::kSlotWidgetConfigurationKeys, kName, failure) ||
       !parse_frame(object, config.frame, kName, failure) ||
-      !read_boolean(object, "clip_children", config.clip_children, kName, failure)) {
+      !read_boolean(object, "clip_children", config.clip_children, kName, failure) ||
+      !read_integer(object, "home_after_ms", config.home_after_ms, kName, failure)) {
     return false;
   }
   return read_array(

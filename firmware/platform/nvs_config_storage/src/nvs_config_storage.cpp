@@ -13,6 +13,7 @@ namespace {
 
 constexpr char kPartition[] = "pitrig_cfg";
 constexpr char kNamespace[] = "pitrig_cfg";
+constexpr char kSettingsKey[] = "settings";
 
 std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(const ConfigurationDocument document) {
   const std::string_view name = configuration_document_name(document);
@@ -39,6 +40,26 @@ bool NvsConfigurationStorage::initialize() {
 StorageRead NvsConfigurationStorage::read(const ConfigurationDocument document,
                                           const std::span<std::uint8_t> destination,
                                           std::size_t& size) {
+  return read_key(key_for(document).data(), destination, size);
+}
+
+bool NvsConfigurationStorage::write(const ConfigurationDocument document,
+                                    const std::span<const std::uint8_t> data) {
+  return write_key(key_for(document).data(), data);
+}
+
+StorageRead NvsConfigurationStorage::read_settings(const std::span<std::uint8_t> destination,
+                                                   std::size_t& size) {
+  return read_key(kSettingsKey, destination, size);
+}
+
+bool NvsConfigurationStorage::write_settings(const std::span<const std::uint8_t> data) {
+  return write_key(kSettingsKey, data);
+}
+
+StorageRead NvsConfigurationStorage::read_key(const char* const key,
+                                              const std::span<std::uint8_t> destination,
+                                              std::size_t& size) {
   size = 0;
   if (!initialized_) {
     return StorageRead::failed;
@@ -51,15 +72,14 @@ StorageRead NvsConfigurationStorage::read(const ConfigurationDocument document,
   if (opened != ESP_OK) {
     return StorageRead::failed;
   }
-  const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
   std::size_t required{};
-  esp_err_t result = nvs_get_blob(handle, key.data(), nullptr, &required);
+  esp_err_t result = nvs_get_blob(handle, key, nullptr, &required);
   if (result == ESP_OK && required > destination.size()) {
     result = ESP_ERR_NVS_INVALID_LENGTH;
   }
   if (result == ESP_OK) {
     size = required;
-    result = nvs_get_blob(handle, key.data(), destination.data(), &size);
+    result = nvs_get_blob(handle, key, destination.data(), &size);
   }
   nvs_close(handle);
   if (result == ESP_OK) {
@@ -69,8 +89,8 @@ StorageRead NvsConfigurationStorage::read(const ConfigurationDocument document,
   return result == ESP_ERR_NVS_NOT_FOUND ? StorageRead::absent : StorageRead::failed;
 }
 
-bool NvsConfigurationStorage::write(const ConfigurationDocument document,
-                                    const std::span<const std::uint8_t> data) {
+bool NvsConfigurationStorage::write_key(const char* const key,
+                                        const std::span<const std::uint8_t> data) {
   if (!initialized_ || data.empty()) {
     return false;
   }
@@ -78,8 +98,7 @@ bool NvsConfigurationStorage::write(const ConfigurationDocument document,
   if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
     return false;
   }
-  const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
-  const esp_err_t result = nvs_set_blob(handle, key.data(), data.data(), data.size());
+  const esp_err_t result = nvs_set_blob(handle, key, data.data(), data.size());
   const esp_err_t commit = result == ESP_OK ? nvs_commit(handle) : result;
   nvs_close(handle);
   return result == ESP_OK && commit == ESP_OK;

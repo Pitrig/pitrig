@@ -88,15 +88,18 @@ def render(args: argparse.Namespace) -> str:
         "",
         "Nothing here is signed. On macOS run `xattr -dr com.apple.quarantine "
         "/Applications/Pitrig.app` once after installing. On Windows, SmartScreen warns about "
-        "the installer: choose More info, then Run anyway.",
+        "the installer: choose More info, then Run anyway. From this version on the Windows "
+        "configurator downloads the next release by itself and installs it on restart; macOS "
+        "and Linux show a link to it.",
         "",
         plugin_paragraph(names, args.repo, args.tag),
         "",
         f"## Firmware {args.firmware}",
         "",
         "The easiest route is the [web flasher](https://www.pitrig.com/flash). A board already "
-        "running Pitrig updates itself over the USB cable from the configurator's Firmware "
-        "panel, which takes the `.bin`.",
+        "running Pitrig is updated from the configurator: **Update board** on its Firmware "
+        "page fetches the image below, installs it over the USB cable and puts the board's "
+        "configuration back.",
         "",
         "| Board | Update over serial | First flash by cable |",
         "| --- | --- | --- |",

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -9,14 +8,15 @@ using System.Threading;
 
 namespace Pitrig.SimHub
 {
-    internal sealed class ConfiguratorLink : ILineSink
+    internal sealed partial class ConfiguratorLink : ILineSink
     {
         private const int HeaderBytes = 7;
         private const int SubscriberTimeoutMs = 3000;
         private const int StatusIntervalMs = 1000;
         private const int ConnectionResetControlCode = -1744830452;
-        private const int ReceiveCapacity = 8192;
+        private const int ReceiveCapacity = 65536;
         private const string StatusMarker = "@PT:STATUS\n";
+        private const string InputMarker = "@PT:INPUT\n";
         private const string TraceSource = "configurator";
 
         private readonly byte[] datagram = new byte[HeaderBytes + TelemetryCatalog.LinkMaximumPayload];
@@ -32,6 +32,8 @@ namespace Pitrig.SimHub
         private bool subscriberIsNew;
         private HashSet<string> holds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private double holdsAt;
+        private double inputsAt = double.NegativeInfinity;
+        private InputMapping wiring;
         private long sequence;
         private string status = string.Empty;
         private double nextStatus;
@@ -108,6 +110,8 @@ namespace Pitrig.SimHub
                 subscriber = null;
                 subscriberIsNew = false;
                 holds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                inputsAt = double.NegativeInfinity;
+                wiring = null;
                 status = string.Empty;
             }
             length = 0;
@@ -117,32 +121,6 @@ namespace Pitrig.SimHub
         {
             if (!Ready) return;
             foreach (var index in stream.Indices) wanted[index] = true;
-        }
-
-        public LinkDesired Desired()
-        {
-            lock (gate)
-            {
-                if (clock.Elapsed.TotalMilliseconds - holdsAt > SubscriberTimeoutMs && holds.Count > 0)
-                {
-                    holds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                }
-                return new LinkDesired
-                {
-                    Holds = new HashSet<string>(holds, StringComparer.OrdinalIgnoreCase),
-                    Sequence = sequence
-                };
-            }
-        }
-
-        public List<LinkRelease> TakeReleases()
-        {
-            lock (gate)
-            {
-                var taken = releases.ToList();
-                releases.Clear();
-                return taken;
-            }
         }
 
         public void Report(string text)
@@ -157,12 +135,18 @@ namespace Pitrig.SimHub
                 nextStatus = now + StatusIntervalMs;
                 destination = subscriber;
             }
-            var payload = Encoding.ASCII.GetBytes(StatusMarker + "version=" + version + "\n" + text);
-            if (payload.Length > TelemetryCatalog.LinkMaximumPayload) return;
-            var packet = new byte[HeaderBytes + payload.Length];
-            Array.Copy(datagram, packet, 3);
-            Buffer.BlockCopy(payload, 0, packet, HeaderBytes, payload.Length);
-            Send(packet, packet.Length, destination);
+            SendText(StatusMarker + "version=" + version + "\n" + text, destination);
+        }
+
+        public void ReportInput(string text)
+        {
+            IPEndPoint destination;
+            lock (gate)
+            {
+                if (!Live() || clock.Elapsed.TotalMilliseconds - inputsAt > SubscriberTimeoutMs) return;
+                destination = subscriber;
+            }
+            SendText(InputMarker + text, destination);
         }
 
         public void Publish(FieldValues values)
@@ -193,6 +177,16 @@ namespace Pitrig.SimHub
             length = 0;
         }
 
+        private void SendText(string text, IPEndPoint destination)
+        {
+            var payload = Encoding.UTF8.GetBytes(text);
+            if (payload.Length > TelemetryCatalog.LinkMaximumPayload) return;
+            var packet = new byte[HeaderBytes + payload.Length];
+            Array.Copy(datagram, packet, 3);
+            Buffer.BlockCopy(payload, 0, packet, HeaderBytes, payload.Length);
+            Send(packet, packet.Length, destination);
+        }
+
         private void Send(byte[] packet, int count, IPEndPoint destination)
         {
             var number = (uint)Interlocked.Increment(ref datagramSequence);
@@ -212,81 +206,9 @@ namespace Pitrig.SimHub
             }
         }
 
-        private bool TakeNewSubscriber()
-        {
-            lock (gate)
-            {
-                if (!subscriberIsNew) return false;
-                subscriberIsNew = false;
-                return true;
-            }
-        }
-
         private bool Live()
         {
             return subscriber != null && clock.Elapsed.TotalMilliseconds - subscribedAt < SubscriberTimeoutMs;
-        }
-
-        private void Listen(Socket bound)
-        {
-            var buffer = new byte[ReceiveCapacity];
-            EndPoint from = new IPEndPoint(IPAddress.Any, 0);
-            while (true)
-            {
-                int count;
-                try
-                {
-                    count = bound.ReceiveFrom(buffer, ref from);
-                }
-                catch (SocketException exception) when (exception.SocketErrorCode == SocketError.MessageSize)
-                {
-                    continue;
-                }
-                catch (Exception exception) when (exception is SocketException ||
-                                                  exception is ObjectDisposedException)
-                {
-                    return;
-                }
-                if (count < HeaderBytes) continue;
-                if (Encoding.ASCII.GetString(buffer, 0, 2) != TelemetryCatalog.LinkMagic) continue;
-                if (buffer[2] != TelemetryCatalog.LinkVersion) continue;
-                try
-                {
-                    Apply((IPEndPoint)from, LinkRequest.Parse(buffer, HeaderBytes, count - HeaderBytes));
-                }
-                catch (Exception exception)
-                {
-                    PluginLog.Warn("configurator request ignored: " + exception.Message);
-                }
-            }
-        }
-
-        private void Apply(IPEndPoint remote, LinkRequest request)
-        {
-            var control = IPAddress.IsLoopback(remote.Address);
-            var changed = false;
-            lock (gate)
-            {
-                if (subscriber == null || !subscriber.Equals(remote))
-                {
-                    subscriber = remote;
-                    subscriberIsNew = true;
-                    PluginTrace.Event(TraceSource, "requests now come from " + remote);
-                }
-                subscribedAt = clock.Elapsed.TotalMilliseconds;
-                if (control)
-                {
-                    var holdsChanged = !holds.SetEquals(request.Holds);
-                    if (holdsChanged) PluginTrace.Event(TraceSource, "holds [" + string.Join(",", request.Holds) + "]");
-                    changed = holdsChanged || request.Releases.Count > 0 || request.Sequence != sequence;
-                    holds = request.Holds;
-                    holdsAt = subscribedAt;
-                    sequence = request.Sequence;
-                    releases.AddRange(request.Releases);
-                }
-            }
-            if (request.Fields != null) stream.Subscribe(request.Fields);
-            if (changed) nudge?.Invoke();
         }
     }
 }

@@ -32,6 +32,9 @@ class EventBus;
 namespace pitrig::value_smoothing {
 class Service;
 }
+namespace pitrig::controls {
+class DashboardTarget;
+}
 
 namespace pitrig::dashboard_composition {
 
@@ -82,5 +85,7 @@ void dismiss_startup_screen(const configuration::ApplicationConfiguration& confi
                                      Dashboard& dashboard);
 
 void destroy(Dashboard& dashboard);
+
+[[nodiscard]] controls::DashboardTarget* control_target();
 
 }

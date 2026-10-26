@@ -42,7 +42,45 @@ def computations(mappings: dict[str, dict[str, Any]]) -> list[str]:
     return ["None", *sorted(names)]
 
 
-def entry(field: dict[str, str], mapping: dict[str, Any]) -> str:
+def csharp_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return literal(value)
+    return f"{float(value)!r}"
+
+
+def game_source(game: str, source: dict[str, Any]) -> str:
+    values = source.get("values")
+    pairs = (
+        "null"
+        if values is None
+        else "new object[] { "
+        + ", ".join(f"{literal(key)}, {csharp_value(value)}" for key, value in values.items())
+        + " }"
+    )
+    parts = [
+        literal(game),
+        literal(source["property"]),
+        repr(float(source.get("scale", 1))),
+        pairs,
+        csharp_value(source["default"]) if "default" in source else "null",
+        str(source.get("bit", -1)),
+        "true" if source.get("clock") else "false",
+    ]
+    return f"new GameSource({', '.join(parts)})"
+
+
+def game_sources(mapping: dict[str, Any], games: dict[str, Any]) -> str:
+    sources = [
+        game_source(games[game_id]["simhub"], source)
+        for game_id, source in mapping.get("games", {}).items()
+        if isinstance(source, dict)
+    ]
+    return "null" if not sources else "new[] { " + ", ".join(sources) + " }"
+
+
+def entry(field: dict[str, str], mapping: dict[str, Any], games: dict[str, Any]) -> str:
     name = mapping.get("property")
     computed = mapping.get("computed")
     rule = mapping.get("unavailable_when")
@@ -59,6 +97,7 @@ def entry(field: dict[str, str], mapping: dict[str, Any]) -> str:
         f"FieldComparison.{pascal(rule['op']) if rule else 'None'}",
         repr(float(rule["value"] if rule else 0)),
         f"FieldRate.{field['rate'].capitalize()}",
+        game_sources(mapping, games),
     ]
     return f"            new TelemetryField({', '.join(parts)}),"
 
@@ -70,7 +109,9 @@ def generate_csharp(
 ) -> str:
     link = profile["link"]
     frequencies = profile["frequencies"]
-    entries = "\n".join(entry(field, mappings[field["name"]]) for field in fields)
+    entries = "\n".join(
+        entry(field, mappings[field["name"]], profile["games"]) for field in fields
+    )
     computation_names = ",\n        ".join(computations(mappings))
     comparison_names = ",\n        ".join(comparisons())
     parameters = "".join(
@@ -108,6 +149,43 @@ namespace Pitrig.SimHub
         {comparison_names}
     }}
 
+    internal sealed class GameSource
+    {{
+        public GameSource(
+            string game,
+            string property,
+            double scale,
+            object[] values,
+            object fallback,
+            int bit,
+            bool clock)
+        {{
+            Game = game;
+            Property = property;
+            Scale = scale;
+            Fallback = fallback;
+            Bit = bit;
+            Clock = clock;
+            if (values == null) return;
+            Values = new System.Collections.Generic.Dictionary<string, object>();
+            for (var index = 0; index + 1 < values.Length; index += 2) Values[(string)values[index]] = values[index + 1];
+        }}
+
+        public string Game {{ get; }}
+
+        public string Property {{ get; }}
+
+        public double Scale {{ get; }}
+
+        public System.Collections.Generic.Dictionary<string, object> Values {{ get; }}
+
+        public object Fallback {{ get; }}
+
+        public int Bit {{ get; }}
+
+        public bool Clock {{ get; }}
+    }}
+
     internal sealed class TelemetryField
     {{
         public TelemetryField(
@@ -122,7 +200,8 @@ namespace Pitrig.SimHub
             string fallback,
             FieldComparison unavailableWhen,
             double unavailableValue,
-            FieldRate rate)
+            FieldRate rate,
+            GameSource[] games)
         {{
             WireId = wireId;
             Name = name;
@@ -136,6 +215,7 @@ namespace Pitrig.SimHub
             UnavailableWhen = unavailableWhen;
             UnavailableValue = unavailableValue;
             Rate = rate;
+            Games = games;
         }}
 
         public string WireId {{ get; }}
@@ -161,6 +241,8 @@ namespace Pitrig.SimHub
         public double UnavailableValue {{ get; }}
 
         public FieldRate Rate {{ get; }}
+
+        public GameSource[] Games {{ get; }}
     }}
 
     internal static class TelemetryCatalog

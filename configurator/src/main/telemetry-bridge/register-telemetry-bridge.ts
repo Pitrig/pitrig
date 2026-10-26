@@ -13,6 +13,7 @@ import {
   LINK_DEFAULT_PORT,
   LINK_DEFAULT_SIMHUB_HOST,
   LINK_SOURCE_PORT,
+  TELEMETRY_BRIDGE_INPUT_CHANNEL,
   TELEMETRY_BRIDGE_INTEREST_CHANNEL,
   TELEMETRY_BRIDGE_SIMULATE_CHANNEL,
   TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
@@ -27,7 +28,8 @@ export function registerTelemetryBridge(deviceService: DeviceService): Telemetry
   const service = new TelemetryBridgeService(
     deviceService,
     (status) => broadcastToWindows(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, status),
-    (snapshot) => broadcastToWindows(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, snapshot)
+    (snapshot) => broadcastToWindows(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, snapshot),
+    (input) => broadcastToWindows(TELEMETRY_BRIDGE_INPUT_CHANNEL, input)
   )
   deviceService.attachPortClaims(service.handover)
   ipcMain.handle(TELEMETRY_BRIDGE_STATUS_CHANNEL, () => service.getStatus())

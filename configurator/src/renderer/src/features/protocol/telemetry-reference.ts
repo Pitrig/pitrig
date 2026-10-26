@@ -1,5 +1,5 @@
 import { SIMHUB_PROFILE_ENTRIES } from '@shared/simhub-profile-data'
-import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
+import { TELEMETRY_CATALOG, TELEMETRY_GAMES, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
 
 export interface TelemetryReferenceEntry extends TelemetryCatalogEntry {
   simHubProperty?: string
@@ -26,7 +26,8 @@ export function searchTelemetryReference(query: string): TelemetryReferenceEntry
       entry.unit,
       entry.categoryLabel,
       entry.description,
-      entry.simHubProperty ?? ''
+      entry.simHubProperty ?? '',
+      ...(entry.games ?? []).map((game) => TELEMETRY_GAMES[game])
     ].some((field) => field.toLowerCase().includes(needle))
   )
 }

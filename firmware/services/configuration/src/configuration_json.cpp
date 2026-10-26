@@ -8,6 +8,7 @@
 
 #include "cJSON.h"
 #include "configuration_schema_generated.hpp"
+#include "json_controls.hpp"
 #include "json_hardware.hpp"
 #include "json_readers.hpp"
 #include "json_value_pipeline.hpp"
@@ -89,6 +90,10 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
                  failure) ||
       !read_enum(object, "smoothing", dashboard.smoothing, value_smoothing_from_name, kName,
                  failure)) {
+    return false;
+  }
+  const cJSON* const controls = member(object, "controls");
+  if (controls != nullptr && !parse_controls(controls, dashboard.controls, failure)) {
     return false;
   }
   const cJSON* const screens = member(object, "screens");

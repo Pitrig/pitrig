@@ -1,12 +1,11 @@
 import {
-  CONDITION_OPERATOR_VALUES,
   MAXIMUM_LED_COLOR_RULES,
   type LedColorRule,
   type LedEffect
 } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import {
-  BOOLEAN_OPERATORS,
+  operatorsFor,
   MAXIMUM_BLINK_MS,
   MAXIMUM_HOLD_MS,
   MINIMUM_BLINK_MS
@@ -44,7 +43,7 @@ export function EffectColors({
   const watched = effect.condition_source?.binding ?? ''
   const field = TELEMETRY_CATALOG.find(({ name }) => name === watched)
   const boolean = field?.type === 'boolean'
-  const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
+  const operators = operatorsFor(watched)
 
   const changeRule = (position: number, mutation: (rule: LedColorRule) => void): void =>
     update((next) => {

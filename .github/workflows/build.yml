@@ -126,6 +126,7 @@ jobs:
             files: |
               configurator/dist/*.exe
               configurator/dist/*.exe.blockmap
+              configurator/dist/latest.yml
           - os: ubuntu-latest
             label: Linux
             artifact: configurator-linux
@@ -273,8 +274,9 @@ jobs:
       - name: Gather
         run: |
           mkdir -p release
-          find downloads -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' -o -name 'Pitrig.SimHub.dll' \) \
+          find downloads -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.exe.blockmap' -o -name 'latest.yml' -o -name '*.AppImage' -o -name '*.deb' -o -name 'Pitrig.SimHub.dll' \) \
             -exec cp {} release/ \;
+          test -f release/latest.yml
           for board in downloads/firmware-*; do
             name=$(basename "$board")
             cp "$board"/pitrig-*.bin release/

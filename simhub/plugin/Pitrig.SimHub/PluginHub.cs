@@ -38,7 +38,8 @@ namespace Pitrig.SimHub
         private PluginHub()
         {
             link = new ConfiguratorLink(clock);
-            boards = new BoardManager(values, link, clock);
+            boards = new BoardManager(values, link, clock, state.Inputs);
+            state.Inputs.Listen(link.ReportInput);
             AppDomain.CurrentDomain.ProcessExit += (sender, arguments) => Shutdown();
         }
 
@@ -51,6 +52,8 @@ namespace Pitrig.SimHub
         public BoardManager Boards => boards;
 
         public string ShiftSource => state.Shifts.Source;
+
+        public InputState Inputs => state.Inputs;
 
         public double CostMicroseconds => Interlocked.Read(ref costNanoseconds) / 1000.0;
 

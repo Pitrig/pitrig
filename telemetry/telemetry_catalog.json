@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maximum_fields": 256,
-  "expected_field_count": 252,
+  "expected_field_count": 256,
   "wheels": ["front_left", "front_right", "rear_left", "rear_right"],
   "fields": [
     {"name":"vehicle.speed","wire_id":"S","type":"text","unit":"source","category":"speed_control","rate":"fast","availability":"common","description":"Vehicle speed formatted by the telemetry source."},
@@ -102,11 +102,13 @@
     {"name":"vehicle.fuel.last_lap_consumption","type":"float32","unit":"liter","category":"fuel_energy","rate":"changes","availability":"computed","description":"Fuel used on the previous lap."},
     {"name":"vehicle.energy.level","type":"float32","unit":"source","category":"fuel_energy","rate":"normal","availability":"optional","description":"Remaining electrical energy."},
     {"name":"vehicle.energy.percent","type":"float32","unit":"percent","category":"fuel_energy","rate":"normal","availability":"optional","description":"Electrical energy percentage."},
+    {"name":"vehicle.energy.virtual","wire_id":"VE","type":"float32","unit":"percent","category":"fuel_energy","rate":"slow","availability":"game_specific","description":"Virtual energy left, as LMU reports it for the stint."},
     {"name":"vehicle.energy.deployment_mode","type":"text","unit":"source","category":"fuel_energy","rate":"changes","availability":"game_specific","description":"Selected energy deployment mode."},
     {"name":"vehicle.energy.recovery_mode","type":"text","unit":"source","category":"fuel_energy","rate":"changes","availability":"game_specific","description":"Selected energy recovery mode."},
     {"name":"vehicle.energy.laps_remaining","type":"float32","unit":"count","category":"fuel_energy","rate":"slow","availability":"game_specific","description":"Estimated laps remaining on electrical energy."},
 
     {"name":"vehicle.aids.traction_control_level","wire_id":"T","type":"text","unit":"source","category":"electronics_state","rate":"normal","availability":"optional","description":"Configured traction-control level."},
+    {"name":"vehicle.aids.traction_control_cut","wire_id":"TC","type":"text","unit":"source","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Second traction-control setting: TC cut in ACC and LMU, the second TC knob in iRacing."},
     {"name":"vehicle.aids.traction_control_active","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"optional","description":"Whether traction control is intervening."},
     {"name":"vehicle.aids.abs_level","wire_id":"A","type":"text","unit":"source","category":"electronics_state","rate":"normal","availability":"optional","description":"Configured ABS level."},
     {"name":"vehicle.aids.abs_active","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"optional","description":"Whether ABS is intervening."},
@@ -167,7 +169,9 @@
     {"name":"motion.roll","type":"float32","unit":"degree","category":"motion_physics","rate":"fast","availability":"optional","description":"Vehicle roll angle."},
     {"name":"motion.yaw","type":"float32","unit":"degree","category":"motion_physics","rate":"fast","availability":"optional","description":"Vehicle yaw angle."},
     {"name":"motion.slip_angle","type":"float32","unit":"degree","category":"motion_physics","rate":"fast","availability":"computed","description":"Vehicle slip angle from the local velocity."},
-    {"name":"motion.ffb_force","type":"float32","unit":"normalized","category":"motion_physics","rate":"fast","availability":"game_specific","description":"Current force-feedback signal."}
+    {"name":"motion.ffb_force","type":"float32","unit":"normalized","category":"motion_physics","rate":"fast","availability":"game_specific","description":"Current force-feedback signal."},
+    {"name":"input.buttons","wire_id":"IB","type":"uint32","unit":"bitmask","category":"inputs","rate":"fast","availability":"computed","description":"Logical buttons held down, bit 0 being button 1. Set by the SimHub plugin from the PC inputs the modules document names and from its ButtonN actions; 0 when nothing is pressed."},
+    {"name":"input.switch","wire_id":"IS","type":"uint32","unit":"position","category":"inputs","rate":"fast","availability":"computed","description":"Position of the multi-position switch, counted from 1, as the SimHub plugin reads it from the PC inputs the modules document names or its SwitchPositionN actions; 0 while no position is known."}
   ],
   "wheel_families": [
     {"name":"tyre.{wheel}.pressure","type":"float32","unit":"kilopascal","category":"tyres","rate":"slow","availability":"optional","description":"Tyre pressure at the {wheel_label} wheel."},

@@ -203,6 +203,10 @@ alternating pair this used to keep bought a second copy of that same guarantee.
 
 Configurator code must not reproduce or depend on this NVS record format.
 
+Beside the documents the same namespace keeps a two-byte `settings` record — a
+version and the display brightness buttons last set — which no command reads or
+writes, and which `RESET` erases with the rest.
+
 Records of any earlier schema are unsupported and are not migrated. That
 document falls back to its compiled factory payload while the other two load
 normally. A record that was read but not loaded — another schema version, a

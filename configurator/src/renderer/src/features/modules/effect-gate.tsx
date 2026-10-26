@@ -1,11 +1,10 @@
 import {
-  CONDITION_OPERATOR_VALUES,
   LED_GATE_VALUES,
   MAXIMUM_WIDGET_CONDITIONS,
   type LedEffect
 } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
-import { BOOLEAN_OPERATORS } from '@shared/widget-conditions'
+import { operatorsFor } from '@shared/widget-conditions'
 import { fieldBounds } from '@shared/validate/ranges'
 import { authored } from '@/features/configuration/inspector/authored'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
@@ -43,7 +42,7 @@ export function EffectGate({
   const watched = effect.condition_source?.binding ?? ''
   const field = TELEMETRY_CATALOG.find(({ name }) => name === watched)
   const boolean = field?.type === 'boolean'
-  const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
+  const operators = operatorsFor(watched)
   return (
       <Subsection title={t('modules.effectGate.whenItPaints')}>
         <SelectField

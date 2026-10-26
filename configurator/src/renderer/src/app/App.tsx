@@ -24,7 +24,9 @@ import { useBoardPreview } from '@/features/modules/use-board-preview'
 import { useModulesStore } from '@/features/modules/modules-store'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FirmwarePage } from '@/features/firmware-update/FirmwarePage'
-import { useFirmwareUploadStore } from '@/features/firmware-update/firmware-update-store'
+import { useBoardUpdateStore } from '@/features/firmware-update/board-update-store'
+import { UpdateBanner } from '@/features/updates/UpdateBanner'
+import { subscribeToUpdates } from '@/features/updates/update-store'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
 import { useImageUploadStore } from '@/features/image-assets/image-assets-store'
 import { ModulesPage } from '@/features/modules/ModulesPage'
@@ -40,15 +42,13 @@ export function App(): React.JSX.Element {
   const tab = useWorkspaceStore((state) => state.tab)
   const connectionRevision = useDeviceStore((state) => state.connectionRevision)
   const saving = useSaveToBoardStore((state) => state.running)
+  const updating = useBoardUpdateStore((state) => state.running)
   const syncQuestion = useBoardSyncStore((state) => state.question)
   const { liveApplyAllowed, dirtyDocuments } = useDraftState()
   const layerPreview = useModulesStore((state) => state.preview)
 
   useEffect(() => subscribeToFontLibrary(), [])
-  useEffect(
-    () => window.pitrig.onFirmwareUploadProgress(useFirmwareUploadStore.getState().setProgress),
-    []
-  )
+  useEffect(() => subscribeToUpdates(), [])
   useEffect(
     () => window.pitrig.onImageUploadProgress(useImageUploadStore.getState().setProgress),
     []
@@ -56,9 +56,9 @@ export function App(): React.JSX.Element {
   useEffect(() => subscribeToTelemetryBridge(), [])
   useEffect(() => startLiveTelemetry(), [])
   useTelemetryInterest()
-  useBoardSync(dirtyDocuments)
+  useBoardSync(dirtyDocuments, updating)
 
-  const mirroring = liveApplyAllowed && !saving && syncQuestion === undefined
+  const mirroring = liveApplyAllowed && !saving && !updating && syncQuestion === undefined
   useLiveApply(mirroring && layerPreview.length === 0, reportLiveApply)
   useBoardPreview(mirroring)
 
@@ -76,14 +76,17 @@ export function App(): React.JSX.Element {
   }, [])
 
   return (
-    <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_minmax(0,1fr)_2.5rem] bg-background text-foreground">
+    <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_auto_minmax(0,1fr)_2.5rem] bg-background text-foreground">
       <header className="flex items-center justify-between border-b px-5">
         <img alt={t('app.app.pitrig')} src={wordmark} className="h-6 w-auto flex-none" />
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
-      <SafeModeBanner />
-      <SchemaBanner />
+      <div className="min-w-0">
+        <SafeModeBanner />
+        <SchemaBanner />
+        <UpdateBanner />
+      </div>
 
       <main className="flex min-h-0 overflow-hidden">
         <WorkspaceRail />

@@ -12,8 +12,13 @@ class NvsConfigurationStorage final : public IConfigurationStorage {
   bool write(ConfigurationDocument document, std::span<const std::uint8_t> data) override;
   bool erase(ConfigurationDocument document) override;
   bool reset() override;
+  StorageRead read_settings(std::span<std::uint8_t> destination, std::size_t& size) override;
+  bool write_settings(std::span<const std::uint8_t> data) override;
 
  private:
+  StorageRead read_key(const char* key, std::span<std::uint8_t> destination, std::size_t& size);
+  bool write_key(const char* key, std::span<const std::uint8_t> data);
+
   bool initialized_{};
 };
 

@@ -2,6 +2,7 @@ import {
   MAXIMUM_SLOT_PAGES,
   MAXIMUM_VALUE_MODIFIERS,
   MAXIMUM_WIDGET_CONDITIONS,
+  SLOT_DISMISS_VALUES,
   type SlotPageConfiguration,
   type SlotWidgetConfiguration,
   type WidgetAction,
@@ -9,7 +10,7 @@ import {
 } from '../configuration-schema'
 import { arrayOf, pagesOf, widgetSources } from '../configuration-access'
 import { MAXIMUM_HOLD_MS } from '../widget-conditions'
-import { badBinding, badList } from './values'
+import { badBinding, badEnum, badList } from './values'
 import { t } from '../ui-text'
 
 const LAP_TIMER_BINDING = 'session.lap.current_time'
@@ -88,6 +89,11 @@ function findSlotPageError(page: SlotPageConfiguration, where: string): string |
   const rules = arrayOf(page.conditions).length
   if (duration > MAXIMUM_HOLD_MS) {
     return t('validation.widgetRules.whereStaysUpForDuration', { where: where, duration: duration, mAXIMUM_HOLD_MS: MAXIMUM_HOLD_MS })
+  }
+  const dismissError = badEnum(page.dismiss, SLOT_DISMISS_VALUES, where, 'dismiss')
+  if (dismissError) return dismissError
+  if (((page.dismiss ?? 'next_event') === 'timed') !== ((page.dismiss_ms ?? 0) !== 0)) {
+    return t('validation.widgetRules.whereDismissesForATime', { where })
   }
   const trigger = page.trigger ?? 'none'
   if (trigger === 'none') {

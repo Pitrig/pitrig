@@ -49,6 +49,7 @@ struct Driver {
   Configuration (*initialize)();
   void (*release)();
   void (*on_display_ready)();
+  int backlight_pin{-1};
 };
 
 }

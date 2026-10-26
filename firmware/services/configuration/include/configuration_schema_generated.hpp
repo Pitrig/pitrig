@@ -32,9 +32,10 @@ enum class ValidationError : std::uint8_t {
   duplicate_property,
   out_of_range,
   unknown_value,
+  invalid_control,
 };
 
-inline constexpr std::array<std::string_view, 20> kValidationErrorNames{{
+inline constexpr std::array<std::string_view, 21> kValidationErrorNames{{
     "none",
     "malformed",
     "unsupported_schema",
@@ -55,6 +56,7 @@ inline constexpr std::array<std::string_view, 20> kValidationErrorNames{{
     "duplicate_property",
     "out_of_range",
     "unknown_value",
+    "invalid_control",
 }};
 
 [[nodiscard]] inline std::string_view validation_error_name(const ValidationError error) {
@@ -519,16 +521,18 @@ inline constexpr std::array<std::string_view, 19> kShapeWidgetConfigurationKeys{
     "widgets",
 }};
 
-inline constexpr std::array<std::string_view, 6> kSlotPageConfigurationKeys{{
+inline constexpr std::array<std::string_view, 8> kSlotPageConfigurationKeys{{
     "in_loop",
     "trigger",
     "source",
     "duration_ms",
+    "dismiss",
+    "dismiss_ms",
     "conditions",
     "widgets",
 }};
 
-inline constexpr std::array<std::string_view, 18> kSlotWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 19> kSlotWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -546,6 +550,7 @@ inline constexpr std::array<std::string_view, 18> kSlotWidgetConfigurationKeys{{
     "color_ramp",
     "conditions",
     "clip_children",
+    "home_after_ms",
     "pages",
 }};
 
@@ -555,9 +560,38 @@ inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{
     "widgets",
 }};
 
-inline constexpr std::array<std::string_view, 3> kDashboardConfigurationKeys{{
+inline constexpr std::array<std::string_view, 7> kControlBindingKeys{{
+    "button",
+    "action",
+    "screen",
+    "slot",
+    "page",
+    "wrap",
+    "repeat",
+}};
+
+inline constexpr std::array<std::string_view, 1> kControlSwitchKeys{{
+    "slot",
+}};
+
+inline constexpr std::array<std::string_view, 3> kControlRuleKeys{{
+    "screen",
+    "source",
+    "conditions",
+}};
+
+inline constexpr std::array<std::string_view, 5> kControlsConfigurationKeys{{
+    "bindings",
+    "switch",
+    "rules",
+    "home_screen",
+    "home_after_ms",
+}};
+
+inline constexpr std::array<std::string_view, 4> kDashboardConfigurationKeys{{
     "transition",
     "smoothing",
+    "controls",
     "screens",
 }};
 
@@ -573,9 +607,10 @@ inline constexpr std::array<std::string_view, 2> kDashboardDocumentKeys{{
     "dashboard",
 }};
 
-inline constexpr std::array<std::string_view, 2> kModulesDocumentKeys{{
+inline constexpr std::array<std::string_view, 3> kModulesDocumentKeys{{
     "board",
     "hardware",
+    "inputs",
 }};
 
 inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
@@ -806,12 +841,49 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   if (config.duration_ms > kMaximumHoldMs) {
     return "duration_ms";
   }
+  if (config.dismiss_ms > kMaximumDismissMs) {
+    return "dismiss_ms";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const SlotWidgetConfiguration& config) {
+  if (config.home_after_ms > kMaximumIdleReturnMs) {
+    return "home_after_ms";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const ControlBinding& config) {
+  if (config.button < 1 || config.button > kMaximumInputButtons) {
+    return "button";
+  }
+  if (config.page < 1 || config.page > kMaximumSlotPages) {
+    return "page";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const ControlsConfiguration& config) {
+  if (config.home_after_ms > kMaximumIdleReturnMs) {
+    return "home_after_ms";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const DashboardConfiguration& config) {
+  if (config.controls.home_after_ms > kMaximumIdleReturnMs) {
+    return "controls.home_after_ms";
+  }
   return {};
 }
 
 [[nodiscard]] inline std::string_view range_error(const ApplicationConfiguration& config) {
   if (config.telemetry_transport.uart.baud_rate < 9600 || config.telemetry_transport.uart.baud_rate > 2000000) {
     return "telemetry_transport.uart.baud_rate";
+  }
+  if (config.dashboard.controls.home_after_ms > kMaximumIdleReturnMs) {
+    return "dashboard.controls.home_after_ms";
   }
   return {};
 }

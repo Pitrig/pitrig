@@ -32,7 +32,8 @@ remembers it with its baud rate. A port that does not answer `@PR:INFO` is left
 alone until it disappears and comes back.
 
 On a board that answers, the plugin reads the dashboard and modules documents
-and sends the fields they bind, at the catalog rates, changed values only, with
+— only the modules document after a hand-back that names the fields — and sends
+the fields they bind, at the catalog rates, changed values only, with
 every value repeated within a second, an empty one included, since an empty
 value invalidates the field on the board. After a reconnect it sends the fields
 of the board's previous session at once and switches to the documents' when
@@ -71,6 +72,16 @@ nothing; the fifth-of-a-lap bound survives where a delta feeds a computed time �
 the estimated lap time and the sector delta — because a replay or a switched car
 would otherwise produce a nonsensical clock.
 
+Damage, weather, the track's grip, electronics, energy and penalties come from
+each game's own data where SimHub's generic data has nothing
+([ADR 0039](adr/0039-per-game-telemetry-sources.md)): the mapping names a raw
+property per game, the plugin reads the one of `GameData.GameName`, and the
+profile switches on `DataCorePlugin.CurrentGame`, both only while the game
+runs, since SimHub keeps a closed game's last raw data. SimHub flattens raw arrays as
+`CarDamage01`…, which its `/api/GetProperty/<name>` answers while a game runs.
+ACC and AC were checked that way; iRacing and LMU follow SimHub's reader
+structures and want a live session to confirm.
+
 Both paths compute the same fields from the same SimHub data. A field with no
 single property is a formula in the Custom Serial profile and a native twin in
 `Computed.cs` and the classes beside it, named by the mapping's `computed` key,
@@ -81,6 +92,21 @@ ACC's leaderboard in SimHub can place the player one behind it. The sector delta
 keeps the live delta at the last sector boundary. Only the shift lights go further in the
 plugin, where the game's own data is within reach. The panel's fuel reserve and
 averages take the defaults the profile export offers.
+
+## Buttons
+
+The plugin adds `Button1` to `Button16` and `SwitchPosition1` to
+`SwitchPosition12` to SimHub's actions — `PitrigPlugin.Button1` and so on under
+**Controls and events** — and watches every input SimHub reports. The modules
+document's `inputs` names the inputs behind each logical button and switch
+position ([ADR 0038](adr/0038-pc-buttons-drive-the-board.md)); the plugin keeps
+it from the last read of each board, and the wiring of several boards adds up.
+A bit of `input.buttons` is set while a named input or an action is held, and a
+press shorter than 60 ms still lasts 60 ms on the board. SimHub fires an action
+from an event or its web API without a release, so an action counts as held
+only while some input is down, and as a tap otherwise. `input.switch` keeps the
+last position pressed. A dashboard with `controls` is sent both, and
+`session.time_elapsed`.
 
 ## The configurator link
 
@@ -103,15 +129,25 @@ of `key=value`.
 | `fields` | wire ids to stream, comma-separated, or `*` |
 | `hold` | a port the configurator holds or is opening; one line each |
 | `release` | `<port>@<baud>:<wire ids>`, a board handed back, repeated for three seconds |
+| `inputs` | `1` while the configurator wants every input change reported |
+| `wiring` | `1` when the `button` and `position` lines are the wiring of the ports it holds |
+| `button` | `<n>:<SimHub input>`, an input of logical button n; one line each |
+| `position` | `<n>:<SimHub input>`, the input of switch position n |
 
-`hold` and `release` count only from `127.0.0.1`. A port missing from the latest
-request is free again, and so is every port after three seconds of silence.
+`hold`, `release`, `inputs` and `wiring` count only from `127.0.0.1`. A port
+missing from the latest request is free again, and so is every port after three
+seconds of silence. A held port uses the request's wiring in place of the one
+its board stores until it is handed back and read again.
 
 The plugin answers with telemetry — at most 1200 bytes of whole `<id>;<value>`
 lines, which the configurator forwards byte for byte — and once a second, or as
 soon as a port is let go, with a status datagram: the line `@PT:STATUS`, then
 `version`, `ack`, `boards` (`<port>@<baud>:<board>` each), `released` and `busy`.
-A receiver that reads a version it does not know drops the datagram.
+While `inputs` is asked for, each input change sends `@PT:INPUT`, then
+`input=<SimHub input>` or `action=<button>` with `down=1` or `0` (neither for a
+switch action), `actions` and `buttons` as bitmasks, `switch`, and a
+`pressed=<input>` line for each input still down. A receiver that reads a
+version it does not know drops the datagram.
 
 ## Building
 

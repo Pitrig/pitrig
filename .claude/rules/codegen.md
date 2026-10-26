@@ -28,6 +28,8 @@ banner.
   `docs/configuration-schema.md`. The schema's `documents` block must partition
   every serialized root section; the generator emits the enum, the key
   allow-lists, the bounds and the restart flags for both sides.
+  A struct marked `host_only` (the modules document's `inputs`) stays out of
+  the firmware contract: firmware accepts its key and never parses it.
   `tools/codegen/configuration_schema/markdown.py` hardcodes the links to
   `device-configuration.md` and `control-protocol.md`.
 - `telemetry_catalog` — `telemetry/telemetry_catalog.json` and
@@ -40,7 +42,10 @@ banner.
   `simhub/plugin/Pitrig.SimHub/TelemetryCatalog.g.cs`. Regenerate all consumers
   together. The mappings' `profile.link` block is the wire contract shared by
   the plugin and the configurator, and a mapping written as an `expression`
-  needs a `computed` name for its native twin in the plugin.
+  needs a `computed` name for its native twin in the plugin. A mapping's
+  `games` lists which tracked games send the field and gives a game its raw
+  `GameRawData` source; the plugin and the profile's JavaScript switch read the
+  current game's (ADR 0039).
 - `led_font` — `fonts/led_bitmap_font.json` (four faces as rows of `#` and
   space) → `firmware/components/led/include/led_font_generated.hpp` and
   `configurator/src/shared/led-font.ts`; both sides need the same glyphs.

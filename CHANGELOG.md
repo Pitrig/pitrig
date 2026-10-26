@@ -31,12 +31,56 @@ documents and draws its built-in dashboard until the configurator saves them
 again; nothing is erased. The configurator converts its own files and a board's
 documents on the way in, and connects to a board still on 0.2.0 to read its
 configuration and update its firmware, but writes nothing to it before that:
-connect, install the firmware from the Firmware page, then **Save to board**.
-The partition table is the same. The telemetry catalog grows from 251 to 252
+connect, select the image on the Firmware page and press **Update board**, which
+keeps a copy of the board's configuration and puts it back after the restart.
+The partition table is the same. The telemetry catalog grows from 251 to 256
 fields without moving an identifier.
 
 **Added**
 
+- **Update board** on the Firmware page does the whole update in one go: it keeps
+  a copy of what the board stores in the configurations library, installs the
+  image, restarts the board, puts its configuration back and checks it. A draft
+  you have not saved stays a draft, and a board whose new firmware does not start
+  goes back to the old one with nothing lost. It replaces the separate Install
+  and Restart board buttons.
+- The configurator looks for updates when it starts and once a day, in the
+  published Pitrig releases on GitHub. On Windows it downloads the next version
+  in the background and installs it with **Restart and update** or when it
+  closes; on macOS and Linux it links to the release. A notice under the header
+  and a new Updates section on the Info page also say when the board's firmware,
+  the Pitrig plugin in SimHub or SimHub itself is behind.
+- **Download and update** on the Firmware page fetches the firmware that comes
+  with this version of the configurator, checks it against the release and runs
+  Update board with it. The notice about a board on an older schema opens that
+  page.
+- **Update plugin** replaces an older Pitrig plugin in SimHub with the one the
+  configurator carries, closing SimHub and starting it again when it runs.
+- Buttons on the PC drive the board: up to 16 named buttons and one
+  multi-position switch switch screens and slot pages (one step per press, a
+  repeat while held, or only while held), dismiss a page an alert raised (until
+  its next event, for a while, or for the session), dim the display in tenths and
+  remember it across restarts, and dim or switch off every LED. Screens can also
+  come forward on a game event, such as the pit lane, and the dashboard and each
+  slot can go back home after a while without a press. The display's backlight is
+  now dimmable on all three display boards. The buttons reach the board as the new
+  `input.buttons` and `input.switch` fields (254 of 256), which the Pitrig plugin
+  sets from SimHub: map a button to its `ButtonN` or `SwitchPositionN` action
+  under Controls and events, or name the PC input in the board's wiring. A quick
+  tap is never lost, and an action SimHub fires from an event counts as a tap.
+- A **Buttons** page under Modules: name up to 16 buttons, press **Assign** and
+  then the button on the wheel, button box, gamepad or keyboard, and watch every
+  button and input light up while it is held. The same page sets what the
+  buttons do on the open dashboard, the switch positions and the slot they turn,
+  screen rules such as the pit screen in the pit lane, and the return home after
+  a while. While the configurator is connected a new assignment works at once,
+  before it is saved.
+- A slot can go back to its first page after a while without a tap or a button,
+  and a raised page says how long a button dismisses it for, both in the slot's
+  inspector.
+- Conditions can follow one button: `bit_set` with the button's number holds
+  while that button is down, for styling rules, slot pages, LED layers and
+  screen rules.
 - The Pitrig plugin for SimHub feeds the board by itself: it finds the board on
   USB, sends only the fields its dashboard and modules use, and needs no profile
   to import and no port to pick. The Windows installer adds it to SimHub.
@@ -81,6 +125,15 @@ fields without moving an identifier.
   never seen, or lets the layers under it show between flashes. Undo, redo,
   duplicate and delete work from the keyboard on that page.
 
+- Game data for ACC, AC, iRacing and LMU: damage, rain, track wetness and grip,
+  wind, cloud, the time of day and ACC's rain forecast, the car's electronics
+  (TC, TC2, ABS, engine map, brake bias, lights, wipers), hybrid and LMU's
+  virtual energy, penalties, safety car and red flag, read from each game's own
+  data where SimHub has no common value. The field picker and the Protocol
+  page show which of the four games send each field; the others keep the
+  placeholder. New fields `vehicle.aids.traction_control_cut` and
+  `vehicle.energy.virtual` (256 of 256).
+
 **Changed**
 
 - With the plugin, `engine.shift_rpm`, `engine.shift_percent` and
@@ -100,6 +153,12 @@ fields without moving an identifier.
 
 **Fixed**
 
+- Forty-three fields named SimHub properties that never existed — damage,
+  weather, penalties, steering, wheel loads and slips, suspension travel among
+  them — and so stayed empty in every game. They now carry the game's own value
+  where one of the four games sends it, and the placeholder otherwise.
+- The notice about a board in safe mode no longer stretches over the window and
+  squeezes the page under it into a thin strip.
 - The configurator sends a command again when the board answers that it is busy.
   A board still finishing one reply refuses the next command for a few
   milliseconds, which could fail a connection or a read of its configuration.

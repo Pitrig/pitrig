@@ -4,6 +4,8 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 
+#define PITRIG_JC1060P470C_BACKLIGHT_GPIO 23
+
 #ifdef __cplusplus
 extern "C" {
 #endif

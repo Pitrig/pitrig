@@ -68,7 +68,7 @@ bool Validator::conditions(const WidgetFrame& config) {
   }
   for (std::size_t index = 0; index < config.condition_count; ++index) {
     const WidgetCondition& rule = config.conditions[index];
-    if (rule.op < ConditionOperator::above || rule.op > ConditionOperator::not_equal ||
+    if (rule.op < ConditionOperator::above || rule.op > ConditionOperator::bit_set ||
         !std::isfinite(rule.value) || !valid_optional_color(rule.color) ||
         !valid_optional_color(rule.background_color) || !valid_optional_color(rule.border_color)) {
       return reject(failure_, ValidationError::invalid_widget, "conditions");

@@ -1,6 +1,7 @@
 import { rampColor } from './color-ramp'
 import type { ConditionOperator, RgbColor, WidgetCondition } from './configuration-schema'
 import { deviceFloat } from './contract-number'
+import { bitSet } from './widget-conditions'
 
 export interface StyledFrame {
   id?: string
@@ -78,5 +79,7 @@ function holds(operator: ConditionOperator, value: number, threshold: number): b
       return value === threshold
     case 'not_equal':
       return value !== threshold
+    case 'bit_set':
+      return bitSet(value, threshold)
   }
 }

@@ -68,4 +68,5 @@ CATEGORY_LABELS = {
     "brakes_suspension": "Brakes and suspension",
     "track_weather": "Track and weather",
     "motion_physics": "Motion and vehicle physics",
+    "inputs": "PC inputs",
 }

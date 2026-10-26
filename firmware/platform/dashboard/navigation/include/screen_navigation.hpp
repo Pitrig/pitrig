@@ -32,6 +32,10 @@ class Controller final {
 
   void clear_actions();
 
+  void step(int delta, bool wrap = true);
+  void show(std::size_t index);
+  [[nodiscard]] std::size_t active() const { return active_; }
+
  private:
   struct Binding {
     Controller* controller{};
@@ -52,8 +56,6 @@ class Controller final {
   static void on_refresh_ready(lv_event_t* event);
   void begin_tear_free();
   void end_tear_free();
-  void step(int delta);
-  void show(std::size_t index);
   void load(lv_obj_t* screen, bool forward);
 
   std::span<lv_obj_t* const> screens_{};

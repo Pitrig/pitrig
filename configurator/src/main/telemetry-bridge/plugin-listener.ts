@@ -11,9 +11,10 @@ import {
   LINK_VERSION,
   SOURCE_IDLE_MS,
   SUBSCRIBE_INTERVAL_MS,
+  type PluginInput,
   type PluginStatus
 } from '@shared/telemetry-bridge'
-import { isPluginStatus, parsePluginStatus } from './plugin-status'
+import { isPluginInput, isPluginStatus, parsePluginInput, parsePluginStatus } from './plugin-status'
 
 const NEWLINE = 10
 const CONTROL = 64
@@ -44,6 +45,7 @@ export interface PluginListener {
   subscribeError: string | undefined
   onPacket: (listener: (packet: LinkPacket) => void) => void
   onStatus: (listener: (status: PluginStatus) => void) => void
+  onInput: (listener: (input: PluginInput) => void) => void
   onClose: (listener: (error?: Error) => void) => void
   requestNow: () => Promise<void>
   close: () => Promise<void>
@@ -77,6 +79,7 @@ export async function openPluginListener(request: PluginListenerRequest): Promis
   void subscribe()
   let packetListener: ((packet: LinkPacket) => void) | undefined
   let statusListener: ((status: PluginStatus) => void) | undefined
+  let inputListener: ((input: PluginInput) => void) | undefined
   let expected: number | undefined
   let previousAt = Number.NEGATIVE_INFINITY
   socket.on('message', (datagram, remote) => {
@@ -94,6 +97,10 @@ export async function openPluginListener(request: PluginListenerRequest): Promis
       statusListener?.(parsePluginStatus(body.payload.toString('latin1')))
       return
     }
+    if (isPluginInput(body.payload)) {
+      inputListener?.(parsePluginInput(body.payload.toString('utf8')))
+      return
+    }
     const lost = gap > 0 && gap <= RESTART_GAP ? gap : 0
     const rejected = hasControlLine(body.payload)
     packetListener?.({ ...body, address: remote.address, lost, at, rejected })
@@ -109,6 +116,9 @@ export async function openPluginListener(request: PluginListenerRequest): Promis
     },
     onStatus: (listener) => {
       statusListener = listener
+    },
+    onInput: (listener) => {
+      inputListener = listener
     },
     onClose: (listener) => {
       socket.once('close', () => listener())
@@ -136,7 +146,7 @@ async function resolve(host: string): Promise<string> {
 }
 
 function subscribeDatagram(payload: string): Buffer {
-  const body = Buffer.from(payload, 'latin1')
+  const body = Buffer.from(payload, 'utf8')
   const datagram = Buffer.alloc(LINK_HEADER_BYTES + body.length)
   datagram.write(LINK_MAGIC, 0, 'latin1')
   datagram[2] = LINK_VERSION

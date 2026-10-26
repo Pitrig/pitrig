@@ -154,6 +154,11 @@ running and the one it would fall back to, and neither is erasable on request.
   `pitrig_cfg` (ADR 0009); giving each its own would have avoided this and was
   rejected because it makes the common case worse — a configuration saved before
   an update would vanish after it.
+- An update across a schema change finds every stored record unsupported in the
+  same way. Firmware keeps accepting only its own schema version and the host
+  carries the configuration across: `Update board` in the configurator keeps a
+  copy of the stored documents in its library before the upload and writes it
+  back, migrated, once the new image answers (`ota.md`).
 - Updating over a network is still out of scope. WiFi is not enabled in any
   build and the ESP32-P4 has no radio of its own, so the serial link is the only
   path.

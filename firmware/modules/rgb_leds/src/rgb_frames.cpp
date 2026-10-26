@@ -161,12 +161,14 @@ bool RgbLeds::paint_output(const std::size_t output, const std::uint64_t now_us)
     }
     paint_lamps(outputs_[output], geometry_[output], binding, effect, colors, value, elapsed_us);
   }
-  if (outputs_[output].changed()) {
+  const std::uint8_t brightness = output_brightness(device.brightness);
+  if (outputs_[output].changed() || brightness != flushed_brightness_[output]) {
     quiet_frames_[output] = 0;
   } else if (quiet_frames_[output] > kDitherTailFrames) {
     return false;
   }
-  if (!outputs_[output].flush({.brightness = device.brightness,
+  flushed_brightness_[output] = brightness;
+  if (!outputs_[output].flush({.brightness = brightness,
                                .gamma = device.gamma,
                                .current_limit_ma = device.current_limit_ma,
                                .dither = quiet_frames_[output] < kDitherTailFrames})) {
@@ -175,6 +177,14 @@ bool RgbLeds::paint_output(const std::size_t output, const std::uint64_t now_us)
   outputs_[output].settle();
   ++quiet_frames_[output];
   return true;
+}
+
+std::uint8_t RgbLeds::output_brightness(const std::uint8_t configured) const {
+  if (!lit_.load()) {
+    return 0;
+  }
+  return static_cast<std::uint8_t>(static_cast<std::uint32_t>(configured) * scale_percent_.load() /
+                                   100U);
 }
 
 std::optional<double> RgbLeds::watched_value(const EffectBinding& binding) const {

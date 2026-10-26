@@ -1,6 +1,6 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { CONDITION_OPERATOR_VALUES, type ConditionOperator, MAXIMUM_SLOT_PAGES, MAXIMUM_WIDGET_CONDITIONS, SLOT_TRIGGER_VALUES, type SlotPageConfiguration, type SlotTrigger } from '@shared/configuration-schema'
-import { MAXIMUM_HOLD_MS } from '@shared/widget-conditions'
+import { type ConditionOperator, MAXIMUM_SLOT_PAGES, MAXIMUM_WIDGET_CONDITIONS, SLOT_TRIGGER_VALUES, type SlotPageConfiguration, type SlotTrigger } from '@shared/configuration-schema'
+import { MAXIMUM_HOLD_MS, operatorsFor } from '@shared/widget-conditions'
 import { addSlotPage, deleteSlotPage, mutateSlotPage, useDashboardEditorStore } from '../dashboard-editor'
 import { TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
@@ -9,6 +9,7 @@ import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, NumberField, NumberInput, SelectField, SelectInput } from './fields'
+import { DismissFields } from './slot-controls'
 
 export function SlotPagesEditor({
   slotId,
@@ -175,7 +176,7 @@ export function SlotPagesEditor({
                       <div className="flex items-center gap-1">
                         <SelectInput
                           value={rule.op ?? 'at_or_above'}
-                          options={CONDITION_OPERATOR_VALUES}
+                          options={operatorsFor(page.source?.binding)}
                           onChange={(op) =>
                             change((next) => {
                               const rules = next.conditions ?? []
@@ -232,6 +233,7 @@ export function SlotPagesEditor({
                   ) : null}
                 </>
               ) : null}
+              <DismissFields page={page} change={change} />
             </>
           )}
         </>

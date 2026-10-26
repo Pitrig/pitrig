@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain } from 'electron'
 
 import {
+  isBoardUpdateRequest,
   isFirmwareUploadRequest,
   isFontCatalogPreviewRequest,
   isFontFacesRequest,
@@ -12,9 +13,11 @@ import {
 } from './request-guards'
 import type { AssetResult } from '../../shared/asset-upload'
 import {
+  BOARD_UPDATE_CHANNEL,
   FIRMWARE_CANCEL_UPLOAD_CHANNEL,
   FIRMWARE_SELECT_SOURCE_CHANNEL,
   FIRMWARE_UPLOAD_CHANNEL,
+  type BoardUpdateResult,
   type FirmwareUpdateResult
 } from '../../shared/firmware-update'
 import { FONT_CANCEL_UPLOAD_CHANNEL, FONT_CLEAR_CHANNEL } from '../../shared/font-assets'
@@ -41,6 +44,7 @@ import {
 } from '../../shared/simhub-profile'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
+import { BoardUpdateService } from '../firmware-update/board-update-service'
 import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
 import { FontAssetService } from '../font-assets/font-asset-service'
 import { FontCatalogService } from '../font-library/font-catalog-service'
@@ -55,6 +59,7 @@ export function registerAssetHandlers(
   fontAssetService: FontAssetService,
   imageAssetService: ImageAssetService,
   firmwareUpdateService: FirmwareUpdateService,
+  boardUpdateService: BoardUpdateService,
   simHubProfileService: SimHubProfileService,
   previewAssetCache: PreviewAssetCache,
   fontLibraryService: FontLibraryService,
@@ -121,6 +126,16 @@ export function registerAssetHandlers(
       return result
     }
     return firmwareUpdateService.upload(request)
+  })
+  ipcMain.handle(BOARD_UPDATE_CHANNEL, (_event, request: unknown) => {
+    if (!isBoardUpdateRequest(request)) {
+      const result: BoardUpdateResult = {
+        ok: false,
+        error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidFirmwareUploadRequest') }
+      }
+      return result
+    }
+    return boardUpdateService.update(request)
   })
   ipcMain.handle(IMAGE_SELECT_SOURCE_CHANNEL, (event) =>
     imageAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)

@@ -10,10 +10,10 @@
       "doc": "The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place."
     },
     "modules": {
-      "sections": ["hardware"],
+      "sections": ["hardware", "inputs"],
       "max_payload": 32768,
       "reboot_required": false,
-      "doc": "Peripherals beyond the display: the addressable LED outputs, and the buttons and encoders that will join them. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset."
+      "doc": "Peripherals beyond the display: the addressable LED outputs, and which PC inputs press the logical buttons the dashboard's controls act on. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset."
     },
     "protocol": {
       "sections": ["telemetry_transport"],
@@ -216,6 +216,42 @@
       "value": 32,
       "doc": "Static text a text effect may carry including the terminator (31 usable bytes)."
     },
+    "kMaximumInputButtons": {
+      "value": 16,
+      "doc": "Logical buttons PC inputs can drive. They reach the board as the bits of input.buttons, so this is also how many of that field's bits mean anything."
+    },
+    "kMaximumInputSources": {
+      "value": 4,
+      "doc": "PC inputs one logical button answers to, so a wheel button and a keyboard key can press the same one."
+    },
+    "kMaximumSwitchPositions": {
+      "value": 12,
+      "doc": "Positions of the one multi-position switch, the most a rotary switch on a rim offers. Position N reaches the board as the value N of input.switch."
+    },
+    "kInputNameCapacity": {
+      "value": 24,
+      "doc": "Bytes for a logical button's name, terminator included."
+    },
+    "kInputSourceCapacity": {
+      "value": 96,
+      "doc": "Bytes for one PC input as SimHub names it, terminator included. A joystick button carries the device's whole product name, which is what sizes this."
+    },
+    "kMaximumControlBindings": {
+      "value": 32,
+      "doc": "Actions the buttons of one dashboard perform: one for every logical button, with room for as many again for a button that does two things."
+    },
+    "kMaximumControlRules": {
+      "value": 4,
+      "doc": "Rules that bring a screen forward on a game event, one per screen a dashboard can have."
+    },
+    "kMaximumIdleReturnMs": {
+      "value": 600000,
+      "doc": "Longest wait without a press before a dashboard or a slot goes back home: ten minutes."
+    },
+    "kMaximumDismissMs": {
+      "value": 600000,
+      "doc": "Longest a dismissed slot page stays away when its dismissal is timed: ten minutes."
+    },
     "kLedTelemetryIdleMs": {
       "value": 2000,
       "doc": "Silence after which the telemetry_idle gate starts holding. Long enough that a pause between lines is not an outage, short enough that a closed game is noticed before the lamps look stuck."
@@ -336,9 +372,9 @@
       "doc": "Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill."
     },
     "ConditionOperator": {
-      "json_values": ["above", "at_or_above", "below", "at_or_below", "equal", "not_equal"],
+      "json_values": ["above", "at_or_above", "below", "at_or_below", "equal", "not_equal", "bit_set"],
       "default": "at_or_above",
-      "doc": "Comparison a styling rule applies to the numeric value of its condition source."
+      "doc": "Comparison a styling rule applies to the numeric value of its condition source. bit_set holds while bit number value of the source is 1, counted from 1 like the logical buttons of input.buttons, so a rule can follow one button; it never holds for a value below 1 or above 32."
     },
     "WidgetActionType": {
       "json_values": ["none", "next_screen", "previous_screen", "goto_screen"],
@@ -391,6 +427,16 @@
       "json_values": ["strip", "arc"],
       "default": "strip",
       "doc": "How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sector, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the ring geometry, and each ignores the other's."
+    },
+    "ControlAction": {
+      "json_values": ["next_screen", "previous_screen", "show_screen", "hold_screen", "home_screen", "next_page", "previous_page", "show_page", "hold_page", "dismiss_page", "display_brighter", "display_dimmer", "leds_brighter", "leds_dimmer", "leds_toggle"],
+      "default": "next_screen",
+      "doc": "What a logical button does. The screen actions move the dashboard, hold_screen only while the button stays down, and home_screen returns to the controls' home screen. The page actions work on one named slot the same way, and dismiss_page sends away the page an event raised there. The display steps its backlight by a tenth between 10 and 100 % and remembers it across restarts; the LED actions scale every output by a tenth or switch them all off and on again until the next restart."
+    },
+    "SlotDismiss": {
+      "json_values": ["next_event", "timed", "session"],
+      "default": "next_event",
+      "doc": "How long a raised page stays away once a button dismisses it. next_event brings it back the next time its trigger fires anew: a value that changes again, or a comparison that stops holding and then holds again. timed keeps it away for dismiss_ms whatever happens. session keeps it away until the board restarts or the game starts a new session."
     },
     "SlotTrigger": {
       "json_values": ["none", "value_changed", "conditions"],
@@ -891,6 +937,8 @@
         { "name": "trigger", "kind": "enum", "enum": "SlotTrigger" },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry this page watches. Required by both triggers and rejected without one, so a binding never sits unread." },
         { "name": "duration_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "How long the page stays up after its event fires, after which the slot returns to whichever loop page was last selected. Required by value_changed, which would otherwise show a single frame; with conditions, 0 keeps the page up only while a rule holds. Bounded like a styling hold." },
+        { "name": "dismiss", "kind": "enum", "enum": "SlotDismiss", "doc": "What a dismiss_page button does to this page while it is raised: how long it then stays away. Only a page with a trigger is ever raised, so on any other page this is never read." },
+        { "name": "dismiss_ms", "kind": "uint32", "default": 0, "maximum": "kMaximumDismissMs", "doc": "How long a timed dismissal keeps the page away. Required by timed and rejected by the other dismissals." },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
         { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
@@ -920,6 +968,7 @@
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "clip_children", "kind": "bool", "default": true, "doc": "Cuts the widgets on every page of this slot off at the slot's box. Not an appearance — a slot still draws nothing — but the same choice a container shape makes, because a page is an area of the screen in exactly the same way." },
+        { "name": "home_after_ms", "kind": "uint32", "default": 0, "maximum": "kMaximumIdleReturnMs", "doc": "Time without a press of a button that works on this slot after which it goes back to its first loop page. 0 never does." },
         { "name": "page_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "pages", "kind": "array", "struct": "SlotPageConfiguration", "capacity": "kMaximumSlotPages", "count_field": "page_count", "doc": "Pages this slot switches between, in priority order. At least one must be in the loop, so a slot always has something to fall back to." }
       ]
@@ -952,11 +1001,55 @@
       ]
     },
 
+    "ControlBinding": {
+      "doc": "One action a logical button performs on this dashboard. A button may carry several, performed in the order they are listed.",
+      "fields": [
+        { "name": "button", "kind": "uint8", "default": 1, "minimum": 1, "maximum": "kMaximumInputButtons", "doc": "Logical button, counted from 1 as the plugin's ButtonN actions in SimHub are." },
+        { "name": "action", "kind": "enum", "enum": "ControlAction" },
+        { "name": "screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Screen id show_screen and hold_screen bring up. Required by them and rejected by every other action." },
+        { "name": "slot", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Id of the slot widget a page action or dismiss_page works on. Required by them and rejected by every other action." },
+        { "name": "page", "kind": "uint8", "default": 1, "minimum": 1, "maximum": "kMaximumSlotPages", "doc": "Page show_page and hold_page bring up, counted from 1 in the slot's page order." },
+        { "name": "wrap", "kind": "bool", "default": true, "doc": "Whether next and previous go round from the last to the first, or stop at the ends. Read by the four next and previous actions only." },
+        { "name": "repeat", "kind": "bool", "default": false, "doc": "Whether holding the button repeats a step action, such as a screen, a page or a brightness step, after a pause, rather than taking one step per press." }
+      ]
+    },
+
+    "ControlSwitch": {
+      "doc": "What the multi-position switch drives on this dashboard. Position N brings up page N of the slot, and a position past the slot's last page does nothing.",
+      "fields": [
+        { "name": "slot", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Id of the slot widget the switch drives. Empty leaves the switch unused on this dashboard." }
+      ]
+    },
+
+    "ControlRule": {
+      "doc": "A game event that brings a screen forward: while one of its comparisons holds the screen is shown, and once none does the dashboard goes back to the screen it left, unless a button moved it in the meantime. The first rule that holds wins.",
+      "fields": [
+        { "name": "screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the comparisons watch. Required, like a slot page's." },
+        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" }
+      ]
+    },
+
+    "ControlsConfiguration": {
+      "doc": "What the logical buttons do on this dashboard, the rules that switch screens on game events, and where it goes after a while without presses. Which PC input is which logical button belongs to the modules document's inputs, so changing the dashboard keeps that wiring and a template can bring its own actions.",
+      "fields": [
+        { "name": "binding_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "bindings", "kind": "array", "struct": "ControlBinding", "capacity": "kMaximumControlBindings", "count_field": "binding_count" },
+        { "name": "position_switch", "json": "switch", "kind": "struct", "struct": "ControlSwitch" },
+        { "name": "rule_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "rules", "kind": "array", "struct": "ControlRule", "capacity": "kMaximumControlRules", "count_field": "rule_count" },
+        { "name": "home_screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Screen home_screen and the idle return go to. Empty means the first screen." },
+        { "name": "home_after_ms", "kind": "uint32", "default": 0, "maximum": "kMaximumIdleReturnMs", "doc": "Time without a press after which the dashboard goes back to its home screen. 0 never does." }
+      ]
+    },
+
     "DashboardConfiguration": {
       "doc": "Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays.",
       "fields": [
         { "name": "transition", "kind": "enum", "enum": "ScreenTransition", "doc": "How every move between screens is drawn, whether a swipe or a tap asked for it. Dashboard-wide because an animation draws the screen being left as well as the one arriving, so a per-screen answer would only hold in one direction." },
         { "name": "smoothing", "kind": "enum", "enum": "ValueSmoothing", "doc": "How a mapped value moves between telemetry packets. Dashboard-wide because it is a property of the feed rather than of a widget: every gauge on the same field shares one follower, and the policy is what the driver judges by eye." },
+        { "name": "controls", "kind": "struct", "struct": "ControlsConfiguration", "doc": "What PC buttons do on this dashboard. Absent means they do nothing here." },
         { "name": "screen_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "screens", "kind": "array", "struct": "ScreenConfiguration", "capacity": "kMaximumScreens", "count_field": "screen_count" },
         { "name": "text_widget_count", "kind": "uint8", "default": 0, "serialized": false },
@@ -978,12 +1071,50 @@
       ]
     },
 
+    "InputSource": {
+      "host_only": true,
+      "doc": "One PC input, named as SimHub's Controls and events list shows it.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kInputSourceCapacity", "default": "" }
+      ]
+    },
+
+    "InputButton": {
+      "host_only": true,
+      "doc": "One logical button: what it is called and the PC inputs that press it. Its number is its place in the list, counted from 1.",
+      "fields": [
+        { "name": "name", "kind": "text", "capacity": "kInputNameCapacity", "default": "" },
+        { "name": "source_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "sources", "kind": "array", "struct": "InputSource", "capacity": "kMaximumInputSources", "count_field": "source_count" }
+      ]
+    },
+
+    "InputSwitch": {
+      "host_only": true,
+      "doc": "The multi-position switch: one PC input per position, the first being position 1.",
+      "fields": [
+        { "name": "position_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "positions", "kind": "array", "struct": "InputSource", "capacity": "kMaximumSwitchPositions", "count_field": "position_count" }
+      ]
+    },
+
+    "InputsConfiguration": {
+      "host_only": true,
+      "doc": "Which PC inputs press the logical buttons and set the switch. Read by the configurator and by the SimHub plugin, which turns the inputs into the input.buttons and input.switch fields; the board keeps the section in its document and never reads it.",
+      "fields": [
+        { "name": "button_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "buttons", "kind": "array", "struct": "InputButton", "capacity": "kMaximumInputButtons", "count_field": "button_count" },
+        { "name": "position_switch", "json": "switch", "kind": "struct", "struct": "InputSwitch" }
+      ]
+    },
+
     "ApplicationConfiguration": {
       "root": true,
       "fields": [
         { "name": "board", "kind": "struct", "struct": "BoardConfiguration", "flatten": true },
         { "name": "device_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "hardware", "kind": "array", "struct": "HardwareDeviceConfiguration", "capacity": "kMaximumHardwareDevices", "count_field": "device_count" },
+        { "name": "inputs", "kind": "struct", "struct": "InputsConfiguration" },
         { "name": "telemetry_transport_present", "kind": "bool", "default": false, "serialized": false },
         { "name": "telemetry_transport", "kind": "struct", "struct": "TelemetryTransportConfiguration" },
         { "name": "dashboard", "kind": "struct", "struct": "DashboardConfiguration" }
@@ -1011,6 +1142,7 @@
     { "name": "unknown_property", "doc": "Property name is not part of this schema version." },
     { "name": "duplicate_property", "doc": "Property appears more than once in the same object." },
     { "name": "out_of_range", "doc": "Value is well formed but outside the range, longer than the text, or holds more entries than the property can hold." },
-    { "name": "unknown_value", "doc": "Text is well formed but names none of the values the property accepts." }
+    { "name": "unknown_value", "doc": "Text is well formed but names none of the values the property accepts." },
+    { "name": "invalid_control", "doc": "A button action, the switch, a control rule or the home screen names a screen, slot or page that is not there, or carries a target its action has none of." }
   ]
 }

@@ -4,10 +4,11 @@ from typing import Any
 
 from . import BANNER
 from .cpp_documents import cpp_default, cpp_field_type, generate_cpp_documents
-from .model import snake, struct_order, widget_pools
+from .model import device_view, snake, struct_order, widget_pools
 
 
 def generate_cpp_contract(document: dict[str, Any]) -> str:
+    document = device_view(document)
     lines = [
         f"// {BANNER}",
         "#pragma once",

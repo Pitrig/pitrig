@@ -75,6 +75,7 @@ const driver::Driver kDriver{
     .initialize = initialize,
     .release = release,
     .on_display_ready = on_display_ready,
+    .backlight_pin = PITRIG_JC1060P470C_BACKLIGHT_GPIO,
 };
 
 }

@@ -17,7 +17,7 @@ const DASHBOARD_VIEWS = ['canvas', 'templates', 'fonts', 'images'] as const
 
 export type DashboardView = (typeof DASHBOARD_VIEWS)[number]
 
-const MODULES_VIEWS = ['leds', 'matrix'] as const
+const MODULES_VIEWS = ['leds', 'matrix', 'buttons'] as const
 
 export type ModulesView = (typeof MODULES_VIEWS)[number]
 

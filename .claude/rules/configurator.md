@@ -10,12 +10,14 @@ service and the protocol under `device/`, where `asset-upload.ts` and
 `device-uploads.ts` are the one `SCF1` engine font, image and firmware upload
 all run through; `assets/` holds the base every asset service extends, the file
 chooser and the preview cache; then the `font-library/` face store and Google
-Fonts catalog, the `save-to-board/` orchestrator, the `telemetry-bridge/` relay,
-the `ipc/` registrations, config files, the dashboard `templates/` library, the
+Fonts catalog, the `save-to-board/` orchestrator, `firmware-update/` with the
+`Update board` sequence, the `telemetry-bridge/` relay, the `updates/` channel
+(ADR 0037, registered by the product entry point only, like the bridge), the
+`ipc/` registrations, config files, the dashboard `templates/` library, the
 `configs/` folder and recent-files list, SimHub profile export),
 `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
-`configuration`, `device`, `firmware-update`, `font-library`, `image-assets`,
-`modules`, `protocol`, `telemetry`, `templates`). `shared/` is everything both
+`configuration`, `controls`, `device`, `firmware-update`, `font-library`, `image-assets`,
+`modules`, `protocol`, `telemetry`, `templates`, `updates`). `shared/` is everything both
 processes run, not only types: the validators, the layout transfer, LED
 rendering, `t()` and the generated contracts.
 `src/shared/ipc.ts` declares the `PitrigApi` surface and `APP_GET_INFO_CHANNEL`
@@ -114,11 +116,14 @@ before the open, survives a reboot and the scan's second open, and ends with a
 handback on disconnect. A board the plugin feeds counts as found in the scan
 without being opened. The renderer sends what to stream through
 `features/telemetry/telemetry-interest.ts` — the running documents' and the
-draft's bindings, or every field while the catalog table is mounted.
+draft's bindings, or every field while the catalog table is mounted — and with
+it whether the Buttons page (`features/controls/`) wants the plugin's
+`@PT:INPUT` reports and the draft's `inputs`, which `PluginHandover` sends as
+`button`/`position` lines while it holds a board.
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 252-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 256-row catalog table),
 so nothing re-renders while the bridge is stopped. `PreviewCanvas` reads live
 values per frame and the lamp preview (`features/modules/LedPreview.tsx` over
 `preview-values.ts`) with it, while the catalog table in
