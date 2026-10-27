@@ -1,5 +1,3 @@
-import { StringDecoder } from 'node:string_decoder'
-
 import { SerialPort } from 'serialport'
 
 import type { SerialTrafficLog } from '../../shared/serial-traffic'
@@ -11,9 +9,11 @@ import type {
   DeviceState,
   SerialPortSummary
 } from '../../shared/device'
+import { listenToActivePort } from './active-port-listeners'
 import { DeviceServiceError, failure, success, toDeviceError } from './device-errors'
+import { PortLeases, openWhenFree, probeAfterHandover } from './port-leases'
 import { PortRegistry, type PortRecord } from './port-registry'
-import { closePort, openPort } from './serial-port-lifecycle'
+import { closePort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
 import { identifyPitrig, probePitrig } from './device-probe'
 import { reconnectToBoard, scanForDevice } from './device-scan'
@@ -27,6 +27,7 @@ export interface OpenedDevice {
 }
 
 export class ConnectionManager {
+  readonly leases = new PortLeases()
   private readonly portRegistry = new PortRegistry()
   private state: DeviceState = { status: 'disconnected' }
   private activePort: SerialPort | undefined
@@ -143,12 +144,14 @@ export class ConnectionManager {
     const pending = this.pendingPort
     this.pendingPort = undefined
     await closePort(pending)
+    this.leases.dropAll()
     this.setState({ status: 'disconnected' })
     return success(this.state)
   }
 
   async closeDevicePorts(): Promise<void> {
     ++this.operationToken
+    const connection = this.state.connection
     this.setState({ status: 'disconnecting' })
 
     const pending = this.pendingPort
@@ -161,6 +164,7 @@ export class ConnectionManager {
     this.detachActiveListeners = undefined
     await Promise.all([closePort(pending), closePort(active)])
     traffic?.flush()
+    this.leases.handBack(connection?.path, connection?.baudRate)
     this.setState({ status: 'disconnected' })
   }
 
@@ -200,6 +204,8 @@ export class ConnectionManager {
     probe: (port: SerialPort, onTraffic: TrafficCallback) => Promise<T>
   ): Promise<{ port: SerialPort; traffic: SerialTrafficReporter; value: T }> {
     this.ensureCurrent(token)
+    const fromPlugin = await this.leases.take(record.path)
+    this.ensureCurrent(token)
     const port = new SerialPort({
       path: record.path,
       baudRate,
@@ -210,9 +216,12 @@ export class ConnectionManager {
     const traffic = new SerialTrafficReporter(this.onSerialTraffic, record.path, baudRate)
 
     try {
-      await openPort(port)
+      await openWhenFree(port, fromPlugin)
       this.ensureCurrent(token)
-      const value = await probe(port, (direction, data) => traffic.write(direction, data))
+      const value = await probeAfterHandover(
+        () => probe(port, (direction, data) => traffic.write(direction, data)),
+        fromPlugin
+      )
       this.ensureCurrent(token)
       this.pendingPort = undefined
       return { port, traffic, value }
@@ -228,43 +237,34 @@ export class ConnectionManager {
 
   private attachActivePort(opened: OpenedDevice, record: PortRecord, baudRate: number): void {
     const { port, session, traffic } = opened
+    this.leases.keepOnly(record.path)
     this.activePort = port
     this.activeTraffic = traffic
-    const decoder = new StringDecoder('utf8')
-    const onData = (chunk: Buffer): void => {
-      const text = decoder.write(chunk)
-      if (text.length > 0) traffic.write('rx', text)
-    }
-    const onClose = (): void => {
-      if (this.activePort !== port) {
-        return
-      }
-      this.activePort = undefined
-      this.activeTraffic = undefined
-      this.detachActiveListeners?.()
-      this.detachActiveListeners = undefined
-      traffic.flush()
-      this.setState({
-        status: 'error',
-        error: {
-          code: 'serial_error',
-          message: t('device.deviceConnection.theSerialDeviceWasDisconnected')
+    this.detachActiveListeners = listenToActivePort(port, traffic, {
+      onClose: () => {
+        if (this.activePort !== port) {
+          return
         }
-      })
-    }
-    const onError = (error: Error): void => {
-      if (this.activePort === port) {
-        this.setState({ status: 'error', error: toDeviceError(error) })
+        this.activePort = undefined
+        this.activeTraffic = undefined
+        this.detachActiveListeners?.()
+        this.detachActiveListeners = undefined
+        traffic.flush()
+        this.leases.dropAll()
+        this.setState({
+          status: 'error',
+          error: {
+            code: 'serial_error',
+            message: t('device.deviceConnection.theSerialDeviceWasDisconnected')
+          }
+        })
+      },
+      onError: (error) => {
+        if (this.activePort === port) {
+          this.setState({ status: 'error', error: toDeviceError(error) })
+        }
       }
-    }
-    this.detachActiveListeners = (): void => {
-      port.off('data', onData)
-      port.off('close', onClose)
-      port.off('error', onError)
-    }
-    port.on('data', onData)
-    port.once('close', onClose)
-    port.on('error', onError)
+    })
 
     const connection: DeviceConnection = {
       portId: record.summary.id,
@@ -278,6 +278,7 @@ export class ConnectionManager {
   private finishFailedOperation(error: unknown, token: number): DeviceResult<DeviceState> {
     const deviceError = toDeviceError(error)
     if (token === this.operationToken) {
+      this.leases.dropAll()
       this.setState({ status: 'error', error: deviceError })
     }
     return failure(deviceError)

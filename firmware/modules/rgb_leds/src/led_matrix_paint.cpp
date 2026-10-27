@@ -7,6 +7,7 @@
 #include "led_font.hpp"
 #include "number_transform.hpp"
 #include "text_writer.hpp"
+#include "value_conditions.hpp"
 
 namespace pitrig::rgb_leds {
 namespace {
@@ -22,6 +23,34 @@ namespace {
     default:
       return led::Font::regular_4x6;
   }
+}
+
+[[nodiscard]] std::size_t frame_of(const configuration::LedSpriteConfiguration& sprite,
+                                   const configuration::LedEffect& effect,
+                                   const std::optional<double> value, const std::uint64_t elapsed_us) {
+  const std::size_t last = sprite.frame_count - 1U;
+  if (value.has_value() && effect.sprite_scaled) {
+    const float fraction = conditions::range_fraction(*value, effect.range);
+    return std::min<std::size_t>(static_cast<std::size_t>(fraction * sprite.frame_count), last);
+  }
+  if (value.has_value()) {
+    const double rounded = std::round(*value);
+    return rounded <= 0 ? 0 : static_cast<std::size_t>(std::min<double>(rounded, last));
+  }
+  if (effect.sprite_loop && sprite.frame_count > 1) {
+    return static_cast<std::size_t>((elapsed_us / effect_period_us(effect)) % sprite.frame_count);
+  }
+  return std::min<std::size_t>(effect.sprite_frame, last);
+}
+
+[[nodiscard]] std::array<led::Color, configuration::kLedPaletteSize> palette_of(
+    const configuration::LedSpriteConfiguration& sprite, const std::optional<led::Color> tint) {
+  std::array<led::Color, configuration::kLedPaletteSize> palette{};
+  for (std::uint8_t index = 0; index < sprite.palette_count; ++index) {
+    const std::uint32_t rgb = sprite.palette[index].color;
+    palette[index] = tint.has_value() && rgb != 0 ? *tint : led::Color::from_rgb(rgb);
+  }
+  return palette;
 }
 
 }
@@ -55,25 +84,11 @@ void paint_sprite(const Panel& panel, const configuration::LedSpriteConfiguratio
   }
   const std::size_t area = static_cast<std::size_t>(sprite->width) * sprite->height;
   const std::string_view pixels = configuration::text_view(sprite->pixels);
-  std::size_t frame = effect.sprite_frame;
-  if (value.has_value()) {
-    const double rounded = std::round(*value);
-    frame = rounded <= 0
-                ? 0
-                : static_cast<std::size_t>(std::min<double>(rounded, sprite->frame_count - 1));
-  } else if (effect.sprite_loop && sprite->frame_count > 1) {
-    frame = static_cast<std::size_t>((elapsed_us / effect_period_us(effect)) % sprite->frame_count);
-  }
-  frame = std::min<std::size_t>(frame, sprite->frame_count - 1);
-  const std::size_t base = frame * area;
+  const std::size_t base = frame_of(*sprite, effect, value, elapsed_us) * area;
   if (base + area > pixels.size()) {
     return;
   }
-  std::array<led::Color, configuration::kLedPaletteSize> palette{};
-  for (std::uint8_t index = 0; index < sprite->palette_count; ++index) {
-    const std::uint32_t rgb = sprite->palette[index].color;
-    palette[index] = tint.has_value() && rgb != 0 ? *tint : led::Color::from_rgb(rgb);
-  }
+  const std::array<led::Color, configuration::kLedPaletteSize> palette = palette_of(*sprite, tint);
   const int origin_x = (panel.area.width - sprite->width) / 2;
   const int origin_y = (panel.area.height - sprite->height) / 2;
   for (std::uint8_t y = 0; y < sprite->height; ++y) {
@@ -83,6 +98,28 @@ void paint_sprite(const Panel& panel, const configuration::LedSpriteConfiguratio
         continue;
       }
       panel.set(origin_x + x, origin_y + y, palette[index]);
+    }
+  }
+}
+
+void paint_strip_sprite(const Surface& surface,
+                        const configuration::LedSpriteConfiguration* const sprite,
+                        const configuration::LedEffect& effect, const std::optional<double> value,
+                        const std::optional<led::Color> tint, const std::uint64_t elapsed_us) {
+  if (sprite == nullptr || sprite->width == 0 || sprite->height == 0) {
+    return;
+  }
+  const std::string_view pixels = configuration::text_view(sprite->pixels);
+  const std::size_t base = frame_of(*sprite, effect, value, elapsed_us) * sprite->width;
+  if (base + sprite->width > pixels.size()) {
+    return;
+  }
+  const std::array<led::Color, configuration::kLedPaletteSize> palette = palette_of(*sprite, tint);
+  const std::size_t shown = std::min<std::size_t>(sprite->width, surface.size());
+  for (std::size_t lamp = 0; lamp < shown; ++lamp) {
+    const int index = configuration::led_palette_digit(pixels[base + lamp]);
+    if (index >= 0 && index < sprite->palette_count) {
+      surface.set(lamp, palette[index]);
     }
   }
 }

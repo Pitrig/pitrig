@@ -12,6 +12,16 @@ import type {
   SerialPortSummary
 } from './device'
 import type {
+  InstallPluginRequest,
+  InstallPluginResult,
+  OpenUpdatePageRequest,
+  PrepareFirmwareResult,
+  UpdateStatus
+} from './app-updates'
+import type {
+  BoardUpdateProgress,
+  BoardUpdateRequest,
+  BoardUpdateResult,
   FirmwareSourceSelection,
   FirmwareUpdateResult,
   FirmwareUploadProgress,
@@ -59,8 +69,11 @@ import type {
   SavedConfigurationSummary
 } from './config-library'
 import type {
+  PluginInput,
   TelemetryBridgeStartRequest,
   TelemetryBridgeStatus,
+  TelemetryInterest,
+  TelemetrySimulation,
   TelemetrySnapshot
 } from './telemetry-bridge'
 import type {
@@ -142,6 +155,14 @@ export interface PitrigApi {
   selectFirmwareSource: () => Promise<FirmwareUpdateResult<FirmwareSourceSelection | null>>
   uploadFirmware: (request: FirmwareUploadRequest) => Promise<FirmwareUpdateResult<void>>
   cancelFirmwareUpload: () => Promise<FirmwareUpdateResult<void>>
+  updateBoard: (request: BoardUpdateRequest) => Promise<BoardUpdateResult>
+  getUpdateStatus: () => Promise<UpdateStatus>
+  checkForUpdates: () => Promise<UpdateStatus>
+  installAppUpdate: () => Promise<boolean>
+  openUpdatePage: (request: OpenUpdatePageRequest) => Promise<void>
+  prepareReleaseFirmware: () => Promise<PrepareFirmwareResult>
+  installSimHubPlugin: (request: InstallPluginRequest) => Promise<InstallPluginResult>
+  onUpdateStatus: (listener: (status: UpdateStatus) => void) => () => void
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
   uploadImageAssets: (request: ImageUploadRequest) => Promise<AssetResult<void>>
   cancelImageUpload: () => Promise<AssetResult<void>>
@@ -154,16 +175,19 @@ export interface PitrigApi {
   onFirmwareUploadProgress: (
     listener: (progress: FirmwareUploadProgress) => void
   ) => () => void
+  onBoardUpdateProgress: (listener: (progress: BoardUpdateProgress) => void) => () => void
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
-  telemetryBridge?: TelemetryBridgeApi
+  telemetryBridge: TelemetryBridgeApi
 }
 
 export interface TelemetryBridgeApi {
   getStatus: () => Promise<TelemetryBridgeStatus>
   start: (request: TelemetryBridgeStartRequest) => Promise<DeviceResult<TelemetryBridgeStatus>>
-  stop: () => Promise<DeviceResult<TelemetryBridgeStatus>>
+  setInterest: (interest: TelemetryInterest) => Promise<void>
+  simulate: (simulation: TelemetrySimulation) => Promise<void>
   onStatus: (listener: (status: TelemetryBridgeStatus) => void) => () => void
   onSnapshot: (listener: (snapshot: TelemetrySnapshot) => void) => () => void
+  onInput: (listener: (input: PluginInput) => void) => () => void
 }

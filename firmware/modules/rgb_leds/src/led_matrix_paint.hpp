@@ -30,6 +30,10 @@ void paint_sprite(const Panel& panel, const configuration::LedSpriteConfiguratio
                   const configuration::LedEffect& effect, std::optional<double> value,
                   std::optional<led::Color> tint, std::uint64_t elapsed_us);
 
+void paint_strip_sprite(const Surface& surface, const configuration::LedSpriteConfiguration* sprite,
+                        const configuration::LedEffect& effect, std::optional<double> value,
+                        std::optional<led::Color> tint, std::uint64_t elapsed_us);
+
 void paint_text(const Panel& panel, const configuration::LedEffect& effect, std::string_view text,
                 led::Color color, std::uint64_t elapsed_us);
 

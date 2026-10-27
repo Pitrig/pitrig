@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react'
+import { GameMarks } from '@/features/telemetry/GameMarks'
 import { useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +9,7 @@ import {
   telemetryIsLive,
   useSlowRevision
 } from '@/features/telemetry/live-telemetry'
-import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
+import { useCatalogInterest } from '@/features/telemetry/telemetry-interest'
 import { rawText } from '@shared/telemetry-value'
 import { searchTelemetryReference } from './telemetry-reference'
 import { t } from '@shared/ui-text'
@@ -17,6 +18,7 @@ export function CatalogSection(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const entries = useMemo(() => searchTelemetryReference(query), [query])
   useSlowRevision()
+  useCatalogInterest()
   const live = telemetryIsLive()
 
   return (
@@ -51,12 +53,11 @@ export function CatalogSection(): React.JSX.Element {
             <thead className="sticky top-0 bg-card text-[11px] text-muted-foreground">
               <tr>
                 <th className="px-4 py-1.5 font-medium">{t('protocol.catalogSection.field')}</th>
-                {TELEMETRY_BRIDGE_INCLUDED ? (
-                  <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.value')}</th>
-                ) : null}
+                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.value')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.wire')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.type')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.unit')}</th>
+                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.games')}</th>
                 <th className="px-4 py-1.5 font-medium">{t('protocol.catalogSection.simHubProperty')}</th>
               </tr>
             </thead>
@@ -69,14 +70,17 @@ export function CatalogSection(): React.JSX.Element {
                       {entry.description}
                     </span>
                   </td>
-                  {TELEMETRY_BRIDGE_INCLUDED ? (
-                    <td className="px-2 py-1.5 font-mono tabular-nums">
-                      {rawText(readLiveValue(entry.name)) ?? '—'}
-                    </td>
-                  ) : null}
+                  <td className="px-2 py-1.5 font-mono tabular-nums">
+                    {rawText(readLiveValue(entry.name)) ?? '—'}
+                  </td>
                   <td className="px-2 py-1.5 font-mono text-muted-foreground">{entry.wireId}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{entry.type}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{entry.unit}</td>
+                  <td className="px-2 py-1.5">
+                    {entry.games ? <GameMarks entry={entry} /> : (
+                      <span className="text-[11px] text-muted-foreground">{t('protocol.catalogSection.anyGame')}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-1.5">
                     <span
                       className="block max-w-xs truncate font-mono text-[11px] text-muted-foreground"

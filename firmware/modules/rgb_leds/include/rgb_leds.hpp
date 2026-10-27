@@ -8,6 +8,7 @@
 
 #include "application_configuration.hpp"
 #include "event_bus.hpp"
+#include "led_control_events.hpp"
 #include "led_geometry.hpp"
 #include "led_output.hpp"
 #include "telemetry_registry.hpp"
@@ -39,6 +40,7 @@ class RgbLeds final {
 
  private:
   static void task_entry(void* context);
+  static void on_led_control(const events::Event& event, void* context);
 
   [[nodiscard]] bool reserve_frames(const configuration::ApplicationConfiguration& configuration);
   void release_frames();
@@ -50,6 +52,7 @@ class RgbLeds final {
   [[nodiscard]] std::optional<double> watched_value(const EffectBinding& binding) const;
   [[nodiscard]] bool gate_holds(std::size_t output, std::size_t effect,
                                 std::optional<double> watched, std::uint64_t now_us);
+  [[nodiscard]] std::uint8_t output_brightness(std::uint8_t configured) const;
 
   const telemetry::ITelemetryReader* reader_{};
 
@@ -58,6 +61,7 @@ class RgbLeds final {
   std::array<led::Output, kMaximumOutputs> outputs_{};
   std::array<std::uint8_t, kMaximumOutputs> quiet_frames_{};
   std::array<bool, kMaximumOutputs> in_flight_{};
+  std::array<std::uint8_t, kMaximumOutputs> flushed_brightness_{};
   configuration::HardwareDeviceConfiguration* device_store_{};
   EffectBinding* bindings_{};
   EffectState* states_{};
@@ -69,6 +73,10 @@ class RgbLeds final {
   std::size_t working_bytes_{};
   std::size_t wire_bytes_{};
 
+  events::EventBus* event_bus_{};
+  events::Subscription control_subscription_{};
+  std::atomic<std::uint8_t> scale_percent_{100};
+  std::atomic<bool> lit_{true};
   std::atomic<bool> running_{};
   std::atomic<bool> finished_{true};
   void* task_{};

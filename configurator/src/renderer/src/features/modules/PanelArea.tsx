@@ -5,6 +5,7 @@ import { drawnSize, readMask, shapeOf, writeMask } from '@shared/led-render'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { useDeviceStore } from '@/features/device/device-store'
 import { t } from '@shared/ui-text'
+import { withPanelPixel } from './panel-pixels'
 
 const CELL = 13
 const GAP = 2
@@ -54,9 +55,7 @@ export function PanelAreaField({
 
   const toggle = (pixel: number, to: boolean): void => {
     if (chosen[pixel] === to) return
-    const next = [...chosen]
-    next[pixel] = to
-    commit(next)
+    update((layer) => withPanelPixel(layer, device, pixel, to))
   }
 
   const startPaint = (to: boolean): void => {

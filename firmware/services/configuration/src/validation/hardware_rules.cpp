@@ -37,6 +37,10 @@ namespace {
   if (id.empty() || sprite.palette_count == 0) {
     return reject(failure, ValidationError::invalid_led_sprite, "hardware.sprites");
   }
+  if (device.type == HardwareDeviceType::rgb_matrix ? sprite.width > kMaximumMatrixSide
+                                                    : sprite.height != 1) {
+    return reject(failure, ValidationError::invalid_led_sprite, "hardware.sprites.width");
+  }
   for (std::uint8_t other = 0; other < index; ++other) {
     if (text_view(device.sprites[other].id) == id) {
       return reject(failure, ValidationError::invalid_led_sprite, "hardware.sprites.id");
@@ -73,9 +77,6 @@ namespace {
   const bool matrix = device.type == HardwareDeviceType::rgb_matrix;
   if (matrix && device.rotation_deg % 90 != 0) {
     return reject(failure, ValidationError::invalid_hardware, "rotation_deg");
-  }
-  if (!matrix && device.sprite_count != 0) {
-    return reject(failure, ValidationError::invalid_hardware, "hardware.sprites");
   }
   if (matrix && device.segment_count != 0) {
     return reject(failure, ValidationError::invalid_hardware, "hardware.segments");

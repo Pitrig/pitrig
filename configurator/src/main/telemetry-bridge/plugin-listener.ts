@@ -10,8 +10,11 @@ import {
   LINK_MAXIMUM_PAYLOAD,
   LINK_VERSION,
   SOURCE_IDLE_MS,
-  SUBSCRIBE_INTERVAL_MS
+  SUBSCRIBE_INTERVAL_MS,
+  type PluginInput,
+  type PluginStatus
 } from '@shared/telemetry-bridge'
+import { isPluginInput, isPluginStatus, parsePluginInput, parsePluginStatus } from './plugin-status'
 
 const NEWLINE = 10
 const CONTROL = 64
@@ -33,6 +36,7 @@ export interface PluginListenerRequest {
   port: number
   simhubHost: string
   simhubPort: number
+  request: () => string
 }
 
 export interface PluginListener {
@@ -40,7 +44,10 @@ export interface PluginListener {
   simhubAddress: string
   subscribeError: string | undefined
   onPacket: (listener: (packet: LinkPacket) => void) => void
+  onStatus: (listener: (status: PluginStatus) => void) => void
+  onInput: (listener: (input: PluginInput) => void) => void
   onClose: (listener: (error?: Error) => void) => void
+  requestNow: () => Promise<void>
   close: () => Promise<void>
 }
 
@@ -54,17 +61,50 @@ export async function openPluginListener(request: PluginListenerRequest): Promis
     socket.close()
     throw error
   }
-  const subscription = subscribeDatagram()
   let subscribeError: string | undefined
-  const subscribe = (): void => {
-    socket.send(subscription, request.simhubPort, simhubAddress, (error) => {
-      subscribeError = error ? error.message : undefined
+  let closed = false
+  const subscribe = (): Promise<void> =>
+    new Promise((resolve) => {
+      if (closed) {
+        resolve()
+        return
+      }
+      const datagram = subscribeDatagram(request.request())
+      socket.send(datagram, request.simhubPort, simhubAddress, (error) => {
+        subscribeError = error ? error.message : undefined
+        resolve()
+      })
     })
-  }
-  const keepalive = setInterval(subscribe, SUBSCRIBE_INTERVAL_MS)
-  subscribe()
+  const keepalive = setInterval(() => void subscribe(), SUBSCRIBE_INTERVAL_MS)
+  void subscribe()
+  let packetListener: ((packet: LinkPacket) => void) | undefined
+  let statusListener: ((status: PluginStatus) => void) | undefined
+  let inputListener: ((input: PluginInput) => void) | undefined
   let expected: number | undefined
   let previousAt = Number.NEGATIVE_INFINITY
+  socket.on('message', (datagram, remote) => {
+    if (remote.address !== simhubAddress) return
+    const at = performance.now()
+    const body = bodyOf(datagram)
+    if (!body) return
+    const sequence = datagram.readUInt32LE(3)
+    const idle = at - previousAt >= SOURCE_IDLE_MS
+    previousAt = at
+    const gap = expected === undefined || idle ? 0 : distance(sequence - expected)
+    if (gap < 0 && gap >= -REORDER_WINDOW) return
+    expected = (sequence + 1) % SEQUENCE_MODULUS
+    if (isPluginStatus(body.payload)) {
+      statusListener?.(parsePluginStatus(body.payload.toString('latin1')))
+      return
+    }
+    if (isPluginInput(body.payload)) {
+      inputListener?.(parsePluginInput(body.payload.toString('utf8')))
+      return
+    }
+    const lost = gap > 0 && gap <= RESTART_GAP ? gap : 0
+    const rejected = hasControlLine(body.payload)
+    packetListener?.({ ...body, address: remote.address, lost, at, rejected })
+  })
   return {
     port: request.port,
     simhubAddress,
@@ -72,32 +112,30 @@ export async function openPluginListener(request: PluginListenerRequest): Promis
       return subscribeError
     },
     onPacket: (listener) => {
-      socket.on('message', (datagram, remote) => {
-        if (remote.address !== simhubAddress) return
-        const at = performance.now()
-        const body = bodyOf(datagram)
-        if (!body) return
-        const sequence = datagram.readUInt32LE(3)
-        const idle = at - previousAt >= SOURCE_IDLE_MS
-        previousAt = at
-        const gap = expected === undefined || idle ? 0 : distance(sequence - expected)
-        if (gap < 0 && gap >= -REORDER_WINDOW) return
-        expected = (sequence + 1) % SEQUENCE_MODULUS
-        const lost = gap > 0 && gap <= RESTART_GAP ? gap : 0
-        const rejected = hasControlLine(body.payload)
-        listener({ ...body, address: remote.address, lost, at, rejected })
-      })
+      packetListener = listener
+    },
+    onStatus: (listener) => {
+      statusListener = listener
+    },
+    onInput: (listener) => {
+      inputListener = listener
     },
     onClose: (listener) => {
       socket.once('close', () => listener())
       socket.on('error', (error) => listener(error))
     },
+    requestNow: subscribe,
     close: () =>
       new Promise((resolve) => {
         clearInterval(keepalive)
+        closed = true
         socket.close(() => resolve())
       })
   }
+}
+
+export function isLoopback(address: string): boolean {
+  return address.startsWith('127.')
 }
 
 async function resolve(host: string): Promise<string> {
@@ -107,14 +145,12 @@ async function resolve(host: string): Promise<string> {
   return resolved.address
 }
 
-function isLoopback(address: string): boolean {
-  return address.startsWith('127.')
-}
-
-function subscribeDatagram(): Buffer {
-  const datagram = Buffer.alloc(LINK_HEADER_BYTES)
+function subscribeDatagram(payload: string): Buffer {
+  const body = Buffer.from(payload, 'utf8')
+  const datagram = Buffer.alloc(LINK_HEADER_BYTES + body.length)
   datagram.write(LINK_MAGIC, 0, 'latin1')
   datagram[2] = LINK_VERSION
+  body.copy(datagram, LINK_HEADER_BYTES)
   return datagram
 }
 

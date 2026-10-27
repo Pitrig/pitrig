@@ -1,5 +1,5 @@
 {
-  "schema_version": 26,
+  "schema_version": 27,
   "description": "Single source of truth for the Pitrig device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
@@ -10,10 +10,10 @@
       "doc": "The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place."
     },
     "modules": {
-      "sections": ["hardware"],
+      "sections": ["hardware", "inputs"],
       "max_payload": 32768,
       "reboot_required": false,
-      "doc": "Peripherals beyond the display: the addressable LED outputs, and the buttons and encoders that will join them. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset."
+      "doc": "Peripherals beyond the display: the addressable LED outputs, and which PC inputs press the logical buttons the dashboard's controls act on. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset."
     },
     "protocol": {
       "sections": ["telemetry_transport"],
@@ -180,9 +180,13 @@
       "value": 8,
       "doc": "Straight runs one strip's physical arrangement may describe. A wheel rim is three runs and a halo around a screen is four, so eight covers every mounting anyone has asked for while keeping the description readable."
     },
+    "kMaximumLedParts": {
+      "value": 16,
+      "doc": "Runs of lamps one strip layer may cover. Two cover the flags at both ends of a wheel, four its corners, and sixteen leave room for a layer whose lamps light in an order of their own, one part a lamp."
+    },
     "kMaximumMatrixSide": {
       "value": 16,
-      "doc": "Columns or rows one matrix panel may have, and the same ceiling on a sprite's own geometry. Sixteen is where the panels stop rather than where the lamp budget does - a square panel at this bound is 256 lamps, half of what one output may drive - and eight by eight, the default above, is what nearly everyone mounts. It is also what keeps a layer's panel mask to sixty-four digits."
+      "doc": "Columns or rows one matrix panel may have, and the same ceiling on a matrix picture's geometry; a strip's picture is one row as long as the strip. Sixteen is where the panels stop rather than where the lamp budget does - a square panel at this bound is 256 lamps, half of what one output may drive - and eight by eight, the default above, is what nearly everyone mounts. It is also what keeps a layer's panel mask to sixty-four digits."
     },
     "kMaximumLedSprites": {
       "value": 8,
@@ -211,6 +215,42 @@
     "kLedTextCapacity": {
       "value": 32,
       "doc": "Static text a text effect may carry including the terminator (31 usable bytes)."
+    },
+    "kMaximumInputButtons": {
+      "value": 16,
+      "doc": "Logical buttons PC inputs can drive. They reach the board as the bits of input.buttons, so this is also how many of that field's bits mean anything."
+    },
+    "kMaximumInputSources": {
+      "value": 4,
+      "doc": "PC inputs one logical button answers to, so a wheel button and a keyboard key can press the same one."
+    },
+    "kMaximumSwitchPositions": {
+      "value": 12,
+      "doc": "Positions of the one multi-position switch, the most a rotary switch on a rim offers. Position N reaches the board as the value N of input.switch."
+    },
+    "kInputNameCapacity": {
+      "value": 24,
+      "doc": "Bytes for a logical button's name, terminator included."
+    },
+    "kInputSourceCapacity": {
+      "value": 96,
+      "doc": "Bytes for one PC input as SimHub names it, terminator included. A joystick button carries the device's whole product name, which is what sizes this."
+    },
+    "kMaximumControlBindings": {
+      "value": 32,
+      "doc": "Actions the buttons of one dashboard perform: one for every logical button, with room for as many again for a button that does two things."
+    },
+    "kMaximumControlRules": {
+      "value": 4,
+      "doc": "Rules that bring a screen forward on a game event, one per screen a dashboard can have."
+    },
+    "kMaximumIdleReturnMs": {
+      "value": 600000,
+      "doc": "Longest wait without a press before a dashboard or a slot goes back home: ten minutes."
+    },
+    "kMaximumDismissMs": {
+      "value": 600000,
+      "doc": "Longest a dismissed slot page stays away when its dismissal is timed: ten minutes."
     },
     "kLedTelemetryIdleMs": {
       "value": 2000,
@@ -282,9 +322,14 @@
       "doc": "What an effect paints over the lamps it covers. The order of these values indexes the generated painter table, so a new kind is appended rather than inserted."
     },
     "LedAnimationKind": {
-      "json_values": ["rainbow", "scan", "pulse", "wipe", "chase"],
+      "json_values": ["rainbow", "scan", "pulse", "wipe", "chase", "comet", "theater", "sparkle", "strobe", "bounce"],
       "default": "rainbow",
-      "doc": "Motion an animation effect draws. Read only by that kind."
+      "doc": "Motion an animation effect draws. Read only by that kind. comet trails span lamps of fading tail behind its head, theater lights every span-th lamp and steps them along, sparkle flashes span lamps at random spots each pass, strobe flashes the whole layer briefly once a pass, and bounce runs a block of span lamps to the end and back. A new kind is appended rather than inserted."
+    },
+    "LedPartLayout": {
+      "json_values": ["joined", "each"],
+      "default": "joined",
+      "doc": "How a strip layer spreads what it paints over its parts. joined lays them end to end in the order they are listed, so a fill runs from the first part into the next; each paints the whole effect in every part at once, so the flags at both ends of a wheel flash as one."
     },
     "LedGate": {
       "json_values": ["always", "conditions", "telemetry_idle"],
@@ -327,9 +372,9 @@
       "doc": "Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill."
     },
     "ConditionOperator": {
-      "json_values": ["above", "at_or_above", "below", "at_or_below", "equal", "not_equal"],
+      "json_values": ["above", "at_or_above", "below", "at_or_below", "equal", "not_equal", "bit_set"],
       "default": "at_or_above",
-      "doc": "Comparison a styling rule applies to the numeric value of its condition source."
+      "doc": "Comparison a styling rule applies to the numeric value of its condition source. bit_set holds while bit number value of the source is 1, counted from 1 like the logical buttons of input.buttons, so a rule can follow one button; it never holds for a value below 1 or above 32."
     },
     "WidgetActionType": {
       "json_values": ["none", "next_screen", "previous_screen", "goto_screen"],
@@ -383,6 +428,16 @@
       "default": "strip",
       "doc": "How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sector, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the ring geometry, and each ignores the other's."
     },
+    "ControlAction": {
+      "json_values": ["next_screen", "previous_screen", "show_screen", "hold_screen", "home_screen", "next_page", "previous_page", "show_page", "hold_page", "dismiss_page", "display_brighter", "display_dimmer", "leds_brighter", "leds_dimmer", "leds_toggle"],
+      "default": "next_screen",
+      "doc": "What a logical button does. The screen actions move the dashboard, hold_screen only while the button stays down, and home_screen returns to the controls' home screen. The page actions work on one named slot the same way, and dismiss_page sends away the page an event raised there. The display steps its backlight by a tenth between 10 and 100 % and remembers it across restarts; the LED actions scale every output by a tenth or switch them all off and on again until the next restart."
+    },
+    "SlotDismiss": {
+      "json_values": ["next_event", "timed", "session"],
+      "default": "next_event",
+      "doc": "How long a raised page stays away once a button dismisses it. next_event brings it back the next time its trigger fires anew: a value that changes again, or a comparison that stops holding and then holds again. timed keeps it away for dismiss_ms whatever happens. session keeps it away until the board restarts or the game starts a new session."
+    },
     "SlotTrigger": {
       "json_values": ["none", "value_changed", "conditions"],
       "default": "none",
@@ -415,15 +470,24 @@
     },
 
     "LedSpriteConfiguration": {
-      "doc": "A picture, or several frames of one, drawn on a matrix. Stored palette-indexed at four bits a pixel and carried inside this document rather than uploaded, because a whole icon set is a few kilobytes: nothing to install, nothing to claim the serial link while it installs, no partition to add, and a template carries its artwork with it.",
+      "doc": "A picture, or several frames of one, drawn on a matrix or along a strip. Stored palette-indexed at four bits a pixel and carried inside this document rather than uploaded, because a whole icon set is a few kilobytes: nothing to install, nothing to claim the serial link while it installs, no partition to add, and a template carries its artwork with it.",
       "fields": [
         { "name": "id", "kind": "text", "capacity": "kImageIdCapacity", "default": "", "required": true },
-        { "name": "width", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide" },
-        { "name": "height", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide" },
+        { "name": "width", "kind": "uint16", "default": 8, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "doc": "Columns of the picture. A matrix's picture is at most kMaximumMatrixSide across; a strip's is one row of lamps and may be as long as the strip." },
+        { "name": "height", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide", "doc": "Rows of the picture. Always 1 on a strip." },
         { "name": "frame_count", "kind": "uint8", "default": 1, "minimum": 1, "maximum": "kMaximumLedSpriteFrames" },
         { "name": "palette_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "palette", "kind": "array", "struct": "LedPaletteEntry", "capacity": "kLedPaletteSize", "count_field": "palette_count", "doc": "Colours the pixel digits name. Entry zero is the unlit lamp by convention rather than by rule." },
         { "name": "pixels", "kind": "text", "capacity": "kLedSpritePixelCapacity", "default": "", "doc": "Every frame's pixels back to back, one hexadecimal digit per pixel, row by row from the top left. Exactly width times height times frame_count digits, and rejected at any other length rather than padded. A digit at or past the palette's length is transparent, so a sprite smaller than its box leaves the layers below visible." }
+      ]
+    },
+
+    "LedPart": {
+      "doc": "One run of a strip's lamps a layer covers, in the strip's own order.",
+      "fields": [
+        { "name": "from", "kind": "uint16", "default": 0, "maximum": "kMaximumLedsPerOutput", "doc": "First lamp of the run, counted from zero in wire order." },
+        { "name": "count", "kind": "uint16", "default": 1, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "doc": "Lamps in the run." },
+        { "name": "reversed", "kind": "bool", "default": false, "doc": "Walks the run from its last lamp back to its first, so one part of a layer can run against the others." }
       ]
     },
 
@@ -433,8 +497,8 @@
         { "name": "op", "kind": "enum", "enum": "ConditionOperator" },
         { "name": "value", "kind": "float", "default": 0 },
         { "name": "color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Repaints what the layer draws: the ink of text, the colour of solid and animation, the fill of a gauge with no ramp, and every lit pixel of a picture. Omitted keeps the layer's own colour." },
-        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Fills the lamps this layer covers before it draws. Omitted keeps the layer's own background, which is usually none." },
-        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of everything the layer paints while this rule holds, so one band of a value flashes without a second layer over it. 0 leaves the layer's own blink_ms in charge." },
+        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Fills the lamps this layer covers before it draws, and keeps them filled through a blink. Omitted keeps the layer's own background, which is usually none." },
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of what the layer draws while this rule holds, so one band of a value flashes without a second layer over it. The background stays through it, as through the layer's own. 0 leaves the layer's own blink_ms in charge." },
         { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps this rule applied for this long after it stops matching, so a momentary trigger still leaves a visible flash of colour. 0 applies the rule only while it matches." }
       ]
     },
@@ -444,21 +508,23 @@
       "fields": [
         { "name": "type", "kind": "enum", "enum": "LedEffectType" },
         { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
-        { "name": "from", "kind": "uint16", "default": 0, "maximum": "kMaximumLedsPerOutput", "doc": "First lamp of the device this layer covers, in the device's own order. Read by a strip: a layer on a panel says where it paints with panel_mask and leaves this at zero." },
-        { "name": "count", "kind": "uint16", "default": 0, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "zero_means_off": true, "doc": "Lamps the layer covers. 0 covers the rest of the device, which is what a layer meant to own a whole strip wants." },
+        { "name": "part_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "parts", "kind": "array", "struct": "LedPart", "capacity": "kMaximumLedParts", "count_field": "part_count", "doc": "Runs of a strip's lamps this layer covers, in the order it paints them. None covers the whole strip. A layer on a panel says where it paints with panel_mask and carries none." },
+        { "name": "layout", "kind": "enum", "enum": "LedPartLayout" },
         { "name": "panel_mask", "kind": "text", "capacity": "kLedPanelMaskCapacity", "default": "", "doc": "Which pixels of a panel this layer paints on, four to a hexadecimal digit, row by row from the top left of the panel as it is drawn - the high bit of a digit is the leftmost of its four. Empty means the whole panel, which is what almost every layer wants. The layer works over the smallest box holding the chosen pixels and the mask clips it, so text and a picture still centre on the shape rather than on the panel. Rejected on a strip, which says where it paints with from and count." },
-        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the effect maps. steps and gauge map it through the range below; sprite rounds it to a frame; text renders it. solid, gradient and animation need none, and a binding on one is rejected rather than left unread." },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the effect maps. steps and gauge map it through the range below; sprite rounds it to a frame, or maps it through the range when sprite_scaled is set; text renders it. solid, gradient and animation need none, and a binding on one is rejected rather than left unread." },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
         { "name": "gate", "kind": "enum", "enum": "LedGate" },
         { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the gate and the colour rules watch, independent of what the effect paints: shift lights on engine speed, switched off in the pit lane. Required by the conditions gate and by any colour rule, and rejected when neither reads it, so a binding never sits unread." },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count", "doc": "Rules over condition_source. The effect paints while one of them holds. Unlike a widget's styling rules these select rather than describe, so which one matched does not change what is drawn." },
+        { "name": "hysteresis", "kind": "float", "default": 0, "doc": "How far the watched value must fall back past a rule's threshold before a gate that holds lets go, so revs hovering on a shift point cannot switch a layer on and off every frame. Never negative; 0 lets go as soon as no rule holds, and equal and not_equal ignore it." },
         { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps the effect painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash." },
-        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of everything this effect paints. 0 paints steady." },
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of what this effect draws. Its background stays through the dark half, so a layer with one hides the layers below while it flashes and a layer without one lets them show between flashes. 0 paints steady." },
         { "name": "mirrored", "kind": "bool", "default": false, "doc": "Paints the same value outward from the middle of the covered lamps towards both ends at once, which is what a centred rev bar wants. Combined with inverted it reverses that: the fill starts at both ends and closes on the middle." },
         { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the far end of the covered lamps instead of the near one. On a mirrored layer it turns the mirror around instead, so the fill closes on the middle rather than spreading from it - the two flags together are a direction rather than two independent switches." },
         { "name": "color", "kind": "color", "default": "0xFFFFFF", "doc": "The colour solid paints, the moving colour of an animation, and the ink text draws with." },
-        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Fills every lamp this layer covers before it draws, so a picture or a glyph sits on a ground of its own rather than on whatever the layers below left. Omitted paints no ground, which is what a layer over shift lights wants." },
+        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Fills every lamp this layer covers before it draws, and keeps them filled through a blink, so a picture, a glyph or a flashing warning sits on a ground of its own rather than on whatever the layers below left. Black hides the layers below; omitted paints no ground, and they show wherever this layer draws nothing." },
         { "name": "color_rule_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "color_rules", "kind": "array", "struct": "LedColorRule", "capacity": "kMaximumLedColorRules", "count_field": "color_rule_count", "doc": "Colours the layer takes while condition_source matches, first match winning. They describe rather than select, so the gate decides whether the layer paints and these decide what colour it paints in - a gear that turns amber and then red as the revs climb is one text layer with two rules. A rule may also outlive its match and blink while it holds, which the layer's own hold_ms and blink_ms cannot do band by band." },
         { "name": "stop_count", "kind": "uint8", "default": 0, "serialized": false },
@@ -467,8 +533,10 @@
         { "name": "steps", "kind": "array", "struct": "IndicatorSegment", "capacity": "kMaximumIndicatorSegments", "count_field": "step_count", "doc": "Thresholds a steps effect lights at, shared out in order over the lamps it covers: the shift-light idiom. The same struct the on-screen indicator uses, so one authored strip reads the same on glass and on wire." },
         { "name": "animation", "kind": "enum", "enum": "LedAnimationKind" },
         { "name": "speed_ms", "kind": "uint16", "default": 1000, "minimum": 50, "maximum": 60000, "doc": "How long one pass of an animation takes, and how long one character of scrolling text stays put." },
+        { "name": "span", "kind": "uint8", "default": 3, "minimum": 1, "maximum": 64, "doc": "Lamps an animation's motion spans: the comet's tail, the gap of a theater chase, the bouncing block, the sparkles of one pass. The older kinds ignore it." },
         { "name": "sprite", "kind": "text", "capacity": "kImageIdCapacity", "default": "", "doc": "Sprite this effect draws, by its id among this output's sprites. A missing id is a composition error rather than a blank panel, for the same reason a missing font family is." },
         { "name": "sprite_frame", "kind": "uint8", "default": 0, "maximum": "kMaximumLedSpriteFrames", "doc": "Frame to draw when no source is bound and the sprite is not looping, rejected when it names a frame the sprite does not hold. With a source, the frame is that value rounded and clamped to the frames the sprite holds." },
+        { "name": "sprite_scaled", "kind": "bool", "default": false, "doc": "Maps a bound source through minimum and maximum onto the picture's frames, the first frame at the minimum and the last at the maximum, so a picture drawn as a sequence can follow revs. Off, the value is the frame number itself." },
         { "name": "sprite_loop", "kind": "bool", "default": false, "doc": "Plays the sprite's frames on the layer's own timebase, one every speed_ms, which is how a picture moves without telemetry to drive it. Ignored when a source is bound, because the value is then what picks the frame." },
         { "name": "text", "kind": "text", "capacity": "kLedTextCapacity", "default": "", "doc": "Static text a text effect draws. With a source bound this becomes the prefix and the source supplies the rest, which is the same shape a transform's affixes have." },
         { "name": "font", "kind": "enum", "enum": "LedFont" }
@@ -504,7 +572,7 @@
         { "name": "effect_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "effects", "kind": "array", "struct": "LedEffect", "capacity": "kMaximumLedEffects", "count_field": "effect_count", "doc": "Layers painted together; where two cover the same lamp the one whose gate lit most recently wins it, and layers that lit in the same frame keep the order they are authored in." },
         { "name": "sprite_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "sprites", "kind": "array", "struct": "LedSpriteConfiguration", "capacity": "kMaximumLedSprites", "count_field": "sprite_count", "doc": "Pictures this matrix draws, named by id. Ignored by a strip." }
+        { "name": "sprites", "kind": "array", "struct": "LedSpriteConfiguration", "capacity": "kMaximumLedSprites", "count_field": "sprite_count", "doc": "Pictures this device draws, named by id: a grid on a matrix, one row of lamps on a strip, which is how a strip plays an animation drawn by hand." }
       ]
     },
 
@@ -869,6 +937,8 @@
         { "name": "trigger", "kind": "enum", "enum": "SlotTrigger" },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry this page watches. Required by both triggers and rejected without one, so a binding never sits unread." },
         { "name": "duration_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "How long the page stays up after its event fires, after which the slot returns to whichever loop page was last selected. Required by value_changed, which would otherwise show a single frame; with conditions, 0 keeps the page up only while a rule holds. Bounded like a styling hold." },
+        { "name": "dismiss", "kind": "enum", "enum": "SlotDismiss", "doc": "What a dismiss_page button does to this page while it is raised: how long it then stays away. Only a page with a trigger is ever raised, so on any other page this is never read." },
+        { "name": "dismiss_ms", "kind": "uint32", "default": 0, "maximum": "kMaximumDismissMs", "doc": "How long a timed dismissal keeps the page away. Required by timed and rejected by the other dismissals." },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
         { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
@@ -898,6 +968,7 @@
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "clip_children", "kind": "bool", "default": true, "doc": "Cuts the widgets on every page of this slot off at the slot's box. Not an appearance — a slot still draws nothing — but the same choice a container shape makes, because a page is an area of the screen in exactly the same way." },
+        { "name": "home_after_ms", "kind": "uint32", "default": 0, "maximum": "kMaximumIdleReturnMs", "doc": "Time without a press of a button that works on this slot after which it goes back to its first loop page. 0 never does." },
         { "name": "page_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "pages", "kind": "array", "struct": "SlotPageConfiguration", "capacity": "kMaximumSlotPages", "count_field": "page_count", "doc": "Pages this slot switches between, in priority order. At least one must be in the loop, so a slot always has something to fall back to." }
       ]
@@ -930,11 +1001,55 @@
       ]
     },
 
+    "ControlBinding": {
+      "doc": "One action a logical button performs on this dashboard. A button may carry several, performed in the order they are listed.",
+      "fields": [
+        { "name": "button", "kind": "uint8", "default": 1, "minimum": 1, "maximum": "kMaximumInputButtons", "doc": "Logical button, counted from 1 as the plugin's ButtonN actions in SimHub are." },
+        { "name": "action", "kind": "enum", "enum": "ControlAction" },
+        { "name": "screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Screen id show_screen and hold_screen bring up. Required by them and rejected by every other action." },
+        { "name": "slot", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Id of the slot widget a page action or dismiss_page works on. Required by them and rejected by every other action." },
+        { "name": "page", "kind": "uint8", "default": 1, "minimum": 1, "maximum": "kMaximumSlotPages", "doc": "Page show_page and hold_page bring up, counted from 1 in the slot's page order." },
+        { "name": "wrap", "kind": "bool", "default": true, "doc": "Whether next and previous go round from the last to the first, or stop at the ends. Read by the four next and previous actions only." },
+        { "name": "repeat", "kind": "bool", "default": false, "doc": "Whether holding the button repeats a step action, such as a screen, a page or a brightness step, after a pause, rather than taking one step per press." }
+      ]
+    },
+
+    "ControlSwitch": {
+      "doc": "What the multi-position switch drives on this dashboard. Position N brings up page N of the slot, and a position past the slot's last page does nothing.",
+      "fields": [
+        { "name": "slot", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Id of the slot widget the switch drives. Empty leaves the switch unused on this dashboard." }
+      ]
+    },
+
+    "ControlRule": {
+      "doc": "A game event that brings a screen forward: while one of its comparisons holds the screen is shown, and once none does the dashboard goes back to the screen it left, unless a button moved it in the meantime. The first rule that holds wins.",
+      "fields": [
+        { "name": "screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the comparisons watch. Required, like a slot page's." },
+        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" }
+      ]
+    },
+
+    "ControlsConfiguration": {
+      "doc": "What the logical buttons do on this dashboard, the rules that switch screens on game events, and where it goes after a while without presses. Which PC input is which logical button belongs to the modules document's inputs, so changing the dashboard keeps that wiring and a template can bring its own actions.",
+      "fields": [
+        { "name": "binding_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "bindings", "kind": "array", "struct": "ControlBinding", "capacity": "kMaximumControlBindings", "count_field": "binding_count" },
+        { "name": "position_switch", "json": "switch", "kind": "struct", "struct": "ControlSwitch" },
+        { "name": "rule_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "rules", "kind": "array", "struct": "ControlRule", "capacity": "kMaximumControlRules", "count_field": "rule_count" },
+        { "name": "home_screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Screen home_screen and the idle return go to. Empty means the first screen." },
+        { "name": "home_after_ms", "kind": "uint32", "default": 0, "maximum": "kMaximumIdleReturnMs", "doc": "Time without a press after which the dashboard goes back to its home screen. 0 never does." }
+      ]
+    },
+
     "DashboardConfiguration": {
       "doc": "Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays.",
       "fields": [
         { "name": "transition", "kind": "enum", "enum": "ScreenTransition", "doc": "How every move between screens is drawn, whether a swipe or a tap asked for it. Dashboard-wide because an animation draws the screen being left as well as the one arriving, so a per-screen answer would only hold in one direction." },
         { "name": "smoothing", "kind": "enum", "enum": "ValueSmoothing", "doc": "How a mapped value moves between telemetry packets. Dashboard-wide because it is a property of the feed rather than of a widget: every gauge on the same field shares one follower, and the policy is what the driver judges by eye." },
+        { "name": "controls", "kind": "struct", "struct": "ControlsConfiguration", "doc": "What PC buttons do on this dashboard. Absent means they do nothing here." },
         { "name": "screen_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "screens", "kind": "array", "struct": "ScreenConfiguration", "capacity": "kMaximumScreens", "count_field": "screen_count" },
         { "name": "text_widget_count", "kind": "uint8", "default": 0, "serialized": false },
@@ -956,12 +1071,50 @@
       ]
     },
 
+    "InputSource": {
+      "host_only": true,
+      "doc": "One PC input, named as SimHub's Controls and events list shows it.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kInputSourceCapacity", "default": "" }
+      ]
+    },
+
+    "InputButton": {
+      "host_only": true,
+      "doc": "One logical button: what it is called and the PC inputs that press it. Its number is its place in the list, counted from 1.",
+      "fields": [
+        { "name": "name", "kind": "text", "capacity": "kInputNameCapacity", "default": "" },
+        { "name": "source_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "sources", "kind": "array", "struct": "InputSource", "capacity": "kMaximumInputSources", "count_field": "source_count" }
+      ]
+    },
+
+    "InputSwitch": {
+      "host_only": true,
+      "doc": "The multi-position switch: one PC input per position, the first being position 1.",
+      "fields": [
+        { "name": "position_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "positions", "kind": "array", "struct": "InputSource", "capacity": "kMaximumSwitchPositions", "count_field": "position_count" }
+      ]
+    },
+
+    "InputsConfiguration": {
+      "host_only": true,
+      "doc": "Which PC inputs press the logical buttons and set the switch. Read by the configurator and by the SimHub plugin, which turns the inputs into the input.buttons and input.switch fields; the board keeps the section in its document and never reads it.",
+      "fields": [
+        { "name": "button_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "buttons", "kind": "array", "struct": "InputButton", "capacity": "kMaximumInputButtons", "count_field": "button_count" },
+        { "name": "position_switch", "json": "switch", "kind": "struct", "struct": "InputSwitch" }
+      ]
+    },
+
     "ApplicationConfiguration": {
       "root": true,
       "fields": [
         { "name": "board", "kind": "struct", "struct": "BoardConfiguration", "flatten": true },
         { "name": "device_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "hardware", "kind": "array", "struct": "HardwareDeviceConfiguration", "capacity": "kMaximumHardwareDevices", "count_field": "device_count" },
+        { "name": "inputs", "kind": "struct", "struct": "InputsConfiguration" },
         { "name": "telemetry_transport_present", "kind": "bool", "default": false, "serialized": false },
         { "name": "telemetry_transport", "kind": "struct", "struct": "TelemetryTransportConfiguration" },
         { "name": "dashboard", "kind": "struct", "struct": "DashboardConfiguration" }
@@ -989,6 +1142,7 @@
     { "name": "unknown_property", "doc": "Property name is not part of this schema version." },
     { "name": "duplicate_property", "doc": "Property appears more than once in the same object." },
     { "name": "out_of_range", "doc": "Value is well formed but outside the range, longer than the text, or holds more entries than the property can hold." },
-    { "name": "unknown_value", "doc": "Text is well formed but names none of the values the property accepts." }
+    { "name": "unknown_value", "doc": "Text is well formed but names none of the values the property accepts." },
+    { "name": "invalid_control", "doc": "A button action, the switch, a control rule or the home screen names a screen, slot or page that is not there, or carries a target its action has none of." }
   ]
 }

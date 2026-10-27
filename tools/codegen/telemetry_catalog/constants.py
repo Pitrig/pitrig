@@ -29,6 +29,9 @@ UNAVAILABLE_OPERATORS = {
 UNSIGNED_UNAVAILABLE = {"op": "below", "value": 0}
 
 
+MAXIMUM_TIMESPAN_MS = 4294967295
+
+
 PARAMETER_PATTERN = re.compile(r"\{\{([a-z][a-z0-9_]*)\}\}")
 
 
@@ -65,4 +68,5 @@ CATEGORY_LABELS = {
     "brakes_suspension": "Brakes and suspension",
     "track_weather": "Track and weather",
     "motion_physics": "Motion and vehicle physics",
+    "inputs": "PC inputs",
 }

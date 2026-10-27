@@ -131,7 +131,6 @@ export type UiStringKey =
   | 'common.cancel'
   | 'common.close'
   | 'common.delete'
-  | 'common.install'
   | 'common.listAndMore'
   | 'common.load'
   | 'common.none'
@@ -215,6 +214,83 @@ export type UiStringKey =
   | 'configs.librarySection.screenCount'
   | 'configs.librarySection.unreadableFiles'
   | 'configs.librarySection.widgetCount'
+  | 'controls.actions.dismiss_page'
+  | 'controls.actions.display_brighter'
+  | 'controls.actions.display_dimmer'
+  | 'controls.actions.hold_page'
+  | 'controls.actions.hold_screen'
+  | 'controls.actions.home_screen'
+  | 'controls.actions.leds_brighter'
+  | 'controls.actions.leds_dimmer'
+  | 'controls.actions.leds_toggle'
+  | 'controls.actions.next_page'
+  | 'controls.actions.next_screen'
+  | 'controls.actions.previous_page'
+  | 'controls.actions.previous_screen'
+  | 'controls.actions.show_page'
+  | 'controls.actions.show_screen'
+  | 'controls.bindingList.action'
+  | 'controls.bindingList.addAction'
+  | 'controls.bindingList.button'
+  | 'controls.bindingList.noActionsYet'
+  | 'controls.bindingList.page'
+  | 'controls.bindingList.pageNumber'
+  | 'controls.bindingList.removeActionNumber'
+  | 'controls.bindingList.repeatWhileHeld'
+  | 'controls.bindingList.screen'
+  | 'controls.bindingList.slot'
+  | 'controls.bindingList.wrap'
+  | 'controls.buttonsView.buttons'
+  | 'controls.buttonsView.buttonsDescription'
+  | 'controls.buttonsView.down'
+  | 'controls.buttonsView.home'
+  | 'controls.buttonsView.homeDescription'
+  | 'controls.buttonsView.lastInput'
+  | 'controls.buttonsView.multiPositionSwitch'
+  | 'controls.buttonsView.pressAnyButton'
+  | 'controls.buttonsView.pressTheButtonToAssign'
+  | 'controls.buttonsView.screenRules'
+  | 'controls.buttonsView.screenRulesDescription'
+  | 'controls.buttonsView.startSimhubWithThePlugin'
+  | 'controls.buttonsView.switchDescription'
+  | 'controls.buttonsView.up'
+  | 'controls.buttonsView.whatTheButtonsDo'
+  | 'controls.buttonsView.whatTheButtonsDoDescription'
+  | 'controls.document.buttonNumber'
+  | 'controls.hints.homeAfter'
+  | 'controls.hints.homeScreen'
+  | 'controls.hints.ruleSource'
+  | 'controls.hints.switchSlot'
+  | 'controls.homeSection.homeScreen'
+  | 'controls.homeSection.returnAfter'
+  | 'controls.homeSection.seconds'
+  | 'controls.homeSection.theFirstScreen'
+  | 'controls.inputButtonList.addButton'
+  | 'controls.inputButtonList.allButtonsUsed'
+  | 'controls.inputButtonList.clearButtonNumber'
+  | 'controls.inputButtonList.fourInputsAtMost'
+  | 'controls.inputButtonList.noButtonsYet'
+  | 'controls.inputButtonList.pressAssignThenTheButton'
+  | 'controls.inputButtonList.startSimhubToAssign'
+  | 'controls.inputParts.assign'
+  | 'controls.inputParts.pressAButton'
+  | 'controls.inputParts.removeInput'
+  | 'controls.ruleList.addRule'
+  | 'controls.ruleList.moreConditions'
+  | 'controls.ruleList.noRulesYet'
+  | 'controls.ruleList.removeRuleNumber'
+  | 'controls.ruleList.screen'
+  | 'controls.ruleList.show'
+  | 'controls.ruleList.value'
+  | 'controls.ruleList.watch'
+  | 'controls.ruleList.while'
+  | 'controls.switchSection.addPosition'
+  | 'controls.switchSection.morePositionsThanPages'
+  | 'controls.switchSection.noPositionsYet'
+  | 'controls.switchSection.noSlot'
+  | 'controls.switchSection.removePositionNumber'
+  | 'controls.switchSection.turnTheSwitchToThe'
+  | 'controls.switchSection.turnsThePagesOf'
   | 'dashboard.boardLabels.boardNodisplay'
   | 'dashboard.boardLabels.boardSize'
   | 'dashboard.boardLabels.eachAxisIsScaledOn'
@@ -380,6 +456,7 @@ export type UiStringKey =
   | 'device.draftState.configurationIsNotValidJson'
   | 'device.draftState.connectAPitrigBoardTo'
   | 'device.draftState.noLocalConfiguration'
+  | 'device.draftState.theBoardFirmwareReadsSchema'
   | 'device.draftState.theBoardIsInSafe'
   | 'device.draftState.theBoardLacksJoinSaving'
   | 'device.draftState.theDraftIsNotValid'
@@ -420,6 +497,7 @@ export type UiStringKey =
   | 'device.error.validation.board_mismatch'
   | 'device.error.validation.duplicate_property'
   | 'device.error.validation.invalid_board'
+  | 'device.error.validation.invalid_control'
   | 'device.error.validation.invalid_dashboard'
   | 'device.error.validation.invalid_hardware'
   | 'device.error.validation.invalid_led_pin'
@@ -513,6 +591,8 @@ export type UiStringKey =
   | 'device.saveToBoardUi.saveToBoard'
   | 'device.saveToBoardUi.saving'
   | 'device.saveToBoardUi.writeTheDashboardToThe'
+  | 'device.schemaBanner.explanation'
+  | 'device.schemaBanner.updateTheBoardFirmware'
   | 'device.serialRequest.serialPortClosedDuringRequest'
   | 'device.serialRequest.serialPortClosedDuringThe'
   | 'device.serialRequest.theDeviceDidNotAnswer'
@@ -532,22 +612,44 @@ export type UiStringKey =
   | 'documents.summary.dashboard'
   | 'documents.summary.modules'
   | 'documents.summary.protocol'
+  | 'firmware.boardUpdate.alreadyRunning'
+  | 'firmware.boardUpdate.backupFailed'
+  | 'firmware.boardUpdate.backupName'
+  | 'firmware.boardUpdate.cancelled'
+  | 'firmware.boardUpdate.checking'
+  | 'firmware.boardUpdate.didNotComeBack'
+  | 'firmware.boardUpdate.keepingACopy'
+  | 'firmware.boardUpdate.notVerified'
+  | 'firmware.boardUpdate.puttingBack'
+  | 'firmware.boardUpdate.readingTheBoard'
+  | 'firmware.boardUpdate.restarting'
+  | 'firmware.boardUpdate.restoreFailed'
+  | 'firmware.boardUpdate.restoredNotShown'
+  | 'firmware.boardUpdate.rolledBack'
+  | 'firmware.boardUpdate.step.backup'
+  | 'firmware.boardUpdate.step.install'
+  | 'firmware.boardUpdate.step.restart'
+  | 'firmware.boardUpdate.step.restore'
+  | 'firmware.boardUpdate.step.verify'
+  | 'firmware.boardUpdate.updatedAndRestored'
+  | 'firmware.boardUpdate.updatedNothingStored'
+  | 'firmware.boardUpdate.updatedUnchanged'
   | 'firmware.dialog.filter'
   | 'firmware.firmwarePackage.theFirmwareImageIsBytelength'
   | 'firmware.firmwarePackage.theFirmwareImageIsEmpty'
   | 'firmware.firmwarePackage.unsupportedPitrigBoardBoard'
   | 'firmware.firmwarePage.aPackagedPitrigFirmwareImage'
+  | 'firmware.firmwarePage.anImageIsWaiting'
   | 'firmware.firmwarePage.connectABoardWithTwo'
   | 'firmware.firmwarePage.image'
   | 'firmware.firmwarePage.installAFirmwareImageInto'
-  | 'firmware.firmwarePage.installing'
   | 'firmware.firmwarePage.installsInto'
   | 'firmware.firmwarePage.noImageSelected'
   | 'firmware.firmwarePage.noSecondSlot'
   | 'firmware.firmwarePage.notAvailable'
   | 'firmware.firmwarePage.percent'
   | 'firmware.firmwarePage.restartBoard'
-  | 'firmware.firmwarePage.restartTheBoardToRun'
+  | 'firmware.firmwarePage.restartIntoTheInstalledImage'
   | 'firmware.firmwarePage.running'
   | 'firmware.firmwarePage.selectImage'
   | 'firmware.firmwarePage.sizeBytes'
@@ -555,6 +657,9 @@ export type UiStringKey =
   | 'firmware.firmwarePage.theConnectedFirmwarePredatesThe'
   | 'firmware.firmwarePage.theImageTakesOverAt'
   | 'firmware.firmwarePage.thisImageHasNotBeen'
+  | 'firmware.firmwarePage.updateBoard'
+  | 'firmware.firmwarePage.updateKeepsTheConfiguration'
+  | 'firmware.firmwarePage.updating'
   | 'firmware.firmwarePage.whatThisBoardCanDo'
   | 'firmware.firmwareUpdateService.aFirmwareUploadIsAlready'
   | 'firmware.firmwareUpdateService.cannotReadName'
@@ -889,7 +994,9 @@ export type UiStringKey =
   | 'inspector.hints.screen.background'
   | 'inspector.hints.screen.name'
   | 'inspector.hints.shape.kind'
+  | 'inspector.hints.slot.dismiss'
   | 'inspector.hints.slot.duration'
+  | 'inspector.hints.slot.homeAfter'
   | 'inspector.hints.slot.loop'
   | 'inspector.hints.slot.pages'
   | 'inspector.hints.slot.trigger'
@@ -965,6 +1072,9 @@ export type UiStringKey =
   | 'inspector.sectionEditors.minimumUnit'
   | 'inspector.sectionEditors.position'
   | 'inspector.sectionEditors.range'
+  | 'inspector.slotControls.dismissedFor'
+  | 'inspector.slotControls.dismissedUntil'
+  | 'inspector.slotControls.firstPageAfter'
   | 'inspector.slotPagesEditor.addActivationRule'
   | 'inspector.slotPagesEditor.addPage'
   | 'inspector.slotPagesEditor.closeThisSlot'
@@ -1083,36 +1193,45 @@ export type UiStringKey =
   | 'modules.effectColors.removeColourRuleNumber'
   | 'modules.effectColors.timing'
   | 'modules.effectColors.watches'
-  | 'modules.effectEditor.area'
   | 'modules.effectEditor.colour'
-  | 'modules.effectEditor.count'
   | 'modules.effectEditor.direction'
   | 'modules.effectEditor.drawnAsAuthoredWithA'
   | 'modules.effectEditor.face'
-  | 'modules.effectEditor.firstLampOfThisDevice'
   | 'modules.effectEditor.frame'
   | 'modules.effectEditor.frameHolds'
+  | 'modules.effectEditor.framesFollowTheRange'
   | 'modules.effectEditor.from'
   | 'modules.effectEditor.howLongOneColumnOf'
-  | 'modules.effectEditor.lampsCovered0CoversThe'
   | 'modules.effectEditor.motion'
   | 'modules.effectEditor.paints'
   | 'modules.effectEditor.pass'
   | 'modules.effectEditor.picture'
   | 'modules.effectEditor.playFrames'
   | 'modules.effectEditor.scrollStep'
+  | 'modules.effectEditor.span'
   | 'modules.effectEditor.text'
   | 'modules.effectEditor.whichFrameToHoldStill'
   | 'modules.effectGate.addRule'
+  | 'modules.effectGate.betweenFlashesNamesShowThrough'
   | 'modules.effectGate.blink'
+  | 'modules.effectGate.coverThem'
+  | 'modules.effectGate.coversLayersBelow'
   | 'modules.effectGate.gate'
   | 'modules.effectGate.hold'
+  | 'modules.effectGate.noTheyShowThrough'
+  | 'modules.effectGate.switchOffMargin'
   | 'modules.effectGate.whenItPaints'
   | 'modules.effectList.allPaintedAtOnceWhere'
+  | 'modules.effectList.ctrlClickOrShiftClick'
+  | 'modules.effectList.groupsDifferOnlyInLamps'
   | 'modules.effectList.layers'
   | 'modules.effectList.lengthLayerS'
+  | 'modules.effectList.merge'
+  | 'modules.effectList.mergesNames'
   | 'modules.effectList.moveLayerNumberDownThe'
   | 'modules.effectList.moveLayerNumberUpThe'
+  | 'modules.effectList.pickAll'
+  | 'modules.effectList.picksEveryLayerInThis'
   | 'modules.effectList.playsThisLayerInThe'
   | 'modules.effectList.previewIndex'
   | 'modules.effectList.removeLayerNumber'
@@ -1126,22 +1245,28 @@ export type UiStringKey =
   | 'modules.effectPayload.stop'
   | 'modules.effectPayload.thresholds'
   | 'modules.effectPayload.valueThisColourSitsAt'
+  | 'modules.effectRow.duplicateName'
+  | 'modules.effectRow.lampsOfName'
   | 'modules.flags.allEightFlagsAtOnce'
   | 'modules.flags.raceFlags'
   | 'modules.hints.device.count'
   | 'modules.hints.device.segments'
   | 'modules.hints.device.size'
   | 'modules.hints.device.wiring'
-  | 'modules.hints.effect.area'
   | 'modules.hints.effect.background'
   | 'modules.hints.effect.blink'
   | 'modules.hints.effect.colors'
   | 'modules.hints.effect.gate'
   | 'modules.hints.effect.hold'
+  | 'modules.hints.effect.hysteresis'
+  | 'modules.hints.effect.lamps'
   | 'modules.hints.effect.loop'
   | 'modules.hints.effect.panel'
   | 'modules.hints.effect.ruleTiming'
+  | 'modules.hints.effect.scaled'
   | 'modules.hints.effect.shape'
+  | 'modules.hints.effect.span'
+  | 'modules.hints.effect.spread'
   | 'modules.hints.effect.sprite'
   | 'modules.hints.effect.stack'
   | 'modules.hints.effect.type'
@@ -1156,14 +1281,40 @@ export type UiStringKey =
   | 'modules.hints.sprite.palette'
   | 'modules.hints.sprite.pictures'
   | 'modules.hints.sprite.size'
-  | 'modules.ledPreview.darkUntilALayerOr'
+  | 'modules.hints.sprite.stripSize'
+  | 'modules.lampsField.addsTheMirrorImage'
+  | 'modules.lampsField.asOneLine'
+  | 'modules.lampsField.clickToRunThisPart'
+  | 'modules.lampsField.eachPartOnItsOwn'
+  | 'modules.lampsField.lamps'
+  | 'modules.lampsField.mirror'
+  | 'modules.lampsField.spread'
+  | 'modules.lampsField.wholeStrip'
+  | 'modules.lampsField.writeLampsLike'
+  | 'modules.layerGroups.alwaysOn'
+  | 'modules.layerGroups.whenTelemetryStops'
+  | 'modules.layerWarnings.alwaysHiddenUnder'
+  | 'modules.layerWarnings.coversNoLamps'
+  | 'modules.layerWarnings.sameAsLayer'
+  | 'modules.layerWarnings.showsThroughBetweenFlashes'
+  | 'modules.ledPreview.clickALampToPick'
+  | 'modules.ledPreview.clickLampsForTheNewLayer'
+  | 'modules.ledPreview.clickPixelsToShowName'
+  | 'modules.ledPreview.dragAcrossLampsToSet'
+  | 'modules.ledPreview.everyLampAsTheBoard'
+  | 'modules.ledPreview.lampNumberLayers'
+  | 'modules.ledPreview.lampNumberLayersOnTop'
+  | 'modules.ledPreview.lampNumberNoLayer'
   | 'modules.ledPreview.nameOnItsOwnOver'
   | 'modules.ledPreview.namesTogetherOverAndOver'
   | 'modules.ledPreview.pictureSprite'
   | 'modules.ledPreview.preview'
   | 'modules.modulesPage.addNoun'
+  | 'modules.modulesPage.animations'
+  | 'modules.modulesPage.animationsThisStripPlays'
   | 'modules.modulesPage.artworkThisPanelDrawsDrawn'
   | 'modules.modulesPage.boardPublishesNoFreePins'
+  | 'modules.modulesPage.buttons'
   | 'modules.modulesPage.deviceView'
   | 'modules.modulesPage.eachNounOwnsOneData'
   | 'modules.modulesPage.lEDs'
@@ -1184,6 +1335,11 @@ export type UiStringKey =
   | 'modules.modulesPage.thePinTheShapeAnd'
   | 'modules.modulesPage.whatItShows'
   | 'modules.modulesPage.wiring'
+  | 'modules.multiEffectEditor.countLayers'
+  | 'modules.multiEffectEditor.duplicateCount'
+  | 'modules.multiEffectEditor.labelMixed'
+  | 'modules.multiEffectEditor.removeCount'
+  | 'modules.multiEffectEditor.whatYouChangeHere'
   | 'modules.noConfiguration.newConfiguration'
   | 'modules.noConfiguration.nothingToConfigureYet'
   | 'modules.noConfiguration.openFile'
@@ -1228,11 +1384,8 @@ export type UiStringKey =
   | 'modules.profilePicker.addToThisDevice'
   | 'modules.profilePicker.closeTheLayerPicker'
   | 'modules.profilePicker.customLayer'
-  | 'modules.profilePicker.firstLampOfTheProfile'
-  | 'modules.profilePicker.lastLampOfTheProfile'
   | 'modules.profilePicker.runNumberRange'
   | 'modules.profilePicker.theCoveredLampsGlowIn'
-  | 'modules.profilePicker.to'
   | 'modules.profilePicker.whatShouldTheNewLayer'
   | 'modules.profiles.aBS'
   | 'modules.profiles.aSlowRainbowOnceTelemetry'
@@ -1257,6 +1410,27 @@ export type UiStringKey =
   | 'modules.segmentEditor.removeRunNumber'
   | 'modules.segmentEditor.runNumber'
   | 'modules.segmentEditor.straightLine'
+  | 'modules.simulator.connectABoardToDrive'
+  | 'modules.simulator.drivenBy'
+  | 'modules.simulator.feedsTheseValuesToTheBoard'
+  | 'modules.simulator.layersGatedOnTelemetryIdle'
+  | 'modules.simulator.noLayerReadsTelemetry'
+  | 'modules.simulator.noTelemetryFromSimHub'
+  | 'modules.simulator.reset'
+  | 'modules.simulator.resetEveryValue'
+  | 'modules.simulator.showOnTheBoard'
+  | 'modules.simulator.simHub'
+  | 'modules.simulator.simHubIsSendingTelemetry'
+  | 'modules.simulator.simHubSendsNoValues'
+  | 'modules.simulator.simHubSendsNoValuesDark'
+  | 'modules.simulator.simulator'
+  | 'modules.simulator.startAGameOrA'
+  | 'modules.simulator.stopSweeping'
+  | 'modules.simulator.sweep'
+  | 'modules.simulator.sweepsTheValueUpAnd'
+  | 'modules.simulator.telemetryLost'
+  | 'modules.simulator.theBoardFollowsTheseValues'
+  | 'modules.simulator.theLampsFollowTheGame'
   | 'modules.spriteCanvas.pixelXY'
   | 'modules.spriteCanvas.xYClear'
   | 'modules.spriteEditor.addALayer'
@@ -1267,11 +1441,15 @@ export type UiStringKey =
   | 'modules.spriteEditor.clearsThisFrameLeavingThe'
   | 'modules.spriteEditor.fillFrame'
   | 'modules.spriteEditor.fitPanel'
+  | 'modules.spriteEditor.fitStrip'
   | 'modules.spriteEditor.ghostPreviousFrame'
   | 'modules.spriteEditor.matchesThePanelWidthBy'
+  | 'modules.spriteEditor.matchesTheStripLamps'
   | 'modules.spriteEditor.paintsEveryPixelOfThis'
   | 'modules.spriteEditor.showOnPanel'
+  | 'modules.spriteEditor.showOnStrip'
   | 'modules.spriteEditor.showingOnPanel'
+  | 'modules.spriteEditor.showingOnStrip'
   | 'modules.spriteEditor.spriteOfSpriteDigitBudget'
   | 'modules.spriteEditor.valueMs'
   | 'modules.spriteEditor.widthHeightFramesFrameS'
@@ -1317,8 +1495,49 @@ export type UiStringKey =
   | 'modules.spritePalette.inks'
   | 'modules.spritePalette.removeInkNumber'
   | 'modules.spritePalette.thisPictureNamesAllSixteen'
+  | 'modules.stripTimeline.frameLamp'
+  | 'protocol.bridgeSection.addedLatency'
+  | 'protocol.bridgeSection.apply'
+  | 'protocol.bridgeSection.applying'
+  | 'protocol.bridgeSection.asking'
+  | 'protocol.bridgeSection.boardsTitle'
+  | 'protocol.bridgeSection.bytes'
+  | 'protocol.bridgeSection.connection'
+  | 'protocol.bridgeSection.description'
+  | 'protocol.bridgeSection.drainLatency'
+  | 'protocol.bridgeSection.dropped'
+  | 'protocol.bridgeSection.droppedValue'
+  | 'protocol.bridgeSection.fields'
+  | 'protocol.bridgeSection.lines'
+  | 'protocol.bridgeSection.listenPort'
+  | 'protocol.bridgeSection.lostPackets'
+  | 'protocol.bridgeSection.measured'
+  | 'protocol.bridgeSection.noBoards'
+  | 'protocol.bridgeSection.noSamples'
+  | 'protocol.bridgeSection.packets'
+  | 'protocol.bridgeSection.perSecond'
+  | 'protocol.bridgeSection.pluginHint'
+  | 'protocol.bridgeSection.pluginMissing'
+  | 'protocol.bridgeSection.pluginVersion'
+  | 'protocol.bridgeSection.portBusy'
+  | 'protocol.bridgeSection.previewOnly'
+  | 'protocol.bridgeSection.quantiles'
+  | 'protocol.bridgeSection.receiving'
+  | 'protocol.bridgeSection.relaying'
+  | 'protocol.bridgeSection.sending'
+  | 'protocol.bridgeSection.simhubHost'
+  | 'protocol.bridgeSection.simhubHostHint'
+  | 'protocol.bridgeSection.simhubPort'
+  | 'protocol.bridgeSection.suspended'
+  | 'protocol.bridgeSection.title'
+  | 'protocol.bridgeSection.waiting'
+  | 'protocol.bridgeService.invalidRequest'
+  | 'protocol.bridgeService.portTaken'
+  | 'protocol.bridgeService.theLinkClosed'
+  | 'protocol.catalogSection.anyGame'
   | 'protocol.catalogSection.field'
   | 'protocol.catalogSection.fuelRpmLap'
+  | 'protocol.catalogSection.games'
   | 'protocol.catalogSection.lengthOfLength2FieldsA'
   | 'protocol.catalogSection.live'
   | 'protocol.catalogSection.noFieldMatches'
@@ -1413,6 +1632,8 @@ export type UiStringKey =
   | 'shortcuts.doubleClick'
   | 'shortcuts.dragToRestackOrOntoTheMiddleOfAContainerToMoveItInside'
   | 'shortcuts.shiftCmdCtrlG'
+  | 'telemetry.gameMarks.noneOfTheGames'
+  | 'telemetry.gameMarks.sentBy'
   | 'templates.dashboardListControls.allSizesLength'
   | 'templates.dashboardListControls.orderDashboards'
   | 'templates.dashboardListControls.screenSize'
@@ -1504,9 +1725,77 @@ export type UiStringKey =
   | 'templates.widgetSection.partsOfADashboardKept'
   | 'templates.widgetSection.placeThisOnTheCanvas'
   | 'templates.widgetSection.widgets'
+  | 'updates.app.available'
+  | 'updates.app.checking'
+  | 'updates.app.current'
+  | 'updates.app.downloading'
+  | 'updates.app.failed'
+  | 'updates.app.noWindowsUpdate'
+  | 'updates.app.notChecked'
+  | 'updates.app.ready'
+  | 'updates.banner.addPlugin'
+  | 'updates.banner.appAvailable'
+  | 'updates.banner.appReady'
+  | 'updates.banner.download'
+  | 'updates.banner.firmwareAvailable'
+  | 'updates.banner.getSimHub'
+  | 'updates.banner.later'
+  | 'updates.banner.openFirmware'
+  | 'updates.banner.pluginMissing'
+  | 'updates.banner.pluginStale'
+  | 'updates.banner.restartAndUpdate'
+  | 'updates.banner.simhubOld'
+  | 'updates.banner.updatePlugin'
+  | 'updates.firmware.alreadyDownloading'
+  | 'updates.firmware.behind'
+  | 'updates.firmware.current'
+  | 'updates.firmware.downloadAndUpdate'
+  | 'updates.firmware.downloading'
+  | 'updates.firmware.notInRelease'
+  | 'updates.firmware.nothingNewer'
+  | 'updates.firmware.offer'
+  | 'updates.firmware.released'
+  | 'updates.releaseFeed.downloadDamaged'
+  | 'updates.releaseFeed.downloadFailed'
+  | 'updates.releaseFeed.githubAnswered'
+  | 'updates.section.boardFirmware'
+  | 'updates.section.checkNow'
+  | 'updates.section.checking'
+  | 'updates.section.configurator'
+  | 'updates.section.description'
+  | 'updates.section.disabled'
+  | 'updates.section.lastChecked'
+  | 'updates.section.plugin'
+  | 'updates.section.simhub'
+  | 'updates.section.title'
+  | 'updates.simhub.closeToReplace'
+  | 'updates.simhub.copyFailed'
+  | 'updates.simhub.copyFailedPlain'
+  | 'updates.simhub.invalidRequest'
+  | 'updates.simhub.noBundledPlugin'
+  | 'updates.simhub.noSimHubFound'
+  | 'updates.simhub.pluginInstalled'
+  | 'updates.simhub.pluginMissing'
+  | 'updates.simhub.pluginStale'
+  | 'updates.simhub.stillRunning'
+  | 'updates.simhub.unknownVersion'
+  | 'updates.simhub.versionTooOld'
   | 'validation.configuration.configurationMustBeAJson'
   | 'validation.configuration.configurationMustTargetASupported'
   | 'validation.configuration.theConfigurationCouldNotBe'
+  | 'validation.controls.actionNumber'
+  | 'validation.controls.ownerHasNoComparison'
+  | 'validation.controls.ownerNamesAScreenIt'
+  | 'validation.controls.ownerNamesASlotIt'
+  | 'validation.controls.ownerShowsAScreenThe'
+  | 'validation.controls.ownerShowsPageOfA'
+  | 'validation.controls.ownerWatchesALapTimer'
+  | 'validation.controls.ownerWorksOnASlot'
+  | 'validation.controls.screenRuleNumber'
+  | 'validation.controls.theDashboardSControls'
+  | 'validation.controls.theHomeScreenScreenIs'
+  | 'validation.controls.thePcButtons'
+  | 'validation.controls.theSwitchTurnsSlotSlot'
   | 'validation.fonts.configurationReferencesMoreThanMaximum'
   | 'validation.fonts.everyDashboardFontMustExplicitly'
   | 'validation.hardware.deviceId'
@@ -1515,7 +1804,6 @@ export type UiStringKey =
   | 'validation.hardware.labelCarriesTwoSpritesNamed'
   | 'validation.hardware.labelDrivesLampsLampsOne'
   | 'validation.hardware.labelIsAMatrixWhose'
-  | 'validation.hardware.labelIsAStripSo'
   | 'validation.hardware.labelIsATypePeripheral'
   | 'validation.hardware.labelIsRotatedByRotation'
   | 'validation.hardware.labelNamesNoTypeSo'
@@ -1525,7 +1813,9 @@ export type UiStringKey =
   | 'validation.hardware.layerOfLabel'
   | 'validation.hardware.ownerCarriesDigitWhichIs'
   | 'validation.hardware.ownerCarriesLengthPixelDigits'
+  | 'validation.hardware.ownerIsWiderThanAPanel'
   | 'validation.hardware.ownerNamesNoPaletteColours'
+  | 'validation.hardware.ownerOnAStripIsOneRow'
   | 'validation.hardware.paletteColours'
   | 'validation.hardware.spriteId'
   | 'validation.hardware.theConfigurationDeclaresLengthDevices'
@@ -1551,16 +1841,19 @@ export type UiStringKey =
   | 'validation.ledValues.labelIsATypeLayer'
   | 'validation.ledValues.labelIsATypeLayer2'
   | 'validation.ledValues.labelIsATypeLayer3'
+  | 'validation.ledValues.labelListsStripLamps'
   | 'validation.ledValues.labelMustCarryItsSource'
   | 'validation.ledValues.labelMustCarryItsWhat'
   | 'validation.ledValues.labelNamesFrameSpriteFrame'
   | 'validation.ledValues.labelNamesPanelPixelsWhich'
   | 'validation.ledValues.labelNeedsAWatchedSource'
   | 'validation.ledValues.labelSelectsNoPixelsAt'
+  | 'validation.ledValues.labelSetsANegativeSwitchOff'
   | 'validation.ledValues.labelSetsKeyToSomething'
   | 'validation.ledValues.labelSetsKeyToValue'
   | 'validation.ledValues.labelSetsKeyToValueWhole'
   | 'validation.ledValues.ownerPaintsNothingGiveIt'
+  | 'validation.ledValues.partNumberOfLabel'
   | 'validation.ranges.minimumToMaximum'
   | 'validation.ranges.ownerSetsKeyToSomething'
   | 'validation.ranges.ownerSetsKeyToValue'
@@ -1621,6 +1914,7 @@ export type UiStringKey =
   | 'validation.widgetRules.whereAppearsOnAChange'
   | 'validation.widgetRules.whereAppearsOnAChange2'
   | 'validation.widgetRules.whereAppearsOnAComparison'
+  | 'validation.widgetRules.whereDismissesForATime'
   | 'validation.widgetRules.whereHasATriggerBut'
   | 'validation.widgetRules.whereHasNoTriggerSo'
   | 'validation.widgetRules.whereStaysUpForDuration'
@@ -1694,6 +1988,18 @@ export interface UiStringParameters {
   'configs.librarySection.screenCount': { count: number }
   'configs.librarySection.unreadableFiles': { count: number }
   'configs.librarySection.widgetCount': { count: number }
+  'controls.bindingList.pageNumber': { number: string | number }
+  'controls.bindingList.removeActionNumber': { number: string | number }
+  'controls.buttonsView.lastInput': { input: string | number, state: string | number }
+  'controls.document.buttonNumber': { number: string | number }
+  'controls.inputButtonList.allButtonsUsed': { count: number }
+  'controls.inputButtonList.clearButtonNumber': { number: string | number }
+  'controls.inputButtonList.fourInputsAtMost': { count: number }
+  'controls.inputParts.removeInput': { input: string | number }
+  'controls.ruleList.moreConditions': { count: number }
+  'controls.ruleList.removeRuleNumber': { number: string | number }
+  'controls.switchSection.morePositionsThanPages': { pages: string | number, positions: string | number }
+  'controls.switchSection.removePositionNumber': { number: string | number }
   'dashboard.boardLabels.boardNodisplay': { board: string | number, noDisplay: string | number }
   'dashboard.boardLabels.boardSize': { board: string | number, size: string | number }
   'dashboard.boardLabels.eachAxisIsScaledOn': { height: string | number, width: string | number }
@@ -1744,6 +2050,7 @@ export interface UiStringParameters {
   'device.documentStatus.notOnBoard': { label: string | number }
   'device.documentStatus.refused': { label: string | number }
   'device.documentStatus.shownNotSaved': { label: string | number }
+  'device.draftState.theBoardFirmwareReadsSchema': { expected: string | number, schema: string | number }
   'device.draftState.theBoardLacksJoinSaving': { join: string | number }
   'device.draftState.theDraftIsNotValid': { error: string | number }
   'device.draftState.theDraftTargetsBoardThe': { board: string | number, boardId: string | number }
@@ -1769,7 +2076,19 @@ export interface UiStringParameters {
   'device.safeModeBanner.explanation': { failures: string | number, phase: string | number }
   'device.safeModeBanner.theLastOnePhase': { phase: string | number }
   'device.saveToBoardStore.savedTheBoardKeepsShowing': { applyFailed: string | number }
+  'device.schemaBanner.explanation': { expected: string | number, schema: string | number }
   'device.serialRequest.theDeviceDidNotAnswer': { trim: string | number }
+  'firmware.boardUpdate.backupFailed': { reason: string | number }
+  'firmware.boardUpdate.backupName': { date: string | number, version: string | number }
+  'firmware.boardUpdate.didNotComeBack': { backup: string | number }
+  'firmware.boardUpdate.notVerified': { backup: string | number, version: string | number }
+  'firmware.boardUpdate.puttingBack': { documents: string | number }
+  'firmware.boardUpdate.restoreFailed': { backup: string | number, reason: string | number, version: string | number }
+  'firmware.boardUpdate.restoredNotShown': { backup: string | number, version: string | number }
+  'firmware.boardUpdate.rolledBack': { version: string | number }
+  'firmware.boardUpdate.updatedAndRestored': { backup: string | number, version: string | number }
+  'firmware.boardUpdate.updatedNothingStored': { version: string | number }
+  'firmware.boardUpdate.updatedUnchanged': { backup: string | number, version: string | number }
   'firmware.firmwarePackage.theFirmwareImageIsBytelength': { byteLength: string | number }
   'firmware.firmwarePackage.unsupportedPitrigBoardBoard': { board: string | number }
   'firmware.firmwarePage.percent': { percent: string | number }
@@ -1890,7 +2209,10 @@ export interface UiStringParameters {
   'layers.slotPages.pageNumberNotInLoop': { number: string | number }
   'modules.devicePreview.lampNumber': { number: string | number }
   'modules.effectColors.removeColourRuleNumber': { number: string | number }
+  'modules.effectGate.betweenFlashesNamesShowThrough': { names: string | number }
+  'modules.effectList.groupsDifferOnlyInLamps': { count: number }
   'modules.effectList.lengthLayerS': { length: string | number }
+  'modules.effectList.mergesNames': { names: string | number }
   'modules.effectList.moveLayerNumberDownThe': { number: string | number }
   'modules.effectList.moveLayerNumberUpThe': { number: string | number }
   'modules.effectList.previewIndex': { index: string | number }
@@ -1898,6 +2220,17 @@ export interface UiStringParameters {
   'modules.effectList.stopPreviewingIndex': { index: string | number }
   'modules.effectPayload.aLayerHoldsAtMost': { maximum: string | number }
   'modules.effectPayload.aRampHoldsAtMost': { maximum: string | number }
+  'modules.effectRow.duplicateName': { name: string | number }
+  'modules.effectRow.lampsOfName': { lamps: string | number, name: string | number }
+  'modules.lampsField.writeLampsLike': { lamps: string | number, parts: string | number }
+  'modules.layerWarnings.alwaysHiddenUnder': { name: string | number }
+  'modules.layerWarnings.sameAsLayer': { name: string | number }
+  'modules.layerWarnings.showsThroughBetweenFlashes': { names: string | number }
+  'modules.ledPreview.clickPixelsToShowName': { name: string | number }
+  'modules.ledPreview.dragAcrossLampsToSet': { name: string | number }
+  'modules.ledPreview.lampNumberLayers': { names: string | number, number: string | number }
+  'modules.ledPreview.lampNumberLayersOnTop': { names: string | number, number: string | number, top: string | number }
+  'modules.ledPreview.lampNumberNoLayer': { number: string | number }
   'modules.ledPreview.nameOnItsOwnOver': { name: string | number, note: string | number }
   'modules.ledPreview.namesTogetherOverAndOver': { names: string | number }
   'modules.ledPreview.pictureSprite': { sprite: string | number }
@@ -1907,6 +2240,10 @@ export interface UiStringParameters {
   'modules.modulesPage.nothingIsWiredYetAdd': { noun: string | number }
   'modules.modulesPage.pinNumber': { pin: string | number }
   'modules.modulesPage.removeDeviceNumber': { number: string | number }
+  'modules.multiEffectEditor.countLayers': { count: number }
+  'modules.multiEffectEditor.duplicateCount': { count: number }
+  'modules.multiEffectEditor.labelMixed': { label: string | number }
+  'modules.multiEffectEditor.removeCount': { count: number }
   'modules.outputEditor.currentEstimate': { lamps: string | number, peak: string | number }
   'modules.outputEditor.lampsSummedOverTheRuns': { lamps: string | number }
   'modules.outputEditor.pinPinLampsLamps': { lamps: string | number, pin: string | number }
@@ -1920,6 +2257,7 @@ export interface UiStringParameters {
   'modules.spriteCanvas.pixelXY': { x: string | number, y: string | number }
   'modules.spriteCanvas.xYClear': { x: string | number, y: string | number }
   'modules.spriteEditor.matchesThePanelWidthBy': { height: string | number, width: string | number }
+  'modules.spriteEditor.matchesTheStripLamps': { lamps: string | number }
   'modules.spriteEditor.spriteOfSpriteDigitBudget': { sPRITE_DIGIT_BUDGET: string | number, sprite: string | number }
   'modules.spriteEditor.valueMs': { value: string | number }
   'modules.spriteEditor.widthHeightFramesFrameS': { frames: string | number, height: string | number, width: string | number }
@@ -1938,6 +2276,13 @@ export interface UiStringParameters {
   'modules.spritePalette.inkNumber': { number: string | number }
   'modules.spritePalette.inkNumberColour': { color: string | number, number: string | number }
   'modules.spritePalette.removeInkNumber': { number: string | number }
+  'modules.stripTimeline.frameLamp': { frame: string | number, lamp: string | number }
+  'protocol.bridgeSection.droppedValue': { bytes: string | number, errors: string | number }
+  'protocol.bridgeSection.perSecond': { value: string | number }
+  'protocol.bridgeSection.pluginVersion': { version: string | number }
+  'protocol.bridgeSection.portBusy': { path: string | number }
+  'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
+  'protocol.bridgeService.portTaken': { port: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
   'protocol.simHubProfile.invalidSimHubParameters': { names: string | number }
   'protocol.simHubProfile.unknownSimHubTelemetryFields': { fields: string | number }
@@ -1946,6 +2291,7 @@ export interface UiStringParameters {
   'protocol.simHubProfileSection.lengthFields': { length: string | number }
   'protocol.simHubProfileSection.unknownBindingsBindings': { bindings: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
+  'telemetry.gameMarks.sentBy': { games: string | number }
   'templates.dashboardListControls.allSizesLength': { length: string | number }
   'templates.dashboardSection.nameIsNowTheLocal': { name: string | number }
   'templates.dashboardSection.nameWouldNotBeAccepted': { error: string | number, name: string | number }
@@ -1973,7 +2319,43 @@ export interface UiStringParameters {
   'templates.templatesPage.deleteTheSavedKindName': { kind: string | number, name: string | number }
   'templates.templatesPage.nameDeleted': { name: string | number }
   'templates.templatesPage.unreadableFiles': { count: number }
+  'updates.app.available': { current: string | number, latest: string | number }
+  'updates.app.checking': { current: string | number }
+  'updates.app.current': { current: string | number }
+  'updates.app.downloading': { current: string | number, latest: string | number, progress: string | number }
+  'updates.app.failed': { current: string | number, error: string | number }
+  'updates.app.notChecked': { current: string | number }
+  'updates.app.ready': { current: string | number, latest: string | number }
+  'updates.banner.appAvailable': { version: string | number }
+  'updates.banner.appReady': { version: string | number }
+  'updates.banner.firmwareAvailable': { running: string | number, version: string | number }
+  'updates.banner.pluginStale': { bundled: string | number, installed: string | number }
+  'updates.banner.simhubOld': { minimum: string | number, version: string | number }
+  'updates.firmware.behind': { running: string | number, version: string | number }
+  'updates.firmware.current': { running: string | number }
+  'updates.firmware.downloading': { progress: string | number }
+  'updates.firmware.notInRelease': { name: string | number, version: string | number }
+  'updates.firmware.offer': { version: string | number }
+  'updates.firmware.released': { version: string | number }
+  'updates.releaseFeed.downloadDamaged': { name: string | number }
+  'updates.releaseFeed.downloadFailed': { name: string | number, status: string | number }
+  'updates.releaseFeed.githubAnswered': { status: string | number }
+  'updates.section.lastChecked': { time: string | number }
+  'updates.simhub.copyFailed': { directory: string | number }
+  'updates.simhub.pluginStale': { bundled: string | number, installed: string | number }
+  'updates.simhub.versionTooOld': { minimum: string | number, version: string | number }
   'validation.configuration.theConfigurationCouldNotBe': { detail: string | number }
+  'validation.controls.actionNumber': { number: string | number }
+  'validation.controls.ownerHasNoComparison': { owner: string | number }
+  'validation.controls.ownerNamesAScreenIt': { action: string | number, owner: string | number }
+  'validation.controls.ownerNamesASlotIt': { action: string | number, owner: string | number }
+  'validation.controls.ownerShowsAScreenThe': { owner: string | number, screen: string | number }
+  'validation.controls.ownerShowsPageOfA': { owner: string | number, page: string | number, pages: string | number, slot: string | number }
+  'validation.controls.ownerWatchesALapTimer': { owner: string | number }
+  'validation.controls.ownerWorksOnASlot': { owner: string | number, slot: string | number }
+  'validation.controls.screenRuleNumber': { number: string | number }
+  'validation.controls.theHomeScreenScreenIs': { screen: string | number }
+  'validation.controls.theSwitchTurnsSlotSlot': { slot: string | number }
   'validation.fonts.configurationReferencesMoreThanMaximum': { mAXIMUM_FONT_FAMILIES: string | number }
   'validation.hardware.deviceId': { id: string | number }
   'validation.hardware.labelArrangesArrangedLampsOver': { arranged: string | number, label: string | number, lamps: string | number }
@@ -1981,7 +2363,6 @@ export interface UiStringParameters {
   'validation.hardware.labelCarriesTwoSpritesNamed': { id: string | number, label: string | number }
   'validation.hardware.labelDrivesLampsLampsOne': { label: string | number, lamps: string | number, mAXIMUM_LEDS_PER_OUTPUT: string | number }
   'validation.hardware.labelIsAMatrixWhose': { label: string | number }
-  'validation.hardware.labelIsAStripSo': { label: string | number }
   'validation.hardware.labelIsATypePeripheral': { label: string | number, type: string | number }
   'validation.hardware.labelIsRotatedByRotation': { label: string | number, rotation_deg: string | number }
   'validation.hardware.labelNamesNoTypeSo': { label: string | number }
@@ -1991,7 +2372,9 @@ export interface UiStringParameters {
   'validation.hardware.layerOfLabel': { label: string | number, layer: string | number }
   'validation.hardware.ownerCarriesDigitWhichIs': { digit: string | number, owner: string | number }
   'validation.hardware.ownerCarriesLengthPixelDigits': { expected: string | number, length: string | number, owner: string | number }
+  'validation.hardware.ownerIsWiderThanAPanel': { owner: string | number, side: string | number }
   'validation.hardware.ownerNamesNoPaletteColours': { owner: string | number }
+  'validation.hardware.ownerOnAStripIsOneRow': { owner: string | number }
   'validation.hardware.spriteId': { id: string | number }
   'validation.hardware.theConfigurationDeclaresLengthDevices': { length: string | number, outputs: string | number }
   'validation.hardware.theConfigurationDrivesTotalLamps': { mAXIMUM_LEDS_TOTAL: string | number, total: string | number }
@@ -2013,16 +2396,19 @@ export interface UiStringParameters {
   'validation.ledValues.labelIsATypeLayer': { label: string | number, type: string | number }
   'validation.ledValues.labelIsATypeLayer2': { label: string | number, type: string | number }
   'validation.ledValues.labelIsATypeLayer3': { label: string | number, type: string | number }
+  'validation.ledValues.labelListsStripLamps': { label: string | number }
   'validation.ledValues.labelMustCarryItsSource': { label: string | number }
   'validation.ledValues.labelMustCarryItsWhat': { label: string | number, what: string | number }
   'validation.ledValues.labelNamesFrameSpriteFrame': { frames: string | number, label: string | number, sprite_frame: string | number }
   'validation.ledValues.labelNamesPanelPixelsWhich': { label: string | number }
   'validation.ledValues.labelNeedsAWatchedSource': { label: string | number }
   'validation.ledValues.labelSelectsNoPixelsAt': { label: string | number }
+  'validation.ledValues.labelSetsANegativeSwitchOff': { label: string | number }
   'validation.ledValues.labelSetsKeyToSomething': { key: string | number, label: string | number }
   'validation.ledValues.labelSetsKeyToValue': { join: string | number, key: string | number, label: string | number, value: string | number }
   'validation.ledValues.labelSetsKeyToValueWhole': { key: string | number, label: string | number, value: string | number }
   'validation.ledValues.ownerPaintsNothingGiveIt': { owner: string | number }
+  'validation.ledValues.partNumberOfLabel': { label: string | number, number: string | number }
   'validation.ranges.minimumToMaximum': { maximum: string | number, minimum: string | number }
   'validation.ranges.ownerSetsKeyToSomething': { key: string | number, owner: string | number }
   'validation.ranges.ownerSetsKeyToValue': { key: string | number, owner: string | number, range: string | number, value: string | number }
@@ -2076,6 +2462,7 @@ export interface UiStringParameters {
   'validation.widgetRules.whereAppearsOnAChange': { where: string | number }
   'validation.widgetRules.whereAppearsOnAChange2': { where: string | number }
   'validation.widgetRules.whereAppearsOnAComparison': { where: string | number }
+  'validation.widgetRules.whereDismissesForATime': { where: string | number }
   'validation.widgetRules.whereHasATriggerBut': { where: string | number }
   'validation.widgetRules.whereHasNoTriggerSo': { where: string | number }
   'validation.widgetRules.whereStaysUpForDuration': { duration: string | number, mAXIMUM_HOLD_MS: string | number, where: string | number }

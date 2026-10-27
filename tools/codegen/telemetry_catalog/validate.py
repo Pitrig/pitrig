@@ -14,6 +14,7 @@ from .constants import (
     WIRE_ALPHABET,
 )
 from .errors import fail
+from .game_sources import validate_game_sources
 
 
 def report_key_mismatch(label: str, expected: set[str], actual: set[str]) -> None:
@@ -23,14 +24,18 @@ def report_key_mismatch(label: str, expected: set[str], actual: set[str]) -> Non
 
 
 def validate_simhub_mapping(
-    field: dict[str, str], mapping: dict[str, Any], parameters: dict[str, Any]
+    field: dict[str, str],
+    mapping: dict[str, Any],
+    parameters: dict[str, Any],
+    games: dict[str, Any],
 ) -> None:
     sources = sum(int(key in mapping) for key in ("property", "expression", "javascript"))
-    if sources != 1:
+    if sources > 1:
         fail(
-            "SimHub mapping must define exactly one property, expression or javascript: "
+            "SimHub mapping must define at most one property, expression or javascript: "
             f"{field['name']}"
         )
+    validate_game_sources(field, mapping, games)
     formula = mapping.get("expression", mapping.get("javascript", ""))
     for name in PARAMETER_PATTERN.findall(formula):
         if name not in parameters:
@@ -47,7 +52,8 @@ def validate_simhub_mapping(
         fail(f"numeric SimHub mapping requires a format: {field['name']}")
     if "scale" in mapping and not isinstance(mapping["scale"], (int, float)):
         fail(f"SimHub mapping scale must be numeric: {field['name']}")
-    if ("computed" in mapping) == ("property" in mapping):
+    formula = "expression" in mapping or "javascript" in mapping
+    if ("computed" in mapping) != formula:
         fail(f"SimHub formula mapping requires a computed name: {field['name']}")
     if "unavailable_when" in mapping:
         validate_unavailable_rule(field, mapping, conversion)

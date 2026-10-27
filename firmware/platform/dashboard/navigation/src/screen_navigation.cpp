@@ -204,9 +204,9 @@ void Controller::on_gesture(lv_event_t* const event) {
   controller->step(direction == LV_DIR_LEFT ? 1 : -1);
 }
 
-void Controller::step(const int delta) {
+void Controller::step(const int delta, const bool wrap) {
   const std::size_t count = screens_.size();
-  if (count < 2) {
+  if (count < 2 || (!wrap && (delta > 0 ? active_ + 1 >= count : active_ == 0))) {
     return;
   }
   const std::size_t next = delta > 0 ? (active_ + 1) % count : (active_ + count - 1) % count;

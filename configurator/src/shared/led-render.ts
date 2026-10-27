@@ -16,6 +16,7 @@ export interface MatrixShape {
 export const OFF: RgbColor = '#000000'
 
 export const LED_EFFECT_DRAWS_PIXELS: ReadonlySet<string> = new Set(['sprite', 'text'])
+export const LED_EFFECT_NEEDS_PANEL: ReadonlySet<string> = new Set(['text'])
 export const LED_EFFECT_READS_VALUE: ReadonlySet<string> = new Set([
   'steps',
   'gauge',
@@ -88,12 +89,15 @@ export function areaOf(
   const drawn = drawnSize(deviceShape(device))
   if (drawn.width === 0 || drawn.height === 0) return undefined
   if (drawn.height === 1) {
-    const from = effect.from ?? 0
-    if (from >= drawn.width) return undefined
-    const available = drawn.width - from
-    const asked = effect.count ?? 0
-    const count = asked === 0 ? available : Math.min(asked, available)
-    return count === 0 ? undefined : { x: from, y: 0, width: count, height: 1 }
+    const parts = effect.parts ?? []
+    if (parts.length === 0) return { x: 0, y: 0, width: drawn.width, height: 1 }
+    let first = drawn.width
+    let end = 0
+    for (const part of parts) {
+      first = Math.min(first, part.from ?? 0)
+      end = Math.max(end, Math.min((part.from ?? 0) + (part.count ?? 1), drawn.width))
+    }
+    return first >= end ? undefined : { x: first, y: 0, width: end - first, height: 1 }
   }
   const mask = effect.panel_mask ?? ''
   if (mask === '') return { x: 0, y: 0, width: drawn.width, height: drawn.height }

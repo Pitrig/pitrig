@@ -5,28 +5,35 @@ using SimHub.Plugins;
 
 namespace Pitrig.SimHub
 {
-    internal sealed class FieldReader
+    internal static class FieldReader
     {
         public static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
 
         private const int ValueCapacity = 63;
+        private const double SecondsPerMinute = 60;
 
-        private readonly string[] last = new string[TelemetryCatalog.Fields.Length];
-
-        public void Reset()
+        public static string Read(TelemetryState state, TelemetryField field)
         {
-            Array.Clear(last, 0, last.Length);
-        }
-
-        public string Read(TelemetryState state, TelemetryField field)
-        {
-            var value = field.Computation == FieldComputation.None
-                ? Property(state.Manager, field)
-                : Computed.Evaluate(state, field.Computation);
+            var source = SourceOf(field, state.GameName);
+            object value;
+            try
+            {
+                value = source != null
+                    ? state.Status == null ? null : GameValue(state.Manager, source)
+                    : field.Computation == FieldComputation.None
+                        ? Property(state.Manager, field)
+                        : Computed.Evaluate(state, field.Computation);
+            }
+            catch (Exception exception) when (exception is FormatException ||
+                                              exception is InvalidCastException ||
+                                              exception is OverflowException)
+            {
+                return field.Fallback;
+            }
             if (value == null) return field.Fallback;
             try
             {
-                return Format(field, value) ?? field.Fallback;
+                return Format(field, value, source == null ? field.Scale : 1) ?? field.Fallback;
             }
             catch (Exception exception) when (exception is FormatException ||
                                               exception is InvalidCastException ||
@@ -36,24 +43,49 @@ namespace Pitrig.SimHub
             }
         }
 
-        public bool Commit(int index, string text, bool keyframe)
+        private static GameSource SourceOf(TelemetryField field, string game)
         {
-            if (string.Equals(last[index], text, StringComparison.Ordinal))
+            if (field.Games == null || game == null) return null;
+            foreach (var source in field.Games)
             {
-                return keyframe;
+                if (string.Equals(source.Game, game, StringComparison.Ordinal)) return source;
             }
-            last[index] = text;
-            return true;
+            return null;
+        }
+
+        private static object GameValue(PluginManager pluginManager, GameSource source)
+        {
+            var raw = pluginManager.GetPropertyValue(source.Property);
+            if (raw == null) return null;
+            if (source.Bit >= 0) return (((long)Convert.ToDouble(raw, Culture) >> source.Bit) & 1) == 1;
+            if (source.Values != null) return source.Values.TryGetValue(Key(raw), out var mapped) ? mapped : source.Fallback;
+            if (source.Clock) return Clock(Convert.ToDouble(raw, Culture));
+            return source.Scale == 1 ? raw : (object)(Convert.ToDouble(raw, Culture) * source.Scale);
+        }
+
+        private static string Key(object raw)
+        {
+            if (raw is bool flag) return flag ? "1" : "0";
+            if (raw is string text) return text;
+            return Convert.ToDouble(raw, Culture).ToString("R", Culture);
+        }
+
+        private static string Clock(double seconds)
+        {
+            if (!(seconds >= 0) || double.IsInfinity(seconds)) return null;
+            var minutes = (long)(seconds / SecondsPerMinute);
+            return string.Format(Culture, "{0:00}:{1:00}", minutes / 60 % 24, minutes % 60);
         }
 
         private static object Property(PluginManager pluginManager, TelemetryField field)
         {
+            if (field.Property == null) return null;
             var value = pluginManager.GetPropertyValue(field.Property);
             if (value != null || field.PropertyFallback == null) return value;
             return pluginManager.GetPropertyValue(field.PropertyFallback);
         }
 
-        private static string Format(TelemetryField field, object value)
+        private static string Format(TelemetryField field, object value, double scale)
         {
             switch (field.Conversion)
             {
@@ -63,9 +95,11 @@ namespace Pitrig.SimHub
                     var text = Convert.ToString(value, Culture).Replace('\r', ' ').Replace('\n', ' ');
                     return text.Length == 0 ? null : Bounded(text);
                 case FieldConversion.TimespanMs:
-                    return value is TimeSpan span ? Number(field, span.TotalMilliseconds, "0") : null;
+                    return value is TimeSpan span && span.TotalMilliseconds <= uint.MaxValue
+                        ? Number(field, span.TotalMilliseconds, "0")
+                        : null;
                 default:
-                    return Number(field, Convert.ToDouble(value, Culture) * field.Scale, field.Format);
+                    return Number(field, Convert.ToDouble(value, Culture) * scale, field.Format);
             }
         }
 

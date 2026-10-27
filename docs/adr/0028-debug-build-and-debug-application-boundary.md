@@ -83,6 +83,16 @@ cannot both be connected. That is why the debugger carries firmware upload and
 configuration documents of its own: a debugging session never needs the other
 application running.
 
+### SimHub plugin
+
+The plugin's Debug configuration is its development build: it defines
+`PITRIG_DEBUG` and compiles the `*.Debug.cs` files, which write a trace log and
+add a diagnostics section to the panel. Product code calls `PluginTrace`, whose
+methods are `[Conditional("PITRIG_DEBUG")]`, so a Release build drops each call
+together with its arguments, and their bodies reach partial methods that only the
+debug files implement. CI builds Release and fails when the DLL names a
+debug-only type.
+
 ## Consequences
 
 - The production T-Display image lost 176 bytes of flash and 1 840 bytes of

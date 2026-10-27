@@ -12,6 +12,7 @@ set(component_sources
     "memory/src/lvgl_heap.cpp"
     "navigation/src/screen_navigation.cpp"
     "slots/src/widget_slots.cpp"
+    "slots/src/widget_slots_commands.cpp"
     "utilities/boot_splash/src/splash_glow.cpp"
     "utilities/boot_splash/src/boot_splash.cpp"
     "utilities/render_trigger/src/render_trigger.cpp"

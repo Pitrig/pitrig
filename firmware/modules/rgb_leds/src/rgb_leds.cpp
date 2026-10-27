@@ -88,7 +88,17 @@ void RgbLeds::release_frames() {
   wire_bytes_ = 0;
 }
 
-bool RgbLeds::start(events::EventBus&, const telemetry::ITelemetryRegistry& registry,
+void RgbLeds::on_led_control(const events::Event& event, void* const context) {
+  if (event.payload == nullptr || event.payload_size != sizeof(events::LedControl)) {
+    return;
+  }
+  auto& module = *static_cast<RgbLeds*>(context);
+  const auto& control = *static_cast<const events::LedControl*>(event.payload);
+  module.scale_percent_.store(control.scale_percent);
+  module.lit_.store(control.lit);
+}
+
+bool RgbLeds::start(events::EventBus& event_bus, const telemetry::ITelemetryRegistry& registry,
                     const telemetry::ITelemetryReader& reader, const led::driver::Driver& driver,
                     const configuration::ApplicationConfiguration& configuration) {
   if (running_.load()) {
@@ -139,6 +149,7 @@ bool RgbLeds::start(events::EventBus&, const telemetry::ITelemetryRegistry& regi
     geometry_[slot] = geometry;
     quiet_frames_[slot] = 0;
     in_flight_[slot] = false;
+    flushed_brightness_[slot] = 0;
     for (std::uint8_t effect = 0; effect < device.effect_count; ++effect) {
       const configuration::LedEffect& layer = device.effects[effect];
       states_[slot * kMaximumEffects + effect] = {};
@@ -160,6 +171,12 @@ bool RgbLeds::start(events::EventBus&, const telemetry::ITelemetryRegistry& regi
   }
 
   reader_ = &reader;
+  event_bus_ = &event_bus;
+  control_subscription_ =
+      event_bus.subscribe(events::kLedControlEvent, &RgbLeds::on_led_control, this);
+  if (!control_subscription_.valid) {
+    log::warn(kLedTag, "Buttons cannot dim the outputs");
+  }
   running_.store(true);
   finished_.store(false);
   TaskHandle_t task = nullptr;
@@ -195,6 +212,11 @@ void RgbLeds::stop() {
 }
 
 void RgbLeds::teardown() {
+  if (event_bus_ != nullptr && control_subscription_.valid) {
+    event_bus_->unsubscribe(control_subscription_);
+  }
+  control_subscription_ = {};
+  event_bus_ = nullptr;
   for (std::size_t index = 0; index < output_count_; ++index) {
     outputs_[index].close();
   }

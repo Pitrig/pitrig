@@ -10,6 +10,16 @@ import {
 } from '../shared/config-library'
 import type { AssetUploadProgress } from '../shared/asset-upload'
 import {
+  UPDATES_CHECK_CHANNEL,
+  UPDATES_GET_STATUS_CHANNEL,
+  UPDATES_INSTALL_APP_CHANNEL,
+  UPDATES_INSTALL_PLUGIN_CHANNEL,
+  UPDATES_OPEN_PAGE_CHANNEL,
+  UPDATES_PREPARE_FIRMWARE_CHANNEL,
+  UPDATES_STATUS_CHANNEL,
+  type UpdateStatus
+} from '../shared/app-updates'
+import {
   IMAGE_CANCEL_UPLOAD_CHANNEL,
   IMAGE_CLEAR_CHANNEL,
   IMAGE_SELECT_SOURCE_CHANNEL,
@@ -21,12 +31,14 @@ import {
   CONFIGURATION_FILE_SAVE_CHANNEL
 } from '../shared/configuration-files'
 import {
-  TELEMETRY_BRIDGE_INCLUDED,
+  TELEMETRY_BRIDGE_INPUT_CHANNEL,
+  TELEMETRY_BRIDGE_INTEREST_CHANNEL,
+  TELEMETRY_BRIDGE_SIMULATE_CHANNEL,
   TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
   TELEMETRY_BRIDGE_START_CHANNEL,
   TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL,
   TELEMETRY_BRIDGE_STATUS_CHANNEL,
-  TELEMETRY_BRIDGE_STOP_CHANNEL,
+  type PluginInput,
   type TelemetryBridgeStatus,
   type TelemetrySnapshot
 } from '../shared/telemetry-bridge'
@@ -46,10 +58,13 @@ import {
   type DeviceState
 } from '../shared/device'
 import {
+  BOARD_UPDATE_CHANNEL,
+  BOARD_UPDATE_PROGRESS_CHANNEL,
   FIRMWARE_CANCEL_UPLOAD_CHANNEL,
   FIRMWARE_SELECT_SOURCE_CHANNEL,
   FIRMWARE_UPLOAD_CHANNEL,
   FIRMWARE_UPLOAD_PROGRESS_CHANNEL,
+  type BoardUpdateProgress,
   type FirmwareUploadProgress
 } from '../shared/firmware-update'
 import {
@@ -89,7 +104,8 @@ import {
 const telemetryBridgeApi: TelemetryBridgeApi = {
   getStatus: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STATUS_CHANNEL),
   start: (request) => ipcRenderer.invoke(TELEMETRY_BRIDGE_START_CHANNEL, request),
-  stop: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STOP_CHANNEL),
+  setInterest: (interest) => ipcRenderer.invoke(TELEMETRY_BRIDGE_INTEREST_CHANNEL, interest),
+  simulate: (simulation) => ipcRenderer.invoke(TELEMETRY_BRIDGE_SIMULATE_CHANNEL, simulation),
   onStatus: (listener) => {
     const handler = (_event: IpcRendererEvent, status: TelemetryBridgeStatus): void =>
       listener(status)
@@ -101,6 +117,11 @@ const telemetryBridgeApi: TelemetryBridgeApi = {
       listener(snapshot)
     ipcRenderer.on(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
     return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
+  },
+  onInput: (listener) => {
+    const handler = (_event: IpcRendererEvent, input: PluginInput): void => listener(input)
+    ipcRenderer.on(TELEMETRY_BRIDGE_INPUT_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_INPUT_CHANNEL, handler)
   }
 }
 
@@ -148,6 +169,18 @@ export const productApi: PitrigApi = {
   selectFirmwareSource: () => ipcRenderer.invoke(FIRMWARE_SELECT_SOURCE_CHANNEL),
   uploadFirmware: (request) => ipcRenderer.invoke(FIRMWARE_UPLOAD_CHANNEL, request),
   cancelFirmwareUpload: () => ipcRenderer.invoke(FIRMWARE_CANCEL_UPLOAD_CHANNEL),
+  updateBoard: (request) => ipcRenderer.invoke(BOARD_UPDATE_CHANNEL, request),
+  getUpdateStatus: () => ipcRenderer.invoke(UPDATES_GET_STATUS_CHANNEL),
+  checkForUpdates: () => ipcRenderer.invoke(UPDATES_CHECK_CHANNEL),
+  installAppUpdate: () => ipcRenderer.invoke(UPDATES_INSTALL_APP_CHANNEL),
+  openUpdatePage: (request) => ipcRenderer.invoke(UPDATES_OPEN_PAGE_CHANNEL, request),
+  prepareReleaseFirmware: () => ipcRenderer.invoke(UPDATES_PREPARE_FIRMWARE_CHANNEL),
+  installSimHubPlugin: (request) => ipcRenderer.invoke(UPDATES_INSTALL_PLUGIN_CHANNEL, request),
+  onUpdateStatus: (listener) => {
+    const handler = (_event: IpcRendererEvent, status: UpdateStatus): void => listener(status)
+    ipcRenderer.on(UPDATES_STATUS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(UPDATES_STATUS_CHANNEL, handler)
+  },
   selectImageSource: () => ipcRenderer.invoke(IMAGE_SELECT_SOURCE_CHANNEL),
   uploadImageAssets: (request) => ipcRenderer.invoke(IMAGE_UPLOAD_CHANNEL, request),
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
@@ -160,6 +193,12 @@ export const productApi: PitrigApi = {
       listener(progress)
     ipcRenderer.on(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, handler)
+  },
+  onBoardUpdateProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: BoardUpdateProgress): void =>
+      listener(progress)
+    ipcRenderer.on(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
   },
   onImageUploadProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: AssetUploadProgress): void =>
@@ -183,5 +222,5 @@ export const productApi: PitrigApi = {
     ipcRenderer.on(DEVICE_STATE_CHANGED_CHANNEL, handler)
     return () => ipcRenderer.removeListener(DEVICE_STATE_CHANGED_CHANNEL, handler)
   },
-  ...(TELEMETRY_BRIDGE_INCLUDED ? { telemetryBridge: telemetryBridgeApi } : {})
+  telemetryBridge: telemetryBridgeApi
 }

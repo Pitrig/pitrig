@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 import {
   debugAlias,
   developmentCspPlugin,
+  releaseDefine,
   rendererAlias,
   sharedAlias
 } from './electron.vite.shared'
@@ -15,6 +16,7 @@ const outDir = resolve('out-debug')
 export default defineConfig(({ command }) => ({
   main: {
     resolve: { alias: { ...sharedAlias, ...debugAlias } },
+    define: releaseDefine,
     build: {
       outDir: resolve(outDir, 'main'),
       lib: {

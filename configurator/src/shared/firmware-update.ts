@@ -1,9 +1,12 @@
-import type { AssetResult, AssetUploadProgress } from './asset-upload'
+import type { AssetErrorCode, AssetResult, AssetUploadProgress } from './asset-upload'
+import type { ConfigurationDocumentId } from './configuration-schema'
 
 export const FIRMWARE_SELECT_SOURCE_CHANNEL = 'firmware-update:select-source' as const
 export const FIRMWARE_UPLOAD_CHANNEL = 'firmware-update:upload' as const
 export const FIRMWARE_CANCEL_UPLOAD_CHANNEL = 'firmware-update:cancel-upload' as const
 export const FIRMWARE_UPLOAD_PROGRESS_CHANNEL = 'firmware-update:upload-progress' as const
+export const BOARD_UPDATE_CHANNEL = 'firmware-update:update-board' as const
+export const BOARD_UPDATE_PROGRESS_CHANNEL = 'firmware-update:update-progress' as const
 
 export const FIRMWARE_PACKAGE_MAGIC = 0x5746_4353
 export const FIRMWARE_FORMAT_VERSION = 1
@@ -33,3 +36,44 @@ export type FirmwareUpdateResult<T> = AssetResult<T>
 export interface FirmwareUploadRequest {
   sourceId: string
 }
+
+export interface BoardUpdateRequest {
+  sourceId?: string
+}
+
+export type BoardUpdateStep = 'backup' | 'install' | 'restart' | 'restore' | 'verify'
+
+export const BOARD_UPDATE_STEPS: readonly BoardUpdateStep[] = [
+  'backup',
+  'install',
+  'restart',
+  'restore',
+  'verify'
+]
+
+export interface BoardUpdateProgress {
+  step: BoardUpdateStep
+  completed: number
+  total: number
+  message: string
+}
+
+export interface BoardUpdateValue {
+  version: string
+  backup?: string
+  restored: ConfigurationDocumentId[]
+  configuration: unknown
+  applied: boolean
+  verified: boolean
+  restoreFailed?: string
+}
+
+export interface BoardUpdateError {
+  code: AssetErrorCode | 'backup_failed' | 'rolled_back' | 'reconnect_failed'
+  message: string
+  backup?: string
+}
+
+export type BoardUpdateResult =
+  | { ok: true; value: BoardUpdateValue }
+  | { ok: false; error: BoardUpdateError }

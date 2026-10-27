@@ -182,7 +182,7 @@ location suffix:
 | --- | --- |
 | `@PR:ERR:unknown_command` | The line starts with `@PR:` but names no command above. A host probes for a capability this way. |
 | `@PR:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with. |
-| `@PR:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. Also any `@PR:` command that arrives while another is still being handled — one command is in flight at a time, and only `REBOOT` is answered rather than refused in that window. An asset or firmware `BEGIN`, `INFO` or `CLEAR` in the startup window is answered `busy` under the owning kind's namespace rather than waiting, because startup is still reading the partitions it would erase. |
+| `@PR:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. Also any `@PR:` command that arrives while another is still being handled — one command is in flight at a time, the board stays busy for a few milliseconds after the last byte of a long reply has gone out, and only `REBOOT` is answered rather than refused in that window. A refused command was not taken, so a host sends it again. An asset or firmware `BEGIN`, `INFO` or `CLEAR` in the startup window is answered `busy` under the owning kind's namespace rather than waiting, because startup is still reading the partitions it would erase. |
 | `@PR:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
 | `@PR:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. A payload is always parsed and validated first, so `storage` never hides a rejection. |
 
@@ -202,6 +202,10 @@ one it replaces, so a torn write leaves the previous record readable, and the
 alternating pair this used to keep bought a second copy of that same guarantee.
 
 Configurator code must not reproduce or depend on this NVS record format.
+
+Beside the documents the same namespace keeps a two-byte `settings` record — a
+version and the display brightness buttons last set — which no command reads or
+writes, and which `RESET` erases with the rest.
 
 Records of any earlier schema are unsupported and are not migrated. That
 document falls back to its compiled factory payload while the other two load

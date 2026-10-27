@@ -106,7 +106,7 @@ What each directory holds:
   `transport/transport_common` (the read counters every link shares and the
   console-port log silencing) and `led/ws2812_rmt`, which drives one RMT
   transmit channel per output — why four outputs is the ceiling on both chips.
-- `modules/` — `lap_timer`, `rgb_leds`.
+- `modules/` — `controls`, `lap_timer`, `rgb_leds`.
 - `services/` — `asset_control` (the `SCF1` upload engine) with
   `font_asset_control`, `image_asset_control` and `firmware_update` as thin
   per-kind wrappers, `asset_package`, `asset_storage`, `binary_session`,
@@ -276,14 +276,18 @@ Components depend on interfaces rather than concrete drivers.
 
 # Modules
 
-Modules provide user-visible functionality. Two exist. `lap_timer` owns
+Modules provide user-visible functionality. Three exist. `lap_timer` owns
 lap-time extrapolation, correction and stale-telemetry handling behind a
 value-pipeline callback. `rgb_leds` owns the addressable LED outputs: it turns
 the `hardware` section into chains, binds each layer's telemetry once, and
 repaints every output on its own task at sixty frames a second, so none of its
-work runs on a transport read task. It subscribes to no event: the
-`telemetry_idle` gate reads the arrival timestamp the telemetry state service
-keeps.
+work runs on a transport read task. Its one event is `LedControl`, which scales
+or blanks what it sends; the `telemetry_idle` gate reads the arrival timestamp
+the telemetry state service keeps. `controls` samples `input.buttons` and
+`input.switch` on its own task while a dashboard has controls and turns them
+into screen and page commands through `controls::DashboardTarget`, which the
+dashboard composition drains on an LVGL timer, into backlight steps and into
+`LedControl` events ([ADR 0038](adr/0038-pc-buttons-drive-the-board.md)).
 
 Modules communicate through platform services rather than directly with each other whenever possible.
 
@@ -321,7 +325,7 @@ own telemetry processing, extrapolation, or correction logic.
 
 Platform code may depend on modules and components. Modules must not depend on platform code or UI frameworks.
 
-Neither side simulates telemetry. A packaged configurator receives none — the control protocol carries no command for reading values and SimHub owns the port while a session runs — so its preview draws every source as unavailable and shows the placeholders the device itself draws. A development build sits in the middle of the link instead, taking the stream from the SimHub plugin and forwarding it to the board unchanged ([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). The firmware carries no development-only telemetry source either, and any that is ever added must stay isolated under `platform/` so production communication can replace it without changing module APIs.
+Neither side simulates telemetry. The SimHub plugin feeds a board directly ([ADR 0035](adr/0035-simhub-plugin-feeds-the-board.md)); the configurator's preview draws what the plugin streams it, and while the configurator holds a board it sits in the middle of the link, forwarding that stream to the board unchanged ([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). With no plugin answering, the preview draws every source as unavailable and shows the placeholders the device itself draws, since the control protocol carries no command for reading values. The firmware carries no development-only telemetry source either, and any that is ever added must stay isolated under `platform/` so production communication can replace it without changing module APIs.
 
 ---
 

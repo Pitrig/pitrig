@@ -23,6 +23,7 @@ import {
 import { ConnectionManager } from './device-connection'
 import { DeviceHeartbeat } from './device-heartbeat'
 import { OperationRunner } from './device-operation'
+import type { PortClaims } from './port-leases'
 import { closePort } from './serial-port-lifecycle'
 import {
   advanceFirmwareSession,
@@ -52,6 +53,10 @@ export class DeviceService {
 
   getState(): DeviceState {
     return this.connection.getState()
+  }
+
+  attachPortClaims(claims: PortClaims): void {
+    this.connection.leases.attach(claims)
   }
 
   async listPorts(): Promise<DeviceResult<SerialPortSummary[]>> {

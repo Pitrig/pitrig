@@ -11,6 +11,9 @@ namespace {
 
 using configuration::LedEffect;
 
+constexpr float kStrobeDuty = 0.125F;
+constexpr std::uint32_t kSparkleStride = 131U;
+
 [[nodiscard]] led::Color ramp_at(const LedEffect& effect, const float position,
                                  const led::Color fallback) {
   const std::optional<std::uint32_t> color = conditions::ramp_color(
@@ -78,12 +81,57 @@ void paint_gauge(const Surface& surface, const LedEffect& effect, const led::Col
   }
 }
 
-void paint_animation(const Surface& surface, const LedEffect& effect, const led::Color color,
-                     const float phase) {
+[[nodiscard]] std::uint32_t scatter(std::uint32_t value) {
+  value ^= value >> 16;
+  value *= 0x7FEB352DU;
+  value ^= value >> 15;
+  value *= 0x846CA68BU;
+  value ^= value >> 16;
+  return value;
+}
+
+void paint_comet(const Surface& surface, const led::Color color, const float phase,
+                 const std::size_t span) {
   const std::size_t lamps = surface.size();
-  if (lamps == 0) {
-    return;
+  const std::size_t head = static_cast<std::size_t>(phase * lamps) % lamps;
+  for (std::size_t back = 0; back <= span && back < lamps; ++back) {
+    const float level = 1.0F - static_cast<float>(back) / static_cast<float>(span + 1);
+    surface.set((head + lamps - back) % lamps, color.faded(level));
   }
+}
+
+void paint_theater(const Surface& surface, const led::Color color, const float phase,
+                   const std::size_t span) {
+  const std::size_t step = static_cast<std::size_t>(phase * span) % span;
+  for (std::size_t index = step; index < surface.size(); index += span) {
+    surface.set(index, color);
+  }
+}
+
+void paint_sparkle(const Surface& surface, const led::Color color, const float phase,
+                   const std::uint64_t pass, const std::size_t span) {
+  const std::size_t lamps = surface.size();
+  for (std::size_t spark = 0; spark < span; ++spark) {
+    const std::uint32_t seed = static_cast<std::uint32_t>(pass) * kSparkleStride +
+                               static_cast<std::uint32_t>(spark);
+    surface.set(scatter(seed) % lamps, color.faded(1.0F - phase));
+  }
+}
+
+void paint_bounce(const Surface& surface, const led::Color color, const float phase,
+                  const std::size_t span) {
+  const std::size_t lamps = surface.size();
+  const std::size_t block = std::min(span, lamps);
+  const float sweep = 1.0F - std::abs(2.0F * phase - 1.0F);
+  const auto start = static_cast<std::size_t>(std::lround(sweep * static_cast<float>(lamps - block)));
+  for (std::size_t index = start; index < start + block; ++index) {
+    surface.set(index, color);
+  }
+}
+
+void paint_classic(const Surface& surface, const LedEffect& effect, const led::Color color,
+                   const float phase) {
+  const std::size_t lamps = surface.size();
   const float head = phase * lamps;
   const float sweep = 1.0F - std::abs(2.0F * phase - 1.0F);
   const float breath = 0.5F - 0.5F * std::cos(phase * 2.0F * std::numbers::pi_v<float>);
@@ -111,7 +159,39 @@ void paint_animation(const Surface& surface, const LedEffect& effect, const led:
         surface.set(index, color.faded(1.0F - distance));
         break;
       }
+      default:
+        break;
     }
+  }
+}
+
+void paint_animation(const Surface& surface, const LedEffect& effect, const led::Color color,
+                     const float phase, const std::uint64_t pass) {
+  if (surface.size() == 0) {
+    return;
+  }
+  const std::size_t span = std::max<std::size_t>(effect.span, 1U);
+  switch (effect.animation) {
+    case configuration::LedAnimationKind::comet:
+      paint_comet(surface, color, phase, span);
+      break;
+    case configuration::LedAnimationKind::theater:
+      paint_theater(surface, color, phase, span);
+      break;
+    case configuration::LedAnimationKind::sparkle:
+      paint_sparkle(surface, color, phase, pass, span);
+      break;
+    case configuration::LedAnimationKind::strobe:
+      if (phase < kStrobeDuty) {
+        paint_solid(surface, color);
+      }
+      break;
+    case configuration::LedAnimationKind::bounce:
+      paint_bounce(surface, color, phase, span);
+      break;
+    default:
+      paint_classic(surface, effect, color, phase);
+      break;
   }
 }
 
@@ -182,6 +262,7 @@ void paint(const Surface& surface, const configuration::LedEffect& effect, const
       value.has_value() ? conditions::range_fraction(*value, effect.range) : 0.0F;
   const std::uint64_t period_us = effect_period_us(effect);
   const float phase = static_cast<float>(elapsed_us % period_us) / static_cast<float>(period_us);
+  const std::uint64_t pass = elapsed_us / period_us;
 
   switch (effect.type) {
     case configuration::LedEffectType::solid:
@@ -197,7 +278,7 @@ void paint(const Surface& surface, const configuration::LedEffect& effect, const
       paint_gauge(surface, effect, color, fraction, static_cast<float>(value.value_or(0.0)));
       break;
     case configuration::LedEffectType::animation:
-      paint_animation(surface, effect, color, phase);
+      paint_animation(surface, effect, color, phase, pass);
       break;
     case configuration::LedEffectType::sprite:
     case configuration::LedEffectType::text:

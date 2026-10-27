@@ -1,4 +1,9 @@
-import type { TelemetryBridgeStartRequest } from '../../shared/telemetry-bridge'
+import {
+  SIMULATION_PAYLOAD_LIMIT,
+  type TelemetryBridgeStartRequest,
+  type TelemetryInterest,
+  type TelemetrySimulation
+} from '../../shared/telemetry-bridge'
 import {
   IMAGE_COLOR_FORMATS,
   type ImageUploadRequest
@@ -21,7 +26,7 @@ import {
   type ConfigurationPathRequest,
   type ConfigurationSaveRequest
 } from '@shared/config-library'
-import { type FirmwareUploadRequest } from '@shared/firmware-update'
+import { type BoardUpdateRequest, type FirmwareUploadRequest } from '@shared/firmware-update'
 import type {
   ConnectDeviceRequest,
   DeviceConfigurationRequest,
@@ -44,6 +49,8 @@ import {
 } from '@shared/templates'
 import { PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
 import { t } from '@shared/ui-text'
+
+const MAXIMUM_WIRING_TEXT = 16_384
 
 export function isImageUploadRequest(value: unknown): value is ImageUploadRequest {
   if (typeof value !== 'object' || value === null) return false
@@ -207,6 +214,12 @@ export function isFontLibraryIdRequest(value: unknown): value is FontLibraryIdRe
   return typeof request.id === 'string' && request.id.length > 0 && request.id.length <= 31
 }
 
+export function isBoardUpdateRequest(value: unknown): value is BoardUpdateRequest {
+  if (!value || typeof value !== 'object') return false
+  const { sourceId } = value as Partial<BoardUpdateRequest>
+  return sourceId === undefined || isFirmwareUploadRequest({ sourceId })
+}
+
 export function isFirmwareUploadRequest(value: unknown): value is FirmwareUploadRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<FirmwareUploadRequest>
@@ -246,6 +259,46 @@ export function isTelemetryBridgeStartRequest(
   const request = value as Partial<TelemetryBridgeStartRequest>
   if (typeof request.simhubHost !== 'string' || request.simhubHost.length > 255) return false
   return isLinkPort(request.port) && isLinkPort(request.simhubPort)
+}
+
+export function isTelemetrySimulation(value: unknown): value is TelemetrySimulation {
+  if (!value || typeof value !== 'object') return false
+  const simulation = value as Partial<TelemetrySimulation>
+  return (
+    typeof simulation.active === 'boolean' &&
+    typeof simulation.payload === 'string' &&
+    simulation.payload.length <= SIMULATION_PAYLOAD_LIMIT
+  )
+}
+
+export function isTelemetryInterest(value: unknown): value is TelemetryInterest {
+  if (!value || typeof value !== 'object') return false
+  const interest = value as Partial<TelemetryInterest>
+  return (
+    typeof interest.all === 'boolean' &&
+    typeof interest.inputs === 'boolean' &&
+    isBindingList(interest.running) &&
+    isBindingList(interest.draft) &&
+    isWiring(interest.wiring)
+  )
+}
+
+function isWiring(value: unknown): boolean {
+  if (value === null) return true
+  if (typeof value !== 'object' || Array.isArray(value)) return false
+  try {
+    return JSON.stringify(value).length <= MAXIMUM_WIRING_TEXT
+  } catch {
+    return false
+  }
+}
+
+function isBindingList(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 1_024 &&
+    value.every((entry) => typeof entry === 'string' && entry.length <= 64)
+  )
 }
 
 function isLinkPort(value: unknown): boolean {

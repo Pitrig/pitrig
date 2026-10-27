@@ -13,7 +13,7 @@
 
 namespace pitrig::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 26;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 27;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -56,6 +56,7 @@ inline constexpr std::size_t kMaximumLedEffects = 32;
 inline constexpr std::size_t kMaximumLedsPerOutput = 512;
 inline constexpr std::size_t kMaximumLedsTotal = 1024;
 inline constexpr std::size_t kMaximumLedSegments = 8;
+inline constexpr std::size_t kMaximumLedParts = 16;
 inline constexpr std::size_t kMaximumMatrixSide = 16;
 inline constexpr std::size_t kMaximumLedSprites = 8;
 inline constexpr std::size_t kMaximumLedSpriteFrames = 16;
@@ -64,6 +65,15 @@ inline constexpr std::size_t kLedSpritePixelCapacity = 1025;
 inline constexpr std::size_t kLedPanelMaskCapacity = 65;
 inline constexpr std::size_t kMaximumLedColorRules = 4;
 inline constexpr std::size_t kLedTextCapacity = 32;
+inline constexpr std::size_t kMaximumInputButtons = 16;
+inline constexpr std::size_t kMaximumInputSources = 4;
+inline constexpr std::size_t kMaximumSwitchPositions = 12;
+inline constexpr std::size_t kInputNameCapacity = 24;
+inline constexpr std::size_t kInputSourceCapacity = 96;
+inline constexpr std::size_t kMaximumControlBindings = 32;
+inline constexpr std::size_t kMaximumControlRules = 4;
+inline constexpr std::size_t kMaximumIdleReturnMs = 600000;
+inline constexpr std::size_t kMaximumDismissMs = 600000;
 inline constexpr std::size_t kLedTelemetryIdleMs = 2000;
 
 enum class ConfigurationDocument : std::uint8_t {
@@ -172,6 +182,16 @@ enum class LedAnimationKind : std::uint8_t {
   pulse,
   wipe,
   chase,
+  comet,
+  theater,
+  sparkle,
+  strobe,
+  bounce,
+};
+
+enum class LedPartLayout : std::uint8_t {
+  joined,
+  each,
 };
 
 enum class LedGate : std::uint8_t {
@@ -236,6 +256,7 @@ enum class ConditionOperator : std::uint8_t {
   at_or_below,
   equal,
   not_equal,
+  bit_set,
 };
 
 enum class WidgetActionType : std::uint8_t {
@@ -290,6 +311,30 @@ enum class IndicatorShape : std::uint8_t {
   arc,
 };
 
+enum class ControlAction : std::uint8_t {
+  next_screen,
+  previous_screen,
+  show_screen,
+  hold_screen,
+  home_screen,
+  next_page,
+  previous_page,
+  show_page,
+  hold_page,
+  dismiss_page,
+  display_brighter,
+  display_dimmer,
+  leds_brighter,
+  leds_dimmer,
+  leds_toggle,
+};
+
+enum class SlotDismiss : std::uint8_t {
+  next_event,
+  timed,
+  session,
+};
+
 enum class SlotTrigger : std::uint8_t {
   none,
   value_changed,
@@ -323,12 +368,18 @@ struct LedPaletteEntry {
 
 struct LedSpriteConfiguration {
   std::array<char, kImageIdCapacity> id{};
-  std::uint8_t width{8};
+  std::uint16_t width{8};
   std::uint8_t height{8};
   std::uint8_t frame_count{1};
   std::uint8_t palette_count{};
   std::array<LedPaletteEntry, kLedPaletteSize> palette{};
   std::array<char, kLedSpritePixelCapacity> pixels{};
+};
+
+struct LedPart {
+  std::uint16_t from{};
+  std::uint16_t count{1};
+  bool reversed{false};
 };
 
 struct LedColorRule {
@@ -373,8 +424,9 @@ struct IndicatorSegment {
 struct LedEffect {
   LedEffectType type{LedEffectType::solid};
   std::array<char, kWidgetIdCapacity> id{};
-  std::uint16_t from{};
-  std::uint16_t count{};
+  std::uint8_t part_count{};
+  std::array<LedPart, kMaximumLedParts> parts{};
+  LedPartLayout layout{LedPartLayout::joined};
   std::array<char, kLedPanelMaskCapacity> panel_mask{};
   ValueSourceConfiguration source{};
   ValueRange range{};
@@ -382,6 +434,7 @@ struct LedEffect {
   ValueSourceConfiguration condition_source{};
   std::uint8_t condition_count{};
   std::array<ValueCondition, kMaximumWidgetConditions> conditions{};
+  float hysteresis{};
   std::uint16_t hold_ms{};
   std::uint16_t blink_ms{};
   bool mirrored{false};
@@ -396,8 +449,10 @@ struct LedEffect {
   std::array<IndicatorSegment, kMaximumIndicatorSegments> steps{};
   LedAnimationKind animation{LedAnimationKind::rainbow};
   std::uint16_t speed_ms{1000};
+  std::uint8_t span{3};
   std::array<char, kImageIdCapacity> sprite{};
   std::uint8_t sprite_frame{};
+  bool sprite_scaled{false};
   bool sprite_loop{false};
   std::array<char, kLedTextCapacity> text{};
   LedFont font{LedFont::regular_4x6};
@@ -650,6 +705,8 @@ struct SlotPageConfiguration {
   SlotTrigger trigger{SlotTrigger::none};
   ValueSourceConfiguration source{};
   std::uint16_t duration_ms{};
+  SlotDismiss dismiss{SlotDismiss::next_event};
+  std::uint32_t dismiss_ms{};
   std::uint8_t condition_count{};
   std::array<ValueCondition, kMaximumWidgetConditions> conditions{};
   std::uint8_t widget_count{};
@@ -659,6 +716,7 @@ struct SlotPageConfiguration {
 struct SlotWidgetConfiguration {
   WidgetFrame frame{};
   bool clip_children{true};
+  std::uint32_t home_after_ms{};
   std::uint8_t page_count{};
   std::array<SlotPageConfiguration, kMaximumSlotPages> pages{};
 };
@@ -670,9 +728,41 @@ struct ScreenConfiguration {
   std::array<WidgetReference, kMaximumWidgetsPerScreen> widgets{};
 };
 
+struct ControlBinding {
+  std::uint8_t button{1};
+  ControlAction action{ControlAction::next_screen};
+  std::array<char, kWidgetIdCapacity> screen{};
+  std::array<char, kWidgetIdCapacity> slot{};
+  std::uint8_t page{1};
+  bool wrap{true};
+  bool repeat{false};
+};
+
+struct ControlSwitch {
+  std::array<char, kWidgetIdCapacity> slot{};
+};
+
+struct ControlRule {
+  std::array<char, kWidgetIdCapacity> screen{};
+  ValueSourceConfiguration source{};
+  std::uint8_t condition_count{};
+  std::array<ValueCondition, kMaximumWidgetConditions> conditions{};
+};
+
+struct ControlsConfiguration {
+  std::uint8_t binding_count{};
+  std::array<ControlBinding, kMaximumControlBindings> bindings{};
+  ControlSwitch position_switch{};
+  std::uint8_t rule_count{};
+  std::array<ControlRule, kMaximumControlRules> rules{};
+  std::array<char, kWidgetIdCapacity> home_screen{};
+  std::uint32_t home_after_ms{};
+};
+
 struct DashboardConfiguration {
   ScreenTransition transition{ScreenTransition::slide};
   ValueSmoothing smoothing{ValueSmoothing::off};
+  ControlsConfiguration controls{};
   std::uint8_t screen_count{};
   std::array<ScreenConfiguration, kMaximumScreens> screens{};
   std::uint8_t text_widget_count{};
@@ -837,12 +927,17 @@ inline constexpr std::array<std::string_view, 7> kLedEffectTypeNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 5> kLedAnimationKindNames{{
+inline constexpr std::array<std::string_view, 10> kLedAnimationKindNames{{
     "rainbow",
     "scan",
     "pulse",
     "wipe",
     "chase",
+    "comet",
+    "theater",
+    "sparkle",
+    "strobe",
+    "bounce",
 }};
 
 [[nodiscard]] inline std::string_view led_animation_kind_name(const LedAnimationKind value) {
@@ -855,6 +950,27 @@ inline constexpr std::array<std::string_view, 5> kLedAnimationKindNames{{
   for (std::size_t index = 0; index < kLedAnimationKindNames.size(); ++index) {
     if (kLedAnimationKindNames[index] == name) {
       value = static_cast<LedAnimationKind>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kLedPartLayoutNames{{
+    "joined",
+    "each",
+}};
+
+[[nodiscard]] inline std::string_view led_part_layout_name(const LedPartLayout value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedPartLayoutNames.size() ? kLedPartLayoutNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_part_layout_from_name(const std::string_view name,
+                                                  LedPartLayout& value) {
+  for (std::size_t index = 0; index < kLedPartLayoutNames.size(); ++index) {
+    if (kLedPartLayoutNames[index] == name) {
+      value = static_cast<LedPartLayout>(index);
       return true;
     }
   }
@@ -1044,13 +1160,14 @@ inline constexpr std::array<std::string_view, 3> kColorRampTargetNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 6> kConditionOperatorNames{{
+inline constexpr std::array<std::string_view, 7> kConditionOperatorNames{{
     "above",
     "at_or_above",
     "below",
     "at_or_below",
     "equal",
     "not_equal",
+    "bit_set",
 }};
 
 [[nodiscard]] inline std::string_view condition_operator_name(const ConditionOperator value) {
@@ -1275,6 +1392,62 @@ inline constexpr std::array<std::string_view, 2> kIndicatorShapeNames{{
   for (std::size_t index = 0; index < kIndicatorShapeNames.size(); ++index) {
     if (kIndicatorShapeNames[index] == name) {
       value = static_cast<IndicatorShape>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 15> kControlActionNames{{
+    "next_screen",
+    "previous_screen",
+    "show_screen",
+    "hold_screen",
+    "home_screen",
+    "next_page",
+    "previous_page",
+    "show_page",
+    "hold_page",
+    "dismiss_page",
+    "display_brighter",
+    "display_dimmer",
+    "leds_brighter",
+    "leds_dimmer",
+    "leds_toggle",
+}};
+
+[[nodiscard]] inline std::string_view control_action_name(const ControlAction value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kControlActionNames.size() ? kControlActionNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool control_action_from_name(const std::string_view name,
+                                                  ControlAction& value) {
+  for (std::size_t index = 0; index < kControlActionNames.size(); ++index) {
+    if (kControlActionNames[index] == name) {
+      value = static_cast<ControlAction>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 3> kSlotDismissNames{{
+    "next_event",
+    "timed",
+    "session",
+}};
+
+[[nodiscard]] inline std::string_view slot_dismiss_name(const SlotDismiss value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kSlotDismissNames.size() ? kSlotDismissNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool slot_dismiss_from_name(const std::string_view name,
+                                                  SlotDismiss& value) {
+  for (std::size_t index = 0; index < kSlotDismissNames.size(); ++index) {
+    if (kSlotDismissNames[index] == name) {
+      value = static_cast<SlotDismiss>(index);
       return true;
     }
   }

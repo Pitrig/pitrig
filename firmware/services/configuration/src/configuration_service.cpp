@@ -52,6 +52,7 @@ bool ConfigurationService::initialize(IConfigurationStorage& storage,
   if (!status_.storage_available) {
     return false;
   }
+  load_settings();
 
   for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
     const auto document = static_cast<ConfigurationDocument>(index);
@@ -134,7 +135,32 @@ bool ConfigurationService::reset() {
     status_.documents[index] = {};
     remember_payload(static_cast<ConfigurationDocument>(index), factory_payloads_[index]);
   }
+  settings_ = {};
   return true;
+}
+
+bool ConfigurationService::save_settings(const DeviceSettings& settings) {
+  if (storage_ == nullptr || !status_.storage_available) {
+    return false;
+  }
+  const std::array<std::uint8_t, 2> record{kSettingsVersion, settings.display_brightness};
+  if (!storage_->write_settings(record)) {
+    return false;
+  }
+  settings_ = settings;
+  return true;
+}
+
+void ConfigurationService::load_settings() {
+  settings_ = {};
+  std::array<std::uint8_t, 2> record{};
+  std::size_t size{};
+  if (storage_->read_settings(record, size) != StorageRead::loaded || size != record.size() ||
+      record[0] != kSettingsVersion || record[1] < kMinimumDisplayBrightness ||
+      record[1] > kMaximumDisplayBrightness) {
+    return;
+  }
+  settings_.display_brightness = record[1];
 }
 
 ConfigurationService::LoadedRecord ConfigurationService::load_document(

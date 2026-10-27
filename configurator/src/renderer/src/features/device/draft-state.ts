@@ -1,5 +1,8 @@
 import { documentsDiffering } from '@shared/configuration-documents'
-import type { ConfigurationDocumentId } from '@shared/configuration-schema'
+import {
+  CONFIGURATION_SCHEMA_VERSION,
+  type ConfigurationDocumentId
+} from '@shared/configuration-schema'
 import {
   validateConfigurationDocument,
   type ValidationResult
@@ -51,10 +54,13 @@ export function useDraftState(): DraftState {
   const safeMode = session?.info.health?.safeMode ?? false
   const boardMismatch =
     parsed.ok && session ? parsed.configuration.board !== session.info.boardId : false
+  const outdated = session ? outdatedFirmware(session.info.schemaVersion) : undefined
 
   const saveBlockedReason = !connected
     ? 'Connect a Pitrig board before saving.'
-    : boardMismatch
+    : outdated
+      ? outdated
+      : boardMismatch
       ? `Local configuration targets ${parsed.ok ? parsed.configuration.board : 'another board'}, but the connected board is ${session?.info.boardId}. Convert the draft to move the layout across.`
       : !parsed.ok
         ? parsed.error
@@ -64,7 +70,7 @@ export function useDraftState(): DraftState {
             ? 'The draft already matches what the board holds.'
             : undefined
 
-  const liveApplyBlockedReason = liveApplyBlocker({
+  const liveApplyBlockedReason = outdated ?? liveApplyBlocker({
     connected,
     safeMode,
     parsed,
@@ -106,6 +112,14 @@ interface DiffMemo {
 }
 
 const diffMemos: DiffMemo[] = []
+
+export function outdatedFirmware(schema: number): string | undefined {
+  if (schema === CONFIGURATION_SCHEMA_VERSION) return undefined
+  return t('device.draftState.theBoardFirmwareReadsSchema', {
+    schema,
+    expected: CONFIGURATION_SCHEMA_VERSION
+  })
+}
 
 function liveApplyBlocker(state: {
   connected: boolean

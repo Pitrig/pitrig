@@ -15,6 +15,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/usb_cdc"
      "${CMAKE_CURRENT_LIST_DIR}/interfaces"
      "${CMAKE_CURRENT_LIST_DIR}/interfaces/transport"
+     "${CMAKE_CURRENT_LIST_DIR}/modules/controls"
      "${CMAKE_CURRENT_LIST_DIR}/modules/lap_timer"
      "${CMAKE_CURRENT_LIST_DIR}/modules/rgb_leds"
      "${CMAKE_CURRENT_LIST_DIR}/platform/board_registry"
