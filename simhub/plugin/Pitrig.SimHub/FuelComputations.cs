@@ -1,4 +1,3 @@
-using System;
 using GameReaderCommon;
 
 namespace Pitrig.SimHub
@@ -7,50 +6,57 @@ namespace Pitrig.SimHub
     {
         private const string PerLap = "DataCorePlugin.Computed.Fuel_LitersPerLap";
         private const string LapsOfFuel = "DataCorePlugin.Computed.Fuel_RemainingLaps";
-
-        public static double? TimeRemaining(TelemetryState state)
-        {
-            return FuelLaps(state) * TimingComputations.LapSeconds(state.Status) * 1000;
-        }
+        private const double PitWindowStart = 0.8;
+        private const double LastLapOfFuel = 1.1;
 
         public static double? Required(TelemetryState state)
         {
-            var perLap = PerLapFuel(state);
-            var laps = TimingComputations.LapsRemaining(state.Status);
-            if (perLap == null || laps == null) return null;
-            return Math.Max(laps.Value - state.Status.TrackPositionPercent, 0) * perLap.Value;
+            var required = LapsLeft(state) * PerLapFuel(state);
+            return required == null || double.IsNaN(required.Value) || double.IsInfinity(required.Value) ? null : required;
         }
 
         public static double? ToAdd(TelemetryState state)
         {
-            var required = Required(state);
-            if (required == null) return null;
-            var fuel = state.Status.Fuel;
-            var missing = Math.Max(required.Value + state.ReserveLaps * PerLapFuel(state).Value - fuel, 0);
-            var capacity = Capacity(state.Status);
-            return capacity > 0 ? Math.Min(missing, Math.Max(capacity - fuel, 0)) : missing;
+            var perLap = PerLapFuel(state);
+            var laps = LapsLeft(state);
+            if (perLap == null || laps == null) return null;
+            var refuel = laps.Value * perLap.Value + state.FuelMargin - state.Status.Fuel;
+            var capacity = Capacity(state);
+            if (refuel >= capacity) return capacity;
+            return refuel > 0 ? refuel : 0;
         }
 
         public static double? AtFinish(TelemetryState state)
         {
-            return state.Status?.Fuel - Required(state);
+            var perLap = PerLapFuel(state);
+            var laps = LapsLeft(state);
+            if (perLap == null || laps == null) return null;
+            var surplus = state.Status.Fuel - laps.Value * perLap.Value;
+            return surplus > 0 ? surplus : 0;
         }
 
         public static bool? PitNow(TelemetryState state)
         {
             var status = state.Status;
-            var atFinish = AtFinish(state);
             var laps = FuelLaps(state);
-            if (atFinish == null || laps == null) return null;
-            var lapsAtLine = laps.Value - (1 - status.TrackPositionPercent);
-            return status.CompletedLaps > 0 && status.IsInPitLane == 0 && status.IsInPit == 0 &&
-                   atFinish < 0 && lapsAtLine < 1 + state.ReserveLaps;
+            if (status == null || laps == null) return null;
+            var inPits = status.IsInPitLane == 1 || status.IsInPit == 1;
+            return status.TrackPositionPercent >= PitWindowStart && laps <= LastLapOfFuel && !inPits &&
+                   status.CompletedLaps > 0;
+        }
+
+        private static double? LapsLeft(TelemetryState state)
+        {
+            var status = state.Status;
+            if (status == null) return null;
+            if (!SessionComputations.Timed(state)) return TimingComputations.RaceLapsRemaining(state);
+            var lap = Computed.Seconds(status.BestLapTime) ?? Computed.Seconds(status.LastLapTime) ?? 0;
+            return status.SessionTimeLeft.TotalSeconds / lap;
         }
 
         private static double? PerLapFuel(TelemetryState state)
         {
-            var perLap = Computed.Number(state.Manager.GetPropertyValue(PerLap));
-            return perLap > 0 ? perLap : null;
+            return Computed.Number(state.Manager.GetPropertyValue(PerLap));
         }
 
         private static double? FuelLaps(TelemetryState state)
@@ -58,9 +64,10 @@ namespace Pitrig.SimHub
             return Computed.Number(state.Manager.GetPropertyValue(LapsOfFuel));
         }
 
-        private static double Capacity(StatusDataBase status)
+        private static double Capacity(TelemetryState state)
         {
-            return status.CarSettings_MaxFUEL > 0 ? status.CarSettings_MaxFUEL : status.MaxFuel;
+            StatusDataBase status = state.Status;
+            return state.GameName == "IRacing" ? status.CarSettings_MaxFUEL : status.MaxFuel;
         }
     }
 }

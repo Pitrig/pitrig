@@ -13,6 +13,7 @@ from .validate import (
     validate_field,
     validate_identifier,
     validate_link,
+    validate_local_units,
     validate_parameters,
     validate_simhub_mapping,
 )
@@ -92,10 +93,9 @@ def load_simhub_mappings(
     validate_link(profile["link"])
     parameters = profile.setdefault("parameters", {})
     validate_parameters(parameters)
-    prelude = mappings.get("javascript_prelude", "")
-    if not isinstance(prelude, str):
-        fail("SimHub javascript_prelude must be a string")
-    profile["javascript_prelude"] = prelude
+    local_units = mappings["local_units"]
+    validate_local_units(local_units)
+    profile["local_units"] = local_units
     games = mappings["games"]
     validate_games_table(games)
     profile["games"] = games
@@ -118,7 +118,9 @@ def load_simhub_mappings(
         report_key_mismatch("expanded SimHub mappings", field_names, set(expanded))
     for field in fields:
         mapping = expanded[field["name"]]
-        validate_simhub_mapping(field, mapping, parameters, games)
+        if "unit_property" in mapping and field["unit"] in local_units:
+            mapping["unit_factors"] = local_units[field["unit"]]
+        validate_simhub_mapping(field, mapping, games)
         if field["type"] == "uint32":
             mapping.setdefault("unavailable_when", dict(UNSIGNED_UNAVAILABLE))
     return profile, expanded
@@ -134,7 +136,7 @@ def wheel_mapping(
     mapping: dict[str, Any], wheel: str, placeholders: dict[str, dict[str, str]]
 ) -> dict[str, Any]:
     expanded = dict(mapping)
-    for key in ("property", "expression", "javascript", "computed"):
+    for key in ("property", "computed"):
         if key in expanded:
             expanded[key] = substitute(expanded[key], wheel, placeholders)
     if isinstance(mapping.get("games"), dict):

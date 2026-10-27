@@ -237,7 +237,7 @@ copy on top, so every early sample favoured the widened mode, and a dense
 dashboard ran at 47 fps where the other mode gives 59. Nothing is recorded now
 until eight consecutive frames have covered less than half the screen (or four
 seconds pass). Before against after, over the debugger's sixteen stress
-patterns and the three Lovely screens: the Lovely main screen 59 fps on every
+patterns and that dashboard's three screens: its main screen 59 fps on every
 boot of six (was five of eight), `shapes_96` 33 to 59, `text_32_plain` 46 to 57,
 `text_32` 50 to 55, `bars_24` 47 to 51, eleven unchanged; `full_screen_bar`
 49 to 42 and `indicators_12` 58.5 to 54 pay for it, because the gate delays
@@ -265,11 +265,11 @@ holding.
 
 Removing the hold itself is a trade, so it is a build option rather than a
 default: `CONFIG_PITRIG_DISPLAY_UNCAPPED` (`sdkconfig.defaults.uncapped`). It
-halves what is left of the latency — the Lovely main screen 21.8 to 12.8 ms,
-its fuel screen 12.5 to 7.9, `text_only` 23.3 to 7.4 — and lifts the frame rate
-past what the panel shows, which means the processor draws frames nobody sees.
-The numbers say what the latency would be without the hold, and nothing about
-how the motion then looks.
+halves what is left of the latency — a dense dashboard's main screen 21.8 to
+12.8 ms, its fuel screen 12.5 to 7.9, `text_only` 23.3 to 7.4 — and lifts the
+frame rate past what the panel shows, which means the processor draws frames
+nobody sees. The numbers say what the latency would be without the hold, and
+nothing about how the motion then looks.
 
 ### Scheduling the frame from the burst
 

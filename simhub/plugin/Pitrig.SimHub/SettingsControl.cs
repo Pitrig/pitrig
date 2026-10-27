@@ -12,7 +12,7 @@ namespace Pitrig.SimHub
 {
     internal sealed partial class SettingsControl : UserControl
     {
-        private const double MaximumReserveLaps = 10;
+        private const double MaximumFuelMargin = 10;
         private const int MaximumAverageLaps = 10;
 
         private static readonly Thickness RowMargin = new Thickness(0, 4, 0, 0);
@@ -20,7 +20,7 @@ namespace Pitrig.SimHub
 
         private readonly PitrigPlugin plugin;
         private readonly TextBox port = new TextBox();
-        private readonly TextBox reserveLaps = new TextBox();
+        private readonly TextBox fuelMargin = new TextBox();
         private readonly TextBox averageLaps = new TextBox();
         private readonly CheckBox enabled = new CheckBox { Content = "Send telemetry" };
         private readonly TextBlock boards = Wrapped();
@@ -38,7 +38,7 @@ namespace Pitrig.SimHub
         {
             this.plugin = plugin;
             port.Text = plugin.Settings.Port.ToString(CultureInfo.InvariantCulture);
-            reserveLaps.Text = plugin.Settings.FuelReserveLaps.ToString(CultureInfo.InvariantCulture);
+            fuelMargin.Text = plugin.Settings.FuelMargin.ToString(CultureInfo.InvariantCulture);
             averageLaps.Text = plugin.Settings.AverageLaps.ToString(CultureInfo.InvariantCulture);
             enabled.IsChecked = plugin.Settings.Enabled;
             Content = Layout();
@@ -72,12 +72,13 @@ namespace Pitrig.SimHub
             panel.Children.Add(addresses);
             panel.Children.Add(Row("Listen port", port));
             panel.Children.Add(Heading("Fuel and averages"));
-            panel.Children.Add(Row("Fuel reserve, laps", reserveLaps));
+            panel.Children.Add(Row("Fuel margin, litres or gallons", fuelMargin));
             panel.Children.Add(Row("Tyre and brake averages over, laps", averageLaps));
             panel.Children.Add(new TextBlock
             {
-                Text = "These match the configurator's SimHub profile export. The averages restart " +
-                       "on leaving the pits and in a new session.",
+                Text = "The fuel margin is added to the fuel to add, in the fuel unit SimHub shows, and a " +
+                       "negative one takes fuel off. The averages take a sample every three seconds outside " +
+                       "the pits and last until SimHub restarts.",
                 TextWrapping = TextWrapping.Wrap,
                 Margin = RowMargin
             });
@@ -136,10 +137,10 @@ namespace Pitrig.SimHub
                 state.Text = "The port must be a number between 1024 and 65535.";
                 return;
             }
-            if (!double.TryParse(reserveLaps.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture,
-                    out var reserve) || reserve < 0 || reserve > MaximumReserveLaps)
+            if (!double.TryParse(fuelMargin.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out var margin) || double.IsNaN(margin) || Math.Abs(margin) > MaximumFuelMargin)
             {
-                state.Text = "The fuel reserve must be a number of laps between 0 and 10.";
+                state.Text = "The fuel margin must be a number between -10 and 10.";
                 return;
             }
             if (!int.TryParse(averageLaps.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var laps) ||
@@ -152,7 +153,7 @@ namespace Pitrig.SimHub
             {
                 Port = number,
                 Enabled = enabled.IsChecked == true,
-                FuelReserveLaps = reserve,
+                FuelMargin = margin,
                 AverageLaps = laps,
                 KnownPorts = plugin.Settings.KnownPorts
             });

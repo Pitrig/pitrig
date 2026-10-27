@@ -24,11 +24,11 @@ Transport -> Protocol -> TelemetryProvider -> TelemetryState
 The immutable telemetry registry owns canonical field metadata: protocol-neutral
 name, value type, and runtime slot. The checked-in
 `telemetry/telemetry_catalog.json` manifest is the source of truth for this
-bounded catalog. Generated firmware, SimHub protocol, checked-in complete
-SimHub import profile, configurator profile data, and documentation artifacts
-must agree with that manifest. The catalog contains 256 fields and reserves at
-most 256 runtime slots. Generic SimHub property mappings live in the separate
-source-specific `telemetry/simhub_generic_mappings.json` manifest.
+bounded catalog. Generated firmware, SimHub protocol, the plugin's field table,
+the configurator's data and the documentation must agree with that manifest.
+The catalog contains 263 fields and reserves at most 350 runtime slots. Generic
+SimHub property mappings live in the separate source-specific
+`telemetry/simhub_generic_mappings.json` manifest.
 
 Resolving a name returns a handle containing the slot and type. Names are
 resolved only during startup; handles remain valid for the firmware lifetime

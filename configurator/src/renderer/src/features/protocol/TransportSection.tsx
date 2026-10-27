@@ -5,12 +5,12 @@ import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
 import { useDeviceStore } from '@/features/device/device-store'
 import { mutateDraftConfiguration } from '@/features/configuration/editor/document'
 import { CheckboxField, NumberField, SelectField } from '@/features/configuration/inspector/fields'
-import { SUPPORTED_BAUD_RATES } from '@shared/device'
+import { SUPPORTED_BAUD_RATES, type DeviceConfiguration } from '@shared/device'
 import {
   TELEMETRY_TRANSPORT_ID_VALUES,
   type TelemetryTransportId
 } from '@shared/configuration-schema'
-import { effectiveSimHubBaudRate } from '@shared/simhub-profile'
+import { SIMHUB_BAUD_RATE } from '@shared/simhub-data'
 import { t } from '@shared/ui-text'
 
 const TRANSPORT_LABELS: Record<TelemetryTransportId, string> = {
@@ -42,7 +42,7 @@ export function TransportSection(): React.JSX.Element {
     })
   }
 
-  const baudRate = effectiveSimHubBaudRate(draft)
+  const baudRate = effectiveBaudRate(draft)
   const baudOptions = baudRateOptions(baudRate)
 
   return (
@@ -159,6 +159,14 @@ export function TransportSection(): React.JSX.Element {
       </details>
     </PageSection>
   )
+}
+
+function effectiveBaudRate(configuration: DeviceConfiguration): number {
+  const configured = configuration.telemetry_transport?.uart?.baud_rate
+  return Number.isInteger(configured) && configured !== undefined &&
+    configured >= 9_600 && configured <= 2_000_000
+    ? configured
+    : SIMHUB_BAUD_RATE
 }
 
 function baudRateOptions(effective: number): readonly string[] {

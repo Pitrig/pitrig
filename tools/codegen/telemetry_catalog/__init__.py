@@ -10,8 +10,7 @@ OUTPUTS = {
     ROOT
     / "firmware/services/telemetry/protocols/simhub/include/simhub_catalog_generated.hpp": "simhub",
     ROOT / "configurator/src/shared/telemetry-catalog.ts": "typescript",
-    ROOT / "configurator/src/shared/simhub-profile-data.ts": "simhub_typescript",
+    ROOT / "configurator/src/shared/simhub-data.ts": "simhub_typescript",
     ROOT / "docs/telemetry-catalog.md": "markdown",
-    ROOT / "simhub/Pitrig-telemetry.shsds": "shsds",
     ROOT / "simhub/plugin/Pitrig.SimHub/TelemetryCatalog.g.cs": "csharp",
 }

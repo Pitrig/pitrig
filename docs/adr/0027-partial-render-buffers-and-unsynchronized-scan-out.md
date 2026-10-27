@@ -245,8 +245,8 @@ rows was being made from contaminated samples. Both modes started at a seeded
 eighth-weight average cannot move from 30 to a real 9 in that time — so
 whichever mode was probed first won, deterministically, and the loser was rarely
 probed again. Seeding each mode from its first frame instead moved the
-synthetic patterns but left the Lovely main screen choosing differently from
-boot to boot: five boots of eight at 59 fps, three at 28. A 68-widget
+synthetic patterns but left a dense dashboard's main screen choosing differently
+from boot to boot: five boots of eight at 59 fps, three at 28. A 68-widget
 composition exceeds `LV_INV_BUF_SIZE` on every frame until it settles, LVGL
 then repaints the whole screen, and a whole-screen *partial* frame pays the
 reconcile copy a widened frame skips — so every early sample is biased towards
@@ -266,7 +266,7 @@ shuts the gate. The cost a frame is charged is its span minus the time slept
 in the flush wait, so the previous swap's hold cannot leak into it
 ([ADR 0032](0032-burst-scheduled-frames.md)).
 
-**Consequences.** The Lovely main screen is 59 fps on every boot of six
+**Consequences.** That main screen is 59 fps on every boot of six
 (render 4.6 ms, latency 21 ms); over the debugger's sixteen stress patterns
 `shapes_96` went 33 to 59 fps, `text_32_plain` 46 to 57, `text_32` 50 to 55,
 `bars_24` 47 to 51, and eleven did not move. Two pay for it — `full_screen_bar`

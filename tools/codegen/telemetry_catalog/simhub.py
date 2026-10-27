@@ -1,20 +1,7 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import Any
-
-from .constants import (
-    GAME_RUNNING,
-    JAVASCRIPT_INTERPRETER,
-    MAXIMUM_TIMESPAN_MS,
-    PARAMETER_PATTERN,
-    UNAVAILABLE_OPERATORS,
-)
-from .game_sources import CURRENT_GAME, silent_mapping, with_game_javascript
-
-PROPERTY_REFERENCE = re.compile(r"\[([A-Za-z][\w.]*)\]|\$prop\('([^']+)'\)")
-GUARD_PROPERTIES = {GAME_RUNNING, "DataCorePlugin.GamePaused", CURRENT_GAME}
 
 
 def identifier_key(identifier: str) -> int:
@@ -69,156 +56,13 @@ inline constexpr std::array<LookupEntry, {len(fields)}> kLookup{{{{
 """
 
 
-def profile_mapping(mapping: dict[str, Any], games: dict[str, Any]) -> dict[str, Any]:
-    return silent_mapping(with_game_javascript(mapping, games))
-
-
 def primary_property(mapping: dict[str, Any]) -> str | None:
     if "property" in mapping:
         return mapping["property"]
     for source in mapping.get("games", {}).values():
         if isinstance(source, dict):
             return source["property"]
-    formula = mapping.get("expression", mapping.get("javascript", ""))
-    for match in PROPERTY_REFERENCE.finditer(formula):
-        name = match.group(1) or match.group(2)
-        if name not in GUARD_PROPERTIES:
-            return name
     return None
-
-
-def default_parameters(text: str, parameters: dict[str, Any]) -> str:
-    return PARAMETER_PATTERN.sub(
-        lambda match: str(parameters[match.group(1)]["default"]), text
-    )
-
-
-def generate_javascript_line(
-    field: dict[str, str], mapping: dict[str, Any], prelude: str
-) -> str:
-    identifier = field["wire_id"]
-    empty = f"'{identifier};\\n'"
-    conversion = mapping.get("conversion", "number")
-    number = None
-    if conversion == "timespan_ms":
-        number = "timespantoseconds(value) * 1000"
-        converted = f"format({number}, '0', false)"
-    elif conversion == "boolean":
-        converted = "(value ? '1' : '0')"
-    elif conversion == "text":
-        converted = "String(value).replace(/\\r|\\n/g, ' ')"
-    else:
-        number = f"value * {mapping['scale']}" if "scale" in mapping else "value"
-        converted = f"format({number}, '{mapping['format']}', false)"
-    missing = ["value === null", "value === undefined", "value === ''"]
-    if number is not None:
-        missing.append(f"!isFinite({number})")
-    rule = mapping.get("unavailable_when")
-    if rule is not None:
-        missing.append(f"{number} {UNAVAILABLE_OPERATORS[rule['op']]} {rule['value']}")
-    if conversion == "timespan_ms":
-        missing.append(f"{number} > {MAXIMUM_TIMESPAN_MS}")
-    fallback = mapping.get("fallback")
-    absent = empty if fallback is None else f"'{identifier};{fallback}\\n'"
-    return (
-        f"try {{ {prelude} const value = (function () {{ {mapping['javascript']} }})(); "
-        f"if ({' || '.join(missing)}) return {absent}; "
-        f"return '{identifier};' + {converted} + '\\n'; }} catch (error) {{ return {empty}; }}"
-    )
-
-
-def generate_simhub_expression(
-    field: dict[str, str], mapping: dict[str, Any], prelude: str = ""
-) -> str:
-    if "javascript" in mapping:
-        return generate_javascript_line(field, mapping, prelude)
-    identifier = field["wire_id"]
-    source = mapping.get("expression")
-    if source is not None:
-        source = f"if([{GAME_RUNNING}], {source}, '')"
-    else:
-        property_name = mapping["property"]
-        source = f"[{property_name}]"
-        new_data_segment = ".GameData.NewData."
-        if new_data_segment in property_name:
-            normalized_name = property_name.replace(
-                new_data_segment, ".GameData.", 1
-            )
-            source = f"isnull({source}, [{normalized_name}])"
-    conversion = mapping.get("conversion", "number")
-    fallback = mapping.get("fallback")
-    number = source
-    if conversion == "timespan_ms":
-        number = f"timespantoseconds({source}) * 1000"
-        converted = f"format({number}, '0')"
-    elif conversion == "boolean":
-        converted = f"if({source}, '1', '0')"
-    elif conversion == "text":
-        converted = f"replace(replace('' + {source}, '\\r', ' '), '\\n', ' ')"
-    else:
-        if "scale" in mapping:
-            number = f"({source}) * {mapping['scale']}"
-        converted = f"format({number}, '{mapping['format']}')"
-
-    unavailable = f"'' + isnull({source}, '') = ''"
-    if fallback is not None:
-        converted = f"if({unavailable}, '{fallback}', {converted})"
-        return f"'{identifier};' + {converted} + '\\n'"
-    empty = f"'{identifier};\\n'"
-    line = f"'{identifier};' + {converted} + '\\n'"
-    rule = mapping.get("unavailable_when")
-    if rule is not None:
-        operator = UNAVAILABLE_OPERATORS[rule["op"]]
-        line = f"if(({number}) {operator} {rule['value']}, {empty}, {line})"
-    if conversion == "timespan_ms":
-        line = f"if(({number}) > {MAXIMUM_TIMESPAN_MS}, {empty}, {line})"
-    return f"if({unavailable}, {empty}, {line})"
-
-
-def generate_shsds(
-    profile: dict[str, Any],
-    fields: list[dict[str, str]],
-    mappings: dict[str, dict[str, Any]],
-) -> str:
-    update_messages = []
-    for field in fields:
-        mapping = profile_mapping(mappings[field["name"]], profile["games"])
-        expression = generate_simhub_expression(field, mapping, profile["javascript_prelude"])
-        message: dict[str, Any] = {
-            "Expression": default_parameters(expression, profile["parameters"])
-        }
-        if "javascript" in mapping:
-            message["Interpreter"] = JAVASCRIPT_INTERPRETER
-        update_messages.append(
-            {
-                "Message": message,
-                "IsEnabled": True,
-                "MaximumFrequency": profile["frequencies"][field["rate"]],
-            }
-        )
-    document = {
-        "AutomaticReconnect": True,
-        "SerialPortName": "",
-        "StartupDelayMs": 0,
-        "IsConnecting": False,
-        "IsEnabled": True,
-        "LogIncomingData": False,
-        "IsConnected": False,
-        "BaudRate": profile["baud_rate"],
-        "DtrEnable": False,
-        "RtsEnable": False,
-        "EditorExpanded": True,
-        "Name": profile["name"],
-        "Description": profile["description"],
-        "LastErrorDate": "0001-01-01T00:00:00+00:00",
-        "LastErrorMessage": None,
-        "IsFreezed": False,
-        "SettingsBuilder": {"Settings": [], "IsEditMode": False},
-        "OnConnectMessage": {"Expression": ""},
-        "OnDisconnectMessage": {"Expression": ""},
-        "UpdateMessages": update_messages,
-    }
-    return json.dumps(document, ensure_ascii=False, indent=2) + "\n"
 
 
 def generate_simhub_typescript(
@@ -226,11 +70,6 @@ def generate_simhub_typescript(
     fields: list[dict[str, str]],
     mappings: dict[str, dict[str, Any]],
 ) -> str:
-    defaults = {
-        "name": profile["name"],
-        "description": profile["description"],
-        "baudRate": profile["baud_rate"],
-    }
     link = {
         "magic": profile["link"]["magic"],
         "version": profile["link"]["version"],
@@ -239,58 +78,22 @@ def generate_simhub_typescript(
         "maximumPayload": profile["link"]["maximum_payload"],
         "keyframeIntervalMs": profile["link"]["keyframe_interval_ms"],
     }
-    records = []
-    for field in fields:
-        original = mappings[field["name"]]
-        mapping = profile_mapping(original, profile["games"])
-        record = {
-            "name": field["name"],
-            "expression": generate_simhub_expression(
-                field, mapping, profile["javascript_prelude"]
-            ),
-            "maximumFrequency": profile["frequencies"][field["rate"]],
-        }
-        if "javascript" in mapping:
-            record["javascript"] = True
-        source = primary_property(original)
-        if source is not None:
-            record["property"] = source
-        records.append(
-            "  " + json.dumps(record, ensure_ascii=False, separators=(",", ":"))
-        )
-    body = ",\n".join(records)
-    defaults_json = json.dumps(defaults, ensure_ascii=False, separators=(",", ":"))
-    link_json = json.dumps(link, ensure_ascii=False, separators=(",", ":"))
-    parameters_json = json.dumps(
-        profile["parameters"], ensure_ascii=False, separators=(",", ":")
+    properties = [
+        (field["name"], primary_property(mappings[field["name"]])) for field in fields
+    ]
+    entries = ",\n".join(
+        f"  {json.dumps(name)}: {json.dumps(source, ensure_ascii=False)}"
+        for name, source in properties
+        if source is not None
     )
+    link_json = json.dumps(link, ensure_ascii=False, separators=(",", ":"))
     return f"""// Generated by tools/codegen/telemetry_catalog. Do not edit.
 
-export interface SimHubProfileEntry {{
-  name: string
-  expression: string
-  maximumFrequency: number
-  javascript?: boolean
-  property?: string
-}}
-
-export interface SimHubProfileParameter {{
-  default: number
-  minimum: number
-  maximum: number
-}}
-
-export const SIMHUB_PROFILE_DEFAULTS = {defaults_json} as const
+export const SIMHUB_BAUD_RATE = {profile["baud_rate"]}
 
 export const SIMHUB_LINK = {link_json} as const
 
-export const SIMHUB_JAVASCRIPT_INTERPRETER = {JAVASCRIPT_INTERPRETER}
-
-export const SIMHUB_PROFILE_PARAMETERS = {parameters_json} as const satisfies Readonly<
-  Record<string, SimHubProfileParameter>
->
-
-export const SIMHUB_PROFILE_ENTRIES = [
-{body}
-] as const satisfies readonly SimHubProfileEntry[]
+export const SIMHUB_PROPERTIES: Readonly<Record<string, string>> = {{
+{entries}
+}}
 """

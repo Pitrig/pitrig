@@ -50,7 +50,6 @@ export function registerIpcHandlers({
   imageAssetService,
   firmwareUpdateService,
   boardUpdateService,
-  simHubProfileService,
   configurationFileService,
   previewAssetCache,
   templateService,
@@ -71,7 +70,6 @@ export function registerIpcHandlers({
     imageAssetService,
     firmwareUpdateService,
     boardUpdateService,
-    simHubProfileService,
     previewAssetCache,
     fontLibraryService,
     fontCatalogService

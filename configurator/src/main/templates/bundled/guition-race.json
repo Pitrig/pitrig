@@ -336,7 +336,8 @@
                       "binding": "tyre.front_left.pressure",
                       "transform": {
                         "type": "number",
-                        "decimals": 2
+                        "decimals": 1,
+                        "scale": 0.145038
                       }
                     }
                   ],
@@ -387,7 +388,8 @@
                       "binding": "tyre.front_right.pressure",
                       "transform": {
                         "type": "number",
-                        "decimals": 2
+                        "decimals": 1,
+                        "scale": 0.145038
                       }
                     }
                   ],
@@ -438,7 +440,8 @@
                       "binding": "tyre.rear_left.pressure",
                       "transform": {
                         "type": "number",
-                        "decimals": 2
+                        "decimals": 1,
+                        "scale": 0.145038
                       }
                     }
                   ],
@@ -489,7 +492,8 @@
                       "binding": "tyre.rear_right.pressure",
                       "transform": {
                         "type": "number",
-                        "decimals": 2
+                        "decimals": 1,
+                        "scale": 0.145038
                       }
                     }
                   ],
