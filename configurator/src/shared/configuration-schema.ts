@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 26
+export const CONFIGURATION_SCHEMA_VERSION = 27
 
 export const MAXIMUM_PAYLOAD_SIZE = 131072
 export const MAXIMUM_SCREENS = 4
@@ -43,6 +43,7 @@ export const MAXIMUM_LED_EFFECTS = 32
 export const MAXIMUM_LEDS_PER_OUTPUT = 512
 export const MAXIMUM_LEDS_TOTAL = 1024
 export const MAXIMUM_LED_SEGMENTS = 8
+export const MAXIMUM_LED_PARTS = 16
 export const MAXIMUM_MATRIX_SIDE = 16
 export const MAXIMUM_LED_SPRITES = 8
 export const MAXIMUM_LED_SPRITE_FRAMES = 16
@@ -51,6 +52,15 @@ export const LED_SPRITE_PIXEL_CAPACITY = 1025
 export const LED_PANEL_MASK_CAPACITY = 65
 export const MAXIMUM_LED_COLOR_RULES = 4
 export const LED_TEXT_CAPACITY = 32
+export const MAXIMUM_INPUT_BUTTONS = 16
+export const MAXIMUM_INPUT_SOURCES = 4
+export const MAXIMUM_SWITCH_POSITIONS = 12
+export const INPUT_NAME_CAPACITY = 24
+export const INPUT_SOURCE_CAPACITY = 96
+export const MAXIMUM_CONTROL_BINDINGS = 32
+export const MAXIMUM_CONTROL_RULES = 4
+export const MAXIMUM_IDLE_RETURN_MS = 600000
+export const MAXIMUM_DISMISS_MS = 600000
 export const LED_TELEMETRY_IDLE_MS = 2000
 
 export type HardwareDeviceType = 'rgb_strip' | 'rgb_matrix'
@@ -71,8 +81,11 @@ export const LED_SEGMENT_DIRECTION_VALUES: readonly LedSegmentDirection[] = ['ri
 export type LedEffectType = 'solid' | 'gradient' | 'steps' | 'gauge' | 'animation' | 'sprite' | 'text'
 export const LED_EFFECT_TYPE_VALUES: readonly LedEffectType[] = ['solid', 'gradient', 'steps', 'gauge', 'animation', 'sprite', 'text']
 
-export type LedAnimationKind = 'rainbow' | 'scan' | 'pulse' | 'wipe' | 'chase'
-export const LED_ANIMATION_KIND_VALUES: readonly LedAnimationKind[] = ['rainbow', 'scan', 'pulse', 'wipe', 'chase']
+export type LedAnimationKind = 'rainbow' | 'scan' | 'pulse' | 'wipe' | 'chase' | 'comet' | 'theater' | 'sparkle' | 'strobe' | 'bounce'
+export const LED_ANIMATION_KIND_VALUES: readonly LedAnimationKind[] = ['rainbow', 'scan', 'pulse', 'wipe', 'chase', 'comet', 'theater', 'sparkle', 'strobe', 'bounce']
+
+export type LedPartLayout = 'joined' | 'each'
+export const LED_PART_LAYOUT_VALUES: readonly LedPartLayout[] = ['joined', 'each']
 
 export type LedGate = 'always' | 'conditions' | 'telemetry_idle'
 export const LED_GATE_VALUES: readonly LedGate[] = ['always', 'conditions', 'telemetry_idle']
@@ -98,8 +111,8 @@ export const GRADIENT_DIRECTION_VALUES: readonly GradientDirection[] = ['horizon
 export type ColorRampTarget = 'content' | 'background' | 'border'
 export const COLOR_RAMP_TARGET_VALUES: readonly ColorRampTarget[] = ['content', 'background', 'border']
 
-export type ConditionOperator = 'above' | 'at_or_above' | 'below' | 'at_or_below' | 'equal' | 'not_equal'
-export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above', 'at_or_above', 'below', 'at_or_below', 'equal', 'not_equal']
+export type ConditionOperator = 'above' | 'at_or_above' | 'below' | 'at_or_below' | 'equal' | 'not_equal' | 'bit_set'
+export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above', 'at_or_above', 'below', 'at_or_below', 'equal', 'not_equal', 'bit_set']
 
 export type WidgetActionType = 'none' | 'next_screen' | 'previous_screen' | 'goto_screen'
 export const WIDGET_ACTION_TYPE_VALUES: readonly WidgetActionType[] = ['none', 'next_screen', 'previous_screen', 'goto_screen']
@@ -131,6 +144,12 @@ export const RING_CENTERING_VALUES: readonly RingCentering[] = ['circle', 'figur
 export type IndicatorShape = 'strip' | 'arc'
 export const INDICATOR_SHAPE_VALUES: readonly IndicatorShape[] = ['strip', 'arc']
 
+export type ControlAction = 'next_screen' | 'previous_screen' | 'show_screen' | 'hold_screen' | 'home_screen' | 'next_page' | 'previous_page' | 'show_page' | 'hold_page' | 'dismiss_page' | 'display_brighter' | 'display_dimmer' | 'leds_brighter' | 'leds_dimmer' | 'leds_toggle'
+export const CONTROL_ACTION_VALUES: readonly ControlAction[] = ['next_screen', 'previous_screen', 'show_screen', 'hold_screen', 'home_screen', 'next_page', 'previous_page', 'show_page', 'hold_page', 'dismiss_page', 'display_brighter', 'display_dimmer', 'leds_brighter', 'leds_dimmer', 'leds_toggle']
+
+export type SlotDismiss = 'next_event' | 'timed' | 'session'
+export const SLOT_DISMISS_VALUES: readonly SlotDismiss[] = ['next_event', 'timed', 'session']
+
 export type SlotTrigger = 'none' | 'value_changed' | 'conditions'
 export const SLOT_TRIGGER_VALUES: readonly SlotTrigger[] = ['none', 'value_changed', 'conditions']
 
@@ -155,18 +174,20 @@ export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
   graph: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'point_count', minimum: 2, maximum: 128 }, { key: 'sample_interval_ms', minimum: 1, maximum: 65535 }, { key: 'line_width_px', minimum: 1, maximum: 65535 }],
   image: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'sprite_frame', minimum: 0, maximum: 64 }],
   shape: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
-  slot: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  slot: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'home_after_ms', minimum: 0, maximum: 600000 }],
+  LedPart: [{ key: 'from', minimum: 0, maximum: 512 }, { key: 'count', minimum: 1, maximum: 512 }],
   LedColorRule: [{ key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }],
   LedSegmentConfiguration: [{ key: 'count', minimum: 1, maximum: 512 }],
-  LedEffect: [{ key: 'from', minimum: 0, maximum: 512 }, { key: 'count', minimum: 1, maximum: 512, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'speed_ms', minimum: 50, maximum: 60000 }, { key: 'sprite_frame', minimum: 0, maximum: 16 }],
-  LedSpriteConfiguration: [{ key: 'width', minimum: 1, maximum: 16 }, { key: 'height', minimum: 1, maximum: 16 }, { key: 'frame_count', minimum: 1, maximum: 16 }],
+  LedEffect: [{ key: 'hold_ms', minimum: 0, maximum: 10000 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'speed_ms', minimum: 50, maximum: 60000 }, { key: 'span', minimum: 1, maximum: 64 }, { key: 'sprite_frame', minimum: 0, maximum: 16 }],
+  LedSpriteConfiguration: [{ key: 'width', minimum: 1, maximum: 512 }, { key: 'height', minimum: 1, maximum: 16 }, { key: 'frame_count', minimum: 1, maximum: 16 }],
   WidgetCondition: [{ key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }],
-  SlotPageConfiguration: [{ key: 'duration_ms', minimum: 0, maximum: 10000 }],
+  SlotPageConfiguration: [{ key: 'duration_ms', minimum: 0, maximum: 10000 }, { key: 'dismiss_ms', minimum: 0, maximum: 600000 }],
+  ControlBinding: [{ key: 'button', minimum: 1, maximum: 16 }, { key: 'page', minimum: 1, maximum: 8 }],
   HardwareDeviceConfiguration: [{ key: 'brightness', minimum: 0, maximum: 255 }, { key: 'current_limit_ma', minimum: 100, maximum: 20000, zeroMeansOff: true }, { key: 'count', minimum: 1, maximum: 512 }, { key: 'width', minimum: 1, maximum: 16 }, { key: 'height', minimum: 1, maximum: 16 }, { key: 'rotation_deg', minimum: 0, maximum: 270 }],
 }
 
-export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_led_pin' | 'invalid_led_sprite' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property' | 'out_of_range' | 'unknown_value'
-export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_led_pin', 'invalid_led_sprite', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_dashboard', 'invalid_widget', 'invalid_slot', 'invalid_slot_page', 'unknown_property', 'duplicate_property', 'out_of_range', 'unknown_value']
+export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_led_pin' | 'invalid_led_sprite' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property' | 'out_of_range' | 'unknown_value' | 'invalid_control'
+export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_led_pin', 'invalid_led_sprite', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_dashboard', 'invalid_widget', 'invalid_slot', 'invalid_slot_page', 'unknown_property', 'duplicate_property', 'out_of_range', 'unknown_value', 'invalid_control']
 
 export interface FontSpec {
   family?: string
@@ -199,6 +220,12 @@ export interface LedSpriteConfiguration {
   frame_count?: number
   palette?: LedPaletteEntry[]
   pixels?: string
+}
+
+export interface LedPart {
+  from?: number
+  count?: number
+  reversed?: boolean
 }
 
 export interface LedColorRule {
@@ -242,8 +269,8 @@ export interface IndicatorSegment {
 export interface LedEffect {
   type?: LedEffectType
   id?: string
-  from?: number
-  count?: number
+  parts?: LedPart[]
+  layout?: LedPartLayout
   panel_mask?: string
   source?: ValueSourceConfiguration
   minimum?: number
@@ -251,6 +278,7 @@ export interface LedEffect {
   gate?: LedGate
   condition_source?: ValueSourceConfiguration
   conditions?: ValueCondition[]
+  hysteresis?: number
   hold_ms?: number
   blink_ms?: number
   mirrored?: boolean
@@ -262,8 +290,10 @@ export interface LedEffect {
   steps?: IndicatorSegment[]
   animation?: LedAnimationKind
   speed_ms?: number
+  span?: number
   sprite?: string
   sprite_frame?: number
+  sprite_scaled?: boolean
   sprite_loop?: boolean
   text?: string
   font?: LedFont
@@ -603,6 +633,8 @@ export interface SlotPageConfiguration {
   trigger?: SlotTrigger
   source?: ValueSourceConfiguration
   duration_ms?: number
+  dismiss?: SlotDismiss
+  dismiss_ms?: number
   conditions?: ValueCondition[]
   widgets?: WidgetConfiguration[]
 }
@@ -625,6 +657,7 @@ export interface SlotWidgetConfiguration {
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
   clip_children?: boolean
+  home_after_ms?: number
   pages?: SlotPageConfiguration[]
 }
 
@@ -634,15 +667,63 @@ export interface ScreenConfiguration {
   widgets?: WidgetConfiguration[]
 }
 
+export interface ControlBinding {
+  button?: number
+  action?: ControlAction
+  screen?: string
+  slot?: string
+  page?: number
+  wrap?: boolean
+  repeat?: boolean
+}
+
+export interface ControlSwitch {
+  slot?: string
+}
+
+export interface ControlRule {
+  screen?: string
+  source?: ValueSourceConfiguration
+  conditions?: ValueCondition[]
+}
+
+export interface ControlsConfiguration {
+  bindings?: ControlBinding[]
+  switch?: ControlSwitch
+  rules?: ControlRule[]
+  home_screen?: string
+  home_after_ms?: number
+}
+
 export interface DashboardConfiguration {
   transition?: ScreenTransition
   smoothing?: ValueSmoothing
+  controls?: ControlsConfiguration
   screens?: ScreenConfiguration[]
+}
+
+export interface InputSource {
+  id?: string
+}
+
+export interface InputButton {
+  name?: string
+  sources?: InputSource[]
+}
+
+export interface InputSwitch {
+  positions?: InputSource[]
+}
+
+export interface InputsConfiguration {
+  buttons?: InputButton[]
+  switch?: InputSwitch
 }
 
 export interface ApplicationConfiguration {
   board: BoardId
   hardware?: HardwareDeviceConfiguration[]
+  inputs?: InputsConfiguration
   telemetry_transport?: TelemetryTransportConfiguration
   dashboard?: DashboardConfiguration
 }
@@ -658,6 +739,7 @@ export interface DashboardDocument {
 export interface ModulesDocument {
   board: BoardId
   hardware?: HardwareDeviceConfiguration[]
+  inputs?: InputsConfiguration
 }
 
 export interface ProtocolDocument {
@@ -680,7 +762,7 @@ export const CONFIGURATION_DOCUMENTS: Record<
   ConfigurationDocumentDescriptor
 > = {
   dashboard: { id: 'dashboard', sections: ['dashboard'], keys: ['board', 'dashboard'], maxPayload: 131072, rebootRequired: false },
-  modules: { id: 'modules', sections: ['hardware'], keys: ['board', 'hardware'], maxPayload: 32768, rebootRequired: false },
+  modules: { id: 'modules', sections: ['hardware', 'inputs'], keys: ['board', 'hardware', 'inputs'], maxPayload: 32768, rebootRequired: false },
   protocol: { id: 'protocol', sections: ['telemetry_transport'], keys: ['board', 'telemetry_transport'], maxPayload: 1024, rebootRequired: true },
 }
 
@@ -692,8 +774,9 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   BoardConfiguration: ['board'],
   LedPaletteEntry: ['color'],
   LedSpriteConfiguration: ['id', 'width', 'height', 'frame_count', 'palette', 'pixels'],
+  LedPart: ['from', 'count', 'reversed'],
   LedColorRule: ['op', 'value', 'color', 'background_color', 'blink_ms', 'hold_ms'],
-  LedEffect: ['type', 'id', 'from', 'count', 'panel_mask', 'source', 'minimum', 'maximum', 'gate', 'condition_source', 'conditions', 'hold_ms', 'blink_ms', 'mirrored', 'inverted', 'color', 'background_color', 'color_rules', 'stops', 'steps', 'animation', 'speed_ms', 'sprite', 'sprite_frame', 'sprite_loop', 'text', 'font'],
+  LedEffect: ['type', 'id', 'parts', 'layout', 'panel_mask', 'source', 'minimum', 'maximum', 'gate', 'condition_source', 'conditions', 'hysteresis', 'hold_ms', 'blink_ms', 'mirrored', 'inverted', 'color', 'background_color', 'color_rules', 'stops', 'steps', 'animation', 'speed_ms', 'span', 'sprite', 'sprite_frame', 'sprite_scaled', 'sprite_loop', 'text', 'font'],
   LedSegmentConfiguration: ['count', 'direction'],
   HardwareDeviceConfiguration: ['type', 'id', 'pin', 'chip', 'brightness', 'gamma', 'current_limit_ma', 'count', 'segments', 'width', 'height', 'order', 'origin', 'rotation_deg', 'effects', 'sprites'],
   UartTelemetryConfiguration: ['port', 'tx_pin', 'rx_pin', 'baud_rate', 'silence_esp_logs'],
@@ -723,11 +806,19 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px', 'traces'],
   ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'sprite_frame', 'sprite_frame_source', 'recolor', 'recolor_opa'],
   ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind', 'clip_children', 'widgets'],
-  SlotPageConfiguration: ['in_loop', 'trigger', 'source', 'duration_ms', 'conditions', 'widgets'],
-  SlotWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'clip_children', 'pages'],
+  SlotPageConfiguration: ['in_loop', 'trigger', 'source', 'duration_ms', 'dismiss', 'dismiss_ms', 'conditions', 'widgets'],
+  SlotWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'clip_children', 'home_after_ms', 'pages'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
-  DashboardConfiguration: ['transition', 'smoothing', 'screens'],
-  ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'dashboard'],
+  ControlBinding: ['button', 'action', 'screen', 'slot', 'page', 'wrap', 'repeat'],
+  ControlSwitch: ['slot'],
+  ControlRule: ['screen', 'source', 'conditions'],
+  ControlsConfiguration: ['bindings', 'switch', 'rules', 'home_screen', 'home_after_ms'],
+  DashboardConfiguration: ['transition', 'smoothing', 'controls', 'screens'],
+  InputSource: ['id'],
+  InputButton: ['name', 'sources'],
+  InputSwitch: ['positions'],
+  InputsConfiguration: ['buttons', 'switch'],
+  ApplicationConfiguration: ['board', 'hardware', 'inputs', 'telemetry_transport', 'dashboard'],
 }
 
 export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', arc: 'ArcWidgetConfiguration', indicator: 'IndicatorWidgetConfiguration', graph: 'GraphWidgetConfiguration', image: 'ImageWidgetConfiguration', shape: 'ShapeWidgetConfiguration', slot: 'SlotWidgetConfiguration' }
@@ -740,7 +831,7 @@ export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {
 
 export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   LedSpriteConfiguration: { palette: 'LedPaletteEntry' },
-  LedEffect: { source: 'ValueSourceConfiguration', condition_source: 'ValueSourceConfiguration', conditions: 'ValueCondition', color_rules: 'LedColorRule', stops: 'ColorStop', steps: 'IndicatorSegment' },
+  LedEffect: { parts: 'LedPart', source: 'ValueSourceConfiguration', condition_source: 'ValueSourceConfiguration', conditions: 'ValueCondition', color_rules: 'LedColorRule', stops: 'ColorStop', steps: 'IndicatorSegment' },
   HardwareDeviceConfiguration: { segments: 'LedSegmentConfiguration', effects: 'LedEffect', sprites: 'LedSpriteConfiguration' },
   TelemetryTransportConfiguration: { uart: 'UartTelemetryConfiguration' },
   WidgetValueStyle: { font: 'FontSpec' },
@@ -759,8 +850,13 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
   SlotPageConfiguration: { source: 'ValueSourceConfiguration', conditions: 'ValueCondition' },
   SlotWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', pages: 'SlotPageConfiguration' },
-  DashboardConfiguration: { screens: 'ScreenConfiguration' },
-  ApplicationConfiguration: { hardware: 'HardwareDeviceConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
+  ControlRule: { source: 'ValueSourceConfiguration', conditions: 'ValueCondition' },
+  ControlsConfiguration: { bindings: 'ControlBinding', switch: 'ControlSwitch', rules: 'ControlRule' },
+  DashboardConfiguration: { controls: 'ControlsConfiguration', screens: 'ScreenConfiguration' },
+  InputButton: { sources: 'InputSource' },
+  InputSwitch: { positions: 'InputSource' },
+  InputsConfiguration: { buttons: 'InputButton', switch: 'InputSwitch' },
+  ApplicationConfiguration: { hardware: 'HardwareDeviceConfiguration', inputs: 'InputsConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
 }
 
 export const TEXT_CAPACITIES: Record<string, number> = {
@@ -789,4 +885,11 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ShapeWidgetConfiguration.id': 16,
   'SlotWidgetConfiguration.id': 16,
   'ScreenConfiguration.id': 16,
+  'ControlBinding.screen': 16,
+  'ControlBinding.slot': 16,
+  'ControlSwitch.slot': 16,
+  'ControlRule.screen': 16,
+  'ControlsConfiguration.home_screen': 16,
+  'InputSource.id': 96,
+  'InputButton.name': 24,
 }

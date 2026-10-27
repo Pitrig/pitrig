@@ -6,15 +6,15 @@ import {
 } from '@shared/configuration-schema'
 import { blendColor } from '@shared/color-ramp'
 import { FLAGS_PROFILE } from './flags'
-import { area, whenTrue, type LedProfile, type MatrixSize } from './profile-types'
+import { area, COVER_BELOW, whenTrue, type LedProfile, type MatrixSize } from './profile-types'
 import { t } from '@shared/ui-text'
 
-export type { LampRange, LedProfile, MatrixSize, ProfileParts } from './profile-types'
+export type { LampSet, LedProfile, MatrixSize, ProfileParts } from './profile-types'
 
-const SHIFT_FIRST = 0.8
-const SHIFT_LAST = 0.98
 const SHIFT_RAMP: readonly RgbColor[] = ['#00C853', '#FFD600', '#FF2D95']
-const GEAR_CAUTION = 92
+const SHIFT_PROGRESS = 'engine.shift_progress'
+const SHIFT_REACHED = 'engine.redline_reached'
+const GEAR_CAUTION = 60
 const GEAR_LIMIT = 100
 
 function rampAt(position: number): RgbColor {
@@ -35,7 +35,7 @@ function shiftSteps(lamps: number): IndicatorSegment[] {
   return Array.from({ length: count }, (_, index) => {
     const position = count === 1 ? 0 : index / (count - 1)
     return {
-      threshold: Number((SHIFT_FIRST + (SHIFT_LAST - SHIFT_FIRST) * position).toFixed(4)),
+      threshold: Number(((index + 1) / count).toFixed(4)),
       color: rampAt(position)
     }
   })
@@ -47,13 +47,13 @@ export const LED_PROFILES: readonly LedProfile[] = [
     label: t('modules.profiles.shiftLights'),
     description:
       t('modules.profiles.oneStepPerLampFrom'),
-    build: (range, lamps) => ({
+    build: (zone, lamps) => ({
       effects: [
         {
           type: 'steps',
           id: 'Shift lights',
-          ...area(range),
-          source: { binding: 'engine.shift_percent' },
+          ...area(zone),
+          source: { binding: SHIFT_PROGRESS },
           minimum: 0,
           maximum: 100,
           steps: shiftSteps(lamps)
@@ -63,10 +63,9 @@ export const LED_PROFILES: readonly LedProfile[] = [
           id: 'Limiter',
           color: '#D50000',
           blink_ms: 150,
-          ...area(range),
-          gate: 'conditions',
-          condition_source: { binding: 'engine.redline_reached' },
-          conditions: [{ op: 'at_or_above', value: 1 }]
+          ...COVER_BELOW,
+          ...area(zone),
+          ...whenTrue(SHIFT_REACHED)
         }
       ]
     })
@@ -78,7 +77,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
     panelOnly: true,
     description:
       t('modules.profiles.theSelectedGearDrawnIn'),
-    build: (range, _lamps, matrix) => ({
+    build: (zone, _lamps, matrix) => ({
       effects: [
         {
           type: 'text',
@@ -86,12 +85,12 @@ export const LED_PROFILES: readonly LedProfile[] = [
           font: gearFace(matrix),
           color: '#FFFFFF',
           source: { binding: 'transmission.gear' },
-          condition_source: { binding: 'engine.shift_percent' },
+          condition_source: { binding: SHIFT_PROGRESS },
           color_rules: [
             { op: 'at_or_above', value: GEAR_LIMIT, color: '#D50000' },
             { op: 'at_or_above', value: GEAR_CAUTION, color: '#FFD600' }
           ],
-          ...area(range)
+          ...area(zone)
         }
       ]
     })
@@ -100,7 +99,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
     id: 'abs_active',
     label: t('modules.profiles.aBS'),
     description: t('modules.profiles.redFlashWhileAbsIs'),
-    build: (range) => ({
+    build: (zone) => ({
       effects: [
         {
           type: 'solid',
@@ -108,7 +107,8 @@ export const LED_PROFILES: readonly LedProfile[] = [
           color: '#D50000',
           blink_ms: 150,
           hold_ms: 150,
-          ...area(range),
+          ...COVER_BELOW,
+          ...area(zone),
           ...whenTrue('vehicle.aids.abs_active')
         }
       ]
@@ -118,7 +118,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
     id: 'tc_active',
     label: t('modules.profiles.tractionControl'),
     description: t('modules.profiles.orangeFlashWhileTractionControl'),
-    build: (range) => ({
+    build: (zone) => ({
       effects: [
         {
           type: 'solid',
@@ -126,7 +126,8 @@ export const LED_PROFILES: readonly LedProfile[] = [
           color: '#FF6D00',
           blink_ms: 150,
           hold_ms: 150,
-          ...area(range),
+          ...COVER_BELOW,
+          ...area(zone),
           ...whenTrue('vehicle.aids.traction_control_active')
         }
       ]
@@ -136,13 +137,13 @@ export const LED_PROFILES: readonly LedProfile[] = [
     id: 'pit_limiter',
     label: t('modules.profiles.pitLimiter'),
     description: t('modules.profiles.steadyBlueWhileTheLimiter'),
-    build: (range) => ({
+    build: (zone) => ({
       effects: [
         {
           type: 'solid',
           id: 'Pit limiter',
           color: '#2979FF',
-          ...area(range),
+          ...area(zone),
           ...whenTrue('vehicle.pit_limiter.enabled')
         }
       ]
@@ -152,20 +153,20 @@ export const LED_PROFILES: readonly LedProfile[] = [
     id: 'drs',
     label: t('modules.profiles.dRS'),
     description: t('modules.profiles.dimGreenWhenAvailableBright'),
-    build: (range) => ({
+    build: (zone) => ({
       effects: [
         {
           type: 'solid',
           id: 'DRS available',
           color: '#1B5E20',
-          ...area(range),
+          ...area(zone),
           ...whenTrue('vehicle.drs.available')
         },
         {
           type: 'solid',
           id: 'DRS active',
           color: '#00E676',
-          ...area(range),
+          ...area(zone),
           ...whenTrue('vehicle.drs.active')
         }
       ]
@@ -175,7 +176,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
     id: 'idle',
     label: t('modules.profiles.linkLost'),
     description: t('modules.profiles.aSlowRainbowOnceTelemetry'),
-    build: (range) => ({
+    build: (zone) => ({
       effects: [
         {
           type: 'animation',
@@ -183,7 +184,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
           animation: 'rainbow',
           speed_ms: 4000,
           gate: 'telemetry_idle',
-          ...area(range)
+          ...area(zone)
         }
       ]
     })

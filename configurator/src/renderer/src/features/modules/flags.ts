@@ -4,7 +4,7 @@ import type {
   RgbColor
 } from '@shared/configuration-schema'
 import { chequerSprite, diagonalSprite, discSprite } from './matrix-art'
-import { area, whenTrue, type LedProfile, type MatrixSize } from './profile-types'
+import { area, COVER_BELOW, whenTrue, type LedProfile, type MatrixSize } from './profile-types'
 import { t } from '@shared/ui-text'
 
 const RIPPLE_MS = 110
@@ -33,24 +33,36 @@ const FLAGS: readonly FlagSpec[] = [
   },
   {
     binding: 'session.flag.white',
-    layer: { type: 'solid', id: 'White flag', color: '#F5F5F5', blink_ms: 500 }
+    layer: { type: 'solid', id: 'White flag', color: '#F5F5F5', blink_ms: 500, ...COVER_BELOW }
   },
   {
     binding: 'session.flag.blue',
-    layer: { type: 'solid', id: 'Blue flag', color: '#2962FF', blink_ms: 500 }
+    layer: { type: 'solid', id: 'Blue flag', color: '#2962FF', blink_ms: 500, ...COVER_BELOW }
   },
   {
     binding: 'session.flag.yellow',
-    layer: { type: 'solid', id: 'Yellow flag', color: '#FFD600', blink_ms: 500 }
+    layer: { type: 'solid', id: 'Yellow flag', color: '#FFD600', blink_ms: 500, ...COVER_BELOW }
   },
   {
     binding: 'session.flag.black_white',
-    layer: { type: 'gradient', id: 'Warning flag', blink_ms: 800, stops: blob('#FFFFFF') },
+    layer: {
+      type: 'gradient',
+      id: 'Warning flag',
+      blink_ms: 800,
+      stops: blob('#FFFFFF'),
+      ...COVER_BELOW
+    },
     art: ({ width, height }) => diagonalSprite('warning', width, height, '#FFFFFF')
   },
   {
     binding: 'session.flag.black_orange',
-    layer: { type: 'gradient', id: 'Meatball', blink_ms: 800, stops: blob('#FF6D00') },
+    layer: {
+      type: 'gradient',
+      id: 'Meatball',
+      blink_ms: 800,
+      stops: blob('#FF6D00'),
+      ...COVER_BELOW
+    },
     art: ({ width, height }) => discSprite('meatball', width, height, '#FF6D00'),
     blink: 800
   },
@@ -61,14 +73,15 @@ const FLAGS: readonly FlagSpec[] = [
       id: 'Chequered',
       animation: 'chase',
       speed_ms: 400,
-      color: '#FFFFFF'
+      color: '#FFFFFF',
+      ...COVER_BELOW
     },
     art: ({ width, height }) => chequerSprite('chequer', width, height),
     speed: CHEQUER_MS
   },
   {
     binding: 'session.flag.red',
-    layer: { type: 'solid', id: 'Red flag', color: '#D50000', blink_ms: 500 }
+    layer: { type: 'solid', id: 'Red flag', color: '#D50000', blink_ms: 500, ...COVER_BELOW }
   }
 ]
 
@@ -77,11 +90,11 @@ export const FLAGS_PROFILE: LedProfile = {
   label: t('modules.flags.raceFlags'),
   description:
     t('modules.flags.allEightFlagsAtOnce'),
-  build: (range, _lamps, matrix) => {
+  build: (zone, _lamps, matrix) => {
     const sprites: LedSpriteConfiguration[] = []
     const effects = FLAGS.map(({ binding, layer, art, speed, blink }) => {
       if (matrix === undefined || art === undefined) {
-        return { ...layer, ...area(range), ...whenTrue(binding) }
+        return { ...layer, ...area(zone), ...whenTrue(binding) }
       }
       const sprite = art(matrix)
       sprites.push(sprite)
@@ -92,6 +105,7 @@ export const FLAGS_PROFILE: LedProfile = {
         sprite_loop: true,
         speed_ms: speed ?? RIPPLE_MS,
         ...(blink === undefined ? {} : { blink_ms: blink }),
+        ...COVER_BELOW,
         ...whenTrue(binding)
       }
     })

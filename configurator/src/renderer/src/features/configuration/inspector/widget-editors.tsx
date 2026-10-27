@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { ConditionsEditor } from './ConditionsEditor'
 import { SlotPagesEditor } from './SlotPagesEditor'
+import { SlotHomeField } from './slot-controls'
 import { pagesOf, widgetsOf } from '@shared/configuration-access'
 import { type ImageWidgetConfiguration, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { DEFAULT_WIDGET_FONT_SIZE_PX, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
@@ -116,6 +117,7 @@ export function SlotEditor({ selection, widget }: { selection: WidgetSelection; 
         summary={t('inspector.widgetEditors.theSlotDrawsNothingItself')}
       />
       {widget.id ? <SlotPagesEditor slotId={widget.id} pages={pages} /> : null}
+      <SlotHomeField widget={widget} update={update} />
     </>
   )
 }

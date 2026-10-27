@@ -1,8 +1,15 @@
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { Plugin } from 'vite'
 
 export const sharedAlias = {
   '@shared': resolve('src/shared')
+}
+
+export const releaseDefine = {
+  __PITRIG_FIRMWARE_VERSION__: JSON.stringify(
+    readFileSync(resolve('../firmware/version.txt'), 'utf8').trim()
+  )
 }
 
 export const rendererAlias = {

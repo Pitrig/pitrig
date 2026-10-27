@@ -23,6 +23,7 @@ interface BoardSyncStore {
   defer: () => void
   reopen: () => void
   resolve: () => void
+  settle: (key: string) => void
   dismiss: () => void
   clear: () => void
 }
@@ -40,11 +41,12 @@ export const useBoardSyncStore = create<BoardSyncStore>((set) => ({
   reopen: () =>
     set((current) => (current.question ? { question: { ...current.question, open: true } } : {})),
   resolve: () => set((current) => ({ question: undefined, resolvedKey: current.question?.key })),
+  settle: (key) => set({ question: undefined, resolvedKey: key }),
   dismiss: () => set({ question: undefined }),
   clear: () => set({ question: undefined, resolvedKey: undefined })
 }))
 
-export function useBoardSync(dirtyDocuments: ConfigurationDocumentId[]): void {
+export function useBoardSync(dirtyDocuments: ConfigurationDocumentId[], paused: boolean): void {
   const connected = useDeviceStore((state) => state.status === 'connected')
   const revision = useDeviceStore((state) => state.connectionRevision)
   const info = useDeviceStore((state) => state.session?.info)
@@ -53,6 +55,11 @@ export function useBoardSync(dirtyDocuments: ConfigurationDocumentId[]): void {
 
   useEffect(() => {
     const sync = useBoardSyncStore.getState()
+    if (paused) {
+      if (connected) seenRevision.current = revision
+      sync.settle(key)
+      return
+    }
     if (!connected) {
       seenRevision.current = undefined
       sync.clear()
@@ -69,7 +76,7 @@ export function useBoardSync(dirtyDocuments: ConfigurationDocumentId[]): void {
       return
     }
     sync.ask({ key, documents, reason })
-  }, [connected, key, revision])
+  }, [connected, key, paused, revision])
 
   const question = useBoardSyncStore((state) => state.question)
   useEffect(() => {

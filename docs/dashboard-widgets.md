@@ -91,6 +91,7 @@ priority. See [ADR 0021](adr/0021-widget-groups-and-slots.md).
 | --- | --- | --- |
 | `pages` | array ≤8 | Pages this slot switches between, in priority order. At least one must be in the loop. |
 | `clip_children` | bool | Cuts the widgets on every page off at the slot's box. Not an appearance — a slot still draws nothing — so it is accepted where a background or a border is refused. |
+| `home_after_ms` | 0..600000 | Time without a tap or a button working on this slot after which it goes back to its first loop page. 0 never does. |
 
 | Page property | Shape | Meaning |
 | --- | --- | --- |
@@ -100,6 +101,8 @@ priority. See [ADR 0021](adr/0021-widget-groups-and-slots.md).
 | `source` | object | Telemetry binding the trigger watches. Required by both triggers. |
 | `conditions` | array ≤4 | `op`, `value`. First match raises the page. For `trigger: conditions` only. |
 | `duration_ms` | 0..10000 | How long the page stays up after its event fires. Required by `value_changed`; with `conditions`, 0 holds the page only while a rule matches. |
+| `dismiss` | `next_event`, `timed`, `session` | How long a raised page stays away once a button dismisses it: until its trigger fires anew, for `dismiss_ms`, or until the board restarts or a session starts again. |
+| `dismiss_ms` | 0..600000 | How long a `timed` dismissal lasts. Required by `timed`, rejected by the others. |
 
 `value_changed` raises the page whenever the watched value differs from the last
 one seen, which is what makes a momentary aid such as ABS or traction control
@@ -125,6 +128,19 @@ tap — that is how a corner of the screen becomes a back button without a widge
 to press. A slot already spends its tap on cycling its pages, so carrying both is
 rejected; a widget with an action on one of its pages consumes the tap and the
 slot does not cycle. See [ADR 0020](adr/0020-screen-navigation.md).
+
+PC buttons act through `dashboard.controls`: each binding names a logical button
+from 1 to 16 and one action — the screen and page steps, a screen or page while
+the button is held, home, dismissing a raised page, display brightness by a tenth
+(remembered across restarts) and LED brightness or all LEDs off (until the next
+restart). A step repeats after 400 ms and then every 150 ms when the binding asks
+for it. The multi-position switch brings up page N of the slot it names, rules
+bring a screen forward while a comparison over a telemetry value holds, and
+`home_after_ms` returns to `home_screen` after a while with no screen change. Which
+PC input is which logical button belongs to the modules document's `inputs`. A
+styling rule, a slot page or a screen rule follows one button with `bit_set` and
+the button's number as its value, over `input.buttons`. See
+[ADR 0038](adr/0038-pc-buttons-drive-the-board.md).
 
 Widgets live in a dashboard-wide pool, one per type, and a screen names them by
 reference — so a cap is a budget across every screen rather than a per-screen

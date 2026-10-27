@@ -119,6 +119,10 @@ export function isNeedleArc(widget: WidgetConfiguration): boolean {
   return widget.type === 'arc' && (widget.mark ?? 'ring') === 'needle'
 }
 
+const DEFAULT_TEXT_BINDING = 'vehicle.speed'
+const LAP_TIMER_INPUT = 'session.lap.current_time'
+const CONTROL_INPUTS = ['input.buttons', 'input.switch', 'session.time_elapsed']
+
 export function telemetryBindings(
   configuration: ApplicationConfiguration | undefined
 ): string[] {
@@ -126,18 +130,24 @@ export function telemetryBindings(
   const record = (source: ValueSourceConfiguration | undefined): void => {
     if (!source) return
     if (source.binding) bindings.add(source.binding)
-    if (arrayOf(source.modifiers).some((modifier) => modifier?.type === 'lap_timer')) {
-      bindings.add('session.lap.current_time')
-    }
+    if (arrayOf(source.modifiers).length > 0) bindings.add(LAP_TIMER_INPUT)
   }
   for (const widget of allWidgetsOf(configuration)) {
     for (const source of widgetSources(widget)) record(source)
+    if (isTextWidget(widget) && arrayOf(widget.sources).some((source) => !source?.binding)) {
+      bindings.add(DEFAULT_TEXT_BINDING)
+    }
   }
   for (const device of arrayOf(configuration?.hardware)) {
     for (const effect of arrayOf(device?.effects)) {
       record(effect?.source)
       record(effect?.condition_source)
     }
+  }
+  const controls = configuration?.dashboard?.controls
+  if (controls) {
+    for (const name of CONTROL_INPUTS) bindings.add(name)
+    for (const rule of arrayOf(controls.rules)) record(rule?.source)
   }
   return [...bindings]
 }

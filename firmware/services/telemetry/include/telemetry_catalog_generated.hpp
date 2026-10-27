@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 251;
+inline constexpr std::size_t kFieldCount = 256;
 inline constexpr std::size_t kMaximumFieldCount = 256;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -20,6 +20,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"engine.shift_rpm", ValueType::float32},
     {"engine.rpm_percent", ValueType::float32},
     {"engine.shift_percent", ValueType::float32},
+    {"engine.shift_progress", ValueType::float32},
     {"engine.redline_reached", ValueType::boolean},
     {"engine.running", ValueType::boolean},
     {"engine.ignition", ValueType::boolean},
@@ -99,10 +100,12 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"vehicle.fuel.last_lap_consumption", ValueType::float32},
     {"vehicle.energy.level", ValueType::float32},
     {"vehicle.energy.percent", ValueType::float32},
+    {"vehicle.energy.virtual", ValueType::float32},
     {"vehicle.energy.deployment_mode", ValueType::text},
     {"vehicle.energy.recovery_mode", ValueType::text},
     {"vehicle.energy.laps_remaining", ValueType::float32},
     {"vehicle.aids.traction_control_level", ValueType::text},
+    {"vehicle.aids.traction_control_cut", ValueType::text},
     {"vehicle.aids.traction_control_active", ValueType::boolean},
     {"vehicle.aids.abs_level", ValueType::text},
     {"vehicle.aids.abs_active", ValueType::boolean},
@@ -162,6 +165,8 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"motion.yaw", ValueType::float32},
     {"motion.slip_angle", ValueType::float32},
     {"motion.ffb_force", ValueType::float32},
+    {"input.buttons", ValueType::uint32},
+    {"input.switch", ValueType::uint32},
     {"tyre.front_left.pressure", ValueType::float32},
     {"tyre.front_right.pressure", ValueType::float32},
     {"tyre.rear_left.pressure", ValueType::float32},

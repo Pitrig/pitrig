@@ -1,7 +1,7 @@
 idf_component_register(
   SRCS "src/module_composition.cpp"
   INCLUDE_DIRS "include"
-  REQUIRES configuration_contract event_bus interfaces lap_timer
+  REQUIRES configuration configuration_contract controls event_bus interfaces lap_timer
            module_manager rgb_leds
            telemetry
   PRIV_REQUIRES logger pitrig_config)

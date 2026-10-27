@@ -5,6 +5,7 @@
 
 #include "configuration_json.hpp"
 #include "image_asset_types.hpp"
+#include "validation/control_rules.hpp"
 #include "validation/document_rules.hpp"
 #include "validation/hardware_rules.hpp"
 #include "validation/value_rules.hpp"
@@ -66,6 +67,9 @@ ValidationFailure validate_configuration(const ApplicationConfiguration& configu
     return failure;
   }
   if (!validation::validate_transport(configuration, profile, failure)) {
+    return failure;
+  }
+  if (!validation::validate_controls(configuration.dashboard, failure)) {
     return failure;
   }
   const bool has_display = profile.display.width > 0 && profile.display.height > 0;

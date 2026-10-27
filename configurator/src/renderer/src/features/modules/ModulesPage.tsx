@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Cable, Grid3x3, Images, Layers, Lightbulb, Plus, Puzzle } from 'lucide-react'
+import { Cable, Gamepad2, Grid3x3, Images, Layers, Lightbulb, Plus, Puzzle } from 'lucide-react'
 
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { SubTabs } from '@/app/workspace/SubTabs'
@@ -10,6 +10,8 @@ import { useDeviceStore } from '@/features/device/device-store'
 import { BoardPicker } from '@/features/configuration/preview/BoardPicker'
 import { boardName } from '@/features/configuration/board-labels'
 import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
+import { ButtonsView } from '@/features/controls/ButtonsView'
+import { inputButtonsOf } from '@/features/controls/controls-document'
 import type {
   HardwareDeviceConfiguration,
   HardwareDeviceType
@@ -17,6 +19,7 @@ import type {
 import { EffectEditor } from './EffectEditor'
 import { EffectList } from './EffectList'
 import { LedPreview } from './LedPreview'
+import { MultiEffectEditor } from './MultiEffectEditor'
 import { NoConfiguration } from './NoConfiguration'
 import { OutputEditor } from './OutputEditor'
 import { ProfilePicker } from './ProfilePicker'
@@ -33,11 +36,13 @@ import {
 } from './modules-document'
 import type { DeviceConfiguration } from '@shared/device'
 import { useModulesStore, type DeviceView } from './modules-store'
+import { useModulesShortcuts } from './use-modules-shortcuts'
 import { t } from '@shared/ui-text'
 
 const TABS: ReadonlyArray<{ id: ModulesView; label: string; icon: typeof Lightbulb }> = [
   { id: 'leds', label: t('modules.modulesPage.lEDs'), icon: Lightbulb },
-  { id: 'matrix', label: t('modules.modulesPage.matrix'), icon: Grid3x3 }
+  { id: 'matrix', label: t('modules.modulesPage.matrix'), icon: Grid3x3 },
+  { id: 'buttons', label: t('modules.modulesPage.buttons'), icon: Gamepad2 }
 ]
 
 const DEVICE_TABS: ReadonlyArray<{ id: DeviceView; label: string; icon: typeof Cable }> = [
@@ -46,9 +51,10 @@ const DEVICE_TABS: ReadonlyArray<{ id: DeviceView; label: string; icon: typeof C
   { id: 'layers', label: t('modules.effectList.layers'), icon: Layers }
 ]
 
-const TYPE: Record<ModulesView, HardwareDeviceType> = {
+const TYPE: Record<ModulesView, HardwareDeviceType | undefined> = {
   leds: 'rgb_strip',
-  matrix: 'rgb_matrix'
+  matrix: 'rgb_matrix',
+  buttons: undefined
 }
 
 function addBlocked(
@@ -74,6 +80,7 @@ export function ModulesPage(): React.JSX.Element {
   const selected = useModulesStore((state) => state.output)
   const select = useModulesStore((state) => state.select)
   const effect = useModulesStore((state) => state.effect)
+  const picked = useModulesStore((state) => state.picked)
   const view = useWorkspaceStore((state) => state.modulesView)
   const setView = useWorkspaceStore((state) => state.setModulesView)
   const clearPreview = useModulesStore((state) => state.clearPreview)
@@ -83,16 +90,17 @@ export function ModulesPage(): React.JSX.Element {
   useEffect(() => () => clearPreview(), [clearPreview])
 
   const all = devicesOf(draft)
-  const type = TYPE[view]
+  const type = TYPE[view] ?? 'rgb_strip'
+  const wired = inputButtonsOf(draft).filter((button) => (button.sources ?? []).length > 0).length
   const mine = all
     .map((device, index) => ({ device, index }))
     .filter(({ device }) => device.type === type)
   const active = mine.find(({ index }) => index === selected) ?? mine[0]
   const noun = view === 'matrix' ? 'matrix' : 'strip'
   const blocked = draft ? addBlocked(draft, all, noun) : undefined
-  const matrix = active?.device.type === 'rgb_matrix'
-  const tabs = DEVICE_TABS.filter((tab) => tab.id !== 'pictures' || matrix)
-  const page = deviceView === 'pictures' && !matrix ? 'wiring' : deviceView
+  const tabs = DEVICE_TABS
+  const page = deviceView
+  useModulesShortcuts(active?.index ?? -1, page === 'layers' && active !== undefined)
 
   return (
     <PageShell
@@ -116,7 +124,9 @@ export function ModulesPage(): React.JSX.Element {
               ...tab,
               badge: (
                 <span className="text-[10px] text-muted-foreground">
-                  {all.filter((device) => device.type === TYPE[tab.id]).length}
+                  {tab.id === 'buttons'
+                    ? wired
+                    : all.filter((device) => device.type === TYPE[tab.id]).length}
                 </span>
               )
             }))}
@@ -126,107 +136,115 @@ export function ModulesPage(): React.JSX.Element {
               select(-1)
             }}
           />
-          <PageSection
-            title={view === 'matrix' ? t('modules.modulesPage.matrices') : t('modules.modulesPage.strips')}
-            description={t('modules.modulesPage.eachNounOwnsOneData', { noun: noun })}
-            actions={
-              <button
-                type="button"
-                disabled={blocked !== undefined}
-                title={blocked ?? t('modules.modulesPage.eachNounOwnsOneData', { noun: noun })}
-                className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5 disabled:opacity-40"
-                onClick={() => select(addDevice(draft, type))}
-              >
-                <Plus className="size-3.5" /> {t('modules.modulesPage.addNoun', { noun: noun })}
-              </button>
-            }
-          >
-            {blocked ? (
-              <p className="pb-2 text-[11px] text-amber-400/80">{blocked}</p>
-            ) : null}
-            {mine.length === 0 ? (
-              <EmptyState
-                icon={<Puzzle aria-hidden="true" className="size-6" />}
-                title={view === 'matrix' ? t('modules.modulesPage.noMatrices') : t('modules.modulesPage.noStrips')}
-              >
-                <p>{t('modules.modulesPage.nothingIsWiredYetAdd', { noun: noun })}</p>
-              </EmptyState>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {mine.map(({ device, index }, position) => (
-                  <div
-                    key={index}
-                    className={`flex items-center gap-1 rounded border px-2 py-1 text-xs ${index === active?.index ? 'border-sky-500/50 bg-sky-500/10' : 'hover:bg-white/5'}`}
-                  >
-                    <button type="button" onClick={() => select(index)}>
-                      {device.id || `${view === 'matrix' ? 'Matrix' : 'Strip'} ${position + 1}`}
-                      <span className="ml-1 text-muted-foreground">{t('modules.modulesPage.pinNumber', { pin: device.pin ?? '—' })}</span>
-                    </button>
-                    <RemoveButton
-                      label={t('modules.modulesPage.removeDeviceNumber', { number: position + 1 })}
-                      onClick={() => {
-                        removeDevice(index)
-                        clearPreview()
-                        select(-1)
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </PageSection>
-
-          {active ? (
+          {view === 'buttons' ? (
+            <ButtonsView />
+          ) : (
             <>
-              <LedPreview index={active.index} device={active.device} />
-              <SubTabs
-                label={t('modules.modulesPage.deviceView')}
-                tabs={tabs.map((tab) => ({
-                  ...tab,
-                  badge:
-                    tab.id === 'layers' ? (
-                      <span className="text-[10px] text-muted-foreground">
-                        {(active.device.effects ?? []).length}
-                      </span>
-                    ) : tab.id === 'pictures' ? (
-                      <span className="text-[10px] text-muted-foreground">
-                        {(active.device.sprites ?? []).length}
-                      </span>
-                    ) : undefined
-                }))}
-                value={page}
-                onChange={setDeviceView}
-              />
-              {page === 'wiring' ? (
-                <PageSection
-                  title={t('modules.modulesPage.wiring')}
-                  description={t('modules.modulesPage.thePinTheShapeAnd')}
-                >
-                  <OutputEditor draft={draft} index={active.index} device={active.device} />
-                  {active.device.type === 'rgb_strip' ? (
-                    <SegmentEditor index={active.index} device={active.device} />
-                  ) : null}
-                </PageSection>
-              ) : page === 'pictures' ? (
-                <PicturesSection output={active.index} device={active.device} />
-              ) : (
-                <PageSection
-                  title={t('modules.modulesPage.whatItShows')}
-                  description={t('modules.modulesPage.layersComposedOntoThisDevice')}
-                >
-                  <EffectList output={active.index} device={active.device}>
-                    <ProfilePicker output={active.index} device={active.device} />
-                  </EffectList>
-                  {effect >= 0 && (active.device.effects ?? [])[effect] ? (
-                    <EffectEditor output={active.index} device={active.device} index={effect} />
+              <PageSection
+                title={view === 'matrix' ? t('modules.modulesPage.matrices') : t('modules.modulesPage.strips')}
+                description={t('modules.modulesPage.eachNounOwnsOneData', { noun: noun })}
+                actions={
+                  <button
+                    type="button"
+                    disabled={blocked !== undefined}
+                    title={blocked ?? t('modules.modulesPage.eachNounOwnsOneData', { noun: noun })}
+                    className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5 disabled:opacity-40"
+                    onClick={() => select(addDevice(draft, type))}
+                  >
+                    <Plus className="size-3.5" /> {t('modules.modulesPage.addNoun', { noun: noun })}
+                  </button>
+                }
+              >
+                {blocked ? (
+                  <p className="pb-2 text-[11px] text-amber-400/80">{blocked}</p>
+                ) : null}
+                {mine.length === 0 ? (
+                  <EmptyState
+                    icon={<Puzzle aria-hidden="true" className="size-6" />}
+                    title={view === 'matrix' ? t('modules.modulesPage.noMatrices') : t('modules.modulesPage.noStrips')}
+                  >
+                    <p>{t('modules.modulesPage.nothingIsWiredYetAdd', { noun: noun })}</p>
+                  </EmptyState>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {mine.map(({ device, index }, position) => (
+                      <div
+                        key={index}
+                        className={`flex items-center gap-1 rounded border px-2 py-1 text-xs ${index === active?.index ? 'border-sky-500/50 bg-sky-500/10' : 'hover:bg-white/5'}`}
+                      >
+                        <button type="button" onClick={() => select(index)}>
+                          {device.id || `${view === 'matrix' ? 'Matrix' : 'Strip'} ${position + 1}`}
+                          <span className="ml-1 text-muted-foreground">{t('modules.modulesPage.pinNumber', { pin: device.pin ?? '—' })}</span>
+                        </button>
+                        <RemoveButton
+                          label={t('modules.modulesPage.removeDeviceNumber', { number: position + 1 })}
+                          onClick={() => {
+                            removeDevice(index)
+                            clearPreview()
+                            select(-1)
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </PageSection>
+
+              {active ? (
+                <>
+                  <LedPreview index={active.index} device={active.device} />
+                  <SubTabs
+                    label={t('modules.modulesPage.deviceView')}
+                    tabs={tabs.map((tab) => ({
+                      ...tab,
+                      badge:
+                        tab.id === 'layers' ? (
+                          <span className="text-[10px] text-muted-foreground">
+                            {(active.device.effects ?? []).length}
+                          </span>
+                        ) : tab.id === 'pictures' ? (
+                          <span className="text-[10px] text-muted-foreground">
+                            {(active.device.sprites ?? []).length}
+                          </span>
+                        ) : undefined
+                    }))}
+                    value={page}
+                    onChange={setDeviceView}
+                  />
+                  {page === 'wiring' ? (
+                    <PageSection
+                      title={t('modules.modulesPage.wiring')}
+                      description={t('modules.modulesPage.thePinTheShapeAnd')}
+                    >
+                      <OutputEditor draft={draft} index={active.index} device={active.device} />
+                      {active.device.type === 'rgb_strip' ? (
+                        <SegmentEditor index={active.index} device={active.device} />
+                      ) : null}
+                    </PageSection>
+                  ) : page === 'pictures' ? (
+                    <PicturesSection output={active.index} device={active.device} />
                   ) : (
-                    <p className="text-[11px] text-muted-foreground">
-                      {t('modules.modulesPage.pickALayerToEdit')}</p>
+                    <PageSection
+                      title={t('modules.modulesPage.whatItShows')}
+                      description={t('modules.modulesPage.layersComposedOntoThisDevice')}
+                    >
+                      <EffectList output={active.index} device={active.device}>
+                        <ProfilePicker output={active.index} device={active.device} />
+                      </EffectList>
+                      {picked.length > 1 ? (
+                        <MultiEffectEditor output={active.index} device={active.device} indices={picked} />
+                      ) : effect >= 0 && (active.device.effects ?? [])[effect] ? (
+                        <EffectEditor output={active.index} device={active.device} index={effect} />
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          {t('modules.modulesPage.pickALayerToEdit')}</p>
+                      )}
+                    </PageSection>
                   )}
-                </PageSection>
-              )}
+                </>
+              ) : null}
             </>
-          ) : null}
+          )}
         </>
       )}
     </PageShell>
@@ -245,8 +263,10 @@ function PicturesSection({
 
   return (
     <PageSection
-      title={t('modules.modulesPage.pictures')}
-      description={t('modules.modulesPage.artworkThisPanelDrawsDrawn')}
+      title={device.type === 'rgb_strip' ? t('modules.modulesPage.animations') : t('modules.modulesPage.pictures')}
+      description={device.type === 'rgb_strip'
+        ? t('modules.modulesPage.animationsThisStripPlays')
+        : t('modules.modulesPage.artworkThisPanelDrawsDrawn')}
     >
       <SpriteList output={output} device={device} />
       {sprite ? (

@@ -7,12 +7,14 @@ from typing import Any
 from .constants import (
     GAME_RUNNING,
     JAVASCRIPT_INTERPRETER,
+    MAXIMUM_TIMESPAN_MS,
     PARAMETER_PATTERN,
     UNAVAILABLE_OPERATORS,
 )
+from .game_sources import CURRENT_GAME, silent_mapping, with_game_javascript
 
 PROPERTY_REFERENCE = re.compile(r"\[([A-Za-z][\w.]*)\]|\$prop\('([^']+)'\)")
-GUARD_PROPERTIES = {GAME_RUNNING, "DataCorePlugin.GamePaused"}
+GUARD_PROPERTIES = {GAME_RUNNING, "DataCorePlugin.GamePaused", CURRENT_GAME}
 
 
 def identifier_key(identifier: str) -> int:
@@ -67,9 +69,16 @@ inline constexpr std::array<LookupEntry, {len(fields)}> kLookup{{{{
 """
 
 
+def profile_mapping(mapping: dict[str, Any], games: dict[str, Any]) -> dict[str, Any]:
+    return silent_mapping(with_game_javascript(mapping, games))
+
+
 def primary_property(mapping: dict[str, Any]) -> str | None:
     if "property" in mapping:
         return mapping["property"]
+    for source in mapping.get("games", {}).values():
+        if isinstance(source, dict):
+            return source["property"]
     formula = mapping.get("expression", mapping.get("javascript", ""))
     for match in PROPERTY_REFERENCE.finditer(formula):
         name = match.group(1) or match.group(2)
@@ -107,6 +116,8 @@ def generate_javascript_line(
     rule = mapping.get("unavailable_when")
     if rule is not None:
         missing.append(f"{number} {UNAVAILABLE_OPERATORS[rule['op']]} {rule['value']}")
+    if conversion == "timespan_ms":
+        missing.append(f"{number} > {MAXIMUM_TIMESPAN_MS}")
     fallback = mapping.get("fallback")
     absent = empty if fallback is None else f"'{identifier};{fallback}\\n'"
     return (
@@ -159,6 +170,8 @@ def generate_simhub_expression(
     if rule is not None:
         operator = UNAVAILABLE_OPERATORS[rule["op"]]
         line = f"if(({number}) {operator} {rule['value']}, {empty}, {line})"
+    if conversion == "timespan_ms":
+        line = f"if(({number}) > {MAXIMUM_TIMESPAN_MS}, {empty}, {line})"
     return f"if({unavailable}, {empty}, {line})"
 
 
@@ -169,7 +182,7 @@ def generate_shsds(
 ) -> str:
     update_messages = []
     for field in fields:
-        mapping = mappings[field["name"]]
+        mapping = profile_mapping(mappings[field["name"]], profile["games"])
         expression = generate_simhub_expression(field, mapping, profile["javascript_prelude"])
         message: dict[str, Any] = {
             "Expression": default_parameters(expression, profile["parameters"])
@@ -228,7 +241,8 @@ def generate_simhub_typescript(
     }
     records = []
     for field in fields:
-        mapping = mappings[field["name"]]
+        original = mappings[field["name"]]
+        mapping = profile_mapping(original, profile["games"])
         record = {
             "name": field["name"],
             "expression": generate_simhub_expression(
@@ -238,7 +252,7 @@ def generate_simhub_typescript(
         }
         if "javascript" in mapping:
             record["javascript"] = True
-        source = primary_property(mapping)
+        source = primary_property(original)
         if source is not None:
             record["property"] = source
         records.append(

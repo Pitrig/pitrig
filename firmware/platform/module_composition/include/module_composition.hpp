@@ -2,6 +2,7 @@
 
 #include <cstddef>
 
+#include "controls.hpp"
 #include "lap_timer.hpp"
 #include "led_driver.hpp"
 #include "module_manager.hpp"
@@ -23,6 +24,7 @@ namespace pitrig::module_composition {
 enum class Module : std::size_t {
   lap_timer,
   rgb_leds,
+  controls,
 };
 
 struct Modules {
@@ -42,12 +44,25 @@ struct Modules {
     const configuration::ApplicationConfiguration* configuration{};
     bool* started{};
   };
+  struct ControlsBinding {
+    controls::Controls* module{};
+    events::EventBus* event_bus{};
+    const telemetry::ITelemetryRegistry* registry{};
+    const telemetry::ITelemetryReader* telemetry{};
+    configuration::ConfigurationService* settings{};
+    controls::DashboardTarget* dashboard{};
+    const configuration::ApplicationConfiguration* configuration{};
+    bool* started{};
+  };
   lap_timer::LapTimer lap_timer;
   LapTimerBinding lap_timer_binding{};
   bool lap_timer_started{};
   rgb_leds::RgbLeds rgb_leds;
   RgbLedsBinding rgb_leds_binding{};
   bool rgb_leds_started{};
+  controls::Controls controls;
+  ControlsBinding controls_binding{};
+  bool controls_started{};
   modules::Manager manager;
 };
 
@@ -55,6 +70,8 @@ struct Modules {
                          const telemetry::ITelemetryRegistry& telemetry_registry,
                          const telemetry::ITelemetryReader& telemetry,
                          const led::driver::Driver* led_driver,
+                         configuration::ConfigurationService& settings,
+                         controls::DashboardTarget* dashboard,
                          const configuration::ApplicationConfiguration& configuration);
 
 [[nodiscard]] bool restart(Modules& modules, Module module,

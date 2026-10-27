@@ -29,6 +29,7 @@ export function migrateConfigurationDocument(document: unknown): unknown {
       for (const effect of device.effects) {
         if (!isObject(effect)) continue
         delete effect.brightness
+        migrateLedArea(device, effect)
         const font = effect.font
         if (typeof font === 'string' && LEGACY_LED_FONTS[font]) {
           effect.font = LEGACY_LED_FONTS[font]
@@ -51,6 +52,19 @@ export function migrateConfigurationDocument(document: unknown): unknown {
   }
   delete document.delta_time
   return document
+}
+
+function migrateLedArea(device: Record<string, unknown>, effect: Record<string, unknown>): void {
+  if (effect.from === undefined && effect.count === undefined) return
+  const from = typeof effect.from === 'number' ? effect.from : 0
+  const asked = typeof effect.count === 'number' ? effect.count : 0
+  delete effect.from
+  delete effect.count
+  if (device.type === 'rgb_matrix' || effect.parts !== undefined) return
+  const lamps = typeof device.count === 'number' ? device.count : 1
+  const count = asked === 0 ? lamps - from : asked
+  if (from === 0 && count >= lamps) return
+  if (count > 0) effect.parts = [{ ...(from > 0 ? { from } : {}), count }]
 }
 
 function migrateTextWidget(widget: unknown): void {

@@ -1,5 +1,6 @@
 idf_component_register(
   SRCS "src/configuration_json.cpp"
+       "src/json_controls.cpp"
        "src/json_hardware.cpp"
        "src/json_led_effect.cpp"
        "src/json_readers.cpp"
@@ -8,6 +9,7 @@ idf_component_register(
        "src/json_widget_gauges.cpp"
        "src/json_widget_variants.cpp"
        "src/configuration_validation.cpp"
+       "src/validation/control_rules.cpp"
        "src/validation/document_rules.cpp"
        "src/validation/hardware_rules.cpp"
        "src/validation/led_effect_rules.cpp"

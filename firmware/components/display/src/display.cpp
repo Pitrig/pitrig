@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdint>
 
+#include "backlight.hpp"
 #include "display_driver.hpp"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -28,6 +29,7 @@ struct DisplayState {
   StaticSemaphore_t refresh_signal_storage{};
   SemaphoreHandle_t refresh_signal{};
   std::atomic<bool> rendering{false};
+  Backlight backlight{};
 };
 
 DisplayState state;
@@ -158,7 +160,8 @@ bool refresh_and_wait(lv_display_t* const display, const std::uint32_t timeout_m
   return refreshed;
 }
 
-lv_display_t* initialize(const driver::Driver& selected_driver) {
+lv_display_t* initialize(const driver::Driver& selected_driver,
+                         const std::uint8_t backlight_percent) {
   if (selected_driver.initialize == nullptr || selected_driver.release == nullptr ||
       selected_driver.on_display_ready == nullptr) {
     ESP_LOGE(kTag, "Board display driver is incomplete");
@@ -241,7 +244,13 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
     return nullptr;
   }
   selected_driver.on_display_ready();
+  if (selected_driver.backlight_pin >= 0 &&
+      !state.backlight.attach(selected_driver.backlight_pin, backlight_percent)) {
+    ESP_LOGW(kTag, "Backlight stays at full brightness");
+  }
   return display;
 }
+
+bool set_backlight(const std::uint8_t percent) { return state.backlight.set(percent); }
 
 }

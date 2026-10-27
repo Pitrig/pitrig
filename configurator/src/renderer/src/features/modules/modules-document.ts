@@ -91,12 +91,16 @@ function carryMask(
 }
 
 function carryArea(effect: LedEffect, lamps: number): void {
-  if (effect.from !== undefined) {
-    effect.from = Math.min(effect.from, Math.max(0, lamps - 1))
-  }
-  const from = effect.from ?? 0
-  const count = effect.count ?? 0
-  if (count !== 0 && from + count > lamps) effect.count = Math.max(1, lamps - from)
+  if (!effect.parts) return
+  const seen = new Set<string>()
+  effect.parts = effect.parts.flatMap((part) => {
+    const from = Math.min(part.from ?? 0, Math.max(0, lamps - 1))
+    const count = Math.max(1, Math.min(part.count ?? 1, lamps - from))
+    const key = `${from}:${count}`
+    if (seen.has(key)) return []
+    seen.add(key)
+    return [{ ...part, from, count }]
+  })
 }
 
 export function carryGeometry(

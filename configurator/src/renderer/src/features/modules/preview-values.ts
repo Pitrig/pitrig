@@ -34,6 +34,8 @@ function matchingValue(rule: LedColorRule): number {
       return value - NUDGE
     case 'not_equal':
       return value + 1
+    case 'bit_set':
+      return 2 ** (value - 1)
     default:
       return value
   }
@@ -62,7 +64,7 @@ function boardText(value: TelemetryValue): string | undefined {
   return transformedBody(WHOLE_NUMBER, value)
 }
 
-function liveDrive(effect: LedEffect): PreviewDrive {
+export function liveDrive(effect: LedEffect): PreviewDrive {
   const source = readLiveValue(effect.source?.binding)
   const watched = conditionValue(readLiveValue(effect.condition_source?.binding))
   const shown = boardText(source)

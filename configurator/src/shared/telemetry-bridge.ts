@@ -1,16 +1,29 @@
+import type { InputsConfiguration } from './configuration-schema'
 import { SIMHUB_LINK } from './simhub-profile-data'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from './telemetry-catalog'
 import type { TelemetryValue } from './telemetry-value'
 
 export const TELEMETRY_BRIDGE_START_CHANNEL = 'telemetry-bridge:start' as const
-export const TELEMETRY_BRIDGE_STOP_CHANNEL = 'telemetry-bridge:stop' as const
 export const TELEMETRY_BRIDGE_STATUS_CHANNEL = 'telemetry-bridge:status' as const
 export const TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL = 'telemetry-bridge:status-changed' as const
 export const TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL = 'telemetry-bridge:snapshot' as const
+export const TELEMETRY_BRIDGE_INTEREST_CHANNEL = 'telemetry-bridge:interest' as const
+export const TELEMETRY_BRIDGE_SIMULATE_CHANNEL = 'telemetry-bridge:simulate' as const
+export const TELEMETRY_BRIDGE_INPUT_CHANNEL = 'telemetry-bridge:input' as const
 
-export const TELEMETRY_BRIDGE_INCLUDED = import.meta.env.DEV
+export const SIMULATION_LAPSE_MS = 1_500
+export const SIMULATION_PAYLOAD_LIMIT = 16_384
+
+export interface TelemetrySimulation {
+  payload: string
+  active: boolean
+}
 
 export const SNAPSHOT_INTERVAL_MS = 16
+
+export const PLUGIN_STATUS_MARKER = '@PT:STATUS'
+export const PLUGIN_INPUT_MARKER = '@PT:INPUT'
+export const PLUGIN_SILENCE_MS = 3_000
 
 export const LINK_MAGIC = SIMHUB_LINK.magic
 export const LINK_VERSION = SIMHUB_LINK.version
@@ -29,6 +42,38 @@ export interface TelemetryBridgeStartRequest {
   port: number
   simhubPort: number
   simhubHost: string
+}
+
+export interface TelemetryInterest {
+  running: string[]
+  draft: string[]
+  all: boolean
+  inputs: boolean
+  wiring: InputsConfiguration | null
+}
+
+export interface PluginInput {
+  input?: string
+  action?: number
+  down?: boolean
+  actions: number
+  buttons: number
+  position: number
+  pressed: string[]
+}
+
+export interface PluginBoard {
+  path: string
+  baudRate: number
+  board: string
+}
+
+export interface PluginStatus {
+  version: string
+  acknowledged: number
+  boards: PluginBoard[]
+  released: string[]
+  busy: string[]
 }
 
 export interface LatencyQuantiles {
@@ -60,6 +105,7 @@ export interface TelemetryBridgeStatus {
   port?: number
   simhubAddress?: string
   sourceAddress?: string
+  plugin?: PluginStatus
   error?: string
 }
 
@@ -83,6 +129,16 @@ export function slotOfName(name: string): number | undefined {
 
 export function slotOfWireId(wireId: string): number | undefined {
   return SLOT_OF_WIRE_ID.get(wireId)
+}
+
+export function wireIdsOf(names: Iterable<string>): string[] {
+  const ids = new Set<string>()
+  for (const name of names) {
+    const slot = SLOT_OF_NAME.get(name)
+    const entry = slot === undefined ? undefined : TELEMETRY_CATALOG[slot]
+    if (entry) ids.add(entry.wireId)
+  }
+  return [...ids].sort()
 }
 
 export function slotType(slot: number): TelemetryValueType {

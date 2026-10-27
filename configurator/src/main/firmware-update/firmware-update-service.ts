@@ -1,5 +1,7 @@
 import { type BrowserWindow } from 'electron'
+import { randomUUID } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
+import { basename } from 'node:path'
 
 import {
   MAXIMUM_FIRMWARE_IMAGE_SIZE,
@@ -47,7 +49,16 @@ export class FirmwareUpdateService extends AssetServiceBase {
     const chosen = await this.chooseSource(owner)
     if (!chosen.ok) return chosen
     if (chosen.value === null) return success(null)
-    const source: SourceRecord = chosen.value
+    return this.register(chosen.value)
+  }
+
+  async adoptSource(path: string): Promise<FirmwareUpdateResult<FirmwareSourceSelection>> {
+    return this.register({ id: randomUUID(), name: basename(path), path })
+  }
+
+  private async register(
+    source: SourceRecord
+  ): Promise<FirmwareUpdateResult<FirmwareSourceSelection>> {
     let size: number
     try {
       size = (await stat(source.path)).size
@@ -64,7 +75,10 @@ export class FirmwareUpdateService extends AssetServiceBase {
     return success({ id: source.id, name: source.name, size })
   }
 
-  async upload(request: FirmwareUploadRequest): Promise<FirmwareUpdateResult<void>> {
+  async upload(
+    request: FirmwareUploadRequest,
+    onProgress: (progress: FirmwareUploadProgress) => void = this.onProgress
+  ): Promise<FirmwareUpdateResult<void>> {
     const blocked = this.preflight()
     if (blocked) return blocked
     const source = this.sources.get(request.sourceId)
@@ -80,7 +94,7 @@ export class FirmwareUpdateService extends AssetServiceBase {
     this.activeOperation = operation
     let stage: 'reading' | 'building' | 'uploading' = 'reading'
     try {
-      this.onProgress({
+      onProgress({
         stage: 'reading',
         completed: 0,
         total: 1,
@@ -91,7 +105,7 @@ export class FirmwareUpdateService extends AssetServiceBase {
 
       stage = 'building'
       const packageBytes = buildFirmwarePackage(image, deviceSession.info.boardId)
-      this.onProgress({
+      onProgress({
         stage: 'building',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
@@ -102,8 +116,8 @@ export class FirmwareUpdateService extends AssetServiceBase {
       if (this.deviceService.getState().session !== deviceSession) {
         throw new Error(t('firmware.firmwareUpdateService.theConnectedDeviceChangedWhile'))
       }
-      await this.deviceService.uploadFirmware(packageBytes, this.onProgress, operation.signal)
-      this.onProgress({
+      await this.deviceService.uploadFirmware(packageBytes, onProgress, operation.signal)
+      onProgress({
         stage: 'completed',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
@@ -117,10 +131,10 @@ export class FirmwareUpdateService extends AssetServiceBase {
       const message =
         error instanceof Error ? error.message : t('firmware.firmwareUpdateService.unknownError')
       if (operation.signal.aborted) {
-        this.onProgress({ stage: 'cancelled', completed: 0, total: 0, message: t('firmware.firmwareUpdateService.firmwareUploadCancelled') })
+        onProgress({ stage: 'cancelled', completed: 0, total: 0, message: t('firmware.firmwareUpdateService.firmwareUploadCancelled') })
         return failure('cancelled', t('firmware.firmwareUpdateService.firmwareUploadWasCancelled'))
       }
-      this.onProgress({ stage: 'error', completed: 0, total: 0, message })
+      onProgress({ stage: 'error', completed: 0, total: 0, message })
       if (error instanceof PackageTooLargeError) return failure('package_too_large', message)
       return failure(stage === 'reading' ? 'source_unreadable' : 'device_error', message)
     } finally {

@@ -3,83 +3,53 @@ import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell, ReadOnlyField } from '@/app/workspace/PageShell'
-import { restartBoard, type ActionFeedback } from '@/features/configuration/configuration-actions'
 import { useDeviceStore } from '@/features/device/device-store'
-import { useFirmwareUpdateStore, useFirmwareUploadStore } from './firmware-update-store'
+import { BoardUpdateSteps } from './BoardUpdateSteps'
+import { updateBoard, useBoardUpdateStore } from './board-update-store'
+import { useFirmwareUpdateStore } from './firmware-update-store'
+import { ReleaseFirmwareOffer } from '@/features/updates/ReleaseFirmwareOffer'
 import { t } from '@shared/ui-text'
+
+const OUTCOME_STYLE = {
+  success: 'text-muted-foreground',
+  warning: 'text-amber-400',
+  error: 'text-red-400'
+} as const
 
 export function FirmwarePage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const source = useFirmwareUpdateStore((state) => state.source)
-  const progress = useFirmwareUploadStore((state) => state.progress)
-  const error = useFirmwareUploadStore((state) => state.error)
-  const running = useFirmwareUploadStore((state) => state.running)
+  const running = useBoardUpdateStore((state) => state.running)
+  const progress = useBoardUpdateStore((state) => state.progress)
+  const outcome = useBoardUpdateStore((state) => state.outcome)
   const [busy, setBusy] = useState(false)
-  const [feedback, setFeedback] = useState<ActionFeedback>()
+  const [error, setError] = useState<string>()
 
   const firmware = session?.firmware
-  const uploadable =
-    Boolean(source) &&
-    Boolean(firmware?.storageAvailable) &&
-    !firmware?.rebootRequired &&
-    !running &&
-    !busy
+  const pending = firmware?.rebootRequired ?? false
+  const updatable =
+    Boolean(firmware?.storageAvailable) && (pending || Boolean(source)) && !running && !busy
 
   const selectSource = async (): Promise<void> => {
     setBusy(true)
-    const upload = useFirmwareUploadStore.getState()
-    upload.setError(undefined)
+    setError(undefined)
     try {
       const result = await window.pitrig.selectFirmwareSource()
-      if (!result.ok) upload.setError(result.error.message)
+      if (!result.ok) setError(result.error.message)
       else if (result.value) {
         useFirmwareUpdateStore.getState().setSource(result.value)
-        upload.setProgress(undefined)
+        useBoardUpdateStore.getState().dismiss()
       }
     } finally {
       setBusy(false)
     }
   }
 
-  const install = async (): Promise<void> => {
-    if (!source || !useFirmwareUploadStore.getState().begin()) return
-    try {
-      const result = await window.pitrig.uploadFirmware({ sourceId: source.id })
-      if (!result.ok) useFirmwareUploadStore.getState().setError(result.error.message)
-    } finally {
-      useFirmwareUploadStore.getState().end()
-    }
-  }
-
-  const restart = async (): Promise<void> => {
-    setFeedback(await restartBoard())
-  }
-
-  const percent =
-    progress && progress.total > 0
-      ? Math.min(100, Math.round((progress.completed / progress.total) * 100))
-      : 0
-
   return (
     <PageShell
       title={t('device.infoPage.firmware')}
       description={t('firmware.firmwarePage.installAFirmwareImageInto')}
-      actions={
-        firmware?.rebootRequired && !running ? (
-          <Button onClick={() => void restart()}>{t('firmware.firmwarePage.restartBoard')}</Button>
-        ) : null
-      }
     >
-      {feedback ? (
-        <p
-          className={`rounded-md border p-2 text-xs ${
-            feedback.kind === 'error' ? 'text-red-400' : 'text-muted-foreground'
-          }`}
-        >
-          {feedback.message}
-        </p>
-      ) : null}
-
       {firmware ? (
         <PageSection
           title={t('firmware.firmwarePage.slots')}
@@ -94,12 +64,12 @@ export function FirmwarePage(): React.JSX.Element {
             <p className="mt-3 text-[11px] text-amber-400">
               {t('firmware.firmwarePage.thisImageHasNotBeen')}</p>
           ) : null}
-          {firmware.rebootRequired ? (
+          {pending && !running ? (
             <p className="mt-3 text-[11px] text-amber-400">
-              {t('firmware.firmwarePage.restartTheBoardToRun')}</p>
+              {t('firmware.firmwarePage.anImageIsWaiting')}</p>
           ) : null}
         </PageSection>
-      ) : (
+      ) : running ? null : (
         <PageSection title={t('firmware.firmwarePage.notAvailable')} description={t('firmware.firmwarePage.whatThisBoardCanDo')}>
           <EmptyState icon={<Cpu aria-hidden="true" className="size-6" />} title={t('firmware.firmwarePage.noSecondSlot')}>
             {session
@@ -114,6 +84,7 @@ export function FirmwarePage(): React.JSX.Element {
         description={t('firmware.firmwarePage.aPackagedPitrigFirmwareImage')}
       >
         <div className="space-y-3">
+          <ReleaseFirmwareOffer />
           {source ? (
             <div className="flex items-center justify-between gap-2 rounded-md border p-2">
               <span className="min-w-0 truncate" title={source.name}>
@@ -125,19 +96,9 @@ export function FirmwarePage(): React.JSX.Element {
             <p className="text-muted-foreground">{t('firmware.firmwarePage.noImageSelected')}</p>
           )}
 
-          {progress ? (
-            <div className="space-y-1.5 rounded-md border bg-muted/20 p-2 text-[11px] text-muted-foreground">
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-sky-500 transition-[width]"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-              <p className="break-words">
-                {progress.message}
-                {progress.total > 0 ? t('firmware.firmwarePage.percent', { percent: percent }) : ''}
-              </p>
-            </div>
+          {running ? <BoardUpdateSteps progress={progress} /> : null}
+          {outcome && !running ? (
+            <p className={`break-words text-[11px] ${OUTCOME_STYLE[outcome.kind]}`}>{outcome.message}</p>
           ) : null}
           {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
 
@@ -145,15 +106,23 @@ export function FirmwarePage(): React.JSX.Element {
             <Button
               className="flex-1"
               variant="outline"
-              disabled={busy}
+              disabled={busy || running}
               onClick={() => void selectSource()}
             >
               {t('firmware.firmwarePage.selectImage')}</Button>
-            <Button className="flex-1" disabled={!uploadable} onClick={() => void install()}>
-              {running ? t('firmware.firmwarePage.installing') : t('common.install')}
+            <Button
+              className="flex-1"
+              disabled={!updatable}
+              onClick={() => void updateBoard(pending ? undefined : source?.id)}
+            >
+              {running
+                ? t('firmware.firmwarePage.updating')
+                : pending
+                  ? t('firmware.firmwarePage.restartIntoTheInstalledImage')
+                  : t('firmware.firmwarePage.updateBoard')}
             </Button>
           </div>
-          {running ? (
+          {running && progress?.step === 'install' ? (
             <Button
               className="w-full"
               variant="outline"
@@ -161,6 +130,7 @@ export function FirmwarePage(): React.JSX.Element {
             >
               {t('common.cancel')}</Button>
           ) : null}
+          <p className="text-[11px] text-muted-foreground">{t('firmware.firmwarePage.updateKeepsTheConfiguration')}</p>
         </div>
       </PageSection>
     </PageShell>

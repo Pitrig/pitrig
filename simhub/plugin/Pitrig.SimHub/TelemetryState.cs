@@ -15,6 +15,8 @@ namespace Pitrig.SimHub
 
         public PluginManager Manager { get; private set; }
 
+        public string GameName { get; private set; }
+
         public StatusDataBase Status { get; private set; }
 
         public Opponent Player { get; private set; }
@@ -26,6 +28,10 @@ namespace Pitrig.SimHub
         public SectorTracker Sectors { get; } = new SectorTracker();
 
         public WheelAverages Averages { get; } = new WheelAverages();
+
+        public ShiftLights Shifts { get; } = new ShiftLights();
+
+        public InputState Inputs { get; } = new InputState();
 
         public void Reset()
         {
@@ -40,9 +46,11 @@ namespace Pitrig.SimHub
         public void Update(PluginManager manager, GameData data, PluginSettings settings, double now)
         {
             Manager = manager;
+            GameName = data?.GameName;
             Status = data?.GameRunning == true ? data.NewData : null;
             Player = Status?.Opponents?.FirstOrDefault(opponent => opponent.IsPlayer);
             ReserveLaps = Math.Max(settings.FuelReserveLaps, 0);
+            Shifts.Update(manager, Status, data?.GameName);
             if (Status == null) return;
             if (NewSession())
             {

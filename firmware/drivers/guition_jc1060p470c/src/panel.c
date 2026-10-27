@@ -19,7 +19,7 @@
 #include "esp_system.h"
 #include "sdkconfig.h"
 
-#define LCD_BACKLIGHT GPIO_NUM_23
+#define LCD_BACKLIGHT ((gpio_num_t)PITRIG_JC1060P470C_BACKLIGHT_GPIO)
 #define LCD_RESET GPIO_NUM_27
 #define MIPI_DSI_LANE_COUNT 2
 #define MIPI_DSI_LANE_BIT_RATE_MBPS 750

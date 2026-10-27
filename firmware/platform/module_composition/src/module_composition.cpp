@@ -60,6 +60,32 @@ void stop_rgb_leds(void* const context) {
   }
 }
 
+bool start_controls(void* const context) {
+  auto& binding = *static_cast<Modules::ControlsBinding*>(context);
+  if (binding.module == nullptr || binding.event_bus == nullptr || binding.registry == nullptr ||
+      binding.telemetry == nullptr || binding.settings == nullptr ||
+      binding.configuration == nullptr || binding.started == nullptr) {
+    return false;
+  }
+  *binding.started =
+      binding.module->start(*binding.event_bus, *binding.registry, *binding.telemetry,
+                            *binding.settings, binding.dashboard, *binding.configuration);
+  if (!*binding.started) {
+    log::error(kTag, "Button controls did not start");
+  }
+  return *binding.started;
+}
+
+void stop_controls(void* const context) {
+  auto& binding = *static_cast<Modules::ControlsBinding*>(context);
+  if (binding.module != nullptr) {
+    binding.module->stop();
+  }
+  if (binding.started != nullptr) {
+    *binding.started = false;
+  }
+}
+
 [[nodiscard]] bool has_rgb_output(const configuration::ApplicationConfiguration& configuration) {
   return configuration.device_count > 0;
 }
@@ -131,12 +157,16 @@ bool start(Modules& modules, events::EventBus& event_bus,
            const telemetry::ITelemetryRegistry& telemetry_registry,
            const telemetry::ITelemetryReader& telemetry,
            const led::driver::Driver* const led_driver,
+           configuration::ConfigurationService& settings,
+           controls::DashboardTarget* const dashboard,
            const configuration::ApplicationConfiguration& configuration) {
   static_assert(static_cast<std::size_t>(Module::lap_timer) == 0);
   static_assert(static_cast<std::size_t>(Module::rgb_leds) == 1);
+  static_assert(static_cast<std::size_t>(Module::controls) == 2);
   modules.manager.clear();
   modules.lap_timer_started = false;
   modules.rgb_leds_started = false;
+  modules.controls_started = false;
   modules.lap_timer_binding = {
       .module = &modules.lap_timer,
       .event_bus = &event_bus,
@@ -165,7 +195,23 @@ bool start(Modules& modules, events::EventBus& event_bus,
       .stop = &stop_rgb_leds,
       .context = &modules.rgb_leds_binding,
   });
-  if (!registered || !leds_registered) {
+  modules.controls_binding = {
+      .module = &modules.controls,
+      .event_bus = &event_bus,
+      .registry = &telemetry_registry,
+      .telemetry = &telemetry,
+      .settings = &settings,
+      .dashboard = dashboard,
+      .configuration = &configuration,
+      .started = &modules.controls_started,
+  };
+  const bool controls_registered = modules.manager.add({
+      .enabled = controls::used(configuration),
+      .start = &start_controls,
+      .stop = &stop_controls,
+      .context = &modules.controls_binding,
+  });
+  if (!registered || !leds_registered || !controls_registered) {
     modules.manager.clear();
     log::error(kTag, "Failed to register configured modules");
     return false;
@@ -183,6 +229,10 @@ bool restart(Modules& modules, const Module module,
     case Module::rgb_leds:
       modules.rgb_leds_binding.configuration = &configuration;
       enabled = modules.rgb_leds_binding.driver != nullptr && has_rgb_output(configuration);
+      break;
+    case Module::controls:
+      modules.controls_binding.configuration = &configuration;
+      enabled = controls::used(configuration);
       break;
   }
   return modules.manager.restart_at(static_cast<std::size_t>(module), enabled);

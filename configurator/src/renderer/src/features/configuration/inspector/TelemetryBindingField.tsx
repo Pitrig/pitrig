@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
+import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
+import { GameMarks } from '@/features/telemetry/GameMarks'
 import { t } from '@shared/ui-text'
 import { PropertyRow } from './PropertyRow'
 
@@ -152,7 +153,10 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
                     onPointerEnter={() => setActive(index)}
                     onClick={() => commit(entry.name)}
                   >
-                    <span className="block truncate text-foreground">{entry.name}</span>
+                    <span className="flex items-center gap-1">
+                      <span className="truncate text-foreground">{entry.name}</span>
+                      <GameMarks entry={entry as TelemetryCatalogEntry} />
+                    </span>
                     <span className="block truncate text-[10px] text-muted-foreground">
                       {entry.categoryLabel} — {entry.description}
                     </span>
@@ -166,6 +170,8 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
       {selected ? (
         <span className="block text-[11px] leading-4">
           {t('inspector.telemetryBindingField.fieldSummary', { category: selected.categoryLabel, type: selected.type, unit: selected.unit, rate: selected.rate, wireId: selected.wireId })}
+          {' '}
+          <GameMarks entry={selected as TelemetryCatalogEntry} />
         </span>
       ) : text ? (
         <span className="block text-[11px] leading-4 text-amber-400">{t('inspector.telemetryBindingField.unknownTelemetryBinding')}</span>

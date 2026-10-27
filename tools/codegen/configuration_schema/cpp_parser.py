@@ -5,6 +5,7 @@ from typing import Any
 from . import BANNER
 from .model import (
     bounded_fields,
+    device_view,
     document_ids,
     document_keys,
     document_type,
@@ -110,6 +111,8 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
             "",
         ]
     )
+    keys_document = document
+    document = device_view(document)
     key_sets = {
         name: body["keys"]
         for name, body in document.get("external_types", {}).items()
@@ -127,7 +130,7 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         lines.extend(f'    "{key}",' for key in keys)
         lines.append("}};")
         lines.append("")
-    lines.extend(generate_cpp_document_keys(document))
+    lines.extend(generate_cpp_document_keys(keys_document))
     for name in struct_order(document):
         entries = bounded_fields(document, name, expand_flatten=False)
         if not entries:

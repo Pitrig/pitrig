@@ -10,12 +10,14 @@ service and the protocol under `device/`, where `asset-upload.ts` and
 `device-uploads.ts` are the one `SCF1` engine font, image and firmware upload
 all run through; `assets/` holds the base every asset service extends, the file
 chooser and the preview cache; then the `font-library/` face store and Google
-Fonts catalog, the `save-to-board/` orchestrator, the `telemetry-bridge/` relay,
-the `ipc/` registrations, config files, the dashboard `templates/` library, the
+Fonts catalog, the `save-to-board/` orchestrator, `firmware-update/` with the
+`Update board` sequence, the `telemetry-bridge/` relay, the `updates/` channel
+(ADR 0037, registered by the product entry point only, like the bridge), the
+`ipc/` registrations, config files, the dashboard `templates/` library, the
 `configs/` folder and recent-files list, SimHub profile export),
 `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
-`configuration`, `device`, `firmware-update`, `font-library`, `image-assets`,
-`modules`, `protocol`, `telemetry`, `templates`). `shared/` is everything both
+`configuration`, `controls`, `device`, `firmware-update`, `font-library`, `image-assets`,
+`modules`, `protocol`, `telemetry`, `templates`, `updates`). `shared/` is everything both
 processes run, not only types: the validators, the layout transfer, LED
 rendering, `t()` and the generated contracts.
 `src/shared/ipc.ts` declares the `PitrigApi` surface and `APP_GET_INFO_CHANNEL`
@@ -93,7 +95,9 @@ seven-byte header, counting loss from the sequence and resyncing on a restarted
 sender rather than reading it as reordering; a datagram carries whole lines, so
 what it hands on can be written to the board as it stands. The relay yields
 while `OperationRunner` holds the link and drops what arrives meanwhile, and
-the plugin's once-a-second repeat is what repairs the gap. `telemetry-tap.ts`
+the plugin's once-a-second repeat is what repairs the gap; it drops the plugin's
+datagrams too while the Modules simulator drives the board through
+`telemetry-bridge:simulate` (`features/modules/board-simulation.ts`). `telemetry-tap.ts`
 decodes into three fixed arrays indexed by catalog slot and keeps the **source
 string** for every field, not only the text ones, so the preview shows what the
 board shows. The magic, the version, the
@@ -102,18 +106,24 @@ in `simhub/plugin/` and this side cannot disagree about those; the header
 length, the sequence's offset inside it and the subscribe interval are written
 out on both sides and stay in step by hand.
 
-The bridge is compiled into development builds only (ADR 0034):
-`TELEMETRY_BRIDGE_INCLUDED` in `shared/telemetry-bridge.ts` is
-`import.meta.env.DEV` and gates `registerTelemetryBridge` in both entry points
-(the service, its IPC handlers and broadcasts, kept out of `AppServices`), the
-optional `telemetryBridge` preload API, and the renderer's panel, subscriptions
-and catalog value column. Put the constant itself in the condition so the
-bundler can drop the branch; CI fails a package whose `app.asar` still carries
-`telemetry-bridge:` or `TelemetryBridgeService`.
+Every build carries the bridge (ADR 0035): `registerTelemetryBridge` starts it
+with the application, dialing the plugin on loopback, and the product entry
+point is the only one that registers it — the debugger has none. Its request
+carries the desired state, `PluginHandover` (`plugin-handover.ts`) keeps the
+ports held and the boards handed back, and every port open goes through
+`PortLeases` in `device/port-leases.ts`: a lease asks the plugin to let go
+before the open, survives a reboot and the scan's second open, and ends with a
+handback on disconnect. A board the plugin feeds counts as found in the scan
+without being opened. The renderer sends what to stream through
+`features/telemetry/telemetry-interest.ts` — the running documents' and the
+draft's bindings, or every field while the catalog table is mounted — and with
+it whether the Buttons page (`features/controls/`) wants the plugin's
+`@PT:INPUT` reports and the draft's `inputs`, which `PluginHandover` sends as
+`button`/`position` lines while it holds a board.
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 228-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 256-row catalog table),
 so nothing re-renders while the bridge is stopped. `PreviewCanvas` reads live
 values per frame and the lamp preview (`features/modules/LedPreview.tsx` over
 `preview-values.ts`) with it, while the catalog table in
@@ -172,9 +182,11 @@ not inheritance profiles.
 ## Traps
 
 Every dependency whose install script must run is listed in `allowBuilds` in
-`pnpm-workspace.yaml`, and `electron` is one of them: its install script
-downloads the binary, so without the entry `pnpm run dev` fails with
-`Error: Electron uninstall` while packaging still works. An unanswered entry
+`pnpm-workspace.yaml`. Electron's package has had no install script since 44.9,
+so the configurator's own `postinstall` runs `install-electron`: electron-vite
+reads `node_modules/electron/path.txt` instead of downloading, and without the
+binary `pnpm run dev` fails with `Error: Electron uninstall` while packaging
+still works. An unanswered entry
 (pnpm writes `set this to true or false`) makes every `pnpm run` fail until it
 is decided. Nothing is code-signed (`identity: null`). Test the serial protocol
 under Electron rather than plain node. Both applications show no menu

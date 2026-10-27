@@ -17,7 +17,7 @@ Controller::~Controller() { clear(); }
 
 bool Controller::add(lv_obj_t* const container, const std::span<lv_obj_t* const> pages,
                      const configuration::SlotWidgetConfiguration& config,
-                     const telemetry::ITelemetryRegistry& registry,
+                     const std::uint8_t index, const telemetry::ITelemetryRegistry& registry,
                      const telemetry::ITelemetryReader& telemetry,
                      const frame::ModifierReaders& modifier_readers) {
   const std::size_t page_count =
@@ -30,20 +30,25 @@ bool Controller::add(lv_obj_t* const container, const std::span<lv_obj_t* const>
   Slot& slot = slots_[count_];
   slot = {};
   slot.container = container;
+  slot.index = index;
   slot.first_page = static_cast<std::uint8_t>(page_count_);
   slot.loop_page = kNoPage;
+  slot.home_after_ms = config.home_after_ms;
+  slot.touched = lv_tick_get();
 
-  for (std::size_t index = 0; index < page_count; ++index) {
-    const configuration::SlotPageConfiguration& source = config.pages[index];
-    if (pages[index] == nullptr) {
+  for (std::size_t offset = 0; offset < page_count; ++offset) {
+    const configuration::SlotPageConfiguration& source = config.pages[offset];
+    if (pages[offset] == nullptr) {
       return false;
     }
-    Page& page = pages_[page_count_ + index];
+    Page& page = pages_[page_count_ + offset];
     page = {};
-    page.object = pages[index];
+    page.object = pages[offset];
     page.in_loop = source.in_loop;
     page.trigger = source.trigger;
     page.duration_ms = source.duration_ms;
+    page.dismiss = source.dismiss;
+    page.dismiss_ms = source.dismiss_ms;
     page.condition_count = static_cast<std::uint8_t>(
         source.condition_count > source.conditions.size() ? source.conditions.size()
                                                           : source.condition_count);
@@ -62,13 +67,14 @@ bool Controller::add(lv_obj_t* const container, const std::span<lv_obj_t* const>
       }
     }
     if (page.in_loop && slot.loop_page == kNoPage) {
-      slot.loop_page = static_cast<std::uint8_t>(page_count_ + index);
+      slot.loop_page = static_cast<std::uint8_t>(page_count_ + offset);
     }
   }
 
   if (slot.loop_page == kNoPage) {
     slot.loop_page = slot.first_page;
   }
+  slot.home_page = slot.loop_page;
   slot.page_count = static_cast<std::uint8_t>(page_count);
   page_count_ += page_count;
   ++count_;
@@ -80,6 +86,7 @@ bool Controller::start() {
   for (std::size_t index = 0; index < count_; ++index) {
     lv_obj_add_flag(slots_[index].container, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(slots_[index].container, on_click, LV_EVENT_CLICKED, this);
+    watches_telemetry = watches_telemetry || slots_[index].home_after_ms != 0;
   }
   for (std::size_t index = 0; index < page_count_; ++index) {
     watches_telemetry = watches_telemetry || pages_[index].read != nullptr;
@@ -116,6 +123,7 @@ void Controller::wake() { refresh(false); }
 void Controller::evaluate(lv_timer_t* const timer) {
   auto* const controller = static_cast<Controller*>(lv_timer_get_user_data(timer));
   if (controller != nullptr) {
+    controller->return_home();
     controller->refresh(true);
   }
 }
@@ -132,6 +140,7 @@ void Controller::on_click(lv_event_t* const event) {
   }
   for (std::size_t index = 0; index < controller->count_; ++index) {
     if (controller->slots_[index].container == target) {
+      controller->slots_[index].touched = lv_tick_get();
       controller->advance(index);
       controller->refresh(false);
       return;
@@ -182,6 +191,10 @@ bool Controller::raised(Page& page) {
     page.has_last = false;
   }
 
+  if (page.dismissed && dismissal_holds(page, fires)) {
+    page.event_active = false;
+    return false;
+  }
   if (fires) {
     page.event_active = true;
     page.started = lv_tick_get();
@@ -203,6 +216,9 @@ std::uint8_t Controller::selection(const Slot& slot) {
     if (raised(pages_[index]) && event == kNoPage) {
       event = index;
     }
+  }
+  if (slot.held_page != kNoPage) {
+    return slot.held_page;
   }
   return event != kNoPage ? event : slot.loop_page;
 }

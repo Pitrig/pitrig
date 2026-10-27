@@ -110,6 +110,10 @@
       "livePreviewFailedError": "Live preview failed: {error}",
       "theBoardIsNotFollowing": "The board is not following the draft. {liveApplyBlockedReason}"
     },
+    "schemaBanner": {
+      "updateTheBoardFirmware": "Update the board's firmware",
+      "explanation": "Its firmware reads configuration schema {schema} and this configurator writes schema {expected}, so its configuration can be read here but not saved to it. Update board on the Firmware page installs the new firmware and puts the board's configuration back."
+    },
     "safeModeBanner": {
       "boardIsInSafeMode": "Board is in safe mode",
       "theLastOnePhase": ", the last one {phase}",
@@ -142,7 +146,7 @@
       "deviceScanWasCancelled": "Device scan was cancelled."
     },
     "deviceErrors": {
-      "theSerialPortIsBusy": "The serial port is busy. Close SimHub, a serial monitor, or the other Pitrig app.",
+      "theSerialPortIsBusy": "The serial port is busy. Close the program that uses it: a SimHub Custom Serial device, a serial monitor, or the other Pitrig app.",
       "permissionToOpenTheSerial": "Permission to open the serial port was denied.",
       "theSerialPortIsNo": "The serial port is no longer available."
     },
@@ -206,7 +210,8 @@
         "unknown_property": "The configuration contains a property this firmware version does not know.",
         "duplicate_property": "The same property appears twice within one object.",
         "out_of_range": "A value in the configuration is outside the range, longer than the text, or holds more entries than the property can hold.",
-        "unknown_value": "A value in the configuration names none of the options the property accepts."
+        "unknown_value": "A value in the configuration names none of the options the property accepts.",
+        "invalid_control": "A button action, the switch, a control rule or the home screen names a screen, slot or page the dashboard does not have, or carries a target its action does not use."
       },
       "request": {
         "storage": "The device could not write to its configuration storage.",
@@ -257,6 +262,7 @@
       "writeTheDashboardToThe": "Write the dashboard to the board (fonts install with it)"
     },
     "draftState": {
+      "theBoardFirmwareReadsSchema": "The board's firmware reads configuration schema {schema} and this configurator writes {expected}. Update its firmware on the Firmware page first.",
       "connectAPitrigBoardTo": "Connect a Pitrig board to mirror the draft on it.",
       "theBoardIsInSafe": "The board is in safe mode. It draws nothing until it is repaired and restarted.",
       "theDraftIsNotValid": "The draft is not valid, so the board keeps what it runs. {error}",
@@ -563,7 +569,9 @@
         "pages": "A tap on the board cycles the pages that are in the loop. Page order is priority: when two are triggered at once the device shows the earlier one.",
         "loop": "Whether a tap on the slot can reach this page. A page out of the loop is only ever raised by its trigger.",
         "trigger": "What raises this page over the loop on its own. Without one the page is reached only by tapping the slot.",
-        "duration": "How long the page stays up. A value-changed trigger needs one; with rules, zero shows the page only while a rule holds."
+        "duration": "How long the page stays up. A value-changed trigger needs one; with rules, zero shows the page only while a rule holds.",
+        "homeAfter": "How long without a tap or a button working on this slot before it goes back to its first page in the loop. 0 never does.",
+        "dismiss": "How long this page stays away once a button dismisses it: until its trigger fires anew (next_event), for a set time (timed), or until the session starts again (session)."
       },
       "dashboard": {
         "transition": "How the board swaps one screen for another, whether a swipe or a tap asked for it. slide is the sliding animation; none replaces the screen in a single frame. The slide draws both screens for every one of its frames, so a screen full of widgets is where it is felt — set this to none if swiping stutters.",
@@ -827,6 +835,11 @@
     "valueColorList": {
       "positionColour": "{position} colour",
       "removeNounPosition": "Remove {noun} {position}"
+    },
+    "slotControls": {
+      "firstPageAfter": "First page after",
+      "dismissedUntil": "Dismissed until",
+      "dismissedFor": "Dismissed for"
     }
   },
   "modules": {
@@ -849,37 +862,40 @@
         "name": "What layers name this picture by. Renaming it follows through to every layer that draws it. Two pictures on one panel may not share a name.",
         "size": "Columns and rows of the picture itself, which need not match the panel: a smaller picture is drawn centred on whatever the layer paints on. The bigger it is the fewer frames fit, because each picture has a 1024-digit budget of its own.",
         "palette": "Colours this picture is drawn from, at most fifteen of them. Pick one to paint with, or Clear to leave a pixel unpainted so the layers below stay visible — that is a digit past the end of the palette rather than a colour, which is why the last one is kept free. Entry 1 is the unlit lamp by convention rather than by rule: it paints black over whatever is under it.",
+        "stripSize": "Lamps one frame of this animation spans. A layer plays it from the first lamp it covers, in its own direction, so the same drawing serves both ends of a wheel. The longer the row, the fewer frames fit, because each picture has a 1024-digit budget of its own.",
         "frames": "Frames of the animation, played in order by a layer with Play frames switched on. How many fit follows the size: sixteen of eight by eight, four of sixteen by sixteen. Duplicate a frame to draw the next one from it.",
         "mirror": "Plays this picture on the connected board while you draw, on its own, the way a layer previews. Needs a connected board that is following the draft; the panel goes back to the whole configuration when this is switched off."
       },
       "effect": {
         "stack": "Every layer whose gate holds paints at once. Where two of them cover the same lamp, the one that lit most recently wins it — so a flag comes up over shift lights whichever way round the two are listed — and layers that came up together keep the order they are in here. This is the opposite of a widget’s styling rules, where the first match wins: a widget resolves one appearance, while an output composes a picture out of many things being true at once.",
-        "type": "What this layer paints. steps is the shift-light idiom: thresholds shared out over the lamps it covers. gauge fills in proportion to the value. gradient spreads a colour ramp across the lamps. animation moves on its own timebase. sprite and text draw on a matrix.",
-        "area": "Which run of this device’s lamps the layer paints. Lamps are numbered from 1 here, while the saved document counts them from zero. A count of 0 covers the rest of the device.",
+        "type": "What this layer paints. steps is the shift-light idiom: thresholds shared out over the lamps it covers. gauge fills in proportion to the value. gradient spreads a colour ramp across the lamps. animation moves on its own timebase. sprite plays a picture, a grid on a matrix or a row of lamps on a strip, and text draws on a matrix.",
         "panel": "Which pixels of the panel this layer paints on. Click one to turn it off or on, or drag across several; All and Invert do the whole grid at once. Every pixel is the default and costs the document nothing. The layer works over the smallest box holding what you picked, so text and a picture still centre on the shape rather than on the panel.",
-        "sprite": "Which of the panel’s pictures this layer draws. Pictures are drawn on the Pictures tab, and a profile brings its own — the flags carry their artwork with them; a layer whose picture the panel does not carry is a composition error rather than a blank panel.",
+        "sprite": "Which of the device’s pictures this layer draws. Pictures are drawn on the Pictures tab, and a profile brings its own — the flags carry their artwork with them; a layer whose picture the panel does not carry is a composition error rather than a blank panel.",
         "loop": "Walks the picture’s frames on this layer’s own clock, one every Frame holds interval, which is how artwork moves without telemetry driving it. Left off, the layer holds the one frame named below.",
         "gate": "When this layer paints at all. always paints on every frame; conditions paints while a rule over its own watched value holds; telemetry idle paints only after two seconds of silence, which is what an idle animation and a lost-link warning both want.",
         "hold": "Keeps the layer painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash.",
-        "background": "Fills every lamp this layer covers before it draws, so a glyph or a picture sits on a ground of its own rather than on whatever the layers below left. Off paints no ground, which is what a layer over shift lights wants.",
+        "background": "Fills this layer’s lamps before it draws and keeps them filled while it blinks, so the layers below never show through it. Black hides them; another colour becomes the ground the layer draws on. Off lets the layers below show wherever this layer draws nothing — between blinks, between the dots of an animation, on the steps not yet lit.",
         "ruleTiming": "Blink is the period the whole layer flashes at while this rule holds, so one band of a value can flash without a second layer over it; it takes over from the layer’s own blink. Hold keeps the rule applied for that long after it stops matching, so a momentary trigger still leaves a visible flash of colour.",
         "colors": "Colours this layer takes while the watched value matches, the first matching rule winning — a gear that turns amber and then red as the revs climb. They describe rather than select: the gate says whether the layer paints at all, these say what colour it paints in. On a picture the colour repaints every lit pixel, so one drawing serves every state — the pixels it paints black stay black.",
-        "blink": "Full blink period of everything this layer paints. 0 paints steady.",
+        "blink": "Full blink period of what this layer draws. 0 paints steady. Between flashes the layers below show through, unless Covers is ticked.",
+        "lamps": "Which lamps this layer covers, numbered from 1 as they are wired. Separate runs with commas; a run written high to low, such as 30-27, runs backwards, and the order you write them in is the order a fill takes. Click lamps on the map to add or remove them, or drag across a run.",
+        "spread": "As one line lays the parts end to end, so a fill runs from one into the next. Each part on its own paints the whole effect in every part at once, so the flags at both ends of a wheel flash as one.",
+        "hysteresis": "Once the gate holds, the watched value has to fall this far back past a rule's threshold before the layer lets go, so revs hovering on a shift point cannot switch it on and off every frame. 0 lets go at once.",
+        "span": "How many lamps the motion spans: the comet's tail, the gap of a theater chase, the bouncing block, the sparkles of one pass.",
+        "scaled": "Maps the bound value through Minimum and Maximum onto the picture's frames, the first frame at the minimum and the last at the maximum, so a picture drawn as a sequence follows the revs. Off, the value is the frame number itself.",
         "shape": "Which way the layer fills the lamps it covers. Along the run starts at the first lamp; backwards starts at the last. Out from the middle paints both ways at once from the centre, which is what a centred rev bar wants; in from the ends does the opposite, closing on the centre."
       }
     },
     "effectEditor": {
       "paints": "Paints",
-      "area": "Area",
-      "firstLampOfThisDevice": "First lamp of this device, counted from 1",
-      "lampsCovered0CoversThe": "Lamps covered; 0 covers the rest",
       "from": "From",
-      "count": "Count",
       "colour": "Colour",
       "picture": "Picture",
       "playFrames": "Play frames",
       "frameHolds": "Frame holds",
       "frame": "Frame",
+      "framesFollowTheRange": "Frames follow the range",
+      "span": "Span",
       "whichFrameToHoldStill": "Which frame to hold still. With telemetry bound the value picks it instead.",
       "text": "Text",
       "drawnAsAuthoredWithA": "Drawn in the built-in face, which carries only the digits, N and R — other characters stay dark. With a source bound this becomes the prefix and the source supplies the rest.",
@@ -899,11 +915,68 @@
       "previewIndex": "Preview {index}",
       "moveLayerNumberDownThe": "Move layer {number} down the stack",
       "moveLayerNumberUpThe": "Move layer {number} up the stack",
-      "removeLayerNumber": "Remove layer {number}"
+      "removeLayerNumber": "Remove layer {number}",
+      "ctrlClickOrShiftClick": "Ctrl-click or Shift-click picks several layers to change together.",
+      "pickAll": "Pick all",
+      "groupsDifferOnlyInLamps": "{count} groups of layers differ only in their lamps, so one layer each would do the same.",
+      "merge": "Merge",
+      "mergesNames": "Merges the copies of {names} into one layer each, every part painting on its own as before",
+      "picksEveryLayerInThis": "Picks every layer in this group, to change them together"
+    },
+    "effectRow": {
+      "lampsOfName": "{name}: lamps {lamps}. Click to edit it; Ctrl-click or Shift-click picks several.",
+      "duplicateName": "Duplicate {name}"
+    },
+    "layerGroups": {
+      "whenTelemetryStops": "When telemetry stops",
+      "alwaysOn": "Always on"
+    },
+    "layerWarnings": {
+      "coversNoLamps": "Covers no lamps: its first lamp is past the end of the strip.",
+      "sameAsLayer": "Same as {name}, so one of the two does nothing.",
+      "alwaysHiddenUnder": "Never seen: {name} always paints over every lamp it covers.",
+      "showsThroughBetweenFlashes": "Between flashes {names} show through. Ticking Covers keeps them dark."
+    },
+    "multiEffectEditor": {
+      "countLayers": "{count} layers",
+      "labelMixed": "{label} (mixed)",
+      "whatYouChangeHere": "What you change here is written to every picked layer. A field marked mixed differs between them and shows the first layer’s value.",
+      "duplicateCount": "Duplicate {count}",
+      "removeCount": "Remove {count}"
+    },
+    "simulator": {
+      "drivenBy": "Driven by",
+      "simHub": "SimHub",
+      "simulator": "Simulator",
+      "theLampsFollowTheGame": "The lamps follow the game, as the board does.",
+      "simHubIsSendingTelemetry": "SimHub is sending telemetry, but these values drive the preview instead.",
+      "noTelemetryFromSimHub": "No telemetry from SimHub, so these values drive the preview.",
+      "simHubSendsNoValues": "SimHub sends no values until a game or a replay runs, so these values drive the preview.",
+      "simHubSendsNoValuesDark": "SimHub sends no values until a game or a replay runs, so the lamps stay dark.",
+      "startAGameOrA": "Start a game or a replay in SimHub to follow it here",
+      "reset": "Reset",
+      "resetEveryValue": "Puts every value back where it started",
+      "showOnTheBoard": "Show on the board",
+      "feedsTheseValuesToTheBoard": "Sends these values to the connected board instead of SimHub's, so its lamps and screen show them too. Switching it off clears them and lets SimHub's values through again.",
+      "connectABoardToDrive": "Connect a board to drive its lamps from here",
+      "theBoardFollowsTheseValues": "The board follows these values, not SimHub's, while this page is open.",
+      "sweep": "Sweep",
+      "stopSweeping": "Stop sweeping",
+      "sweepsTheValueUpAnd": "Sweeps the value up and down on its own",
+      "telemetryLost": "Telemetry lost",
+      "layersGatedOnTelemetryIdle": "Lights the layers that wait for telemetry to stop, such as a lost-link warning",
+      "noLayerReadsTelemetry": "No layer reads telemetry, so there is nothing to simulate."
     },
     "ledPreview": {
       "preview": "Preview",
-      "darkUntilALayerOr": "Dark until a layer or a picture is played. Press the preview button on one to watch it here.",
+      "everyLampAsTheBoard": "Every lamp numbered and placed as it is mounted, lit the way the board lights it: from SimHub while it sends telemetry, from the simulator below otherwise. A layer’s play button shows it on its own.",
+      "dragAcrossLampsToSet": "Click lamps to add them to {name} or take them away, or drag across a run. Alt-click picks the layer on top.",
+      "clickALampToPick": "Click a lamp to pick the layer on top of it.",
+      "clickLampsForTheNewLayer": "Click lamps to choose where the new layer goes, or drag across a run; the first click starts afresh. Alt-click picks the layer on top.",
+      "clickPixelsToShowName": "Click pixels to show {name} on them or take it off, or drag across several. Alt-click picks the layer on top.",
+      "lampNumberNoLayer": "Lamp {number}: no layer covers it.",
+      "lampNumberLayers": "Lamp {number}: {names}. None of them is lit now.",
+      "lampNumberLayersOnTop": "Lamp {number}: {names}. On top now: {top}.",
       "nameOnItsOwnOver": "{name} on its own, over and over.{note} Press its button again to stop.",
       "namesTogetherOverAndOver": "{names} together, over and over. Where they share a lamp the one played last wins, the way the board resolves it.",
       "pictureSprite": "Picture {sprite}"
@@ -919,6 +992,8 @@
       "pickALayerToEdit": "Pick a layer to edit what it paints.",
       "pictures": "Pictures",
       "artworkThisPanelDrawsDrawn": "Artwork this panel draws, drawn here and carried inside the modules document.",
+      "animations": "Animations",
+      "animationsThisStripPlays": "Animations this strip plays, drawn here lamp by lamp and frame by frame and carried inside the modules document. A sprite layer plays one on the lamps it covers.",
       "pickAPictureToDraw": "Pick a picture to draw it, or make a new one.",
       "lEDs": "LEDs",
       "matrix": "Matrix",
@@ -931,7 +1006,8 @@
       "noMatrices": "No matrices",
       "noStrips": "No strips",
       "pinNumber": "pin {pin}",
-      "removeDeviceNumber": "Remove device {number}"
+      "removeDeviceNumber": "Remove device {number}",
+      "buttons": "Buttons"
     },
     "noConfiguration": {
       "peripheralsLiveInTheSame": "Peripherals live in the same draft the dashboard uses, so this needs no board plugged in.",
@@ -960,6 +1036,17 @@
       "currentEstimate": "{lamps} lamps could draw about {peak} mA at full white and this brightness.",
       "pinPinLampsLamps": "pin {pin} · {lamps} lamps"
     },
+    "lampsField": {
+      "lamps": "Lamps",
+      "writeLampsLike": "Write lamps like 3-6, 30-27: from 1 to {lamps}, at most {parts} parts.",
+      "clickToRunThisPart": "Click to run this part the other way",
+      "wholeStrip": "Whole strip",
+      "mirror": "Mirror to the other side",
+      "addsTheMirrorImage": "Adds the same lamps on the other side of the strip, running the other way",
+      "spread": "Spread",
+      "asOneLine": "As one line",
+      "eachPartOnItsOwn": "Each part on its own"
+    },
     "panelArea": {
       "showsOn": "Shows on",
       "all": "All",
@@ -975,10 +1062,7 @@
       "closeTheLayerPicker": "Close the layer picker",
       "customLayer": "Custom layer",
       "aBlankLayerWithEvery": "A blank layer with every control open.",
-      "firstLampOfTheProfile": "First lamp of the profile",
-      "to": "to",
-      "lastLampOfTheProfile": "Last lamp of the profile",
-      "theCoveredLampsGlowIn": "The covered lamps glow in the preview above.",
+      "theCoveredLampsGlowIn": "Click lamps in the preview above to choose where the new layer goes, or drag across a run; the first click starts afresh. Written as text, several runs such as 3-6, 27-30 put it on each of them at once.",
       "addToThisDevice": "Add to this device",
       "whatShouldTheNewLayer": "What should the new layer do?",
       "runNumberRange": "Run {number} · {from}–{to}"
@@ -996,6 +1080,10 @@
     },
     "spriteEditor": {
       "fitPanel": "Fit panel",
+      "fitStrip": "Fit strip",
+      "matchesTheStripLamps": "Matches the strip, {lamps} lamps",
+      "showOnStrip": "Show on strip",
+      "showingOnStrip": "Showing on strip",
       "paintsEveryPixelOfThis": "Paints every pixel of this frame with the chosen ink",
       "clearsThisFrameLeavingThe": "Clears this frame, leaving the layers below it visible",
       "valueMs": "{value} ms",
@@ -1011,6 +1099,9 @@
       "ghostPreviousFrame": "Ghost previous frame",
       "fillFrame": "Fill frame",
       "clearFrame": "Clear frame"
+    },
+    "stripTimeline": {
+      "frameLamp": "Frame {frame}, lamp {lamp}"
     },
     "spriteFrames": {
       "frames": "Frames",
@@ -1077,7 +1168,12 @@
       "gate": "Gate",
       "addRule": "Add rule",
       "hold": "Hold",
-      "blink": "Blink"
+      "blink": "Blink",
+      "switchOffMargin": "Switch-off margin",
+      "coversLayersBelow": "Covers",
+      "noTheyShowThrough": "No — the layers below show through",
+      "betweenFlashesNamesShowThrough": "Between flashes {names} show through.",
+      "coverThem": "Cover them"
     },
     "effectPayload": {
       "thresholds": "Thresholds",
@@ -1102,7 +1198,7 @@
     },
     "profiles": {
       "shiftLights": "Shift lights",
-      "oneStepPerLampFrom": "Up to sixteen steps across the lamps from 80% to 98% of the current gear's shift point, green through yellow to pink, then the whole run flashes red at the shift point.",
+      "oneStepPerLampFrom": "Up to sixteen steps across the lamps, filled by the car's own shift points in the current gear — from the game where it tells, otherwise from SimHub's car settings — green through yellow to pink, then the whole run flashes red when it is time to shift.",
       "gear": "Gear",
       "theSelectedGearDrawnIn": "The selected gear, drawn in the largest built-in face the panel can hold, turning amber and then red as the revs near the current gear's shift point. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.",
       "aBS": "ABS",
@@ -1272,7 +1368,6 @@
     "reset": "Reset",
     "open": "Open",
     "delete": "Delete",
-    "install": "Install",
     "none": "None",
     "listAndMore": "{shown} and {rest} more",
     "add": "Add",
@@ -1290,7 +1385,6 @@
       "running": "Running",
       "installsInto": "Installs into",
       "thisImageHasNotBeen": "This image has not been confirmed yet. A restart now returns the board to the previous firmware.",
-      "restartTheBoardToRun": "Restart the board to run the firmware already installed.",
       "image": "Image",
       "aPackagedPitrigFirmwareImage": "A packaged Pitrig firmware image, named for the board it was built for.",
       "noImageSelected": "No image selected.",
@@ -1300,9 +1394,39 @@
       "noSecondSlot": "No second slot",
       "sizeBytes": "{size} bytes",
       "percent": " ({percent}%)",
-      "installing": "Installing…",
       "theConnectedFirmwarePredatesThe": "The connected firmware predates the two-slot partition layout, so it cannot replace itself over serial. Flash it once over USB with idf.py, and every update after that can come this way.",
-      "connectABoardWithTwo": "Connect a board with two firmware slots."
+      "connectABoardWithTwo": "Connect a board with two firmware slots.",
+      "anImageIsWaiting": "An image is installed and waits for a restart. Restarting into it keeps the board's configuration the same way an update does.",
+      "updateBoard": "Update board",
+      "updating": "Updating…",
+      "restartIntoTheInstalledImage": "Restart into the installed image",
+      "updateKeepsTheConfiguration": "The update keeps a copy of the board's configuration in the library, installs the image, restarts the board and puts the configuration back. A draft you have not saved stays a draft."
+    },
+    "boardUpdate": {
+      "alreadyRunning": "A board update is already running.",
+      "readingTheBoard": "Reading what the board holds…",
+      "keepingACopy": "Keeping a copy of the board's configuration in the library…",
+      "backupName": "Before update · {date} · firmware {version}",
+      "backupFailed": "The board was not touched: its configuration could not be copied to the library. {reason}",
+      "restarting": "Restarting the board…",
+      "didNotComeBack": "The board did not come back after restarting. Reconnect it, then open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "rolledBack": "The new firmware did not start, so the board went back to {version}. Its configuration is untouched.",
+      "puttingBack": "Putting back the {documents} configuration…",
+      "checking": "Checking what the board holds…",
+      "cancelled": "Update cancelled. The board was not changed.",
+      "updatedNothingStored": "The board runs {version}. It held no saved configuration, so there was nothing to put back.",
+      "updatedAndRestored": "The board runs {version} with its configuration put back. A copy stays in the library as “{backup}”.",
+      "updatedUnchanged": "The board runs {version} and kept its configuration. A copy stays in the library as “{backup}”.",
+      "restoreFailed": "The board runs {version}, but its configuration could not be put back: {reason} Open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "notVerified": "The board runs {version}, but what it holds differs from the copy. Open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "restoredNotShown": "The board runs {version} and holds its configuration again, but shows it only after the next restart. A copy stays in the library as “{backup}”.",
+      "step": {
+        "backup": "Copy",
+        "install": "Install",
+        "restart": "Restart",
+        "restore": "Restore",
+        "verify": "Check"
+      }
     },
     "firmwareUpdateService": {
       "readingName": "Reading {name}",
@@ -1333,6 +1457,75 @@
       "filter": "Pitrig firmware"
     }
   },
+  "updates": {
+    "releaseFeed": {
+      "downloadFailed": "Could not download {name}: GitHub answered {status}.",
+      "downloadDamaged": "{name} arrived damaged. Try again.",
+      "githubAnswered": "GitHub answered {status} to the update check."
+    },
+    "banner": {
+      "appReady": "Pitrig {version} has been downloaded and installs when the configurator restarts.",
+      "restartAndUpdate": "Restart and update",
+      "appAvailable": "Pitrig {version} is available.",
+      "download": "Download",
+      "firmwareAvailable": "Firmware {version} is available for this board, which runs {running}.",
+      "openFirmware": "Open Firmware page",
+      "pluginStale": "The Pitrig plugin in SimHub is {installed}; this version of Pitrig brings {bundled}.",
+      "pluginMissing": "SimHub does not have the Pitrig plugin yet.",
+      "updatePlugin": "Update plugin",
+      "addPlugin": "Add plugin",
+      "simhubOld": "SimHub {version} is older than {minimum}, the oldest version the Pitrig plugin has been checked with.",
+      "getSimHub": "Get SimHub",
+      "later": "Later"
+    },
+    "section": {
+      "title": "Updates",
+      "description": "Checked when the configurator starts and once a day against the published Pitrig releases on GitHub.",
+      "disabled": "This is a development build, so it does not check for updates.",
+      "checking": "Checking…",
+      "checkNow": "Check now",
+      "configurator": "Configurator",
+      "boardFirmware": "Board firmware",
+      "simhub": "SimHub",
+      "plugin": "Pitrig plugin in SimHub",
+      "lastChecked": "Last checked {time}."
+    },
+    "app": {
+      "notChecked": "{current}, not checked yet",
+      "checking": "{current}, checking…",
+      "current": "{current}, up to date",
+      "available": "{current}; {latest} is available",
+      "downloading": "{current}; downloading {latest} ({progress}%)",
+      "ready": "{current}; {latest} installs on restart",
+      "failed": "{current}; the check failed: {error}",
+      "noWindowsUpdate": "the newest release carries no Windows update yet"
+    },
+    "firmware": {
+      "notInRelease": "The Pitrig {version} release has no {name}.",
+      "nothingNewer": "This board already runs the firmware that comes with this version of Pitrig.",
+      "alreadyDownloading": "The firmware is already downloading.",
+      "released": "This version of Pitrig brings firmware {version}",
+      "behind": "The board runs {running}; {version} is available",
+      "current": "The board runs {running}, up to date",
+      "downloading": "Downloading the firmware… {progress}%",
+      "offer": "Firmware {version} for this board comes with this version of Pitrig.",
+      "downloadAndUpdate": "Download and update"
+    },
+    "simhub": {
+      "noSimHubFound": "SimHub was not found on this PC.",
+      "stillRunning": "SimHub is still running. Close it, including its icon in the system tray, and try again.",
+      "copyFailed": "The plugin could not be copied into {directory}. Close SimHub and copy Pitrig.SimHub.dll there by hand.",
+      "copyFailedPlain": "The plugin could not be added to SimHub.",
+      "invalidRequest": "Invalid plugin request.",
+      "closeToReplace": "SimHub is running. Close it now so the Pitrig plugin can be replaced? SimHub starts again afterwards.",
+      "pluginInstalled": "The Pitrig plugin in SimHub is up to date.",
+      "unknownVersion": "Version unknown",
+      "versionTooOld": "{version}, older than {minimum}",
+      "pluginMissing": "Not installed",
+      "pluginStale": "{installed}; {bundled} is ready to install",
+      "noBundledPlugin": "This build of the configurator carries no SimHub plugin."
+    }
+  },
   "protocol": {
     "catalogSection": {
       "telemetryCatalog": "Telemetry catalog",
@@ -1347,7 +1540,9 @@
       "simHubProperty": "SimHub property",
       "lengthOfLength2FieldsA": "{length} of {length2} fields. A widget binds one of these names; the wire id is what actually travels.",
       "value": "Value",
-      "live": "Live"
+      "live": "Live",
+      "games": "Games",
+      "anyGame": "any"
     },
     "protocolPage": {
       "whereTelemetryComesFromHow": "Where telemetry comes from, how it reaches the board, and what the fields are called.",
@@ -1355,7 +1550,49 @@
       "whatProducesTheValuesThe": "What produces the values the dashboard draws.",
       "simHub": "SimHub",
       "inUse": "In use",
-      "aCustomSerialDeviceProfile": "A Custom Serial Device profile on the PC writes one line per field over the same link this configurator uses. It is the source the packaged configurator uses; a second one would be chosen here."
+      "aCustomSerialDeviceProfile": "The Pitrig plugin in SimHub finds the board by itself and sends it one line per field over the link this configurator uses. A Custom Serial Device profile still works without the plugin and is exported below."
+    },
+    "bridgeSection": {
+      "title": "SimHub plugin",
+      "description": "The Pitrig plugin in SimHub feeds the board by itself. While this configurator is connected to a board the plugin hands it over and its telemetry passes through here on the way, so the dashboard, the lamps and the catalog below show it as it arrives.",
+      "pluginVersion": "Plugin {version}",
+      "pluginMissing": "No plugin",
+      "pluginHint": "No Pitrig plugin answers on this PC. The Windows installer of this configurator adds it to SimHub; restart SimHub afterwards and enable Pitrig telemetry when it asks.",
+      "boardsTitle": "Boards the plugin feeds",
+      "noBoards": "None right now.",
+      "portBusy": "{path} is used by another program, perhaps a SimHub Custom Serial device. Remove that device from SimHub so the plugin can feed the board.",
+      "receiving": "Receiving",
+      "waiting": "Waiting for the plugin",
+      "relaying": "Forwarding to the board",
+      "previewOnly": "No board connected — preview only",
+      "suspended": "Held back while the board is busy",
+      "connection": "Connection",
+      "simhubHost": "SimHub machine",
+      "simhubPort": "Plugin port",
+      "listenPort": "Listen on port",
+      "simhubHostHint": "A loopback address keeps everything on this PC. Any other address reaches a plugin over the local network for a preview only: a board is handed over only by a plugin on this PC.",
+      "apply": "Apply",
+      "applying": "Applying…",
+      "asking": "Asking",
+      "sending": "Sending",
+      "measured": "Measured",
+      "addedLatency": "Added by the bridge",
+      "drainLatency": "Through to the board",
+      "lines": "Lines",
+      "fields": "Fields",
+      "bytes": "Bytes",
+      "packets": "Packets",
+      "lostPackets": "Lost packets",
+      "dropped": "Dropped",
+      "droppedValue": "{bytes} · {errors} write errors",
+      "noSamples": "Nothing measured yet.",
+      "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · max {max} ms",
+      "perSecond": "{value}/s"
+    },
+    "bridgeService": {
+      "theLinkClosed": "The telemetry link closed.",
+      "portTaken": "Port {port} is already taken. Choose another one here and in the plugin.",
+      "invalidRequest": "Invalid telemetry bridge request."
     },
     "simHubProfileSection": {
       "simHubProfile": "SimHub profile",
@@ -1995,7 +2232,8 @@
     "hardware": {
       "labelIsAMatrixWhose": "{label} is a matrix, whose arrangement is its grid rather than a list of runs.",
       "labelArrangesArrangedLampsOver": "{label} arranges {arranged} lamps over its runs, but the strip drives {lamps}.",
-      "labelIsAStripSo": "{label} is a strip, so it has nothing to draw a sprite on.",
+      "ownerIsWiderThanAPanel": "{owner} is wider than a panel can be: a matrix picture is at most {side} across.",
+      "ownerOnAStripIsOneRow": "{owner} is on a strip, so it is one row of lamps tall.",
       "labelCarriesASpriteWith": "{label} carries a sprite with no id.",
       "labelCarriesTwoSpritesNamed": "{label} carries two sprites named {id}.",
       "ownerNamesNoPaletteColours": "{owner} names no palette colours.",
@@ -2045,6 +2283,9 @@
       "labelHasStepNumberBelow": "{label} has step {number} below the one before it; thresholds climb.",
       "colourRuleOfLabelCompares": "Colour rule {number} of {label} compares against something that is not a number.",
       "labelCoversLampsFromTo": "{label} covers lamps {from} to {to} of a device that has {lamps}.",
+      "labelListsStripLamps": "{label} lists strip lamps, but a layer on a panel says where it paints with its pixels.",
+      "partNumberOfLabel": "Part {number} of {label}",
+      "labelSetsANegativeSwitchOff": "{label} sets a negative switch-off margin; it can only be 0 or more.",
       "colourRuleOfLabel": "Colour rule {number} of {label}",
       "ownerPaintsNothingGiveIt": "{owner} paints nothing: give it a colour, a background or a blink."
     },
@@ -2123,7 +2364,8 @@
       "sourceOfLabelHasAModifiers": "Source {number} of {label} has a \"modifiers\" that is not an array.",
       "sourceOfLabelHasLengthModifiers": "Source {number} of {label} has {length} modifiers; the device holds {maximum}.",
       "sourceOfLabelUsesTheLap": "Source {number} of {label} uses the lap timer {lapTimers} times; once is all it means.",
-      "sourceOfLabelUsesTheLap2": "Source {number} of {label} uses the lap timer on \"{binding}\"; it stands in for \"{lapTimer}\"."
+      "sourceOfLabelUsesTheLap2": "Source {number} of {label} uses the lap timer on \"{binding}\"; it stands in for \"{lapTimer}\".",
+      "whereDismissesForATime": "{where} needs dismiss_ms with a timed dismissal, and no dismiss_ms otherwise."
     },
     "widgetValues": {
       "labelSetsAMiddleGradient": "{label} sets a middle gradient colour without an end colour; turn the gradient on first.",
@@ -2156,12 +2398,27 @@
       "theConfigurationCouldNotBe": "The configuration could not be read{detail}.",
       "configurationMustBeAJson": "Configuration must be a JSON object.",
       "configurationMustTargetASupported": "Configuration must target a supported board."
+    },
+    "controls": {
+      "thePcButtons": "The PC buttons",
+      "theDashboardSControls": "The dashboard's controls",
+      "actionNumber": "Action {number}",
+      "screenRuleNumber": "Screen rule {number}",
+      "ownerShowsAScreenThe": "{owner} shows screen \"{screen}\", which the dashboard does not have.",
+      "ownerNamesAScreenIt": "{owner} ({action}) names a screen it does not use.",
+      "ownerNamesASlotIt": "{owner} ({action}) names a slot it does not use.",
+      "ownerWorksOnASlot": "{owner} works on slot \"{slot}\", which the dashboard does not have.",
+      "ownerShowsPageOfA": "{owner} shows page {page}, but slot \"{slot}\" has {pages} pages.",
+      "ownerWatchesALapTimer": "{owner} watches a lap timer, which a screen rule cannot.",
+      "ownerHasNoComparison": "{owner} has no comparison to watch.",
+      "theSwitchTurnsSlotSlot": "The switch turns slot \"{slot}\", which the dashboard does not have.",
+      "theHomeScreenScreenIs": "The home screen \"{screen}\" is not on the dashboard."
     }
   },
   "misc": {
     "workspaceRail": {
       "drawTheDashboardAndThe": "Draw the dashboard, and the fonts, images and templates it is made of",
-      "buttonsEncodersAndLeds": "LED strips and matrices",
+      "buttonsEncodersAndLeds": "Buttons, LED strips and matrices",
       "telemetryLinkAndSimhub": "Telemetry link and SimHub",
       "filesSavedConfigurationsAndJson": "Files, saved configurations and JSON",
       "installAFirmwareImageOver": "Install a firmware image over serial",
@@ -2181,6 +2438,116 @@
     "chooseFile": {
       "fontTitle": "Select a font face",
       "fontFilter": "Fonts"
+    }
+  },
+  "controls": {
+    "document": {
+      "buttonNumber": "Button {number}"
+    },
+    "actions": {
+      "next_screen": "Next screen",
+      "previous_screen": "Previous screen",
+      "show_screen": "Show screen",
+      "hold_screen": "Screen while held",
+      "home_screen": "Home screen",
+      "next_page": "Next page",
+      "previous_page": "Previous page",
+      "show_page": "Show page",
+      "hold_page": "Page while held",
+      "dismiss_page": "Dismiss a raised page",
+      "display_brighter": "Display brighter",
+      "display_dimmer": "Display dimmer",
+      "leds_brighter": "LEDs brighter",
+      "leds_dimmer": "LEDs dimmer",
+      "leds_toggle": "LEDs on or off"
+    },
+    "inputParts": {
+      "assign": "Assign",
+      "pressAButton": "Press a button…",
+      "removeInput": "Remove {input}"
+    },
+    "inputButtonList": {
+      "noButtonsYet": "No buttons yet. Add one, then press the button on your wheel or button box.",
+      "addButton": "Add button",
+      "allButtonsUsed": "All {count} buttons are in use.",
+      "clearButtonNumber": "Clear button {number}",
+      "startSimhubToAssign": "Start SimHub with the Pitrig plugin to assign buttons.",
+      "fourInputsAtMost": "A button takes {count} inputs at most.",
+      "pressAssignThenTheButton": "Press Assign, then the button on your wheel, button box, gamepad or keyboard."
+    },
+    "switchSection": {
+      "addPosition": "Add position",
+      "removePositionNumber": "Remove position {number}",
+      "turnTheSwitchToThe": "Press Add position, then turn the switch to the next position.",
+      "noPositionsYet": "No positions yet. Press Add position and turn the switch, one position at a time.",
+      "turnsThePagesOf": "Turns the pages of",
+      "noSlot": "No slot",
+      "morePositionsThanPages": "The switch has {positions} positions but the slot only {pages} pages; the extra positions do nothing."
+    },
+    "bindingList": {
+      "noActionsYet": "No actions yet. A button does nothing on the board until it has one.",
+      "addAction": "Add action",
+      "button": "Button",
+      "action": "Action",
+      "screen": "Screen",
+      "slot": "Slot",
+      "page": "Page",
+      "pageNumber": "Page {number}",
+      "wrap": "Wrap around",
+      "repeatWhileHeld": "Repeat while held",
+      "removeActionNumber": "Remove action {number}"
+    },
+    "ruleList": {
+      "noRulesYet": "No rules. A rule brings a screen forward while a value holds, such as the pit screen in the pit lane.",
+      "addRule": "Add rule",
+      "show": "Show",
+      "while": "while",
+      "screen": "Screen",
+      "value": "Value",
+      "watch": "Watch",
+      "removeRuleNumber": "Remove rule {number}",
+      "moreConditions": {
+        "$plural": {
+          "one": "and {count} more condition, kept as written",
+          "other": "and {count} more conditions, kept as written"
+        }
+      }
+    },
+    "homeSection": {
+      "homeScreen": "Home screen",
+      "theFirstScreen": "The first screen",
+      "returnAfter": "Return home after",
+      "seconds": "s"
+    },
+    "buttonsView": {
+      "buttons": "Buttons",
+      "buttonsDescription": "Up to 16 buttons on the PC, each with a name and up to four inputs. The wiring is kept with this board and works in every game.",
+      "multiPositionSwitch": "Multi-position switch",
+      "switchDescription": "One input per position. Turning the switch shows the page of the slot below with the same number.",
+      "whatTheButtonsDo": "What the buttons do",
+      "whatTheButtonsDoDescription": "Actions belong to the dashboard, so another dashboard brings its own. One button can do several things.",
+      "screenRules": "Screen rules",
+      "screenRulesDescription": "Bring a screen forward while a value holds. The dashboard goes back when it stops, unless a button moved it meanwhile.",
+      "home": "Home",
+      "homeDescription": "Where the home action and the idle return go, and after how long without a screen change.",
+      "startSimhubWithThePlugin": "SimHub is not answering. Start SimHub with the Pitrig plugin to read your buttons.",
+      "pressTheButtonToAssign": "Press the button to assign, or Esc to cancel.",
+      "pressAnyButton": "Press any button to see it here.",
+      "lastInput": "Last input: {input}, {state}",
+      "down": "pressed",
+      "up": "released"
+    },
+    "hints": {
+      "switchSlot": "The slot whose pages the switch turns: position 1 shows its first page.",
+      "ruleSource": "The telemetry value the rule watches.",
+      "homeScreen": "The screen the home action and the idle return show.",
+      "homeAfter": "How long without a screen change before the dashboard returns home. 0 never does."
+    }
+  },
+  "telemetry": {
+    "gameMarks": {
+      "sentBy": "Sent by {games}; the others keep the placeholder",
+      "noneOfTheGames": "ACC, AC, iRacing and LMU do not send it"
     }
   }
 }

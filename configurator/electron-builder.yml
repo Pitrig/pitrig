@@ -10,6 +10,11 @@ files:
   - package.json
 asarUnpack:
   - '**/*.node'
+publish:
+  provider: github
+  owner: Pitrig
+  repo: pitrig
+  releaseType: release
 mac:
   icon: resources/icon.png
   category: public.app-category.developer-tools
@@ -23,6 +28,11 @@ win:
   icon: resources/icon.png
   target:
     - nsis
+  extraResources:
+    - from: simhub-plugin
+      to: simhub-plugin
+      filter:
+        - Pitrig.SimHub.dll
 linux:
   icon: resources/icon.png
   category: Development
@@ -35,6 +45,7 @@ linux:
 
 nsis:
   artifactName: Pitrig-Setup-${version}.${ext}
+  include: installer/simhub-plugin.nsh
 
 deb:
   packageName: pitrig

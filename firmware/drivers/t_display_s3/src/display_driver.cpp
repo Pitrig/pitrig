@@ -193,6 +193,7 @@ const driver::Driver kDriver{
     .initialize = initialize,
     .release = release,
     .on_display_ready = on_display_ready,
+    .backlight_pin = kBacklightPin,
 };
 
 }

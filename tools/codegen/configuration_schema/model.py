@@ -9,6 +9,23 @@ def root_struct(document: dict[str, Any]) -> str:
     return next(name for name, body in document["structs"].items() if body.get("root"))
 
 
+def device_view(document: dict[str, Any]) -> dict[str, Any]:
+    hosted = {name for name, body in document["structs"].items() if body.get("host_only")}
+    if not hosted:
+        return document
+    structs = {
+        name: {
+            **body,
+            "fields": [
+                field for field in body.get("fields", []) if field.get("struct") not in hosted
+            ],
+        }
+        for name, body in document["structs"].items()
+        if name not in hosted
+    }
+    return {**document, "structs": structs}
+
+
 def document_ids(document: dict[str, Any]) -> list[str]:
     return list(document["documents"])
 

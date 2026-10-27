@@ -63,14 +63,16 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SteeringInput], [DataCorePlugin.GameData.SteeringInput]), '') = '', '04;\\n', '04;' + format(isnull([DataCorePlugin.GameData.NewData.SteeringInput], [DataCorePlugin.GameData.SteeringInput]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.SteerAngle\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.SteerAngle\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mUnfilteredSteering\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '04;\\n'; return '04;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '04;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SteeringWheelAngle], [DataCorePlugin.GameData.SteeringWheelAngle]), '') = '', '05;\\n', '05;' + format(isnull([DataCorePlugin.GameData.NewData.SteeringWheelAngle], [DataCorePlugin.GameData.SteeringWheelAngle]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 57.29577951; })($prop(\"DataCorePlugin.GameRawData.Telemetry.SteeringWheelAngle\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '05;\\n'; return '05;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '05;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
@@ -98,7 +100,7 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], [DataCorePlugin.GameData.CarSettings_CurrentGearRedLineRPM]), '') = '', '07;\\n', if((isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], [DataCorePlugin.GameData.CarSettings_CurrentGearRedLineRPM])) <= 0, '07;\\n', '07;' + format(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], [DataCorePlugin.GameData.CarSettings_CurrentGearRedLineRPM]), '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], ''), '') = '', '07;\\n', if((if([DataCorePlugin.GameRunning], [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], '')) <= 0, '07;\\n', '07;' + format(if([DataCorePlugin.GameRunning], [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -119,7 +121,14 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CarSettings_RPMRedLineReached], [DataCorePlugin.GameData.CarSettings_RPMRedLineReached]), '') = '', '5z;\\n', '5z;' + if(isnull([DataCorePlugin.GameData.NewData.CarSettings_RPMRedLineReached], [DataCorePlugin.GameData.CarSettings_RPMRedLineReached]), '1', '0') + '\\n')"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], 0) <= 0, '', Max(0, Min(100, ([DataCorePlugin.GameData.NewData.Rpms] - 0.85 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) / (0.15 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) * 100))), ''), '') = '', 'SP;\\n', 'SP;' + format(if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM], 0) <= 0, '', Max(0, Min(100, ([DataCorePlugin.GameData.NewData.Rpms] - 0.85 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) / (0.15 * [DataCorePlugin.GameData.NewData.CarSettings_CurrentGearRedLineRPM]) * 100))), ''), '0.#') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], [DataCorePlugin.GameData.NewData.CarSettings_RPMRedLineReached], ''), '') = '', '5z;\\n', '5z;' + if(if([DataCorePlugin.GameRunning], [DataCorePlugin.GameData.NewData.CarSettings_RPMRedLineReached], ''), '1', '0') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
@@ -140,7 +149,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.StarterOn], [DataCorePlugin.GameData.StarterOn]), '') = '', '0b;\\n', '0b;' + if(isnull([DataCorePlugin.GameData.NewData.StarterOn], [DataCorePlugin.GameData.StarterOn]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.starterEngineOn\"); case \"LMU\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"2\": true}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : false; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mIgnitionStarter\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '0b;\\n'; return '0b;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '0b;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
@@ -189,21 +199,24 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EnginePower], [DataCorePlugin.GameData.EnginePower]), '') = '', '0i;\\n', '0i;' + format(isnull([DataCorePlugin.GameData.NewData.EnginePower], [DataCorePlugin.GameData.EnginePower]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '0i;\\n'; return '0i;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '0i;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EngineMap], [DataCorePlugin.GameData.EngineMap]), '') = '', '0j;\\n', if((isnull([DataCorePlugin.GameData.NewData.EngineMap], [DataCorePlugin.GameData.EngineMap])) < 0, '0j;\\n', '0j;' + format(isnull([DataCorePlugin.GameData.NewData.EngineMap], [DataCorePlugin.GameData.EngineMap]), '0') + '\\n'))"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.PlayerNativeTelemetry.mMotorMap\"); default: return (function (value) { return value === null || value === undefined ? $prop(\"DataCorePlugin.GameData.EngineMap\") : value; })($prop(\"DataCorePlugin.GameData.NewData.EngineMap\")); } })(); if (value === null || value === undefined || value === '' || !isFinite(value) || value < 0) return '0j;\\n'; return '0j;' + format(value, '0', false) + '\\n'; } catch (error) { return '0j;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EngineDamage], [DataCorePlugin.GameData.EngineDamage]), '') = '', '0k;\\n', '0k;' + format(isnull([DataCorePlugin.GameData.NewData.EngineDamage], [DataCorePlugin.GameData.EngineDamage]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '0k;\\n'; return '0k;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '0k;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
@@ -224,14 +237,16 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsShifting], [DataCorePlugin.GameData.IsShifting]), '') = '', '0m;\\n', '0m;' + if(isnull([DataCorePlugin.GameData.NewData.IsShifting], [DataCorePlugin.GameData.IsShifting]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '0m;\\n'; return '0m;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '0m;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '') = '', '0n;\\n', '0n;' + format(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '0n;\\n'; return '0n;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '0n;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
@@ -259,35 +274,35 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime]), '') = '', 'L;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime])) * 1000) < 0, 'L;\\n', 'L;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime]), '') = '', 'L;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime])) * 1000) > 4294967295, 'L;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime])) * 1000) < 0, 'L;\\n', 'L;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime]), '') = '', '0r;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime])) * 1000) <= 0, '0r;\\n', '0r;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime]), '') = '', '0r;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime])) * 1000) > 4294967295, '0r;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime])) * 1000) <= 0, '0r;\\n', '0r;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime]), '') = '', 'B;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime])) * 1000) <= 0, 'B;\\n', 'B;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime]), '') = '', 'B;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime])) * 1000) > 4294967295, 'B;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime])) * 1000) <= 0, 'B;\\n', 'B;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], driverbestlap(isnull([DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition], -1) + 1), ''), '') = '', '0s;\\n', if((timespantoseconds(if([DataCorePlugin.GameRunning], driverbestlap(isnull([DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition], -1) + 1), '')) * 1000) <= 0, '0s;\\n', '0s;' + format(timespantoseconds(if([DataCorePlugin.GameRunning], driverbestlap(isnull([DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition], -1) + 1), '')) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], driverbestlap(isnull([DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition], -1) + 1), ''), '') = '', '0s;\\n', if((timespantoseconds(if([DataCorePlugin.GameRunning], driverbestlap(isnull([DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition], -1) + 1), '')) * 1000) > 4294967295, '0s;\\n', if((timespantoseconds(if([DataCorePlugin.GameRunning], driverbestlap(isnull([DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition], -1) + 1), '')) * 1000) <= 0, '0s;\\n', '0s;' + format(timespantoseconds(if([DataCorePlugin.GameRunning], driverbestlap(isnull([DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition], -1) + 1), '')) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AllTimeBest], [DataCorePlugin.GameData.AllTimeBest]), '') = '', '60;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.AllTimeBest], [DataCorePlugin.GameData.AllTimeBest])) * 1000) <= 0, '60;\\n', '60;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.AllTimeBest], [DataCorePlugin.GameData.AllTimeBest])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AllTimeBest], [DataCorePlugin.GameData.AllTimeBest]), '') = '', '60;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.AllTimeBest], [DataCorePlugin.GameData.AllTimeBest])) * 1000) > 4294967295, '60;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.AllTimeBest], [DataCorePlugin.GameData.AllTimeBest])) * 1000) <= 0, '60;\\n', '60;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.AllTimeBest], [DataCorePlugin.GameData.AllTimeBest])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -344,7 +359,7 @@
     },
     {
       "Message": {
-        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; const last = timespantoseconds($prop('DataCorePlugin.GameData.NewData.LastLapTime')); const state = pitrig.state('lap.last_status'); const invalid = $prop('DataCorePlugin.GameData.NewData.LapInvalidated') === true; if (last > 0 && last !== state.last) { state.lastInvalid = state.last !== undefined && state.invalid === true; state.last = last; state.invalid = invalid; } else if (invalid) { state.invalid = true; } if (!(last > 0)) return 0; if (state.lastInvalid) return 4; const classLap = driverbestlap(isnull($prop('DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition'), -1) + 1); const classBest = classLap ? timespantoseconds(classLap) : 0; const best = timespantoseconds($prop('DataCorePlugin.GameData.NewData.BestLapTime')); if (classBest > 0 && last <= classBest) return 3; if (best > 0 && last <= best) return 2; return 1; })(); if (value === null || value === undefined || value === '' || !isFinite(value) || value < 0) return '63;\\n'; return '63;' + format(value, '0', false) + '\\n'; } catch (error) { return '63;\\n'; }",
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; const last = timespantoseconds($prop('DataCorePlugin.GameData.NewData.LastLapTime')); const state = pitrig.state('lap.last_status'); const invalid = $prop('DataCorePlugin.GameData.NewData.LapInvalidated') === true; if (last > 0 && last !== state.last) { state.lastInvalid = state.last !== undefined && state.invalid === true; state.last = last; state.invalid = invalid; } else if (invalid) { state.invalid = true; } if (!(last > 0)) return 0; if (state.lastInvalid) return 4; const classLap = driverbestlap(isnull($prop('DataCorePlugin.GameData.NewData.BestLapOpponentSameClassPosition'), -1) + 1); const classBest = classLap ? timespantoseconds(classLap) : 0; const best = timespantoseconds($prop('DataCorePlugin.GameData.NewData.BestLapTime')); if (classBest > 0 && last <= classBest) return 3; if (!(best > 0) || last <= best) return 2; return 1; })(); if (value === null || value === undefined || value === '' || !isFinite(value) || value < 0) return '63;\\n'; return '63;' + format(value, '0', false) + '\\n'; } catch (error) { return '63;\\n'; }",
         "Interpreter": 1
       },
       "IsEnabled": true,
@@ -380,63 +395,63 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector1Time], [DataCorePlugin.GameData.Sector1Time]), '') = '', '0z;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1Time], [DataCorePlugin.GameData.Sector1Time])) * 1000) <= 0, '0z;\\n', '0z;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1Time], [DataCorePlugin.GameData.Sector1Time])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector1Time], [DataCorePlugin.GameData.Sector1Time]), '') = '', '0z;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1Time], [DataCorePlugin.GameData.Sector1Time])) * 1000) > 4294967295, '0z;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1Time], [DataCorePlugin.GameData.Sector1Time])) * 1000) <= 0, '0z;\\n', '0z;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1Time], [DataCorePlugin.GameData.Sector1Time])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector2Time], [DataCorePlugin.GameData.Sector2Time]), '') = '', '10;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2Time], [DataCorePlugin.GameData.Sector2Time])) * 1000) <= 0, '10;\\n', '10;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2Time], [DataCorePlugin.GameData.Sector2Time])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector2Time], [DataCorePlugin.GameData.Sector2Time]), '') = '', '10;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2Time], [DataCorePlugin.GameData.Sector2Time])) * 1000) > 4294967295, '10;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2Time], [DataCorePlugin.GameData.Sector2Time])) * 1000) <= 0, '10;\\n', '10;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2Time], [DataCorePlugin.GameData.Sector2Time])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector3LastLapTime], [DataCorePlugin.GameData.Sector3LastLapTime]), '') = '', '11;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3LastLapTime], [DataCorePlugin.GameData.Sector3LastLapTime])) * 1000) <= 0, '11;\\n', '11;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3LastLapTime], [DataCorePlugin.GameData.Sector3LastLapTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector3LastLapTime], [DataCorePlugin.GameData.Sector3LastLapTime]), '') = '', '11;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3LastLapTime], [DataCorePlugin.GameData.Sector3LastLapTime])) * 1000) > 4294967295, '11;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3LastLapTime], [DataCorePlugin.GameData.Sector3LastLapTime])) * 1000) <= 0, '11;\\n', '11;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3LastLapTime], [DataCorePlugin.GameData.Sector3LastLapTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector1BestTime], [DataCorePlugin.GameData.Sector1BestTime]), '') = '', '12;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1BestTime], [DataCorePlugin.GameData.Sector1BestTime])) * 1000) <= 0, '12;\\n', '12;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1BestTime], [DataCorePlugin.GameData.Sector1BestTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector1BestTime], [DataCorePlugin.GameData.Sector1BestTime]), '') = '', '12;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1BestTime], [DataCorePlugin.GameData.Sector1BestTime])) * 1000) > 4294967295, '12;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1BestTime], [DataCorePlugin.GameData.Sector1BestTime])) * 1000) <= 0, '12;\\n', '12;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector1BestTime], [DataCorePlugin.GameData.Sector1BestTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector2BestTime], [DataCorePlugin.GameData.Sector2BestTime]), '') = '', '13;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2BestTime], [DataCorePlugin.GameData.Sector2BestTime])) * 1000) <= 0, '13;\\n', '13;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2BestTime], [DataCorePlugin.GameData.Sector2BestTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector2BestTime], [DataCorePlugin.GameData.Sector2BestTime]), '') = '', '13;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2BestTime], [DataCorePlugin.GameData.Sector2BestTime])) * 1000) > 4294967295, '13;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2BestTime], [DataCorePlugin.GameData.Sector2BestTime])) * 1000) <= 0, '13;\\n', '13;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector2BestTime], [DataCorePlugin.GameData.Sector2BestTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector3BestTime], [DataCorePlugin.GameData.Sector3BestTime]), '') = '', '14;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3BestTime], [DataCorePlugin.GameData.Sector3BestTime])) * 1000) <= 0, '14;\\n', '14;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3BestTime], [DataCorePlugin.GameData.Sector3BestTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Sector3BestTime], [DataCorePlugin.GameData.Sector3BestTime]), '') = '', '14;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3BestTime], [DataCorePlugin.GameData.Sector3BestTime])) * 1000) > 4294967295, '14;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3BestTime], [DataCorePlugin.GameData.Sector3BestTime])) * 1000) <= 0, '14;\\n', '14;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.Sector3BestTime], [DataCorePlugin.GameData.Sector3BestTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0), 2, 1)))), ''), '') = '', '64;\\n', if((if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0), 2, 1)))), '')) < 0, '64;\\n', '64;' + format(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0), 2, 1)))), ''), '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0), 2, 1)))), ''), '') = '', '64;\\n', if((if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0), 2, 1)))), '')) < 0, '64;\\n', '64;' + format(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(1)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector1BestTime]), 0), 2, 1)))), ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0), 2, 1)))), ''), '') = '', '65;\\n', if((if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0), 2, 1)))), '')) < 0, '65;\\n', '65;' + format(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0), 2, 1)))), ''), '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0), 2, 1)))), ''), '') = '', '65;\\n', if((if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0), 2, 1)))), '')) < 0, '65;\\n', '65;' + format(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= 0, 0, if(isnull([DataCorePlugin.GameData.NewData.LapInvalidated], false), 4, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(2)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2Time]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector2BestTime]), 0), 2, 1)))), ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= 0, 0, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0), 2, 1))), ''), '') = '', '66;\\n', if((if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= 0, 0, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0), 2, 1))), '')) < 0, '66;\\n', '66;' + format(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= 0, 0, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0), 2, 1))), ''), '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= 0, 0, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0), 2, 1))), ''), '') = '', '66;\\n', if((if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= 0, 0, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0), 2, 1))), '')) < 0, '66;\\n', '66;' + format(if([DataCorePlugin.GameRunning], if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= 0, 0, if(isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0) > 0 and isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds(getbestsplittime_playerclassonly(3)), 0), 3, if(isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0) <= 0 or isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3LastLapTime]), 0) <= isnull(timespantoseconds([DataCorePlugin.GameData.NewData.Sector3BestTime]), 0), 2, 1))), ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -465,14 +480,16 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionName], [DataCorePlugin.GameData.SessionName]), '') = '', '18;\\n', '18;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.SessionName], [DataCorePlugin.GameData.SessionName]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '18;\\n'; return '18;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '18;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionPhase], [DataCorePlugin.GameData.SessionPhase]), '') = '', '19;\\n', '19;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.SessionPhase], [DataCorePlugin.GameData.SessionPhase]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '19;\\n'; return '19;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '19;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -486,7 +503,7 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], driverclassposition(getplayerleaderboardposition()), ''), '') = '', '1b;\\n', if((if([DataCorePlugin.GameRunning], driverclassposition(getplayerleaderboardposition()), '')) <= 0, '1b;\\n', '1b;' + format(if([DataCorePlugin.GameRunning], driverclassposition(getplayerleaderboardposition()), ''), '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.HasMultipleClassOpponents], false) and isnull([DataCorePlugin.GameData.NewData.PlayerClassOpponentsCount], 0) < isnull([DataCorePlugin.GameData.NewData.OpponentsCount], 0), driverclassposition(getplayerleaderboardposition()), [DataCorePlugin.GameData.NewData.Position]), ''), '') = '', '1b;\\n', if((if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.HasMultipleClassOpponents], false) and isnull([DataCorePlugin.GameData.NewData.PlayerClassOpponentsCount], 0) < isnull([DataCorePlugin.GameData.NewData.OpponentsCount], 0), driverclassposition(getplayerleaderboardposition()), [DataCorePlugin.GameData.NewData.Position]), '')) <= 0, '1b;\\n', '1b;' + format(if([DataCorePlugin.GameRunning], if(isnull([DataCorePlugin.GameData.NewData.HasMultipleClassOpponents], false) and isnull([DataCorePlugin.GameData.NewData.PlayerClassOpponentsCount], 0) < isnull([DataCorePlugin.GameData.NewData.OpponentsCount], 0), driverclassposition(getplayerleaderboardposition()), [DataCorePlugin.GameData.NewData.Position]), ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
@@ -507,14 +524,14 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GuessedElaspedGameTime], [DataCorePlugin.GameData.GuessedElaspedGameTime]), '') = '', '1e;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.GuessedElaspedGameTime], [DataCorePlugin.GameData.GuessedElaspedGameTime])) * 1000) < 0, '1e;\\n', '1e;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.GuessedElaspedGameTime], [DataCorePlugin.GameData.GuessedElaspedGameTime])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GuessedElaspedGameTime], [DataCorePlugin.GameData.GuessedElaspedGameTime]), '') = '', '1e;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.GuessedElaspedGameTime], [DataCorePlugin.GameData.GuessedElaspedGameTime])) * 1000) > 4294967295, '1e;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.GuessedElaspedGameTime], [DataCorePlugin.GameData.GuessedElaspedGameTime])) * 1000) < 0, '1e;\\n', '1e;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.GuessedElaspedGameTime], [DataCorePlugin.GameData.GuessedElaspedGameTime])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft]), '') = '', '1f;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft])) * 1000) < 0, '1f;\\n', '1f;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft])) * 1000, '0') + '\\n'))"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft]), '') = '', '1f;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft])) * 1000) > 4294967295, '1f;\\n', if((timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft])) * 1000) < 0, '1f;\\n', '1f;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft])) * 1000, '0') + '\\n')))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
@@ -535,7 +552,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsPlayerFinished], [DataCorePlugin.GameData.IsPlayerFinished]), '') = '', '1i;\\n', '1i;' + if(isnull([DataCorePlugin.GameData.NewData.IsPlayerFinished], [DataCorePlugin.GameData.IsPlayerFinished]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"1\": true}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : false; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayer.mFinishStatus\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '1i;\\n'; return '1i;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '1i;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -606,21 +624,21 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_CurrentLapConsumption], '') = '', '1q;\\n', '1q;' + format([DataCorePlugin.Computed.Fuel_CurrentLapConsumption], '0.###') + '\\n')"
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_CurrentLapConsumption], '') = '', '1q;\\n', if(([DataCorePlugin.Computed.Fuel_CurrentLapConsumption]) < 0, '1q;\\n', '1q;' + format([DataCorePlugin.Computed.Fuel_CurrentLapConsumption], '0.###') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', 'FL;\\n', 'FL;' + format([DataCorePlugin.Computed.Fuel_RemainingLaps], '0.0') + '\\n')"
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', 'FL;\\n', if(([DataCorePlugin.Computed.Fuel_RemainingLaps]) <= 0, 'FL;\\n', 'FL;' + format([DataCorePlugin.Computed.Fuel_RemainingLaps], '0.0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) <= 0 or '' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', '', [DataCorePlugin.Computed.Fuel_RemainingLaps] * if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) * 1000), ''), '') = '', '1r;\\n', if((if([DataCorePlugin.GameRunning], if(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) <= 0 or '' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', '', [DataCorePlugin.Computed.Fuel_RemainingLaps] * if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) * 1000), '')) < 0, '1r;\\n', '1r;' + format(if([DataCorePlugin.GameRunning], if(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) <= 0 or '' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', '', [DataCorePlugin.Computed.Fuel_RemainingLaps] * if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) * 1000), ''), '0') + '\\n'))"
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], if(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) <= 0 or '' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', '', [DataCorePlugin.Computed.Fuel_RemainingLaps] * if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) * 1000), ''), '') = '', '1r;\\n', if((if([DataCorePlugin.GameRunning], if(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) <= 0 or '' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', '', [DataCorePlugin.Computed.Fuel_RemainingLaps] * if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) * 1000), '')) <= 0, '1r;\\n', '1r;' + format(if([DataCorePlugin.GameRunning], if(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) <= 0 or '' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', '', [DataCorePlugin.Computed.Fuel_RemainingLaps] * if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) > 0, timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime])) * 1000), ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
@@ -669,28 +687,40 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ERSPercent], [DataCorePlugin.GameData.ERSPercent]), '') = '', '1w;\\n', '1w;' + format(isnull([DataCorePlugin.GameData.NewData.ERSPercent], [DataCorePlugin.GameData.ERSPercent]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Telemetry.EnergyERSBatteryPct\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.PlayerNativeTelemetry.mSoC\")); default: return (function (value) { return value === null || value === undefined ? $prop(\"DataCorePlugin.GameData.ERSPercent\") : value; })($prop(\"DataCorePlugin.GameData.NewData.ERSPercent\")); } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '1w;\\n'; return '1w;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '1w;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EnergyDeploymentMode], [DataCorePlugin.GameData.EnergyDeploymentMode]), '') = '', '1x;\\n', '1x;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.EnergyDeploymentMode], [DataCorePlugin.GameData.EnergyDeploymentMode]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.PlayerNativeTelemetry.mVirtualEnergy\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return 'VE;\\n'; return 'VE;' + format(value, '0.#', false) + '\\n'; } catch (error) { return 'VE;\\n'; }",
+        "Interpreter": 1
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.ErsPowerLevel\"); case \"IRacing\": return $prop(\"DataCorePlugin.GameRawData.Telemetry.dcMGUKDeployMode\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '1x;\\n'; return '1x;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '1x;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EnergyRecoveryMode], [DataCorePlugin.GameData.EnergyRecoveryMode]), '') = '', '1y;\\n', '1y;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.EnergyRecoveryMode], [DataCorePlugin.GameData.EnergyRecoveryMode]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.ErsRecoveryLevel\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '1y;\\n'; return '1y;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '1y;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BatteryLapsRemaining], [DataCorePlugin.GameData.BatteryLapsRemaining]), '') = '', '1z;\\n', '1z;' + format(isnull([DataCorePlugin.GameData.NewData.BatteryLapsRemaining], [DataCorePlugin.GameData.BatteryLapsRemaining]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '1z;\\n'; return '1z;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '1z;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
@@ -701,6 +731,14 @@
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Graphics.TCCut\"); case \"IRacing\": return $prop(\"DataCorePlugin.GameRawData.Telemetry.dcTractionControl2\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.PlayerNativeTelemetry.mTCCut\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return 'TC;\\n'; return 'TC;' + format(value, '0', false) + '\\n'; } catch (error) { return 'TC;\\n'; }",
+        "Interpreter": 1
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
     },
     {
       "Message": {
@@ -725,7 +763,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.StabilityControlLevel], [DataCorePlugin.GameData.StabilityControlLevel]), '') = '', '22;\\n', '22;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.StabilityControlLevel], [DataCorePlugin.GameData.StabilityControlLevel]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '22;\\n'; return '22;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '22;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
@@ -753,7 +792,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PitRequested], [DataCorePlugin.GameData.PitRequested]), '') = '', '26;\\n', '26;' + if(isnull([DataCorePlugin.GameData.NewData.PitRequested], [DataCorePlugin.GameData.PitRequested]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"1\": true}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : false; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayer.mPitState\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '26;\\n'; return '26;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '26;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -774,7 +814,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PushToPassAvailable], [DataCorePlugin.GameData.PushToPassAvailable]), '') = '', '29;\\n', '29;' + if(isnull([DataCorePlugin.GameData.NewData.PushToPassAvailable], [DataCorePlugin.GameData.PushToPassAvailable]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '29;\\n'; return '29;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '29;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
@@ -788,49 +829,55 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Headlights], [DataCorePlugin.GameData.Headlights]), '') = '', '2b;\\n', '2b;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.Headlights], [DataCorePlugin.GameData.Headlights]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": \"Off\", \"1\": \"On\", \"2\": \"High\"}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Graphics.LightsStage\")); case \"LMU\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": \"Off\", \"1\": \"On\"}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mHeadlights\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '2b;\\n'; return '2b;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '2b;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Wipers], [DataCorePlugin.GameData.Wipers]), '') = '', '2c;\\n', '2c;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.Wipers], [DataCorePlugin.GameData.Wipers]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": \"Off\", \"1\": \"Slow\", \"2\": \"Medium\", \"3\": \"Fast\"}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Graphics.WiperLV\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '2c;\\n'; return '2c;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '2c;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Horn], [DataCorePlugin.GameData.Horn]), '') = '', '2d;\\n', '2d;' + if(isnull([DataCorePlugin.GameData.NewData.Horn], [DataCorePlugin.GameData.Horn]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '2d;\\n'; return '2d;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2d;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SpeedLimiterOn], [DataCorePlugin.GameData.SpeedLimiterOn]), '') = '', '2e;\\n', '2e;' + if(isnull([DataCorePlugin.GameData.NewData.SpeedLimiterOn], [DataCorePlugin.GameData.SpeedLimiterOn]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '2e;\\n'; return '2e;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2e;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AeroDamage], [DataCorePlugin.GameData.AeroDamage]), '') = '', '2f;\\n', '2f;' + format(isnull([DataCorePlugin.GameData.NewData.AeroDamage], [DataCorePlugin.GameData.AeroDamage]), '0.###') + '\\n')"
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CarDamagesMax], [DataCorePlugin.GameData.CarDamagesMax]), '') = '', '2f;\\n', '2f;' + format(isnull([DataCorePlugin.GameData.NewData.CarDamagesMax], [DataCorePlugin.GameData.CarDamagesMax]), '0.###') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamage], [DataCorePlugin.GameData.SuspensionDamage]), '') = '', '2g;\\n', '2g;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamage], [DataCorePlugin.GameData.SuspensionDamage]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '2g;\\n'; return '2g;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '2g;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '') = '', '2h;\\n', '2h;' + format(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '2h;\\n'; return '2h;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '2h;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
@@ -872,7 +919,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_Red], [DataCorePlugin.GameData.Flag_Red]), '') = '', '2n;\\n', '2n;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_Red], [DataCorePlugin.GameData.Flag_Red]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Graphics.globalRed\"); case \"IRacing\": return (function (value) { return value === null || value === undefined ? null : Math.floor(Number(value) / 16) % 2 === 1; })($prop(\"DataCorePlugin.GameRawData.Telemetry.SessionFlags\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '2n;\\n'; return '2n;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2n;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
@@ -893,7 +941,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_BlackWhite], [DataCorePlugin.GameData.Flag_BlackWhite]), '') = '', '2q;\\n', '2q;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_BlackWhite], [DataCorePlugin.GameData.Flag_BlackWhite]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '2q;\\n'; return '2q;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2q;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
@@ -907,49 +956,56 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.LocalYellow], [DataCorePlugin.GameData.LocalYellow]), '') = '', '2s;\\n', '2s;' + if(isnull([DataCorePlugin.GameData.NewData.LocalYellow], [DataCorePlugin.GameData.LocalYellow]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined ? null : Math.floor(Number(value) / 8) % 2 === 1; })($prop(\"DataCorePlugin.GameRawData.Telemetry.SessionFlags\")); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayer.mUnderYellow\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '2s;\\n'; return '2s;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2s;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SafetyCarActive], [DataCorePlugin.GameData.SafetyCarActive]), '') = '', '2t;\\n', '2t;' + if(isnull([DataCorePlugin.GameData.NewData.SafetyCarActive], [DataCorePlugin.GameData.SafetyCarActive]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined ? null : Math.floor(Number(value) / 16384) % 2 === 1; })($prop(\"DataCorePlugin.GameRawData.Telemetry.SessionFlags\")); case \"LMU\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": false, \"-1\": false}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : true; })($prop(\"DataCorePlugin.GameRawData.Data.mYellowFlagState\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '2t;\\n'; return '2t;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2t;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.VirtualSafetyCarActive], [DataCorePlugin.GameData.VirtualSafetyCarActive]), '') = '', '2u;\\n', '2u;' + if(isnull([DataCorePlugin.GameData.NewData.VirtualSafetyCarActive], [DataCorePlugin.GameData.VirtualSafetyCarActive]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '2u;\\n'; return '2u;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2u;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyActive], [DataCorePlugin.GameData.PenaltyActive]), '') = '', '2v;\\n', '2v;' + if(isnull([DataCorePlugin.GameData.NewData.PenaltyActive], [DataCorePlugin.GameData.PenaltyActive]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": false}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : true; })($prop(\"DataCorePlugin.GameRawData.Graphics.Penalty\")); case \"AssettoCorsa\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"6\": true}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : false; })($prop(\"DataCorePlugin.GameRawData.Graphics.Flags\")); case \"IRacing\": return (function (value) { return value === null || value === undefined ? null : Math.floor(Number(value) / 65536) % 2 === 1; })($prop(\"DataCorePlugin.GameRawData.Telemetry.SessionFlags\")); case \"LMU\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": false}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : true; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayer.mNumPenalties\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '2v;\\n'; return '2v;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '2v;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyType], [DataCorePlugin.GameData.PenaltyType]), '') = '', '2w;\\n', '2w;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.PenaltyType], [DataCorePlugin.GameData.PenaltyType]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"1\": \"Drive-through\", \"2\": \"Stop and go 10 s\", \"3\": \"Stop and go 20 s\", \"4\": \"Stop and go 30 s\", \"5\": \"Disqualified\", \"6\": \"Best lap removed\", \"7\": \"Drive-through\", \"8\": \"Stop and go 10 s\", \"9\": \"Stop and go 20 s\", \"10\": \"Stop and go 30 s\", \"11\": \"Disqualified\", \"12\": \"Best lap removed\", \"13\": \"Disqualified\", \"14\": \"Post-race time\", \"15\": \"Disqualified\", \"16\": \"Disqualified\", \"17\": \"Disqualified\", \"18\": \"Disqualified\", \"19\": \"Drive-through\", \"20\": \"Disqualified\", \"21\": \"Disqualified\"}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Graphics.Penalty\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '2w;\\n'; return '2w;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '2w;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyTime], [DataCorePlugin.GameData.PenaltyTime]), '') = '', '2x;\\n', '2x;' + format((isnull([DataCorePlugin.GameData.NewData.PenaltyTime], [DataCorePlugin.GameData.PenaltyTime])) * 1000, '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Graphics.PenaltyTime\")); case \"AssettoCorsa\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Graphics.PenaltyTime\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '2x;\\n'; return '2x;' + format(value, '0', false) + '\\n'; } catch (error) { return '2x;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyMessage], [DataCorePlugin.GameData.PenaltyMessage]), '') = '', '2y;\\n', '2y;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.PenaltyMessage], [DataCorePlugin.GameData.PenaltyMessage]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '2y;\\n'; return '2y;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '2y;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -984,7 +1040,8 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TrackWetness], [DataCorePlugin.GameData.TrackWetness]), '') = '', '33;\\n', '33;' + format(isnull([DataCorePlugin.GameData.NewData.TrackWetness], [DataCorePlugin.GameData.TrackWetness]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": 0, \"1\": 0, \"2\": 0, \"3\": 15, \"4\": 35, \"5\": 70, \"6\": 100}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Graphics.trackGripStatus\")); case \"IRacing\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"1\": 0, \"2\": 10, \"3\": 25, \"4\": 40, \"5\": 60, \"6\": 80, \"7\": 100}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Telemetry.TrackWetness\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Data.mAvgPathWetness\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '33;\\n'; return '33;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '33;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
@@ -998,42 +1055,48 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.RainIntensity], [DataCorePlugin.GameData.RainIntensity]), '') = '', '35;\\n', '35;' + format(isnull([DataCorePlugin.GameData.NewData.RainIntensity], [DataCorePlugin.GameData.RainIntensity]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": 0, \"1\": 10, \"2\": 30, \"3\": 50, \"4\": 75, \"5\": 100}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Graphics.rainIntensity\")); case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Telemetry.Precipitation\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Data.mRaining\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '35;\\n'; return '35;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '35;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WindSpeed], [DataCorePlugin.GameData.WindSpeed]), '') = '', '36;\\n', '36;' + format(isnull([DataCorePlugin.GameData.NewData.WindSpeed], [DataCorePlugin.GameData.WindSpeed]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Graphics.WindSpeed\"); case \"IRacing\": return $prop(\"DataCorePlugin.GameRawData.Telemetry.WindVel\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '36;\\n'; return '36;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '36;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WindDirection], [DataCorePlugin.GameData.WindDirection]), '') = '', '37;\\n', '37;' + format(isnull([DataCorePlugin.GameData.NewData.WindDirection], [DataCorePlugin.GameData.WindDirection]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 57.29577951; })($prop(\"DataCorePlugin.GameRawData.Graphics.WindDirection\")); case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 57.29577951; })($prop(\"DataCorePlugin.GameRawData.Telemetry.WindDir\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '37;\\n'; return '37;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '37;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TimeOfDay], [DataCorePlugin.GameData.TimeOfDay]), '') = '', '38;\\n', '38;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.TimeOfDay], [DataCorePlugin.GameData.TimeOfDay]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined || !isFinite(value) || Number(value) < 0) return null; const minutes = Math.floor(Number(value) / 60); const pad = function (number) { return (number < 10 ? '0' : '') + number; }; return pad(Math.floor(minutes / 60) % 24) + ':' + pad(minutes % 60); })($prop(\"DataCorePlugin.GameRawData.Graphics.clock\")); case \"IRacing\": return (function (value) { if (value === null || value === undefined || !isFinite(value) || Number(value) < 0) return null; const minutes = Math.floor(Number(value) / 60); const pad = function (number) { return (number < 10 ? '0' : '') + number; }; return pad(Math.floor(minutes / 60) % 24) + ':' + pad(minutes % 60); })($prop(\"DataCorePlugin.GameRawData.Telemetry.SessionTimeOfDay\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '38;\\n'; return '38;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '38;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CloudLevel], [DataCorePlugin.GameData.CloudLevel]), '') = '', '39;\\n', '39;' + format(isnull([DataCorePlugin.GameData.NewData.CloudLevel], [DataCorePlugin.GameData.CloudLevel]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": 0, \"1\": 33, \"2\": 67, \"3\": 100}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Telemetry.Skies\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Data.mDarkCloud\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '39;\\n'; return '39;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '39;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WeatherForecast], [DataCorePlugin.GameData.WeatherForecast]), '') = '', '3a;\\n', '3a;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.WeatherForecast], [DataCorePlugin.GameData.WeatherForecast]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { if (value === null || value === undefined) return null; const key = typeof value === 'boolean' ? (value ? '1' : '0') : String(value); const table = {\"0\": \"Dry\", \"1\": \"Drizzle\", \"2\": \"Light rain\", \"3\": \"Medium rain\", \"4\": \"Heavy rain\", \"5\": \"Thunderstorm\"}; return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null; })($prop(\"DataCorePlugin.GameRawData.Graphics.rainIntensityIn10min\")); default: return null; } })(); if (value === null || value === undefined || value === '') return '3a;\\n'; return '3a;' + String(value).replace(/\\r|\\n/g, ' ') + '\\n'; } catch (error) { return '3a;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
@@ -1110,7 +1173,22 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ForceFeedback], [DataCorePlugin.GameData.ForceFeedback]), '') = '', '3l;\\n', '3l;' + format(isnull([DataCorePlugin.GameData.NewData.ForceFeedback], [DataCorePlugin.GameData.ForceFeedback]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.FinalFF\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.FinalFF\"); case \"IRacing\": return $prop(\"DataCorePlugin.GameRawData.Telemetry.SteeringWheelPctTorqueSign\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '3l;\\n'; return '3l;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '3l;\\n'; }",
+        "Interpreter": 1
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], 0, ''), '') = '', 'IB;\\n', if((if([DataCorePlugin.GameRunning], 0, '')) < 0, 'IB;\\n', 'IB;' + format(if([DataCorePlugin.GameRunning], 0, ''), '0') + '\\n'))"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(if([DataCorePlugin.GameRunning], 0, ''), '') = '', 'IS;\\n', if((if([DataCorePlugin.GameRunning], 0, '')) < 0, 'IS;\\n', 'IS;' + format(if([DataCorePlugin.GameRunning], 0, ''), '0') + '\\n'))"
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
@@ -1257,56 +1335,64 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontLeft]), '') = '', '46;\\n', '46;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature01\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature01\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '46;\\n'; return '46;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '46;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontRight], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontRight]), '') = '', '47;\\n', '47;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontRight], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature02\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature02\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '47;\\n'; return '47;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '47;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureRearLeft]), '') = '', '48;\\n', '48;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature03\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature03\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '48;\\n'; return '48;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '48;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearRight], [DataCorePlugin.GameData.TyreCarcassTemperatureRearRight]), '') = '', '49;\\n', '49;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearRight], [DataCorePlugin.GameData.TyreCarcassTemperatureRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature04\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.TyreCoreTemperature04\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '49;\\n'; return '49;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '49;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontLeft]), '') = '', '4a;\\n', '4a;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4a;\\n'; return '4a;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4a;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontRight]), '') = '', '4b;\\n', '4b;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4b;\\n'; return '4b;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4b;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearLeft]), '') = '', '4c;\\n', '4c;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4c;\\n'; return '4c;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4c;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearRight]), '') = '', '4d;\\n', '4d;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4d;\\n'; return '4d;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4d;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
@@ -1341,168 +1427,192 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontLeft], [DataCorePlugin.GameData.WheelDetachedFrontLeft]), '') = '', '4i;\\n', '4i;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontLeft], [DataCorePlugin.GameData.WheelDetachedFrontLeft]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels01.mDetached\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4i;\\n'; return '4i;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4i;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontRight], [DataCorePlugin.GameData.WheelDetachedFrontRight]), '') = '', '4j;\\n', '4j;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontRight], [DataCorePlugin.GameData.WheelDetachedFrontRight]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels02.mDetached\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4j;\\n'; return '4j;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4j;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearLeft], [DataCorePlugin.GameData.WheelDetachedRearLeft]), '') = '', '4k;\\n', '4k;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearLeft], [DataCorePlugin.GameData.WheelDetachedRearLeft]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels03.mDetached\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4k;\\n'; return '4k;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4k;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearRight], [DataCorePlugin.GameData.WheelDetachedRearRight]), '') = '', '4l;\\n', '4l;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearRight], [DataCorePlugin.GameData.WheelDetachedRearRight]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels04.mDetached\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4l;\\n'; return '4l;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4l;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 0
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontLeft], [DataCorePlugin.GameData.TyrePuncturedFrontLeft]), '') = '', '4m;\\n', '4m;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontLeft], [DataCorePlugin.GameData.TyrePuncturedFrontLeft]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels01.mFlat\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4m;\\n'; return '4m;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4m;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontRight], [DataCorePlugin.GameData.TyrePuncturedFrontRight]), '') = '', '4n;\\n', '4n;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontRight], [DataCorePlugin.GameData.TyrePuncturedFrontRight]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels02.mFlat\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4n;\\n'; return '4n;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4n;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearLeft], [DataCorePlugin.GameData.TyrePuncturedRearLeft]), '') = '', '4o;\\n', '4o;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearLeft], [DataCorePlugin.GameData.TyrePuncturedRearLeft]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels03.mFlat\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4o;\\n'; return '4o;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4o;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearRight], [DataCorePlugin.GameData.TyrePuncturedRearRight]), '') = '', '4p;\\n', '4p;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearRight], [DataCorePlugin.GameData.TyrePuncturedRearRight]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels04.mFlat\"); default: return null; } })(); if (value === null || value === undefined || value === '') return '4p;\\n'; return '4p;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '4p;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontLeft], [DataCorePlugin.GameData.TyreFlatSpotFrontLeft]), '') = '', '4q;\\n', '4q;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontLeft], [DataCorePlugin.GameData.TyreFlatSpotFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4q;\\n'; return '4q;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4q;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontRight], [DataCorePlugin.GameData.TyreFlatSpotFrontRight]), '') = '', '4r;\\n', '4r;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontRight], [DataCorePlugin.GameData.TyreFlatSpotFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4r;\\n'; return '4r;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4r;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearLeft], [DataCorePlugin.GameData.TyreFlatSpotRearLeft]), '') = '', '4s;\\n', '4s;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearLeft], [DataCorePlugin.GameData.TyreFlatSpotRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4s;\\n'; return '4s;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4s;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearRight], [DataCorePlugin.GameData.TyreFlatSpotRearRight]), '') = '', '4t;\\n', '4t;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearRight], [DataCorePlugin.GameData.TyreFlatSpotRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4t;\\n'; return '4t;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4t;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontLeft], [DataCorePlugin.GameData.WheelSlipFrontLeft]), '') = '', '4u;\\n', '4u;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontLeft], [DataCorePlugin.GameData.WheelSlipFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip01\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip01\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4u;\\n'; return '4u;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4u;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontRight], [DataCorePlugin.GameData.WheelSlipFrontRight]), '') = '', '4v;\\n', '4v;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontRight], [DataCorePlugin.GameData.WheelSlipFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip02\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip02\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4v;\\n'; return '4v;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4v;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearLeft], [DataCorePlugin.GameData.WheelSlipRearLeft]), '') = '', '4w;\\n', '4w;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearLeft], [DataCorePlugin.GameData.WheelSlipRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip03\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip03\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4w;\\n'; return '4w;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4w;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearRight], [DataCorePlugin.GameData.WheelSlipRearRight]), '') = '', '4x;\\n', '4x;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearRight], [DataCorePlugin.GameData.WheelSlipRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip04\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelSlip04\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4x;\\n'; return '4x;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4x;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontLeft], [DataCorePlugin.GameData.TyreLoadFrontLeft]), '') = '', '4y;\\n', '4y;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontLeft], [DataCorePlugin.GameData.TyreLoadFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelLoad01\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels01.mTireLoad\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4y;\\n'; return '4y;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4y;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontRight], [DataCorePlugin.GameData.TyreLoadFrontRight]), '') = '', '4z;\\n', '4z;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontRight], [DataCorePlugin.GameData.TyreLoadFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelLoad02\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels02.mTireLoad\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '4z;\\n'; return '4z;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '4z;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearLeft], [DataCorePlugin.GameData.TyreLoadRearLeft]), '') = '', '50;\\n', '50;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearLeft], [DataCorePlugin.GameData.TyreLoadRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelLoad03\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels03.mTireLoad\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '50;\\n'; return '50;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '50;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearRight], [DataCorePlugin.GameData.TyreLoadRearRight]), '') = '', '51;\\n', '51;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearRight], [DataCorePlugin.GameData.TyreLoadRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelLoad04\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels04.mTireLoad\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '51;\\n'; return '51;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '51;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontLeft], [DataCorePlugin.GameData.WheelRotationSpeedFrontLeft]), '') = '', '52;\\n', '52;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontLeft], [DataCorePlugin.GameData.WheelRotationSpeedFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed01\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed01\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels01.mRotation\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '52;\\n'; return '52;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '52;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontRight], [DataCorePlugin.GameData.WheelRotationSpeedFrontRight]), '') = '', '53;\\n', '53;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontRight], [DataCorePlugin.GameData.WheelRotationSpeedFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed02\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed02\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels02.mRotation\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '53;\\n'; return '53;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '53;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearLeft], [DataCorePlugin.GameData.WheelRotationSpeedRearLeft]), '') = '', '54;\\n', '54;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearLeft], [DataCorePlugin.GameData.WheelRotationSpeedRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed03\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed03\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels03.mRotation\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '54;\\n'; return '54;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '54;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearRight], [DataCorePlugin.GameData.WheelRotationSpeedRearRight]), '') = '', '55;\\n', '55;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearRight], [DataCorePlugin.GameData.WheelRotationSpeedRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed04\"); case \"AssettoCorsa\": return $prop(\"DataCorePlugin.GameRawData.Physics.WheelAngularSpeed04\"); case \"LMU\": return $prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels04.mRotation\"); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '55;\\n'; return '55;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '55;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
@@ -1537,168 +1647,192 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontLeft], [DataCorePlugin.GameData.BrakePressureFrontLeft]), '') = '', '5a;\\n', '5a;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontLeft], [DataCorePlugin.GameData.BrakePressureFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Telemetry.LFbrakeLinePress\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5a;\\n'; return '5a;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5a;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontRight], [DataCorePlugin.GameData.BrakePressureFrontRight]), '') = '', '5b;\\n', '5b;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontRight], [DataCorePlugin.GameData.BrakePressureFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Telemetry.RFbrakeLinePress\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5b;\\n'; return '5b;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5b;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearLeft], [DataCorePlugin.GameData.BrakePressureRearLeft]), '') = '', '5c;\\n', '5c;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearLeft], [DataCorePlugin.GameData.BrakePressureRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Telemetry.LRbrakeLinePress\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5c;\\n'; return '5c;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5c;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearRight], [DataCorePlugin.GameData.BrakePressureRearRight]), '') = '', '5d;\\n', '5d;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearRight], [DataCorePlugin.GameData.BrakePressureRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Telemetry.RRbrakeLinePress\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5d;\\n'; return '5d;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5d;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontLeft], [DataCorePlugin.GameData.BrakeWearFrontLeft]), '') = '', '5e;\\n', '5e;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontLeft], [DataCorePlugin.GameData.BrakeWearFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5e;\\n'; return '5e;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5e;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontRight], [DataCorePlugin.GameData.BrakeWearFrontRight]), '') = '', '5f;\\n', '5f;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontRight], [DataCorePlugin.GameData.BrakeWearFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5f;\\n'; return '5f;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5f;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearLeft], [DataCorePlugin.GameData.BrakeWearRearLeft]), '') = '', '5g;\\n', '5g;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearLeft], [DataCorePlugin.GameData.BrakeWearRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5g;\\n'; return '5g;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5g;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearRight], [DataCorePlugin.GameData.BrakeWearRearRight]), '') = '', '5h;\\n', '5h;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearRight], [DataCorePlugin.GameData.BrakeWearRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5h;\\n'; return '5h;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5h;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontLeft], [DataCorePlugin.GameData.ABSActiveFrontLeft]), '') = '', '5i;\\n', '5i;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontLeft], [DataCorePlugin.GameData.ABSActiveFrontLeft]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '5i;\\n'; return '5i;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '5i;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontRight], [DataCorePlugin.GameData.ABSActiveFrontRight]), '') = '', '5j;\\n', '5j;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontRight], [DataCorePlugin.GameData.ABSActiveFrontRight]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '5j;\\n'; return '5j;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '5j;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearLeft], [DataCorePlugin.GameData.ABSActiveRearLeft]), '') = '', '5k;\\n', '5k;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearLeft], [DataCorePlugin.GameData.ABSActiveRearLeft]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '5k;\\n'; return '5k;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '5k;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearRight], [DataCorePlugin.GameData.ABSActiveRearRight]), '') = '', '5l;\\n', '5l;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearRight], [DataCorePlugin.GameData.ABSActiveRearRight]), '1', '0') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { return null; })(); if (value === null || value === undefined || value === '') return '5l;\\n'; return '5l;' + (value ? '1' : '0') + '\\n'; } catch (error) { return '5l;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontLeft], [DataCorePlugin.GameData.SuspensionTravelFrontLeft]), '') = '', '5m;\\n', '5m;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontLeft], [DataCorePlugin.GameData.SuspensionTravelFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel01\")); case \"AssettoCorsa\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel01\")); case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.LFshockDefl\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels01.mSuspensionDeflection\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5m;\\n'; return '5m;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5m;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontRight], [DataCorePlugin.GameData.SuspensionTravelFrontRight]), '') = '', '5n;\\n', '5n;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontRight], [DataCorePlugin.GameData.SuspensionTravelFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel02\")); case \"AssettoCorsa\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel02\")); case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.RFshockDefl\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels02.mSuspensionDeflection\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5n;\\n'; return '5n;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5n;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearLeft], [DataCorePlugin.GameData.SuspensionTravelRearLeft]), '') = '', '5o;\\n', '5o;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearLeft], [DataCorePlugin.GameData.SuspensionTravelRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel03\")); case \"AssettoCorsa\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel03\")); case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.LRshockDefl\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels03.mSuspensionDeflection\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5o;\\n'; return '5o;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5o;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearRight], [DataCorePlugin.GameData.SuspensionTravelRearRight]), '') = '', '5p;\\n', '5p;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearRight], [DataCorePlugin.GameData.SuspensionTravelRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel04\")); case \"AssettoCorsa\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Physics.SuspensionTravel04\")); case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.RRshockDefl\")); case \"LMU\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.CurrentPlayerTelemetry.mWheels04.mSuspensionDeflection\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5p;\\n'; return '5p;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5p;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontLeft], [DataCorePlugin.GameData.SuspensionVelocityFrontLeft]), '') = '', '5q;\\n', '5q;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontLeft], [DataCorePlugin.GameData.SuspensionVelocityFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.LFshockVel\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5q;\\n'; return '5q;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5q;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontRight], [DataCorePlugin.GameData.SuspensionVelocityFrontRight]), '') = '', '5r;\\n', '5r;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontRight], [DataCorePlugin.GameData.SuspensionVelocityFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.RFshockVel\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5r;\\n'; return '5r;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5r;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearLeft], [DataCorePlugin.GameData.SuspensionVelocityRearLeft]), '') = '', '5s;\\n', '5s;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearLeft], [DataCorePlugin.GameData.SuspensionVelocityRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.LRshockVel\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5s;\\n'; return '5s;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5s;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearRight], [DataCorePlugin.GameData.SuspensionVelocityRearRight]), '') = '', '5t;\\n', '5t;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearRight], [DataCorePlugin.GameData.SuspensionVelocityRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"IRacing\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 1000; })($prop(\"DataCorePlugin.GameRawData.Telemetry.RRshockVel\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5t;\\n'; return '5t;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5t;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 60
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontLeft], [DataCorePlugin.GameData.SuspensionDamageFrontLeft]), '') = '', '5u;\\n', '5u;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontLeft], [DataCorePlugin.GameData.SuspensionDamageFrontLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Physics.suspensionDamage01\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5u;\\n'; return '5u;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5u;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontRight], [DataCorePlugin.GameData.SuspensionDamageFrontRight]), '') = '', '5v;\\n', '5v;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontRight], [DataCorePlugin.GameData.SuspensionDamageFrontRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Physics.suspensionDamage02\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5v;\\n'; return '5v;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5v;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearLeft], [DataCorePlugin.GameData.SuspensionDamageRearLeft]), '') = '', '5w;\\n', '5w;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearLeft], [DataCorePlugin.GameData.SuspensionDamageRearLeft]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Physics.suspensionDamage03\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5w;\\n'; return '5w;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5w;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearRight], [DataCorePlugin.GameData.SuspensionDamageRearRight]), '') = '', '5x;\\n', '5x;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearRight], [DataCorePlugin.GameData.SuspensionDamageRearRight]), '0.###') + '\\n')"
+        "Expression": "try { const pitrig = root['pitrig'] || (root['pitrig'] = {}); if (!pitrig.state) { pitrig.state = function (key) { const identity = $prop('DataCorePlugin.GameData.NewData.CarId') + '|' + $prop('DataCorePlugin.GameData.NewData.TrackId') + '|' + $prop('DataCorePlugin.GameData.NewData.SessionTypeName'); const laps = $prop('DataCorePlugin.GameData.NewData.CompletedLaps') || 0; let state = pitrig[key]; if (!state || state.identity !== identity || laps < state.laps) { state = { identity: identity }; pitrig[key] = state; } state.laps = laps; return state; }; } const value = (function () { if (!$prop('DataCorePlugin.GameRunning')) return null; switch ($prop('DataCorePlugin.CurrentGame')) { case \"AssettoCorsaCompetizione\": return (function (value) { return value === null || value === undefined || value === '' ? null : Number(value) * 100; })($prop(\"DataCorePlugin.GameRawData.Physics.suspensionDamage04\")); default: return null; } })(); if (value === null || value === undefined || value === '' || !isFinite(value)) return '5x;\\n'; return '5x;' + format(value, '0.###', false) + '\\n'; } catch (error) { return '5x;\\n'; }",
+        "Interpreter": 1
       },
       "IsEnabled": true,
       "MaximumFrequency": 5

@@ -44,6 +44,7 @@ export class OperationRunner {
   }
 
   async runPipeline<T>(work: () => Promise<T>): Promise<T> {
+    if (this.pipelineScope.getStore()) return work()
     this.pipelineActive = true
     try {
       return await this.pipelineScope.run(true, work)

@@ -10,9 +10,25 @@ namespace {
 
 constexpr std::string_view kName = "hardware.effects";
 
+[[nodiscard]] bool parse_parts(const cJSON* const object, LedEffect& config,
+                               ValidationFailure& failure) {
+  return read_array(
+             object, "parts", config.parts, config.part_count, kName,
+             ValidationError::invalid_module, failure,
+             [&](const cJSON* const part, LedPart& parsed) {
+               return valid_object(part, schema::kLedPartKeys, kName, failure) &&
+                      read_integer(part, "from", parsed.from, kName, failure) &&
+                      read_integer(part, "count", parsed.count, kName, failure) &&
+                      read_boolean(part, "reversed", parsed.reversed, kName, failure);
+             },
+             "parts") &&
+         read_enum(object, "layout", config.layout, led_part_layout_from_name, kName, failure);
+}
+
 [[nodiscard]] bool parse_gate(const cJSON* const object, LedEffect& config,
                               ValidationFailure& failure) {
   return read_enum(object, "gate", config.gate, led_gate_from_name, kName, failure) &&
+         read_float(object, "hysteresis", config.hysteresis, kName, failure) &&
          parse_value_source(object, "condition_source", config.condition_source, kName, failure) &&
          read_array(
              object, "conditions", config.conditions, config.condition_count, kName,
@@ -68,8 +84,10 @@ constexpr std::string_view kName = "hardware.effects";
   return read_enum(object, "animation", config.animation, led_animation_kind_from_name, kName,
                    failure) &&
          read_integer(object, "speed_ms", config.speed_ms, kName, failure) &&
+         read_integer(object, "span", config.span, kName, failure) &&
          read_text(object, "sprite", config.sprite, kName, failure) &&
          read_integer(object, "sprite_frame", config.sprite_frame, kName, failure) &&
+         read_boolean(object, "sprite_scaled", config.sprite_scaled, kName, failure) &&
          read_boolean(object, "sprite_loop", config.sprite_loop, kName, failure) &&
          read_text(object, "text", config.text, kName, failure) &&
          read_enum(object, "font", config.font, led_font_from_name, kName, failure);
@@ -80,9 +98,7 @@ constexpr std::string_view kName = "hardware.effects";
 bool parse_led_effect(const cJSON* const object, LedEffect& config, ValidationFailure& failure) {
   if (!valid_object(object, schema::kLedEffectKeys, kName, failure) ||
       !read_enum(object, "type", config.type, led_effect_type_from_name, kName, failure) ||
-      !read_text(object, "id", config.id, kName, failure) ||
-      !read_integer(object, "from", config.from, kName, failure) ||
-      !read_integer(object, "count", config.count, kName, failure) ||
+      !read_text(object, "id", config.id, kName, failure) || !parse_parts(object, config, failure) ||
       !read_text(object, "panel_mask", config.panel_mask, kName, failure) ||
       !parse_value_source(object, "source", config.source, kName, failure) ||
       !read_float(object, "minimum", config.range.minimum, kName, failure) ||

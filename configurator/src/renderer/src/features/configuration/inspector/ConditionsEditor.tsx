@@ -1,8 +1,8 @@
 import { Plus, Trash2 } from 'lucide-react'
 import type { FramedWidgetConfiguration } from '@shared/configuration-access'
-import { COLOR_RAMP_TARGET_VALUES, CONDITION_OPERATOR_VALUES, type ColorStop, MAXIMUM_COLOR_STOPS, MAXIMUM_WIDGET_CONDITIONS, type WidgetCondition } from '@shared/configuration-schema'
+import { COLOR_RAMP_TARGET_VALUES, type ColorStop, MAXIMUM_COLOR_STOPS, MAXIMUM_WIDGET_CONDITIONS, type WidgetCondition } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
-import { BOOLEAN_OPERATORS, MAXIMUM_BLINK_MS, MAXIMUM_HOLD_MS, MINIMUM_BLINK_MS } from '@shared/widget-conditions'
+import { BOOLEAN_OPERATORS, MAXIMUM_BLINK_MS, MAXIMUM_HOLD_MS, MINIMUM_BLINK_MS, operatorsFor } from '@shared/widget-conditions'
 import { TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Group } from './Group'
@@ -19,7 +19,7 @@ export function ConditionsEditor({ widget, update }: {
   const watched = widget.condition_source?.binding ?? ''
   const field = TELEMETRY_CATALOG.find(({ name }) => name === watched)
   const boolean = field?.type === 'boolean'
-  const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
+  const operators = operatorsFor(watched)
   const rules = widget.conditions ?? []
   const styled = Boolean(watched) || rules.length > 0 || (widget.color_ramp?.stops?.length ?? 0) > 0
   const changeRule = (index: number, mutation: (rule: WidgetCondition) => void): void => update((next) => {

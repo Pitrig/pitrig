@@ -4,7 +4,26 @@
 
 namespace pitrig::rgb_leds {
 
+std::uint16_t Surface::lamps_in(const Parts parts) {
+  std::size_t lamps = 0;
+  for (const configuration::LedPart& part : parts) {
+    lamps += part.count;
+  }
+  return static_cast<std::uint16_t>(lamps);
+}
+
 void Surface::put(const std::size_t offset, const led::Color color) const {
+  if (!parts_.empty()) {
+    std::size_t remaining = offset;
+    for (const configuration::LedPart& part : parts_) {
+      if (remaining < part.count) {
+        output_->set(part.from + (part.reversed ? part.count - 1U - remaining : remaining), color);
+        return;
+      }
+      remaining -= part.count;
+    }
+    return;
+  }
   if (area_.width == 0) {
     return;
   }
@@ -52,12 +71,17 @@ Area area_of(const led::Matrix& matrix, const configuration::LedEffect& effect) 
     return {};
   }
   if (down == 1) {
-    if (effect.from >= across) {
-      return {};
+    if (effect.part_count == 0) {
+      return Area{0, 0, across, 1, {}, across};
     }
-    const auto available = static_cast<std::uint16_t>(across - effect.from);
-    const std::uint16_t count = effect.count == 0 ? available : std::min(effect.count, available);
-    return count == 0 ? Area{} : Area{effect.from, 0, count, 1, {}, across};
+    std::uint16_t first = across;
+    std::uint16_t end = 0;
+    for (const configuration::LedPart& part : parts_of(effect)) {
+      first = std::min(first, part.from);
+      end = std::max<std::uint16_t>(end, std::min<std::uint16_t>(part.from + part.count, across));
+    }
+    return first >= end ? Area{} : Area{first, 0, static_cast<std::uint16_t>(end - first), 1, {},
+                                        across};
   }
   const std::string_view mask = configuration::text_view(effect.panel_mask);
   if (mask.empty()) {
@@ -93,6 +117,14 @@ Area area_of(const led::Matrix& matrix, const configuration::LedEffect& effect) 
 Surface surface_of(led::Output& output, const led::Matrix& matrix, const Area& area,
                    const configuration::LedEffect& effect) {
   return Surface{output, matrix, area, effect.inverted, effect.mirrored};
+}
+
+void fill_parts(led::Output& output, const Parts parts, const led::Color color) {
+  for (const configuration::LedPart& part : parts) {
+    for (std::uint16_t lamp = 0; lamp < part.count; ++lamp) {
+      output.set(part.from + lamp, color);
+    }
+  }
 }
 
 void fill_area(led::Output& output, const led::Matrix& matrix, const Area& area,

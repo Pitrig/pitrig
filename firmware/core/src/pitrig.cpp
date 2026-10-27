@@ -45,7 +45,8 @@ void initialize_display(Application& application, const board_registry::BoardDef
     log::info(kTag, "Board declares no display; running without a dashboard");
     return;
   }
-  application.display = display::initialize(*board.display);
+  application.display = display::initialize(
+      *board.display, application.services.configuration.settings().display_brightness);
   if (application.display == nullptr) {
     log::error(kTag, "Display did not come up; running without a dashboard");
     return;
@@ -92,9 +93,12 @@ bool compose(Application& application, const board_registry::BoardDefinition& bo
       !application.services.value_smoothing.attach(application.platform.smoothing_memory.bytes())) {
     log::error(kTag, "Value smoothing storage is unavailable");
   }
+  controls::DashboardTarget* const dashboard =
+      application.display != nullptr ? dashboard_composition::control_target() : nullptr;
   if (!module_composition::start(application.modules, application.services.event_bus,
                                  application.services.telemetry_registry,
-                                 application.services.telemetry_state, board.led, configuration)) {
+                                 application.services.telemetry_state, board.led,
+                                 application.services.configuration, dashboard, configuration)) {
     log::error(kTag, "One or more configured modules failed to start");
   }
   if (application.display == nullptr) {
