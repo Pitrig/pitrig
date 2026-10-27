@@ -9,7 +9,7 @@
 
 namespace pitrig::telemetry {
 
-inline constexpr std::size_t kMaximumFields = 256;
+inline constexpr std::size_t kMaximumFields = 350;
 inline constexpr std::size_t kTelemetryTextCapacity = 64;
 inline constexpr std::size_t kMaximumTelemetryLineLength = 127;
 using TextValue = std::array<char, kTelemetryTextCapacity>;

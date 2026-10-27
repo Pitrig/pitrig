@@ -5,6 +5,7 @@ namespace Pitrig.SimHub
     internal sealed class SectorTracker
     {
         private const double MaximumStepSeconds = 1;
+        private const double FastestPlausibleShare = 0.2;
         private const int FirstSector = 1;
 
         private int? sector;
@@ -22,9 +23,9 @@ namespace Pitrig.SimHub
             Delta = null;
         }
 
-        public void Update(int currentSector, double? liveDelta)
+        public void Update(int currentSector, double? liveDelta, double? bestSeconds)
         {
-            if (liveDelta == null)
+            if (liveDelta == null || bestSeconds == null || liveDelta < -FastestPlausibleShare * bestSeconds)
             {
                 Delta = null;
                 return;

@@ -3,8 +3,8 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 256;
-inline constexpr std::size_t kMaximumFieldCount = 256;
+inline constexpr std::size_t kFieldCount = 263;
+inline constexpr std::size_t kMaximumFieldCount = 350;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"vehicle.speed", ValueType::text},
@@ -123,6 +123,11 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"vehicle.horn", ValueType::boolean},
     {"vehicle.speed_limiter", ValueType::boolean},
     {"vehicle.damage.aero", ValueType::float32},
+    {"vehicle.damage.front_grade", ValueType::text},
+    {"vehicle.damage.rear_grade", ValueType::text},
+    {"vehicle.damage.left_grade", ValueType::text},
+    {"vehicle.damage.right_grade", ValueType::text},
+    {"vehicle.damage.repair_time", ValueType::uint32},
     {"vehicle.damage.suspension", ValueType::float32},
     {"vehicle.damage.transmission", ValueType::float32},
     {"session.flag.current", ValueType::text},
@@ -147,6 +152,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"track.length", ValueType::float32},
     {"track.temperature", ValueType::float32},
     {"track.wetness", ValueType::float32},
+    {"track.condition", ValueType::text},
     {"environment.air_temperature", ValueType::float32},
     {"environment.rain_level", ValueType::float32},
     {"environment.wind_speed", ValueType::float32},
@@ -154,6 +160,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"environment.time_of_day", ValueType::text},
     {"environment.cloud_level", ValueType::float32},
     {"environment.forecast", ValueType::text},
+    {"environment.forecast_30", ValueType::text},
     {"motion.acceleration_longitudinal", ValueType::float32},
     {"motion.acceleration_lateral", ValueType::float32},
     {"motion.acceleration_vertical", ValueType::float32},

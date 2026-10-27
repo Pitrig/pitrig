@@ -3,8 +3,9 @@
 Status: Accepted. Builds on [ADR 0034](0034-configurator-telemetry-bridge.md),
 whose bridge becomes the configurator's side of a handover, and on
 [ADR 0029](0029-single-link-and-composite-usb-gamepad.md), whose single link it
-keeps. [ADR 0006](0006-simhub-custom-serial-line-protocol.md)'s Custom Serial
-profile stays as the path without the plugin.
+keeps. Retires the Custom Serial Device profile of
+[ADR 0006](0006-simhub-custom-serial-line-protocol.md), whose line format it
+writes.
 
 ## Context
 
@@ -51,6 +52,10 @@ bind, so the plugin resumes at once without reading the board again. A board the
 plugin feeds counts as found in the configurator's scan without being opened.
 The plugin takes `hold` and `release` from loopback only.
 
+**It is the only source.** The Custom Serial Device profile and its export are
+retired: every computed field is written once, in the plugin, and the mapping
+manifest names the SimHub property or the plugin computation behind each field.
+
 **It ships with the configurator.** CI builds the DLL against a pinned SimHub,
 and the Windows installer copies it next to `SimHubWPF.exe`, closing and
 restarting SimHub when it holds an older copy.
@@ -63,7 +68,7 @@ restarting SimHub when it holds an older copy.
   holds it, the board's telemetry passes through the configurator.
 - A Custom Serial device left on the same port wins it, and the plugin reports
   the port as busy.
-- The Custom Serial profile still feeds a board without the plugin, from the
-  same mappings.
+- Feeding a board from SimHub needs the plugin; nothing else writes the line
+  format, and a change to a computed field is a change to the plugin alone.
 - The plugin is a .NET Framework 4.8 assembly; only CI or a Windows PC with
   SimHub installed can build it.

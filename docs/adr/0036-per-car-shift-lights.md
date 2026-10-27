@@ -23,8 +23,7 @@ of maximum RPM. From that one answer it computes `engine.shift_rpm`,
 `engine.shift_percent` (the revs against the shift point),
 `engine.redline_reached` (the shift point is reached) and
 `engine.shift_progress` (`SP`), how far the current gear has gone from the car's
-first shift light to its full bar, 0 to 100 %. The Custom Serial profile
-computes only the SimHub-settings rung. The configurator's shift-light preset
+first shift light to its full bar, 0 to 100 %. The configurator's shift-light preset
 steps across `engine.shift_progress` and flashes on `engine.redline_reached`.
 
 ## Consequences

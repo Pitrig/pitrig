@@ -13,7 +13,6 @@ import { FontCatalogService } from './font-library/font-catalog-service'
 import { FontLibraryService } from './font-library/font-library-service'
 import { ImageAssetService } from './image-assets/image-asset-service'
 import { SaveToBoardService } from './save-to-board/save-to-board-service'
-import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
 import type { TelemetryBridgeService } from './telemetry-bridge/bridge-service'
 import { TemplateService } from './templates/template-service'
 import type { AssetUploadProgress } from '../shared/asset-upload'
@@ -41,7 +40,6 @@ export interface AppServices {
   imageAssetService: ImageAssetService
   firmwareUpdateService: FirmwareUpdateService
   boardUpdateService: BoardUpdateService
-  simHubProfileService: SimHubProfileService
   configLibraryService: ConfigLibraryService
   configurationFileService: ConfigurationFileService
   templateService: TemplateService
@@ -96,7 +94,6 @@ export function createAppServices(broadcasts: AppServiceBroadcasts): AppServices
       configLibraryService,
       broadcasts.onBoardUpdateProgress
     ),
-    simHubProfileService: new SimHubProfileService(),
     configLibraryService,
     configurationFileService: new ConfigurationFileService(recentConfigurations),
     templateService: new TemplateService(join(app.getPath('userData'), 'templates'))

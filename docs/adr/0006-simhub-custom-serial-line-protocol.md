@@ -6,7 +6,9 @@ configuration commands are amended by ADR 0024, which gives `GET`, `VALIDATE`,
 `source=`/`generation=` pair with one field per document. Narrowed by
 [ADR 0029](0029-single-link-and-composite-usb-gamepad.md): a board carries
 exactly one serial link, and on a board with native USB that link shares its
-USB device with an HID gamepad.
+USB device with an HID gamepad. The Custom Serial Device profile it generated
+is retired by [ADR 0035](0035-simhub-plugin-feeds-the-board.md): the SimHub
+plugin is the only source that writes these lines.
 
 ## Context
 
@@ -37,31 +39,12 @@ consumed and the result finite, and it is at most 31 characters. `0x` forms,
 `inf` and `nan` are rejected — the grammar is checked before the conversion, so
 whatever the C library would otherwise accept does not reach the slot.
 
-Generate both an importable complete `Pitrig-telemetry.shsds` Custom Serial
-Device profile and configurator profile data from the canonical catalog and a
-separate generic SimHub mapping manifest. The checked-in profile enables every
-catalog field. The configurator can export either that complete set or only
-the dependencies of its current dashboard draft. Dashboard dependencies are
-every binding the document reads, whether or not a widget shows it: the sources
-a text widget composes, the source a mapped widget consumes, a
-`condition_source`, an image's `sprite_frame_source`, a slot page's trigger
-source, and `session.lap.current_time` for a Lap Timer modifier. The walk is
-driven by the generated widget-type list, so a type added to the contract
-cannot be silently left out of the profile.
-
-Both export paths use the catalog rate classes: 60 Hz for fast, 20 Hz for
-normal, 5 Hz for slow, and changes-only for stable values. The complete profile
-uses 921600 baud to provide headroom for the complete stream. A configurator
-export uses an explicit draft UART baud rate when present and otherwise uses
-921600. Game-specific property mappings remain outside the repository.
-
-A field that needs memory between updates — an average over the last laps, a
-flag shown once in a session, the best lap that stood before the last one — is a
-JavaScript message, SimHub's second formula language, whose `root` object keeps
-that state; every other field stays NCalc. The mapping manifest names the
-formula's language, and the numbers a user chooses at export, the fuel reserve
-and the laps the averages cover, are placeholders the export fills in. No
-custom SimHub plugin is needed to feed a board.
+The SimHub plugin of ADR 0035 writes the lines, each field at its catalog rate
+class: 60 Hz for fast, 20 Hz for normal, 5 Hz for slow, and changes-only for
+stable values. A generic SimHub mapping manifest beside the canonical catalog
+names the SimHub property, the game's raw property, or the plugin computation
+behind each field. A board's UART runs at 921600 baud unless its `protocol`
+document says otherwise.
 
 Keep parser storage fixed. A telemetry value has 64 bytes including its null
 terminator, and a complete line has a 127-byte bound
@@ -80,11 +63,6 @@ layer.
 - Parsing and state updates use fixed storage and no runtime allocation.
 - SimHub identifiers do not escape the protocol implementation.
 - Generic SimHub property names remain isolated from the canonical catalog and
-  firmware in a source-adapter manifest.
-- Dashboard-only profiles avoid transmitting catalog fields that have no
-  configured consumer while retaining hidden module inputs.
-- The checked-in complete profile remains available without running the
-  configurator.
-- Importing the generated profile still requires selecting the device's serial
-  port; unsupported properties are transmitted as unavailable values.
+  firmware in a source-adapter manifest; unsupported properties are transmitted
+  as unavailable values.
 - Empty, malformed, unknown, and overlong lines cannot corrupt later frames.

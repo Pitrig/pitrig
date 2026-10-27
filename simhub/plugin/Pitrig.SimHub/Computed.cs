@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Pitrig.SimHub
 {
@@ -7,6 +8,7 @@ namespace Pitrig.SimHub
         public static object Evaluate(TelemetryState state, FieldComputation computation)
         {
             if (WheelAverages.Covers(computation)) return state.Averages.Mean(computation);
+            if (TyreTemperatures.Covers(computation)) return TyreTemperatures.Live(state, computation);
             var status = state.Status;
             switch (computation)
             {
@@ -22,6 +24,32 @@ namespace Pitrig.SimHub
                     return state.Shifts.Reached;
                 case FieldComputation.TurboPressure:
                     return CarComputations.TurboPressure(status);
+                case FieldComputation.BrakeBias:
+                    return VehicleSettings.BrakeBias(state);
+                case FieldComputation.EngineMap:
+                    return VehicleSettings.EngineMap(state);
+                case FieldComputation.ErsDeployMode:
+                    return VehicleSettings.ErsDeployMode(state);
+                case FieldComputation.ErsRecoveryMode:
+                    return VehicleSettings.ErsRecoveryMode(state);
+                case FieldComputation.ErsPercent:
+                    return VehicleSettings.ErsPercent(state);
+                case FieldComputation.DrsAvailable:
+                    return VehicleSettings.DrsAvailable(state);
+                case FieldComputation.DrsActive:
+                    return VehicleSettings.DrsActive(state);
+                case FieldComputation.DamageFront:
+                    return ConditionComputations.DamageGrade(state, 0);
+                case FieldComputation.DamageRear:
+                    return ConditionComputations.DamageGrade(state, 1);
+                case FieldComputation.DamageLeft:
+                    return ConditionComputations.DamageGrade(state, 2);
+                case FieldComputation.DamageRight:
+                    return ConditionComputations.DamageGrade(state, 3);
+                case FieldComputation.DamageRepairTime:
+                    return ConditionComputations.RepairTime(state);
+                case FieldComputation.TrackCondition:
+                    return ConditionComputations.TrackCondition(state);
                 case FieldComputation.GearNumber:
                     return CarComputations.GearNumber(status);
                 case FieldComputation.GForceLongitudinal:
@@ -49,19 +77,37 @@ namespace Pitrig.SimHub
                 case FieldComputation.LastLapStatus:
                     return TimingComputations.LastLapStatus(status);
                 case FieldComputation.SectorStatus1:
-                    return TimingComputations.SectorStatus(status, 1);
+                    return SectorComputations.Status(state, 1);
                 case FieldComputation.SectorStatus2:
-                    return TimingComputations.SectorStatus(status, 2);
+                    return SectorComputations.Status(state, 2);
                 case FieldComputation.SectorStatus3:
-                    return TimingComputations.SectorStatus(status, 3);
+                    return SectorComputations.Status(state, 3);
                 case FieldComputation.SectorTime:
-                    return TimingComputations.SectorTime(status);
+                    return SectorComputations.Running(state);
+                case FieldComputation.SectorBox1:
+                    return SectorComputations.Box(state, 1);
+                case FieldComputation.SectorBox2:
+                    return SectorComputations.Box(state, 2);
+                case FieldComputation.SectorBox3:
+                    return SectorComputations.Box(state, 3);
+                case FieldComputation.SectorBest1:
+                    return SectorComputations.BestTime(state, 1);
+                case FieldComputation.SectorBest2:
+                    return SectorComputations.BestTime(state, 2);
+                case FieldComputation.SectorBest3:
+                    return SectorComputations.BestTime(state, 3);
                 case FieldComputation.SectorDelta:
                     return state.Sectors.Delta;
+                case FieldComputation.LapValid:
+                    return state.Validity.Valid(state);
+                case FieldComputation.LapInvalid:
+                    return state.Validity.Invalid(state);
                 case FieldComputation.LapsRemaining:
-                    return TimingComputations.LapsRemaining(status);
+                    return TimingComputations.LapsRemaining(state);
                 case FieldComputation.TimedSession:
-                    return TimingComputations.TimedSession(status);
+                    return SessionComputations.TimedSession(state);
+                case FieldComputation.SessionType:
+                    return SessionComputations.SessionType(state);
                 case FieldComputation.CheckeredShown:
                     return status == null ? (bool?)null : state.CheckeredShown;
                 case FieldComputation.ClassPosition:
@@ -74,8 +120,6 @@ namespace Pitrig.SimHub
                     return RaceComputations.LeaderGap(state);
                 case FieldComputation.StartingPosition:
                     return RaceComputations.StartingPosition(state);
-                case FieldComputation.FuelTimeRemaining:
-                    return FuelComputations.TimeRemaining(state);
                 case FieldComputation.FuelRequired:
                     return FuelComputations.Required(state);
                 case FieldComputation.FuelToAdd:
@@ -104,6 +148,13 @@ namespace Pitrig.SimHub
             {
                 return null;
             }
+        }
+
+        public static int Integer(object value)
+        {
+            return int.TryParse(value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var number)
+                ? number
+                : 0;
         }
 
         public static double? Seconds(TimeSpan value)

@@ -59,8 +59,7 @@ LED brightness and the all-off switch last until the next restart.
 
 ## Consequences
 
-- The catalog holds 254 of 256 fields. The Custom Serial profile sends 0 for
-  both, so buttons need the plugin.
+- The catalog holds 254 of 256 fields, and buttons come from the plugin.
 - A dashboard with controls costs one more task with a 3 KB stack.
 - `RESET` erases the brightness with the documents, and a board on firmware
   older than schema 27 refuses `controls` like any unknown property.

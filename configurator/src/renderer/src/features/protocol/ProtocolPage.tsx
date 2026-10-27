@@ -5,7 +5,6 @@ import { DocumentStatusChip } from '@/features/device/document-status'
 import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
 import { BridgeSection } from './BridgeSection'
 import { CatalogSection } from './CatalogSection'
-import { SimHubProfileSection } from './SimHubProfileSection'
 import { TransportSection } from './TransportSection'
 import { t } from '@shared/ui-text'
 
@@ -23,7 +22,6 @@ export function ProtocolPage(): React.JSX.Element {
     >
       <TelemetrySourceSection />
       <BridgeSection />
-      <SimHubProfileSection />
       <CatalogSection />
       <TransportSection />
     </PageShell>

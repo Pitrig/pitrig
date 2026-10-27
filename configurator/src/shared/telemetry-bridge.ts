@@ -1,5 +1,5 @@
 import type { InputsConfiguration } from './configuration-schema'
-import { SIMHUB_LINK } from './simhub-profile-data'
+import { SIMHUB_LINK } from './simhub-data'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from './telemetry-catalog'
 import type { TelemetryValue } from './telemetry-value'
 

@@ -4,10 +4,10 @@ The Pitrig plugin runs inside SimHub, finds the Pitrig boards connected to the P
 and sends each one the telemetry its documents bind
 ([ADR 0035](adr/0035-simhub-plugin-feeds-the-board.md)). While the configurator
 is connected to a board it takes the board over and passes the plugin's stream on
-([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). The Custom Serial
-profile still feeds a board without the plugin
-([SimHub telemetry](simhub-custom-serial.md)); do not leave a Custom Serial device
-on the same port, because whichever opens it first keeps it.
+([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). It writes the line
+format of [SimHub telemetry](simhub-custom-serial.md) and is the only source that
+does; do not leave a SimHub Custom Serial device on the same port, because
+whichever opens it first keeps it.
 
 ## Installing
 
@@ -64,34 +64,62 @@ list, with game-specific properties shown, when a game misbehaves.
 ## Values
 
 A mapping's `unavailable_when` names the values a game uses to mean nothing — an
-`EngineMap` of −1, a water temperature of 0 — and both paths send them empty, so
+`EngineMap` of −1, a water temperature of 0 — and the plugin sends them empty, so
 the board draws the widget's `unavailable_text`. A `uint32` field refuses a
-negative value the same way, because the board cannot parse one. The live delta
-itself is sent as the game reports it, and is empty only when the game reports
-nothing; the fifth-of-a-lap bound survives where a delta feeds a computed time —
-the estimated lap time and the sector delta — because a replay or a switched car
-would otherwise produce a nonsensical clock.
+negative value the same way, because the board cannot parse one. The estimated
+lap time and the live delta are sent as the tracker reports them; only the sector
+delta drops a live delta more than a fifth of a lap under the best, because a
+replay or a switched car would otherwise produce a nonsensical sector.
+
+SimHub hands pressures over in the unit chosen in its own settings, rounded to two decimals. A
+mapping's `unit_property` names the property that carries that unit, and the plugin converts back
+into the catalog unit through the `local_units` table, sending an unknown unit empty. SimHub's
+rounding sets the step: 0.01 bar is about 0.15 psi, so SimHub set to psi gives the finest pressure.
 
 Damage, weather, the track's grip, electronics, energy and penalties come from
 each game's own data where SimHub's generic data has nothing
 ([ADR 0039](adr/0039-per-game-telemetry-sources.md)): the mapping names a raw
-property per game, the plugin reads the one of `GameData.GameName`, and the
-profile switches on `DataCorePlugin.CurrentGame`, both only while the game
-runs, since SimHub keeps a closed game's last raw data. SimHub flattens raw arrays as
+property per game, and the plugin reads the one of `GameData.GameName` only while
+the game runs, since SimHub keeps a closed game's last raw data. SimHub flattens raw arrays as
 `CarDamage01`…, which its `/api/GetProperty/<name>` answers while a game runs.
 ACC and AC were checked that way; iRacing and LMU follow SimHub's reader
 structures and want a live session to confirm.
 
-Both paths compute the same fields from the same SimHub data. A field with no
-single property is a formula in the Custom Serial profile and a native twin in
-`Computed.cs` and the classes beside it, named by the mapping's `computed` key,
-so a change to one side is a visible change to the other: the gaps come from
-SimHub's leaderboard, and so does the class position when the session has more
-than one class — in a single-class race it is the game's own position, because
-ACC's leaderboard in SimHub can place the player one behind it. The sector delta
-keeps the live delta at the last sector boundary. Only the shift lights go further in the
-plugin, where the game's own data is within reach. The panel's fuel reserve and
-averages take the defaults the profile export offers.
+A field with no single property is computed in `Computed.cs` and the classes
+beside it, named by the mapping's `computed` key: the gaps come from
+SimHub's leaderboard, and so does the class position, the class position of the
+player's row. Outside a race the gaps are best-lap differences, because SimHub's
+race gaps mean nothing in practice.
+
+The values the Lovely dashboard also shows follow it: read from where the Lovely
+plugin reads them and worked out the way its dashboard works them out, so the
+board agrees with it without depending on it. The position comes from SimHub's
+leaderboard, the fuel time is SimHub's `Fuel_RemainingTime`, and the laps left in
+a race over laps SimHub's `RemainingLaps` (iRacing's own count there). A lap is
+invalid by each game's rule: ACC's and F1's own flags, AC EVO's SimHub flag, in
+iRacing any moment off the track outside a race until the next lap starts, never
+in AC, LMU, rF2, AMS2 and RaceRoom, and always in a game Lovely does not name. A
+session runs on time by iRacing's own flag, by no lap count in LMU, rF2 and AMS2,
+by time left in RaceRoom, and elsewhere while the time left is under a day. The
+estimated lap time and the live delta are the tracker's session-best estimate,
+else its all-time-best one, else the game's own delta, else the running lap, shown
+as they come, including the nonsense in the pit lane; their colour grades them
+against the personal best and the session's fastest lap, and the last lap's colour
+does the same without ever reading invalid. The sector times and colours follow
+Lovely's sector panel: the running sector live, the sectors still to come from the
+last lap, the whole last lap for five seconds after the line, purple at or under
+the session's best split, and LMU's sectors from its own scoring. Fuel to finish,
+to add and the pit call follow Lovely's dashboard, the fuel margin added to the
+fuel to add, and the fuel level, consumption and fuel laps keep Lovely's decimals.
+Brake bias adds iRacing's fine adjustment, the LMU engine map reads R, SC, OFF or
+the hypercar power step, the hybrid modes read as names, DRS in iRacing comes from
+its own status, and the session type is shown in capitals. The plugin's tyre,
+pressure and brake averages take a sample every three seconds outside the pits,
+keep as many as the chosen laps hold at the best lap over three seconds, and last
+until SimHub restarts; LMU's tyre temperature blends the carcass and inner layers.
+The laps left in a timed session run on the best lap, else the last lap clear of
+the pit lane, else the all-time best. The panel's fuel margin and averages start
+from the defaults the mapping's `parameters` name.
 
 ## Buttons
 
@@ -169,8 +197,7 @@ python3 -m tools.codegen.telemetry_catalog
 ```
 
 It carries every field's wire id, SimHub property, conversion, format and rate,
-from the same `telemetry/simhub_generic_mappings.json` the Custom Serial profile
-is built from.
+from `telemetry/simhub_generic_mappings.json`.
 
 A Debug build, `dotnet build` without `-c Release`, is the development build: it
 writes `Logs\Pitrig-trace.log` in the SimHub folder — each board's sessions,

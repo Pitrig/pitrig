@@ -1,71 +1,17 @@
 # SimHub Custom Serial telemetry
 
 Pitrig accepts newline-delimited telemetry over the board-selected serial
-transport. The [SimHub plugin](simhub-plugin.md) writes it with nothing to set
-up; a Custom Serial Device profile writes the same lines without the plugin.
-Use one or the other on a board's port, not both.
+transport, and the [SimHub plugin](simhub-plugin.md) writes it with nothing to
+set up. Nothing else may hold a board's port: a SimHub Custom Serial device left
+on it keeps the plugin out.
 
-## Generating or downloading a SimHub profile
-
-The desktop configurator's **SimHub profile** panel provides two export modes:
-
-- **Dashboard only** includes every binding the dashboard reads: the sources a
-  text widget composes, the source a gauge maps, and the field a styling rule
-  watches even when the widget never shows it. Duplicate bindings are emitted
-  once.
-- **All telemetry** includes the complete 256-field catalog.
-
-The export uses the current configuration draft. Its explicit
-`telemetry_transport.uart.baud_rate` is used when present; otherwise the baud
-rate is 921600. A Guition ESP32-4848S040 draft carries `460800` explicitly, so
-its export already matches the board and the checked-in complete profile does
-not. A dashboard-only export is blocked when the draft contains an
-unknown telemetry binding or requires no telemetry.
-
-Two numbers are chosen beside the export and written into its formulas: the
-**fuel reserve**, in laps, that `vehicle.fuel.to_add` and
-`vehicle.fuel.pit_now` keep on top of what reaching the finish needs, and the
-laps the tyre and brake **averages** cover. The checked-in profile uses no
-reserve and two laps.
-
-As an alternative, download the checked-in complete
-[`simhub/Pitrig-telemetry.shsds`](../simhub/Pitrig-telemetry.shsds). It uses
-921600 baud and enables all 256 fields. Both forms enable automatic reconnect
-and disable RTS and DTR.
-
-Import the resulting file from the Custom Serial Devices plugin's **Import
-settings** action, then select the Pitrig serial port.
-
-Devices that already have a saved UART configuration may retain the previous
-115200 baud value. Set `telemetry_transport.uart.baud_rate` to `921600` in the
-device configuration before connecting the generated profile — or to `460800`
-on a Guition ESP32-4848S040, whose bridge does not hold `921600`.
-
-Update frequencies follow the catalog metadata:
-
-- `fast`: 60 Hz;
-- `normal`: 20 Hz;
-- `slow`: 5 Hz;
-- `changes`: changes only.
-
-The checked-in complete profile and the configurator's profile data are
-regenerated together with the catalog:
-
-```bash
-python3 -m tools.codegen.telemetry_catalog
-```
-
-Generic property expressions are maintained in
-`telemetry/simhub_generic_mappings.json`. An unsupported SimHub property sends
-an empty value, which marks only that canonical field unavailable, and a
-computed field sends nothing while no game runs. The profile does not contain
-game-specific raw-data mappings. Fields that remember something between updates
-— the tyre and brake averages, the last lap against the best that stood before
-it, the last lap's validity, the live sector delta and the chequered flag — are
-JavaScript messages, SimHub's second formula language; the rest are NCalc. SimHub Free limits update
-messages to 10 Hz, regardless of higher values stored in the profile;
-`dashboard.smoothing` ([dashboard-widgets.md](dashboard-widgets.md#screens-and-widgets))
-is what makes a feed that slow move between its packets.
+A board's UART runs at 921600 baud unless its `telemetry_transport.uart.baud_rate`
+says otherwise; a Guition ESP32-4848S040 carries `460800`, because its bridge does
+not hold `921600`. The plugin sends each field at its catalog rate: `fast` at
+60 Hz, `normal` at 20 Hz, `slow` at 5 Hz, and `changes` when the value changes.
+The SimHub property or plugin computation behind each field is in
+`telemetry/simhub_generic_mappings.json`; an unsupported property sends an
+empty value, which marks only that field unavailable.
 
 Each line contains a one- or two-character field identifier, a semicolon, and
 a value. The complete generated ID table is in the
@@ -138,16 +84,14 @@ The catalog's rate column is a transmission recommendation, not a requirement
 to send every field. Send only fields used by the active dashboard or modules,
 at a rate appropriate for that field, to keep serial bandwidth bounded.
 
-Pitrig provides generic SimHub property expressions but no game-specific
-source mappings. The `game_specific` availability label warns that a canonical
-field is not exposed by every simulation.
+The `game_specific` availability label warns that a canonical field is not
+exposed by every simulation.
 
 `session.gap_ahead`, `session.gap_behind` and `session.gap_leader` are unsigned
 gaps in seconds to the cars one race position ahead and behind and to the
 leader, and `session.class_position` and `session.starting_grid_position` come
-from the same leaderboard, through SimHub's `driver…` formula functions. They
-stay empty until SimHub sees the other cars; Assetto Corsa shares them only
-through the CrewChief app enabled in the game.
+from SimHub's leaderboard too. They stay empty until SimHub sees the other cars;
+Assetto Corsa shares them only through the CrewChief app enabled in the game.
 
 Configuration control frames begin with `@PR:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,

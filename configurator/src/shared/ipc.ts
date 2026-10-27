@@ -54,11 +54,6 @@ import type {
   ConfigurationFileSaveValue
 } from './configuration-files'
 import type {
-  SimHubProfileExportRequest,
-  SimHubProfileExportValue,
-  SimHubProfileResult
-} from './simhub-profile'
-import type {
   ConfigLibraryResult,
   ConfigurationIdRequest,
   ConfigurationLibrary,
@@ -168,9 +163,6 @@ export interface PitrigApi {
   cancelImageUpload: () => Promise<AssetResult<void>>
   clearImageAssets: () => Promise<DeviceResult<DeviceState>>
   readPreviewAssets: () => Promise<PreviewAssets>
-  exportSimHubProfile: (
-    request: SimHubProfileExportRequest
-  ) => Promise<SimHubProfileResult<SimHubProfileExportValue>>
   onImageUploadProgress: (listener: (progress: AssetUploadProgress) => void) => () => void
   onFirmwareUploadProgress: (
     listener: (progress: FirmwareUploadProgress) => void

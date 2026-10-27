@@ -30,9 +30,8 @@ Telemetry arrives from the **Pitrig SimHub plugin** over a local socket, is
 forwarded to the board unchanged, and is decoded in passing to drive the
 previews; with no board connected it drives the previews alone. The rest of the
 time the plugin feeds the board itself
-([ADR 0035](0035-simhub-plugin-feeds-the-board.md)), and the Custom Serial
-profile stays supported for a board fed without the plugin
-([SimHub telemetry](../simhub-custom-serial.md)).
+([ADR 0035](0035-simhub-plugin-feeds-the-board.md)) in the line format of
+[SimHub telemetry](../simhub-custom-serial.md).
 
 **A datagram per tick.** The plugin sends UDP to a port the configurator binds:
 a seven-byte header — magic, version, sequence — and a payload of whole
@@ -107,9 +106,8 @@ a payload with a line starting with `@` is not telemetry.
 - The dashboard preview, the lamp preview and the telemetry catalog show live
   values whenever SimHub runs, and a board can be watched at the same time.
 - The field mapping has one source: `telemetry/simhub_generic_mappings.json`
-  generates the formulas of the Custom Serial profile, NCalc and the few
-  JavaScript ones that keep state, and the plugin's own field table, so the two
-  paths cannot drift.
+  generates the plugin's own field table, and the configurator shows the SimHub
+  property behind each field from the same file.
 - The plugin is a .NET Framework assembly built against a SimHub install; CI
   builds it against a pinned SimHub and the Windows installer ships it
   (ADR 0035).

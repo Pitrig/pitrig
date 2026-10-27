@@ -14,6 +14,7 @@ from .constants import (
     WIRE_ALPHABET,
 )
 from .errors import fail
+from .formats import validate_format
 from .game_sources import validate_game_sources
 
 
@@ -26,20 +27,14 @@ def report_key_mismatch(label: str, expected: set[str], actual: set[str]) -> Non
 def validate_simhub_mapping(
     field: dict[str, str],
     mapping: dict[str, Any],
-    parameters: dict[str, Any],
     games: dict[str, Any],
 ) -> None:
-    sources = sum(int(key in mapping) for key in ("property", "expression", "javascript"))
-    if sources > 1:
-        fail(
-            "SimHub mapping must define at most one property, expression or javascript: "
-            f"{field['name']}"
-        )
+    if "property" in mapping and "computed" in mapping:
+        fail(f"SimHub mapping must define either a property or a computed name: {field['name']}")
+    for key in ("expression", "javascript"):
+        if key in mapping:
+            fail(f"SimHub mapping holds no formula, the plugin computes it: {field['name']}")
     validate_game_sources(field, mapping, games)
-    formula = mapping.get("expression", mapping.get("javascript", ""))
-    for name in PARAMETER_PATTERN.findall(formula):
-        if name not in parameters:
-            fail(f"SimHub mapping uses an undeclared profile parameter {name}: {field['name']}")
     conversion = mapping.get("conversion", "number")
     if conversion not in VALID_SIMHUB_CONVERSIONS:
         fail(f"invalid SimHub conversion for {field['name']}: {conversion}")
@@ -50,13 +45,37 @@ def validate_simhub_mapping(
         )
     if conversion == "number" and "format" not in mapping:
         fail(f"numeric SimHub mapping requires a format: {field['name']}")
+    if "format" in mapping:
+        validate_format(field["name"], mapping["format"])
     if "scale" in mapping and not isinstance(mapping["scale"], (int, float)):
         fail(f"SimHub mapping scale must be numeric: {field['name']}")
-    formula = "expression" in mapping or "javascript" in mapping
-    if ("computed" in mapping) != formula:
-        fail(f"SimHub formula mapping requires a computed name: {field['name']}")
     if "unavailable_when" in mapping:
         validate_unavailable_rule(field, mapping, conversion)
+    if "unit_property" in mapping:
+        validate_unit_property(field, mapping, conversion)
+
+
+def validate_unit_property(
+    field: dict[str, str], mapping: dict[str, Any], conversion: str
+) -> None:
+    name = field["name"]
+    if "property" not in mapping or not isinstance(mapping["unit_property"], str):
+        fail(f"unit_property names the SimHub unit of a generic property: {name}")
+    if conversion != "number":
+        fail(f"unit_property needs a number conversion: {name}")
+    if "unit_factors" not in mapping:
+        fail(f"no SimHub local units convert into {field['unit']}: {name}")
+
+
+def validate_local_units(units: Any) -> None:
+    if not isinstance(units, dict):
+        fail("SimHub local_units must be an object")
+    for unit, factors in units.items():
+        if not isinstance(factors, dict) or not factors:
+            fail(f"SimHub local_units must name the factors into {unit}")
+        for value in factors.values():
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+                fail(f"SimHub local unit factors into {unit} must be positive numbers")
 
 
 def validate_unavailable_rule(

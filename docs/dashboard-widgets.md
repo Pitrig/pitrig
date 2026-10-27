@@ -315,8 +315,8 @@ after the point:
 `decimals` defaults to `0` and is limited to 4, `scale` defaults to `1` and
 `offset` to `0`, so `{"type": "number", "decimals": 2}` only adds precision.
 Unit conversion is expressed through `scale` and `offset` because the device
-holds no unit names; the configurator offers presets for the common conversions
-and writes nothing else. The transform accepts every numeric binding and also a
+holds no unit names; the configurator's Units choice writes them for the common
+conversions, tyre pressure starting in psi, and writes nothing else. The transform accepts every numeric binding and also a
 text binding whose source parses as a plain number, which is how the
 source-formatted fields such as `vehicle.speed` and `engine.rpm` are converted.
 A source that does not parse renders the placeholder, exactly like an

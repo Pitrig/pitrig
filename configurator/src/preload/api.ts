@@ -93,7 +93,6 @@ import {
   type SaveProgress
 } from '../shared/save-to-board'
 import { PREVIEW_ASSETS_READ_CHANNEL } from '../shared/preview-assets'
-import { SIMHUB_PROFILE_EXPORT_CHANNEL } from '../shared/simhub-profile'
 import {
   TEMPLATE_DELETE_CHANNEL,
   TEMPLATE_LIST_CHANNEL,
@@ -186,8 +185,6 @@ export const productApi: PitrigApi = {
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
   clearImageAssets: () => ipcRenderer.invoke(IMAGE_CLEAR_CHANNEL),
   readPreviewAssets: () => ipcRenderer.invoke(PREVIEW_ASSETS_READ_CHANNEL),
-  exportSimHubProfile: (request) =>
-    ipcRenderer.invoke(SIMHUB_PROFILE_EXPORT_CHANNEL, request),
   onFirmwareUploadProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: FirmwareUploadProgress): void =>
       listener(progress)

@@ -477,7 +477,7 @@
       "text": {
         "sources": "Sources are rendered in order, each through its own transform, into one string. The prefix and suffix are what separate one from the next, so \"P 3/24\" is a position source followed by a participants source prefixed with \"/\".",
         "transform": "How the raw value becomes text. A number is scaled, offset and rounded; a time is formatted as a lap time, a clock or a signed delta. Only the transforms the bound field supports are offered.",
-        "preset": "A ready scale, offset and suffix for the usual unit conversions of this field — kph to mph, celsius to fahrenheit.",
+        "units": "The unit the value is drawn in. The board always receives the field's own unit; this picks the scale and offset that convert it, and swaps a unit suffix along with it. Tyre pressure starts in psi.",
         "scale": "Applied before the offset: the drawn number is value × scale + offset, rounded to the decimals set beside it.",
         "affix": "Literal text drawn immediately before and after this source. With several sources this is the only separator between them.",
         "alignment": "Where the text sits inside the widget box, after the padding is taken off.",
@@ -657,7 +657,7 @@
     "sourceEditor": {
       "removeThisSource": "Remove this source",
       "transform": "Transform",
-      "preset": "Preset",
+      "units": "Units",
       "number": "Number",
       "decimals": "Decimals",
       "scale": "Scale",
@@ -1550,7 +1550,7 @@
       "whatProducesTheValuesThe": "What produces the values the dashboard draws.",
       "simHub": "SimHub",
       "inUse": "In use",
-      "aCustomSerialDeviceProfile": "The Pitrig plugin in SimHub finds the board by itself and sends it one line per field over the link this configurator uses. A Custom Serial Device profile still works without the plugin and is exported below."
+      "aCustomSerialDeviceProfile": "The Pitrig plugin in SimHub finds the board by itself and sends it one line per field over the link this configurator uses."
     },
     "bridgeSection": {
       "title": "SimHub plugin",
@@ -1594,35 +1594,6 @@
       "portTaken": "Port {port} is already taken. Choose another one here and in the plugin.",
       "invalidRequest": "Invalid telemetry bridge request."
     },
-    "simHubProfileSection": {
-      "simHubProfile": "SimHub profile",
-      "generateACustomSerialDevice": "Generate a Custom Serial Device profile that feeds this dashboard.",
-      "onlyTheBindingsAndModule": "Only the bindings and module inputs the current draft uses.",
-      "dashboardOnly": "Dashboard only",
-      "theCompleteCanonicalTelemetryCatalog": "The complete canonical telemetry catalog.",
-      "allTelemetry": "All telemetry",
-      "generating": "Generating…",
-      "generateProfile": "Generate profile",
-      "lengthFields": "{length} fields",
-      "noValidDraft": "No valid draft",
-      "baudRateBaud": "{baudRate} baud",
-      "baudUnavailable": "Baud unavailable",
-      "fuelReserve": "Fuel reserve",
-      "fuelReserveHint": "Laps of fuel kept on top of what reaching the finish needs. Fuel to add and pit now count it.",
-      "averagesOver": "Tyre and brake averages",
-      "averagesOverHint": "How many laps on track the tyre pressure, tyre temperature and brake temperature averages cover.",
-      "laps": "laps",
-      "failedToExportTheSimhub": "Failed to export the SimHub profile.",
-      "fileNameSavedWithFields": {
-        "$plural": {
-          "one": "{fileName} saved with {count} telemetry field.",
-          "other": "{fileName} saved with {count} telemetry fields."
-        }
-      },
-      "theConfigurationDraftIsNot": "The configuration draft is not valid JSON.",
-      "unknownBindingsBindings": "Unknown bindings: {bindings}",
-      "thisConfigurationDoesNotRequire": "This configuration does not require any telemetry fields."
-    },
     "transportSection": {
       "transport": "Transport",
       "theLinkTheBoardTalks": "The link the board talks over.",
@@ -1648,16 +1619,6 @@
       "$note": "Wraps an emphasised control name: the Before half is drawn, then the control, then the After half.",
       "notPermanentBefore": "Nothing here is permanent: ",
       "notPermanentAfter": " at the top of the window walks the speeds a Pitrig board answers on, and a board that cannot be reached at all can still be flashed over USB."
-    },
-    "simHubProfile": {
-      "simHubProfileBaudRateMust": "SimHub profile baud rate must be an integer from 9600 to 2000000.",
-      "unknownSimHubTelemetryFields": "Unknown SimHub telemetry fields: {fields}",
-      "invalidSimHubParameters": "SimHub profile settings out of range: {names}"
-    },
-    "dialog": {
-      "saveTitle": "Save SimHub Custom Serial Device profile",
-      "buttonLabel": "Save profile",
-      "filter": "SimHub Custom Serial Device"
     }
   },
   "templates": {
@@ -2208,7 +2169,6 @@
       "familyCouldNotBeDownloaded": "{family} could not be downloaded. Check the connection, or import the file.",
       "invalidFirmwareUploadRequest": "Invalid firmware upload request.",
       "invalidImageUploadRequest": "Invalid image upload request.",
-      "invalidSimhubProfileRequest": "Invalid SimHub profile request.",
       "invalidFontLibraryRequest": "Invalid font library request."
     },
     "registerIpcHandlers": {
@@ -2425,13 +2385,7 @@
       "whatTheConnectedBoardIs": "What the connected board is"
     },
     "valueTransform": {
-      "kmHMph": "km/h → mph",
-      "mSKmH": "m/s → km/h",
-      "mSMph": "m/s → mph",
-      "kPaBar": "kPa → bar",
-      "kPaPsi": "kPa → psi",
-      "lGal": "L → gal",
-      "rpmThousands": "rpm → thousands"
+      "rpmThousands": "thousands of rpm"
     }
   },
   "assets": {
