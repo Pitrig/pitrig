@@ -13,7 +13,7 @@ namespace Pitrig.SimHub
     {
         private const string SettingsName = "Link";
 
-        private static readonly Lazy<ImageSource> Icon = new Lazy<ImageSource>(CreateIcon);
+        private static readonly Lazy<ImageSource> Icon = new Lazy<ImageSource>(Artwork.MenuIcon);
 
         private InputHooks hooks;
 
@@ -50,7 +50,6 @@ namespace Pitrig.SimHub
         public void Apply(PluginSettings settings)
         {
             Settings = settings;
-            SaveSettings();
             Hub.Apply(settings);
         }
 
@@ -62,14 +61,6 @@ namespace Pitrig.SimHub
         internal void SaveSettings()
         {
             this.SaveCommonSettings(SettingsName, Settings);
-        }
-
-        private static ImageSource CreateIcon()
-        {
-            var geometry = Geometry.Parse("M8,1 L15,15 L8,11 L1,15 Z");
-            var image = new DrawingImage(new GeometryDrawing(Brushes.White, null, geometry));
-            image.Freeze();
-            return image;
         }
     }
 }

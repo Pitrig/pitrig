@@ -18,6 +18,8 @@ namespace Pitrig.SimHub
 
         public Dictionary<string, int> Positions { get; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
+        public Dictionary<int, string> Names { get; } = new Dictionary<int, string>();
+
         public static InputMapping Of(IEnumerable<KeyValuePair<int, string>> buttons,
             IEnumerable<KeyValuePair<int, string>> positions)
         {
@@ -40,10 +42,9 @@ namespace Pitrig.SimHub
                 var buttons = Items(inputs, "buttons");
                 for (var button = 0; button < buttons.Length; button += 1)
                 {
-                    foreach (var id in Ids(buttons[button] as Dictionary<string, object>, "sources"))
-                    {
-                        mapping.Press(button + 1, id);
-                    }
+                    var entry = buttons[button] as Dictionary<string, object>;
+                    mapping.Name(button + 1, entry);
+                    foreach (var id in Ids(entry, "sources")) mapping.Press(button + 1, id);
                 }
                 var positions = Ids(inputs.TryGetValue("switch", out var control) ? control as Dictionary<string, object> : null,
                     "positions");
@@ -61,6 +62,12 @@ namespace Pitrig.SimHub
             if (button < 1 || button > InputState.ButtonCount || string.IsNullOrEmpty(id)) return;
             Buttons.TryGetValue(id, out var bits);
             Buttons[id] = bits | (1u << (button - 1));
+        }
+
+        private void Name(int button, Dictionary<string, object> entry)
+        {
+            if (button > InputState.ButtonCount || entry == null) return;
+            if (entry.TryGetValue("name", out var name) && name is string text && text.Length > 0) Names[button] = text;
         }
 
         private void Place(int position, string id)

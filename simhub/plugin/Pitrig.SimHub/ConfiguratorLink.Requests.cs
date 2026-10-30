@@ -27,6 +27,15 @@ namespace Pitrig.SimHub
             }
         }
 
+        public List<string> HeldPorts()
+        {
+            lock (gate)
+            {
+                if (clock.Elapsed.TotalMilliseconds - holdsAt > SubscriberTimeoutMs) return new List<string>();
+                return holds.OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToList();
+            }
+        }
+
         public List<LinkRelease> TakeReleases()
         {
             lock (gate)
