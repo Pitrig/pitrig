@@ -40,9 +40,13 @@ of the board's previous session at once and switches to the documents' when
 they arrive, and a request the board answers `busy` is sent again. A board that
 takes no data for a moment misses updates rather than receiving them late, and
 counts as lost only once a write has waited two seconds. A board in safe mode is
-shown and left alone. The panel lists each board, what it is sent and how many
-bytes a second, the shift-light source of the current car, and what the plugin
-costs SimHub per update.
+shown and left alone. The plugin's page in SimHub has four tabs: Status lists
+each board, what it is sent and how many bytes a second, the ports the
+configurator holds and the shift-light source of the current car; Settings
+applies each change as it is made and saves it a second later; Buttons shows the
+logical buttons and the switch position live, with the last input pressed and
+what it pressed; About carries the version, the links, the licence and what the
+plugin costs SimHub per update.
 
 ## Shift lights
 
@@ -118,7 +122,7 @@ pressure and brake averages take a sample every three seconds outside the pits,
 keep as many as the chosen laps hold at the best lap over three seconds, and last
 until SimHub restarts; LMU's tyre temperature blends the carcass and inner layers.
 The laps left in a timed session run on the best lap, else the last lap clear of
-the pit lane, else the all-time best. The panel's fuel margin and averages start
+the pit lane, else the all-time best. The Settings tab's fuel margin and averages start
 from the defaults the mapping's `parameters` name.
 
 ## Buttons
@@ -202,6 +206,6 @@ from `telemetry/simhub_generic_mappings.json`.
 A Debug build, `dotnet build` without `-c Release`, is the development build: it
 writes `Logs\Pitrig-trace.log` in the SimHub folder — each board's sessions,
 requests and states, and every pause over half a second, whether SimHub sent no
-update or a board took no data — and adds a diagnostics section to the panel.
+update or a board took no data — and adds a Diagnostics tab to the plugin's page.
 The Release build that CI and the installer use carries none of it
 ([ADR 0028](adr/0028-debug-build-and-debug-application-boundary.md)).

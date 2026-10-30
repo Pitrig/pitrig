@@ -62,6 +62,7 @@ namespace Pitrig.SimHub
         public void Attach(PitrigPlugin plugin)
         {
             owner = plugin;
+            Interlocked.Exchange(ref stateStale, 1);
             Apply(plugin.Settings);
         }
 
@@ -73,13 +74,13 @@ namespace Pitrig.SimHub
         public void Apply(PluginSettings next)
         {
             lock (settingsGate) settings = next;
-            Interlocked.Exchange(ref stateStale, 1);
             Error = null;
             if (!next.Enabled)
             {
                 Shutdown();
                 return;
             }
+            if (!running) Interlocked.Exchange(ref stateStale, 1);
             if (linkPort != next.Port || !link.IsOpen)
             {
                 try

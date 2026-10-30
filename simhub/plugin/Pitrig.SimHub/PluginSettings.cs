@@ -13,6 +13,18 @@ namespace Pitrig.SimHub
         public int AverageLaps { get; set; } = (int)TelemetryCatalog.ParameterAverageLaps;
 
         public List<KnownPort> KnownPorts { get; set; } = new List<KnownPort>();
+
+        public PluginSettings Copy()
+        {
+            return new PluginSettings
+            {
+                Port = Port,
+                Enabled = Enabled,
+                FuelMargin = FuelMargin,
+                AverageLaps = AverageLaps,
+                KnownPorts = KnownPorts
+            };
+        }
     }
 
     public class KnownPort
