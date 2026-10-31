@@ -84,6 +84,10 @@ void invalidate_value(const State& state, const lv_area_t* const previous) {
     area = {std::min(area.x1, previous->x1), std::min(area.y1, previous->y1),
             std::max(area.x2, previous->x2), std::max(area.y2, previous->y2)};
   }
+  if (state.full_width) {
+    area.x1 = LV_COORD_MIN;
+    area.x2 = LV_COORD_MAX;
+  }
   (void)lv_obj_invalidate_area(state.container, &area);
 }
 
