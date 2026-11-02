@@ -8,8 +8,7 @@ import {
   isFontLibraryAddRequest,
   isFontLibraryIdRequest,
   isFontLibraryImportRequest,
-  isImageUploadRequest,
-  isSimHubProfileExportRequest
+  isImageUploadRequest
 } from './request-guards'
 import type { AssetResult } from '../../shared/asset-upload'
 import {
@@ -38,10 +37,6 @@ import {
   IMAGE_UPLOAD_CHANNEL
 } from '../../shared/image-assets'
 import { PREVIEW_ASSETS_READ_CHANNEL } from '../../shared/preview-assets'
-import {
-  SIMHUB_PROFILE_EXPORT_CHANNEL,
-  type SimHubProfileResult
-} from '../../shared/simhub-profile'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
 import { BoardUpdateService } from '../firmware-update/board-update-service'
@@ -50,7 +45,6 @@ import { FontAssetService } from '../font-assets/font-asset-service'
 import { FontCatalogService } from '../font-library/font-catalog-service'
 import { FontLibraryService } from '../font-library/font-library-service'
 import { ImageAssetService } from '../image-assets/image-asset-service'
-import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 import { broadcastFontLibraryChanged } from './register-ipc-handlers'
 import { t } from '@shared/ui-text'
 
@@ -60,7 +54,6 @@ export function registerAssetHandlers(
   imageAssetService: ImageAssetService,
   firmwareUpdateService: FirmwareUpdateService,
   boardUpdateService: BoardUpdateService,
-  simHubProfileService: SimHubProfileService,
   previewAssetCache: PreviewAssetCache,
   fontLibraryService: FontLibraryService,
   fontCatalogService: FontCatalogService
@@ -161,19 +154,6 @@ export function registerAssetHandlers(
       return result
     }
     return imageAssetService.upload(request)
-  })
-  ipcMain.handle(SIMHUB_PROFILE_EXPORT_CHANNEL, (event, request: unknown) => {
-    if (!isSimHubProfileExportRequest(request)) {
-      const result: SimHubProfileResult<never> = {
-        ok: false,
-        error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidSimhubProfileRequest') }
-      }
-      return result
-    }
-    return simHubProfileService.export(
-      request,
-      BrowserWindow.fromWebContents(event.sender) ?? undefined
-    )
   })
 }
 

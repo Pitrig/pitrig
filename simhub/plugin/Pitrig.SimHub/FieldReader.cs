@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using SimHub.Plugins;
@@ -81,8 +82,18 @@ namespace Pitrig.SimHub
         {
             if (field.Property == null) return null;
             var value = pluginManager.GetPropertyValue(field.Property);
-            if (value != null || field.PropertyFallback == null) return value;
-            return pluginManager.GetPropertyValue(field.PropertyFallback);
+            if (value == null && field.PropertyFallback != null)
+            {
+                value = pluginManager.GetPropertyValue(field.PropertyFallback);
+            }
+            if (value == null || field.UnitFactors == null) return value;
+            var unit = pluginManager.GetPropertyValue(field.UnitProperty) as string;
+            return Localized(Convert.ToDouble(value, Culture), unit, field.UnitFactors);
+        }
+
+        public static double? Localized(double value, string unit, Dictionary<string, double> factors)
+        {
+            return unit != null && factors.TryGetValue(unit, out var factor) ? value * factor : (double?)null;
         }
 
         private static string Format(TelemetryField field, object value, double scale)
@@ -105,7 +116,18 @@ namespace Pitrig.SimHub
 
         private static string Number(TelemetryField field, double number, string format)
         {
-            return Unavailable(field, number) ? null : number.ToString(format, Culture);
+            return Unavailable(field, number) ? null : number.ToString(StepFormat(field, number) ?? format, Culture);
+        }
+
+        private static string StepFormat(TelemetryField field, double number)
+        {
+            if (field.FormatSteps == null) return null;
+            var size = Math.Abs(number);
+            foreach (var step in field.FormatSteps)
+            {
+                if (step.Inclusive ? size <= step.Limit : size < step.Limit) return step.Format;
+            }
+            return null;
         }
 
         private static bool Unavailable(TelemetryField field, double number)

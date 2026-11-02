@@ -86,9 +86,9 @@ scheduler, value latency and refreshes per second:
 | screen | before | with the scheduler |
 |---|---|---|
 | eight text widgets (`text_only`) | 23.3 ms, 59 fps | 10.4 ms, 59 fps |
-| Lovely times screen (`p2`) | 25.3 ms, 59 fps | 13.1 ms, 57 fps |
-| Lovely fuel screen (`p3`) | 15.5 ms, 58 fps | 12.9 ms, 54.5 fps |
-| Lovely main screen (`p1`) | 21.5 ms, 59 fps | 19.0 ms, 55 fps |
+| dense dashboard, times screen (`p2`) | 25.3 ms, 59 fps | 13.1 ms, 57 fps |
+| dense dashboard, fuel screen (`p3`) | 15.5 ms, 58 fps | 12.9 ms, 54.5 fps |
+| dense dashboard, main screen (`p1`) | 21.5 ms, 59 fps | 19.0 ms, 55 fps |
 | sixteen text widgets (`text_16`) | 23.7 ms, 59 fps | 21.3 ms, 57.8 fps |
 
 Light screens gain most of a refresh. The main screen and `text_16` are heavy — their frames
@@ -104,7 +104,7 @@ outlasts the period is paced to the second refresh more often, because the pacin
 0027 now sees the true cost rather than one with the previous hold subtracted. The debugger's
 `full_screen_bar`, whose frames take 18–20 ms, goes from 45.8 to 41 fps without the option and
 39.5 with it — a steadier cadence at a lower rate. Nothing in a real dashboard repaints the
-whole screen every frame; the Lovely screens measure the same either way.
+whole screen every frame; the dense dashboard's screens measure the same either way.
 
 What remains is the jitter. On the times screen the display switches between on time and one
 refresh behind about twice a second, each switch a repeated frame or a dropped packet; the

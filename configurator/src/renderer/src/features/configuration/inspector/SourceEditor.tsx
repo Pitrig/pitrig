@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import { type TextSourceConfiguration, VALUE_AFFIX_CAPACITY, type ValueTransform } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
-import { MAXIMUM_TRANSFORM_DECIMALS, unitPresetsFor } from '@shared/value-transform'
+import { applyUnit, defaultUnit, MAXIMUM_TRANSFORM_DECIMALS, selectedUnit, unitPresetsFor } from '@shared/value-transform'
 import { DEFAULT_TEXT_BINDING } from '@shared/validate/values'
 import { authored } from './authored'
 import { t } from '@shared/ui-text'
@@ -44,6 +44,10 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
           clearTransformType(next.transform)
           pruneTransform(next)
         }
+        const preferred = defaultUnit(selected)
+        if (preferred && (binding?.unit !== selected?.unit || binding?.category !== selected?.category)) {
+          applyUnit(next, preferred, selectedUnit(unitPresetsFor(selected), next.transform))
+        }
       })} />
       <SelectField label={t('inspector.conditionsEditor.modifier')} hint={t('inspector.hints.data.modifier')} value={source.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} modified={source.modifiers !== undefined} onReset={() => onChange((next) => { delete next.modifiers })} onChange={(value) => onChange((next) => {
         if (value === 'lap_timer') { next.binding = 'session.lap.current_time'; next.modifiers = [{ type: 'lap_timer' }] }
@@ -61,15 +65,12 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
         next.transform = transform
         pruneTransform(next)
       })} />
+      {presets.length > 0 ? <SelectField label={t('inspector.sourceEditor.units')} hint={t('inspector.hints.text.units')} value={selectedUnit(presets, source.transform)?.label ?? ''} options={presets.map(({ label }) => label)} onChange={(label) => onChange((next) => {
+        const unit = presets.find((entry) => entry.label === label)
+        if (unit) applyUnit(next, unit, selectedUnit(presets, next.transform))
+      })} /> : null}
       {source.transform?.type === 'number' ? (
         <>
-          {presets.length > 0 ? <SelectField label={t('inspector.sourceEditor.preset')} hint={t('inspector.hints.text.preset')} value={presets.find(({ scale, offset }) => scale === source.transform?.scale && offset === (source.transform?.offset ?? 0))?.label ?? ''} options={presets.map(({ label }) => label)} onChange={(label) => onChange((next) => {
-            const preset = presets.find((entry) => entry.label === label)
-            if (!preset || !next.transform) return
-            next.transform.scale = preset.scale
-            next.transform.offset = preset.offset
-            next.transform.suffix = preset.suffix
-          })} /> : null}
           <PropertyRow
             label={t('inspector.sourceEditor.number')}
             hint={t('inspector.hints.text.scale')}

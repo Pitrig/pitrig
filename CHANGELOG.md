@@ -24,6 +24,57 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
+## 0.3.1 — 2026-11-02
+
+**Configuration schema 27 and the same partition table:** updating a board keeps
+its configuration. The telemetry catalog grows from 256 to 263 fields without
+moving an identifier. The Pitrig plugin is now the only way data reaches a board:
+if a Custom Serial device in SimHub still uses the board's port, switch it off,
+because whichever opens the port first keeps it.
+
+**Added**
+
+- The Pitrig plugin's page in SimHub has four tabs built from SimHub's own
+  controls. **Status** holds the on/off switch, a row for each board (one the
+  configurator holds shows as held rather than missing), the configurator with a
+  button that opens or downloads it, and the current car's shift-light source.
+  **Settings** holds the fuel margin, the averages and the listen port.
+  **Buttons** shows the sixteen buttons and the switch position live, under the
+  names the modules document gives them. **About** has the version, how updates
+  arrive, the links and the licence.
+- The plugin works out more values on its own: position and class position from
+  SimHub's leaderboard row, fuel time and laps left, lap validity by each game's
+  rule, the estimate and the delta, their colours and the last lap's, sector times
+  and colours, fuel to finish and to add with a fuel margin, the pit call, hybrid
+  modes by name, the LMU engine map, iRacing's brake bias and DRS, the session type
+  in capitals, averages sampled every three seconds outside the pits, and LMU's
+  tyre temperature blend.
+- Seven new fields: the bodywork damage grades `vehicle.damage.front_grade`,
+  `rear_grade`, `left_grade` and `right_grade`, the estimated repair time
+  `vehicle.damage.repair_time`, the track condition `track.condition` and the
+  30-minute rain forecast `environment.forecast_30`.
+- The inspector's **Units** choice converts speed, temperature, pressure, fuel and
+  revs, with each unit's decimals and caption.
+
+**Changed**
+
+- The catalog's limit goes from 256 to 350 fields.
+- The bundled dashboards show tyre pressure in psi.
+- A change in the plugin's settings applies at once and no longer resets the
+  session state.
+
+**Fixed**
+
+- On the Guition JC1060P470C a value wider than its widget left digits behind
+  beside the box when it changed, such as next to the brake temperatures.
+- Tyre and oil pressure no longer depend on the display unit set in SimHub: the
+  plugin converts what SimHub hands over back to kPa.
+
+**Removed**
+
+- The Custom Serial Device profile and its export page on the Protocol page. A
+  computed field now lives once, in the plugin.
+
 ## 0.3.0 — 2026-10-27
 
 **Configuration schema 27.** A board updated to this firmware refuses its stored

@@ -17,13 +17,13 @@ namespace Pitrig.SimHub
             for (var button = 0; button < InputState.ButtonCount; button += 1)
             {
                 var index = button;
-                plugin.AddAction("Button" + (index + 1), (source, name) => inputs.Action(index, true),
+                plugin.AddAction(InputState.ButtonAction + (index + 1), (source, name) => inputs.Action(index, true),
                     (source, name) => inputs.Action(index, false));
             }
             for (var position = 1; position <= InputState.PositionCount; position += 1)
             {
                 var selected = position;
-                plugin.AddAction("SwitchPosition" + selected, (source, name) => inputs.Select(selected),
+                plugin.AddAction(InputState.PositionAction + selected, (source, name) => inputs.Select(selected),
                     (source, name) => { });
             }
             manager = pluginManager;

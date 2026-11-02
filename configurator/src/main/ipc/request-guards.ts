@@ -35,11 +35,6 @@ import type {
 } from '@shared/device'
 import type { ConfigurationFileSaveRequest } from '@shared/configuration-files'
 import {
-  isValidSimHubParameter,
-  SIMHUB_PROFILE_PARAMETER_NAMES,
-  type SimHubProfileExportRequest
-} from '@shared/simhub-profile'
-import {
   BUNDLED_TEMPLATE_PREFIX,
   MAXIMUM_TEMPLATE_DESCRIPTION,
   MAXIMUM_TEMPLATE_NAME,
@@ -227,28 +222,6 @@ export function isFirmwareUploadRequest(value: unknown): value is FirmwareUpload
     typeof request.sourceId === 'string' &&
     request.sourceId.length > 0 &&
     request.sourceId.length <= 128
-  )
-}
-
-export function isSimHubProfileExportRequest(value: unknown): value is SimHubProfileExportRequest {
-  if (!value || typeof value !== 'object') return false
-  const request = value as Partial<SimHubProfileExportRequest>
-  return (
-    Array.isArray(request.fieldNames) &&
-    request.fieldNames.length > 0 &&
-    request.fieldNames.length <= 256 &&
-    request.fieldNames.every(
-      (name) => typeof name === 'string' && name.length > 0 && name.length <= 39
-    ) &&
-    typeof request.baudRate === 'number' &&
-    Number.isInteger(request.baudRate) &&
-    request.baudRate >= 9_600 &&
-    request.baudRate <= 2_000_000 &&
-    typeof request.parameters === 'object' &&
-    request.parameters !== null &&
-    SIMHUB_PROFILE_PARAMETER_NAMES.every((name) =>
-      isValidSimHubParameter(name, request.parameters?.[name])
-    )
   )
 }
 

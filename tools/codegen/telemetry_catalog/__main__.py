@@ -11,7 +11,7 @@ from .cpp import generate_cpp
 from .csharp import generate_csharp
 from .errors import LABEL, fail
 from .markdown import generate_markdown
-from .simhub import generate_shsds, generate_simhub, generate_simhub_typescript
+from .simhub import generate_simhub, generate_simhub_typescript
 from .typescript import generate_typescript
 
 
@@ -30,8 +30,6 @@ def expected_outputs(
             outputs[path] = generate_typescript(document, fields, simhub_mappings, games)
         elif kind == "markdown":
             outputs[path] = generate_markdown(document, fields, simhub_mappings, games)
-        elif kind == "shsds":
-            outputs[path] = generate_shsds(simhub_profile, fields, simhub_mappings)
         elif kind == "csharp":
             outputs[path] = generate_csharp(simhub_profile, fields, simhub_mappings)
         elif kind == "simhub_typescript":

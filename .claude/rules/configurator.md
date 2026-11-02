@@ -14,7 +14,7 @@ Fonts catalog, the `save-to-board/` orchestrator, `firmware-update/` with the
 `Update board` sequence, the `telemetry-bridge/` relay, the `updates/` channel
 (ADR 0037, registered by the product entry point only, like the bridge), the
 `ipc/` registrations, config files, the dashboard `templates/` library, the
-`configs/` folder and recent-files list, SimHub profile export),
+`configs/` folder and recent-files list),
 `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
 `configuration`, `controls`, `device`, `firmware-update`, `font-library`, `image-assets`,
 `modules`, `protocol`, `telemetry`, `templates`, `updates`). `shared/` is everything both
@@ -27,7 +27,7 @@ alone; **every other channel is declared in the shared module for its feature** 
 beside its request and result types, into `PitrigApi`, into the registration
 that owns the area — `main/ipc/register-ipc-handlers.ts` for the device and the
 save, `register-library-handlers.ts` for files, configurations and templates,
-`register-asset-handlers.ts` for fonts, images, firmware and the SimHub profile,
+`register-asset-handlers.ts` for fonts, images and firmware,
 `main/telemetry-bridge/register-telemetry-bridge.ts` for the bridge — and the
 preload bridge.
 
