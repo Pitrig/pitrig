@@ -99,8 +99,8 @@ Editor gaps against SimHub are in
 - [ ] Telemetry staleness
 - [ ] Crash diagnostics
 - [ ] Safe mode shown on screen
-- [ ] Firmware version awareness
-- [ ] Firmware downloaded from the latest release and installed in the app
+- [*] Firmware version awareness
+- [*] Firmware downloaded from the latest release and installed in the app
 
 # Phase 7 — Telemetry
 
