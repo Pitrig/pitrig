@@ -69,7 +69,7 @@ the OTA status.
 on demand: `checks` (the five generators with `--check`, `check_debug_isolation.py --check`, the
 configurator's typecheck and lint), `simhub-plugin` (the Release DLL built on `windows-latest` against
 a SimHub pinned by digest, and checked for the development build's `*.Debug.cs` types),
-`configurator` (electron-builder on macOS, Windows and Linux; the Windows
+`configurator` (electron-builder on Windows and on macOS for Apple silicon only; the Windows
 installer carries the DLL and copies it into SimHub through `configurator/installer/simhub-plugin.nsh`),
 `firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers, the
 Windows `latest.yml` and blockmap the configurator updates itself from (ADR 0037), the DLL and

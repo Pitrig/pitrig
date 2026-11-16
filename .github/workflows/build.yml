@@ -127,12 +127,6 @@ jobs:
               configurator/dist/*.exe
               configurator/dist/*.exe.blockmap
               configurator/dist/latest.yml
-          - os: ubuntu-latest
-            label: Linux
-            artifact: configurator-linux
-            files: |
-              configurator/dist/*.AppImage
-              configurator/dist/*.deb
     steps:
       - uses: actions/checkout@v7
 
@@ -141,12 +135,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - run: npm install --global pnpm@${{ env.PNPM_VERSION }}
-
-      - name: Serial port build dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes libudev-dev
 
       - name: Install
         working-directory: configurator
@@ -274,7 +262,7 @@ jobs:
       - name: Gather
         run: |
           mkdir -p release
-          find downloads -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.exe.blockmap' -o -name 'latest.yml' -o -name '*.AppImage' -o -name '*.deb' -o -name 'Pitrig.SimHub.dll' \) \
+          find downloads -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.exe.blockmap' -o -name 'latest.yml' -o -name 'Pitrig.SimHub.dll' \) \
             -exec cp {} release/ \;
           test -f release/latest.yml
           for board in downloads/firmware-*; do

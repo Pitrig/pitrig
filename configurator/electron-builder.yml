@@ -23,7 +23,6 @@ mac:
     - target: dmg
       arch:
         - arm64
-        - x64
 win:
   icon: resources/icon.png
   target:
@@ -33,20 +32,7 @@ win:
       to: simhub-plugin
       filter:
         - Pitrig.SimHub.dll
-linux:
-  icon: resources/icon.png
-  category: Development
-  maintainer: Illia Lukashchuk <contact.pitrig@gmail.com>
-  executableName: pitrig
-  syncDesktopName: true
-  target:
-    - AppImage
-    - deb
 
 nsis:
   artifactName: Pitrig-Setup-${version}.${ext}
   include: installer/simhub-plugin.nsh
-
-deb:
-  packageName: pitrig
-  artifactName: pitrig_${version}_${arch}.${ext}

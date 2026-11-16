@@ -48,7 +48,6 @@ body:
       options:
         - macOS
         - Windows
-        - Linux
     validations:
       required: true
 
