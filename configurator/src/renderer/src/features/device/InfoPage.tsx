@@ -8,6 +8,7 @@ import { useAppInfo } from './app-info'
 import { describeBootFailures, describeLastBoot } from './device-health'
 import { useDeviceStore } from './device-store'
 import { UpdatesSection } from '@/features/updates/UpdatesSection'
+import { UsageSection } from '@/features/updates/UsageSection'
 
 function describeDocumentState(state: ConfigurationDocumentState): string {
   const label = t(`device.documentState.${state.outcome}`)
@@ -119,6 +120,7 @@ export function InfoPage(): React.JSX.Element {
         </div>
       </PageSection>
       <UpdatesSection />
+      <UsageSection />
     </PageShell>
   )
 }

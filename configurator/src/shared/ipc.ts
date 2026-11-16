@@ -1,4 +1,5 @@
 import type { AssetResult, AssetUploadProgress } from './asset-upload'
+import type { UsageSetRequest, UsageSettings } from './usage'
 import type { ImageSourceSelection, ImageUploadRequest } from './image-assets'
 import type {
   ConnectDeviceRequest,
@@ -158,6 +159,8 @@ export interface PitrigApi {
   prepareReleaseFirmware: () => Promise<PrepareFirmwareResult>
   installSimHubPlugin: (request: InstallPluginRequest) => Promise<InstallPluginResult>
   onUpdateStatus: (listener: (status: UpdateStatus) => void) => () => void
+  getUsageSettings: () => Promise<UsageSettings>
+  setUsageSettings: (request: UsageSetRequest) => Promise<UsageSettings>
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
   uploadImageAssets: (request: ImageUploadRequest) => Promise<AssetResult<void>>
   cancelImageUpload: () => Promise<AssetResult<void>>

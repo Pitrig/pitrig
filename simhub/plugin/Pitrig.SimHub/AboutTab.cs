@@ -49,6 +49,10 @@ namespace Pitrig.SimHub
                     PageParts.Link("Guides", Guides),
                     PageParts.Link("Source code", Repository),
                     PageParts.Link("Report a problem", Issues)),
+                PageParts.Section("STATISTICS",
+                    PageParts.Text("Pitrig sends anonymous usage statistics: a random install number, the plugin and " +
+                                   "SimHub versions, the board model and the game that runs. No names or files. The " +
+                                   "switch is on the Info page of the Pitrig configurator.")),
                 PageParts.Section("LICENSE",
                     PageParts.Text("The plugin is open source under the Apache License 2.0."),
                     PageParts.Link("Read the license", License)),

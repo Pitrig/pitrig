@@ -19,6 +19,7 @@ import {
   UPDATES_STATUS_CHANNEL,
   type UpdateStatus
 } from '../shared/app-updates'
+import { USAGE_GET_CHANNEL, USAGE_SET_CHANNEL } from '../shared/usage'
 import {
   IMAGE_CANCEL_UPLOAD_CHANNEL,
   IMAGE_CLEAR_CHANNEL,
@@ -180,6 +181,8 @@ export const productApi: PitrigApi = {
     ipcRenderer.on(UPDATES_STATUS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(UPDATES_STATUS_CHANNEL, handler)
   },
+  getUsageSettings: () => ipcRenderer.invoke(USAGE_GET_CHANNEL),
+  setUsageSettings: (request) => ipcRenderer.invoke(USAGE_SET_CHANNEL, request),
   selectImageSource: () => ipcRenderer.invoke(IMAGE_SELECT_SOURCE_CHANNEL),
   uploadImageAssets: (request) => ipcRenderer.invoke(IMAGE_UPLOAD_CHANNEL, request),
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),

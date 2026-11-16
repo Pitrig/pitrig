@@ -23,18 +23,26 @@ import {
 } from './ipc/register-ipc-handlers'
 import { registerTelemetryBridge } from './telemetry-bridge/register-telemetry-bridge'
 import { registerUpdates } from './updates/register-updates'
+import { registerUsage } from './usage/register-usage'
 
 if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)
   app.commandLine.appendSwitch('remote-allow-origins', 'http://localhost')
 }
 
+const usage = registerUsage()
 const services: AppServices = createAppServices({
-  onDeviceState: broadcastDeviceState,
+  onDeviceState: (state) => {
+    broadcastDeviceState(state)
+    usage.observeDevice(state)
+  },
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onBoardUpdateProgress: broadcastBoardUpdateProgress,
   onImageUploadProgress: broadcastImageUploadProgress,
-  onSaveProgress: broadcastSaveProgress
+  onSaveProgress: (progress) => {
+    broadcastSaveProgress(progress)
+    usage.observeSave(progress)
+  }
 })
 const telemetryBridge = registerTelemetryBridge(services.deviceService)
 const updates = registerUpdates(services.deviceService, services.firmwareUpdateService)
@@ -60,6 +68,7 @@ app.whenReady().then(() => {
   registerIpcHandlers(services)
   createWindow()
   updates.start()
+  usage.start(telemetryBridge)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
