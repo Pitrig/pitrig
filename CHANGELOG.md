@@ -24,6 +24,26 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
+## 0.3.2 — 2026-11-16
+
+**Configuration schema 27, firmware 0.3.1 and the same partition table:** a
+board needs no update, and the release carries the same firmware images. This
+version is about the computer: what the apps report, and which installers exist.
+
+**Added**
+
+- The configurator and the SimHub plugin report anonymous usage to pitrig.com:
+  a random install number, their versions and system, the board model and
+  firmware, the games SimHub runs, and when a save finishes or the app crashes.
+  One switch on the configurator's Info page turns both off (ADR 0040).
+
+**Removed**
+
+- The configurator is no longer built for Intel Macs or for Linux: a release
+  carries the Windows installer and the disk image for Macs with Apple silicon.
+  An Intel or Linux configurator that is already installed still reports a new
+  release, but the release has no package for it.
+
 ## 0.3.1 — 2026-11-02
 
 **Configuration schema 27 and the same partition table:** updating a board keeps
