@@ -2503,5 +2503,17 @@
       "sentBy": "Sent by {games}; the others keep the placeholder",
       "noneOfTheGames": "ACC, AC, iRacing and LMU do not send it"
     }
+  },
+  "usage": {
+    "section": {
+      "title": "Anonymous usage statistics",
+      "description": "Helps decide what to build next. The configurator and the Pitrig plugin in SimHub send a random install number, their versions, the system, the board model and firmware, the games that run in SimHub, and when a save finishes or the app crashes. No names, files, dashboards or addresses are sent. This switch covers the SimHub plugin on this computer too.",
+      "enabled": "On",
+      "disabled": "Off",
+      "developmentBuild": "This is a development build, so it sends nothing.",
+      "state": "Sending",
+      "turnOff": "Turn off",
+      "turnOn": "Turn on"
+    }
   }
 }

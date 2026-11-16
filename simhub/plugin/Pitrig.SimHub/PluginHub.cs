@@ -24,6 +24,7 @@ namespace Pitrig.SimHub
         private readonly object settingsGate = new object();
         private readonly ConfiguratorLink link;
         private readonly BoardManager boards;
+        private readonly UsageReporter usage;
         private PitrigPlugin owner;
         private PluginSettings settings = new PluginSettings();
         private int settingsDirty;
@@ -39,6 +40,7 @@ namespace Pitrig.SimHub
         {
             link = new ConfiguratorLink(clock);
             boards = new BoardManager(values, link, clock, state.Inputs);
+            usage = new UsageReporter(boards);
             state.Inputs.Listen(link.ReportInput);
             AppDomain.CurrentDomain.ProcessExit += (sender, arguments) => Shutdown();
         }
@@ -64,6 +66,7 @@ namespace Pitrig.SimHub
             owner = plugin;
             Interlocked.Exchange(ref stateStale, 1);
             Apply(plugin.Settings);
+            usage.Start();
         }
 
         public void Detach(PitrigPlugin plugin)
@@ -116,6 +119,7 @@ namespace Pitrig.SimHub
             PluginSettings current;
             lock (settingsGate) current = settings;
             state.Update(pluginManager, data, current, now);
+            usage.ObserveGame(state.GameName, state.Status != null);
             Array.Clear(wanted, 0, wanted.Length);
             boards.CollectWanted(wanted);
             link.CollectWanted(wanted);

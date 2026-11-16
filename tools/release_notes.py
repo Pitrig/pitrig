@@ -9,10 +9,7 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 
 INSTALLERS = [
     ("macOS, Apple silicon", re.compile(r"-arm64\.dmg$")),
-    ("macOS, Intel", re.compile(r"(?<!-arm64)\.dmg$")),
     ("Windows", re.compile(r"\.exe$")),
-    ("Linux, AppImage", re.compile(r"\.AppImage$")),
-    ("Linux, Debian and Ubuntu", re.compile(r"\.deb$")),
 ]
 
 PLUGIN = "Pitrig.SimHub.dll"
@@ -88,9 +85,9 @@ def render(args: argparse.Namespace) -> str:
         "",
         "Nothing here is signed. On macOS run `xattr -dr com.apple.quarantine "
         "/Applications/Pitrig.app` once after installing. On Windows, SmartScreen warns about "
-        "the installer: choose More info, then Run anyway. From this version on the Windows "
-        "configurator downloads the next release by itself and installs it on restart; macOS "
-        "and Linux show a link to it.",
+        "the installer: choose More info, then Run anyway. Once installed, the Windows "
+        "configurator downloads each new release by itself and installs it on restart; the "
+        "macOS one shows a link to it.",
         "",
         plugin_paragraph(names, args.repo, args.tag),
         "",

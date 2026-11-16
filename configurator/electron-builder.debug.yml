@@ -22,8 +22,3 @@ win:
   icon: resources/icon.png
   target:
     - dir
-linux:
-  icon: resources/icon.png
-  category: Development
-  target:
-    - dir

@@ -2,9 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Security;
 using System.Text.RegularExpressions;
-using Microsoft.Win32;
 
 namespace Pitrig.SimHub
 {
@@ -12,27 +10,13 @@ namespace Pitrig.SimHub
     {
         public const string DownloadPage = "https://www.pitrig.com/download";
 
-        private const string Uninstall = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
-        private const string DisplayName = "DisplayName";
         private const string DisplayIcon = "DisplayIcon";
 
         private static readonly Regex ProductName = new Regex(@"^Pitrig \d", RegexOptions.CultureInvariant);
 
-        private static readonly Tuple<RegistryHive, RegistryView>[] Roots =
-        {
-            Tuple.Create(RegistryHive.CurrentUser, RegistryView.Default),
-            Tuple.Create(RegistryHive.LocalMachine, RegistryView.Registry64),
-            Tuple.Create(RegistryHive.LocalMachine, RegistryView.Registry32)
-        };
-
         public static string Find()
         {
-            foreach (var root in Roots)
-            {
-                var found = Find(root.Item1, root.Item2);
-                if (found != null) return found;
-            }
-            return null;
+            return InstalledPrograms.Find(ProductName, entry => ExecutableOf(entry.GetValue(DisplayIcon) as string));
         }
 
         public static void Open(string executable)
@@ -51,32 +35,6 @@ namespace Pitrig.SimHub
             {
                 PluginLog.Warn("could not open " + target + ": " + exception.Message);
             }
-        }
-
-        private static string Find(RegistryHive hive, RegistryView view)
-        {
-            try
-            {
-                using (var root = RegistryKey.OpenBaseKey(hive, view))
-                using (var entries = root.OpenSubKey(Uninstall))
-                {
-                    if (entries == null) return null;
-                    foreach (var name in entries.GetSubKeyNames())
-                    {
-                        using (var entry = entries.OpenSubKey(name))
-                        {
-                            if (!(entry?.GetValue(DisplayName) is string product) || !ProductName.IsMatch(product)) continue;
-                            var executable = ExecutableOf(entry.GetValue(DisplayIcon) as string);
-                            if (executable != null) return executable;
-                        }
-                    }
-                }
-            }
-            catch (Exception exception) when (exception is SecurityException || exception is UnauthorizedAccessException ||
-                                              exception is IOException)
-            {
-            }
-            return null;
         }
 
         private static string ExecutableOf(string icon)

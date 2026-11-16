@@ -13,6 +13,7 @@ chooser and the preview cache; then the `font-library/` face store and Google
 Fonts catalog, the `save-to-board/` orchestrator, `firmware-update/` with the
 `Update board` sequence, the `telemetry-bridge/` relay, the `updates/` channel
 (ADR 0037, registered by the product entry point only, like the bridge), the
+`usage/` reporter (ADR 0040, product entry point only, off in development), the
 `ipc/` registrations, config files, the dashboard `templates/` library, the
 `configs/` folder and recent-files list),
 `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:

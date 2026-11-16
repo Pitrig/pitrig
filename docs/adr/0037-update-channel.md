@@ -24,8 +24,8 @@ draft or a prerelease is never offered. Development builds check only with
 
 **The configurator updates itself on Windows alone.** `electron-updater`
 downloads the next installer in the background from the release's `latest.yml`
-and installs it on quit or from "Restart and update". macOS and Linux builds are
-unsigned, so they compare versions and link to the release page.
+and installs it on quit or from "Restart and update". The macOS build is
+unsigned, so it compares versions and links to the release page.
 
 **A board is offered the firmware of the configurator's own release**, not the
 newest one: `firmware/version.txt` is built into the configurator, the image is
