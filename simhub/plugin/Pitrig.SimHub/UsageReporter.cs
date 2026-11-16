@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
+using Microsoft.Win32;
 
 namespace Pitrig.SimHub
 {
@@ -14,6 +16,8 @@ namespace Pitrig.SimHub
         private const string Endpoint = "https://www.pitrig.com/api/app";
         private const string Agent = "Pitrig-SimHub/";
         private const string DisplayVersion = "DisplayVersion";
+        private const string InstallLocation = "InstallLocation";
+        private const string SimHubExecutable = "SimHubWPF.exe";
         private const int TimeoutMs = 10000;
         private const int DetailLength = 48;
 
@@ -21,8 +25,8 @@ namespace Pitrig.SimHub
         private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(10);
         private static readonly Regex Unsafe = new Regex("[^A-Za-z0-9._:-]+", RegexOptions.CultureInvariant);
         private static readonly Regex SimHubName = new Regex("^SimHub", RegexOptions.CultureInvariant);
-        private static readonly Lazy<string> SimHubVersion = new Lazy<string>(() =>
-            InstalledPrograms.Find(SimHubName, entry => entry.GetValue(DisplayVersion) as string));
+        private static readonly Lazy<string> SimHubVersion =
+            new Lazy<string>(() => InstalledPrograms.Find(SimHubName, SimHubVersionOf));
 
         private readonly object gate = new object();
         private readonly HashSet<string> sent = new HashSet<string>();
@@ -152,6 +156,20 @@ namespace Pitrig.SimHub
             request.ContentLength = bytes.Length;
             using (var stream = request.GetRequestStream()) stream.Write(bytes, 0, bytes.Length);
             request.GetResponse().Dispose();
+        }
+
+        private static string SimHubVersionOf(RegistryKey entry)
+        {
+            var folder = (entry.GetValue(InstallLocation) as string)?.Trim().Trim('"');
+            if (string.IsNullOrEmpty(folder)) return null;
+            try
+            {
+                return File.Exists(Path.Combine(folder, SimHubExecutable)) ? entry.GetValue(DisplayVersion) as string : null;
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
         }
 
         private static string Clean(string value)
