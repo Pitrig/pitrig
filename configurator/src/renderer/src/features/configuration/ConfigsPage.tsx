@@ -24,6 +24,7 @@ import { ChangesSection } from './configs/ChangesSection'
 import { AdvancedJsonSection } from './configs/AdvancedJsonSection'
 import { LibrarySection } from './configs/LibrarySection'
 import { FeedbackNote } from './configs/FeedbackNote'
+import { ShareDashboardButton } from '@/features/dashboard-files/ShareDashboardDialog'
 import { BOARD_PROFILES, PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
 import { CONFIGURATION_DOCUMENTS, CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import {
@@ -117,7 +118,7 @@ export function ConfigsPage(): React.JSX.Element {
             ) : null}
           </label>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
               disabled={working || !targetBoard}
@@ -133,6 +134,7 @@ export function ConfigsPage(): React.JSX.Element {
               onClick={() => void act(saveConfigurationFile)}
             >
               {t('dashboard.configsPage.saveAs')}</Button>
+            <ShareDashboardButton />
           </div>
 
           {parsed.ok ? (

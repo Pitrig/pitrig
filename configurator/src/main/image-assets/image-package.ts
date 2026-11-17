@@ -1,30 +1,29 @@
 import { nativeImage } from 'electron'
+import { createHash } from 'node:crypto'
 import { promisify } from 'node:util'
 import { deflateRaw } from 'node:zlib'
 
 import { crc32 } from '../device/asset-crc'
 import {
   IMAGE_ID_PATTERN,
-  IMAGE_PACKAGE_ALIGNMENT,
   IMAGE_PACKAGE_DATA_OFFSET,
   IMAGE_PACKAGE_FORMAT_VERSION,
   MAXIMUM_IMAGES,
   MAXIMUM_IMAGE_DIMENSION,
   MAXIMUM_IMAGE_PACKAGE_SIZE,
   MAXIMUM_SPRITE_FRAMES,
+  alignImageOffset,
   imageAssetBytes,
   type ImageColorFormat
 } from '../../shared/image-assets'
+import { planesFromBitmap } from './image-pixels'
 import { t } from '@shared/ui-text'
 
 const HEADER_SIZE = 32
 const MANIFEST_ENTRY_SIZE = 64
-const ASSET_DATA_OFFSET = IMAGE_PACKAGE_DATA_OFFSET
-const FORMAT_VERSION = IMAGE_PACKAGE_FORMAT_VERSION
 
-const COMPRESSION_NONE = 0
-const COMPRESSION_DEFLATE = 1
-const IMAGE_ALIGNMENT = IMAGE_PACKAGE_ALIGNMENT
+export const COMPRESSION_NONE = 0
+export const COMPRESSION_DEFLATE = 1
 
 const FORMAT_CODES: Record<ImageColorFormat, number> = {
   rgb565: 1,
@@ -33,13 +32,6 @@ const FORMAT_CODES: Record<ImageColorFormat, number> = {
 }
 
 const deflateRawAsync = promisify(deflateRaw)
-
-async function storedBytes(raw: Buffer): Promise<{ bytes: Buffer; compression: number }> {
-  const deflated = await deflateRawAsync(raw, { level: 9 })
-  return deflated.byteLength < raw.byteLength
-    ? { bytes: deflated, compression: COMPRESSION_DEFLATE }
-    : { bytes: raw, compression: COMPRESSION_NONE }
-}
 
 export interface ImageSource {
   name: string
@@ -59,6 +51,26 @@ export interface ConvertedImage {
   bytes: Buffer
 }
 
+export interface PackageImage {
+  name: string
+  format: ImageColorFormat
+  width: number
+  height: number
+  stride: number
+  frameCount: number
+  compression: number
+  data: Buffer
+  sha256: string
+}
+
+export function imageStride(width: number, format: ImageColorFormat): number {
+  return format === 'alpha8' ? width : width * 2
+}
+
+export function planesDigest(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex')
+}
+
 export function convertImage(source: ImageSource): ConvertedImage {
   if (source.paths.length === 0) {
     throw new Error(t('images.imagePackage.nameHasNoImageFile', { name: source.name }))
@@ -74,7 +86,7 @@ export function convertImage(source: ImageSource): ConvertedImage {
     format: source.format,
     width: source.width,
     height: source.height,
-    stride: source.format === 'alpha8' ? source.width : source.width * 2,
+    stride: imageStride(source.width, source.format),
     frameCount: frames.length,
     bytes: frames.length === 1 ? frames[0]! : Buffer.concat(frames)
   }
@@ -90,63 +102,58 @@ function convertFrame(source: ImageSource, path: string): Buffer {
       ? decoded
       : decoded.resize({ width: source.width, height: source.height, quality: 'best' })
   const { width, height } = resized.getSize()
+  if (width !== source.width || height !== source.height) {
+    throw new Error(t('images.imagePackage.nameCouldNotBeResized', { name: source.name, width: source.width, height: source.height }))
+  }
   const bgra = resized.toBitmap()
   if (bgra.byteLength < width * height * 4) {
     throw new Error(t('images.imagePackage.nameDecodedToAnUnexpected', { name: source.name }))
   }
-
-  const pixels = width * height
-  const colorBytes = source.format === 'alpha8' ? 0 : pixels * 2
-  const bytes = Buffer.alloc(imageAssetBytes(width, height, source.format))
-  for (let index = 0; index < pixels; ++index) {
-    const blue = bgra[index * 4] ?? 0
-    const green = bgra[index * 4 + 1] ?? 0
-    const red = bgra[index * 4 + 2] ?? 0
-    const alpha = bgra[index * 4 + 3] ?? 255
-    if (source.format === 'alpha8') {
-      bytes.writeUInt8(alpha, index)
-      continue
-    }
-    bytes.writeUInt16LE(
-      ((red & 0xf8) << 8) | ((green & 0xfc) << 3) | (blue >> 3),
-      index * 2
-    )
-    if (source.format === 'rgb565a8') {
-      bytes.writeUInt8(alpha, colorBytes + index)
-    }
-  }
-  if (width !== source.width || height !== source.height) {
-    throw new Error(t('images.imagePackage.nameCouldNotBeResized', { name: source.name, width: source.width, height: source.height }))
-  }
-  return bytes
+  return planesFromBitmap(bgra, width, height, source.format)
 }
 
-export async function buildImagePackage(images: readonly ConvertedImage[]): Promise<Buffer> {
+export async function packageImage(image: ConvertedImage): Promise<PackageImage> {
+  const deflated = await deflateRawAsync(image.bytes, { level: 9 })
+  const compressed = deflated.byteLength < image.bytes.byteLength
+  return {
+    name: image.name,
+    format: image.format,
+    width: image.width,
+    height: image.height,
+    stride: image.stride,
+    frameCount: image.frameCount,
+    compression: compressed ? COMPRESSION_DEFLATE : COMPRESSION_NONE,
+    data: compressed ? deflated : image.bytes,
+    sha256: planesDigest(image.bytes)
+  }
+}
+
+export function buildImagePackage(images: readonly PackageImage[]): Buffer {
   validateImages(images)
-  const manifest = Buffer.alloc(images.length * MANIFEST_ENTRY_SIZE)
+  const ordered = [...images].sort((left, right) => (left.name < right.name ? -1 : 1))
+  const manifest = Buffer.alloc(ordered.length * MANIFEST_ENTRY_SIZE)
   const chunks: { offset: number; bytes: Buffer }[] = []
-  let offset = ASSET_DATA_OFFSET
-  for (const [index, image] of images.entries()) {
+  let offset = IMAGE_PACKAGE_DATA_OFFSET
+  for (const [index, image] of ordered.entries()) {
     const entry = manifest.subarray(index * MANIFEST_ENTRY_SIZE, (index + 1) * MANIFEST_ENTRY_SIZE)
-    const { bytes, compression } = await storedBytes(image.bytes)
     entry.write(image.name, 0, 'ascii')
     entry.writeUInt16LE(image.width, 32)
     entry.writeUInt16LE(image.height, 34)
     entry.writeUInt8(FORMAT_CODES[image.format], 36)
-    entry.writeUInt8(compression, 37)
+    entry.writeUInt8(image.compression, 37)
     entry.writeUInt16LE(image.stride, 38)
     entry.writeUInt32LE(offset, 40)
-    entry.writeUInt32LE(bytes.byteLength, 44)
-    entry.writeUInt32LE(crc32(bytes), 48)
+    entry.writeUInt32LE(image.data.byteLength, 44)
+    entry.writeUInt32LE(crc32(image.data), 48)
     entry.writeUInt32LE(0, 52)
     entry.writeUInt16LE(0, 56)
     entry.writeUInt16LE(image.frameCount, 58)
     entry.writeUInt32LE(0, 60)
-    chunks.push({ offset, bytes })
-    offset = align(offset + bytes.byteLength)
+    chunks.push({ offset, bytes: image.data })
+    offset = alignImageOffset(offset + image.data.byteLength)
   }
 
-  const packageSize = Math.max(offset, ASSET_DATA_OFFSET)
+  const packageSize = Math.max(offset, IMAGE_PACKAGE_DATA_OFFSET)
   if (packageSize > MAXIMUM_IMAGE_PACKAGE_SIZE) {
     throw new Error(
       t('images.imagePackage.theImagePackageIsPackagesize', { packageSize: packageSize, mAXIMUM_IMAGE_PACKAGE_SIZE: MAXIMUM_IMAGE_PACKAGE_SIZE })
@@ -157,26 +164,26 @@ export async function buildImagePackage(images: readonly ConvertedImage[]): Prom
   for (const chunk of chunks) chunk.bytes.copy(buffer, chunk.offset)
 
   buffer.writeUInt32LE(0x41494353, 0)
-  buffer.writeUInt16LE(FORMAT_VERSION, 4)
+  buffer.writeUInt16LE(IMAGE_PACKAGE_FORMAT_VERSION, 4)
   buffer.writeUInt16LE(HEADER_SIZE, 6)
   buffer.writeUInt32LE(0, 8)
-  buffer.writeUInt16LE(images.length, 12)
+  buffer.writeUInt16LE(ordered.length, 12)
   buffer.writeUInt16LE(0, 14)
   buffer.writeUInt32LE(packageSize, 16)
   buffer.writeUInt32LE(crc32(buffer.subarray(HEADER_SIZE, HEADER_SIZE + manifest.byteLength)), 20)
-  buffer.writeUInt32LE(crc32(buffer.subarray(ASSET_DATA_OFFSET, packageSize)), 24)
+  buffer.writeUInt32LE(crc32(buffer.subarray(IMAGE_PACKAGE_DATA_OFFSET, packageSize)), 24)
   buffer.writeUInt32LE(crc32(buffer.subarray(0, 28)), 28)
   return buffer
 }
 
-function validateImages(images: readonly ConvertedImage[]): void {
+function validateImages(images: readonly PackageImage[]): void {
   if (images.length === 0) {
     throw new Error(t('images.imagePackage.anImagePackageNeedsAt'))
   }
   if (images.length > MAXIMUM_IMAGES) {
     throw new Error(t('images.imageAssetService.theDeviceStoresAtMost', { mAXIMUM_IMAGES: MAXIMUM_IMAGES }))
   }
-  if (HEADER_SIZE + images.length * MANIFEST_ENTRY_SIZE > ASSET_DATA_OFFSET) {
+  if (HEADER_SIZE + images.length * MANIFEST_ENTRY_SIZE > IMAGE_PACKAGE_DATA_OFFSET) {
     throw new Error(t('images.imagePackage.theImageManifestDoesNot'))
   }
   const names = new Set<string>()
@@ -206,14 +213,15 @@ function validateImages(images: readonly ConvertedImage[]): void {
       )
     }
     const expected = imageAssetBytes(image.width, image.height, image.format) * image.frameCount
-    if (image.bytes.byteLength !== expected) {
+    const stored = image.data.byteLength
+    const fits =
+      image.compression === COMPRESSION_NONE
+        ? stored === expected
+        : image.compression === COMPRESSION_DEFLATE && stored > 0 && stored < expected
+    if (!fits) {
       throw new Error(
-        t('images.imagePackage.nameIsBytelengthBytesIts', { name: image.name, byteLength: image.bytes.byteLength, expected: expected })
+        t('images.imagePackage.nameIsBytelengthBytesIts', { name: image.name, byteLength: stored, expected: expected })
       )
     }
   }
-}
-
-function align(value: number): number {
-  return (value + IMAGE_ALIGNMENT - 1) & ~(IMAGE_ALIGNMENT - 1)
 }

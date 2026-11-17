@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 import { TEMPLATE_FORMAT, type TemplateLibrary } from '@shared/templates'
 import type { DeviceConfiguration } from '@shared/device'
+import type { PreviewImages } from '@/features/configuration/preview/preview-assets'
 
 export const NO_TEMPLATES: TemplateLibrary = { dashboards: [], widgets: [], unreadable: 0 }
 
@@ -10,6 +11,7 @@ export type TemplateDocumentState = 'loading' | 'failed' | DeviceConfiguration
 interface TemplatesStore {
   library?: TemplateLibrary
   documents: Readonly<Record<string, TemplateDocumentState>>
+  images: Readonly<Record<string, PreviewImages>>
   loading: boolean
   error?: string
   setError: (error?: string) => void
@@ -19,6 +21,7 @@ interface TemplatesStore {
 
 export const useTemplatesStore = create<TemplatesStore>((set, get) => ({
   documents: {},
+  images: {},
   loading: false,
   setError: (error) => set({ error }),
   loadDocument: (id) => {
@@ -27,15 +30,22 @@ export const useTemplatesStore = create<TemplatesStore>((set, get) => ({
     void window.pitrig
       .readTemplate({ id, kind: 'dashboard' })
       .then((result) =>
-        set((state) => ({
-          documents: {
-            ...state.documents,
-            [id]:
-              result.ok && result.value.format === TEMPLATE_FORMAT
-                ? result.value.configuration
-                : 'failed'
+        set((state) => {
+          const read =
+            result.ok && result.value.format === TEMPLATE_FORMAT ? result.value : undefined
+          const previews = read?.previews ?? []
+          return {
+            documents: { ...state.documents, [id]: read ? read.configuration : 'failed' },
+            ...(previews.length > 0
+              ? {
+                  images: {
+                    ...state.images,
+                    [id]: Object.fromEntries(previews.map((image) => [image.name, image]))
+                  }
+                }
+              : {})
           }
-        }))
+        })
       )
       .catch(() =>
         set((state) => ({ documents: { ...state.documents, [id]: 'failed' } }))

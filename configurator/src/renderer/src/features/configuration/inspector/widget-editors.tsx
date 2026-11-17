@@ -14,6 +14,7 @@ import { ColorField, FontEditor, Hint, NumberField, OptionalColorField, SelectFi
 import { ContainerEditor } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
+import { useImageLibraryStore } from '@/features/image-assets/image-library-store'
 
 export function AddButton({ label, onClick }: { label: string; onClick: () => void }): React.JSX.Element {
   return (
@@ -34,19 +35,26 @@ export function RemoveButton({ label, disabled, onClick }: { label: string; disa
 
 export function ImageEditor({ selection, widget }: { selection: WidgetSelection; widget: ImageWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: ImageWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ImageWidgetConfiguration))
-  const installed = useDeviceStore((state) => state.session?.imageAssets?.images) ?? []
-  const known = installed.find(({ name }) => name === widget.image)
+  const session = useDeviceStore((state) => state.session)
+  const library = useImageLibraryStore((state) => state.snapshot.entries)
+  const installed = session?.imageAssets?.images ?? []
+  const inLibrary = library.find(({ id }) => id === widget.image)
+  const onBoard = installed.find(({ name }) => name === widget.image)
+  const known = inLibrary ?? onBoard
   const frames = known?.frameCount ?? 1
   const sheet = frames > 1
   const frameBinding = widget.sprite_frame_source?.binding ?? ''
-  const names = installed.map(({ name }) => name)
+  const names = [...new Set([...library.map(({ id }) => id), ...installed.map(({ name }) => name)])].sort()
   const choices = widget.image && !names.includes(widget.image) ? [widget.image, ...names] : names
+  const image = widget.image ?? ''
   return (
     <>
       <Group id="Image" title={t('firmware.firmwarePage.image')} icon={GROUP_ICONS.image} summary={widget.image || t('inspector.widgetEditors.unassigned')}>
         <SelectField label={t('inspector.widgetEditors.bitmap')} hint={t('inspector.hints.image.image')} block value={widget.image ?? ''} options={choices} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
-        {installed.length === 0 ? <Hint>{t('inspector.widgetEditors.uploadImagesToTheBoard')}</Hint> : null}
-        {widget.image && !known && installed.length > 0 ? <Hint>{t('inspector.widgetEditors.imageIsNotInstalledOn', { image: widget.image ?? '' })}</Hint> : null}
+        {names.length === 0 ? <Hint>{t('inspector.widgetEditors.addImagesFirst')}</Hint> : null}
+        {widget.image && !inLibrary && !onBoard ? <Hint>{t('inspector.widgetEditors.imageIsNowhere', { image })}</Hint> : null}
+        {widget.image && inLibrary && !onBoard && session ? <Hint>{t('inspector.widgetEditors.imageNotOnBoardYet', { image })}</Hint> : null}
+        {widget.image && !inLibrary && onBoard ? <Hint>{t('inspector.widgetEditors.imageOnlyOnBoard', { image })}</Hint> : null}
         {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}${sheet ? ` · ${frames} frames` : ''}`}</p> : null}
         {sheet ? (
           <>

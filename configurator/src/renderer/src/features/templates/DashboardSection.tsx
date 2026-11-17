@@ -13,17 +13,14 @@ import {
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
 import { useFontLibraryStore } from '@/features/font-library/font-library-store'
-import { withWidgetIds } from '@shared/configuration-access'
-import { mergeDocument } from '@shared/configuration-documents'
-import { validateConfigurationDocument } from '@shared/configuration-validate'
-import {
-  applyBoardTransportDefaults,
-  PITRIG_BOARD_IDS,
-  type DeviceConfiguration
-} from '@shared/device'
-import { transferConfiguration, type LayoutTransferResult } from '@shared/layout-transfer'
+import type { DeviceConfiguration } from '@shared/device'
+import type { LayoutTransferResult } from '@shared/layout-transfer'
 import { displaySize } from '@/features/configuration/board-labels'
 import type { DashboardTemplateSummary } from '@shared/templates'
+import { useOpenReportStore } from '@/features/dashboard-files/open-report-store'
+import { describeAssets } from '@/features/dashboard-files/open-dashboard'
+import { adoptDashboard } from './adopt-dashboard'
+import { CreditLink } from './CreditLink'
 import { DashboardThumbnail } from './DashboardThumbnail'
 import { DashboardListControls } from './DashboardListControls'
 import { effectiveBoard, listedDashboards } from './dashboard-listing'
@@ -90,42 +87,34 @@ export function DashboardSection({
     setReport(undefined)
     setApplied(undefined)
     try {
-      const result = await window.pitrig.readTemplate({ id: summary.id, kind: 'dashboard' })
+      const result = await window.pitrig.adoptTemplate({ id: summary.id, kind: 'dashboard' })
       if (!result.ok) {
         setError(result.error.message)
         return
       }
-      if (result.value.format !== 'pitrig-dashboard-template') {
-        setError(t('templates.dashboardSection.thatEntryIsNotA'))
-        return
-      }
-      const board = session?.info.boardId ?? draft?.board ?? result.value.configuration.board
-      const transferred = transferConfiguration(result.value.configuration, {
-        board,
+      const adopted = adoptDashboard(result.value.configuration, {
+        draft,
+        board: session?.info.boardId,
         display: session?.info.display,
         fit
       })
-      const adopted = applyBoardTransportDefaults(
-        withWidgetIds(
-          draft
-            ? mergeDocument(draft, 'dashboard', transferred.configuration)
-            : transferred.configuration
-        )
-      )
-      const validated = validateConfigurationDocument(adopted, {
-        supportedBoards: PITRIG_BOARD_IDS
-      })
-      if (!validated.ok) {
+      if (!adopted.ok) {
         setError(
-          t('templates.dashboardSection.nameWouldNotBeAccepted', { name: summary.name, error: validated.error })
+          t('templates.dashboardSection.nameWouldNotBeAccepted', { name: summary.name, error: adopted.error })
         )
         return
       }
-      replaceLocalDraft(validated.configuration)
+      replaceLocalDraft(adopted.configuration)
       resetEditorState()
-      setReport(transferred)
-      setApplied(validated.configuration)
-      onNotice(t('templates.dashboardSection.nameIsNowTheLocal', { name: summary.name }))
+      useOpenReportStore.getState().dismiss()
+      setReport(adopted.report)
+      setApplied(adopted.configuration)
+      onNotice(
+        [
+          t('templates.dashboardSection.nameIsNowTheLocal', { name: summary.name }),
+          ...describeAssets(result.value.report)
+        ].join(' ')
+      )
     } catch (bridgeError) {
       setError(bridgeError instanceof Error ? bridgeError.message : t('templates.dashboardSection.failedToApplyTheTemplate'))
     } finally {
@@ -163,6 +152,7 @@ export function DashboardSection({
               description={summary.description}
               meta={`${t('configs.librarySection.screenCount', { count: summary.screenCount })} · ${t('configs.librarySection.widgetCount', { count: summary.widgetCount })}`}
               preview={<DashboardThumbnail id={summary.id} board={summary.board} />}
+              credit={<CreditLink summary={summary} />}
               badges={
                 <>
                   {summary.origin === 'bundled' ? (

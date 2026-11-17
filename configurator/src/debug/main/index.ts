@@ -20,7 +20,8 @@ import {
   broadcastDeviceState,
   broadcastBoardUpdateProgress,
   broadcastFirmwareUploadProgress,
-  broadcastImageUploadProgress,
+  broadcastFontLibraryChanged,
+  broadcastImageLibraryChanged,
   broadcastSaveProgress,
   registerIpcHandlers
 } from '@main/ipc/register-ipc-handlers'
@@ -35,7 +36,8 @@ const services: AppServices = createAppServices({
   onDeviceState: broadcastDeviceState,
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onBoardUpdateProgress: broadcastBoardUpdateProgress,
-  onImageUploadProgress: broadcastImageUploadProgress,
+  onFontLibraryChanged: broadcastFontLibraryChanged,
+  onImageLibraryChanged: broadcastImageLibraryChanged,
   onSaveProgress: broadcastSaveProgress,
   onSerialTraffic: serialTraffic.push
 })

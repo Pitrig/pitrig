@@ -1,9 +1,14 @@
+import { createContext } from 'react'
 import { create } from 'zustand'
 
 import { NO_PREVIEW_ASSETS, type PreviewImageAsset } from '@shared/preview-assets'
 
+export type PreviewImages = Readonly<Record<string, PreviewImageAsset>>
+
+export const PreviewImageOverrides = createContext<PreviewImages | undefined>(undefined)
+
 interface PreviewAssetState {
-  images: Readonly<Record<string, PreviewImageAsset>>
+  images: PreviewImages
   refresh: () => Promise<void>
 }
 

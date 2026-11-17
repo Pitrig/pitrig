@@ -26,12 +26,49 @@ the image package with it.
 
 ## Unreleased
 
+The configurator only: no firmware update and no schema change.
+
+**Added**
+
+- **Share…** saves the open dashboard as one `.pitrigdash` file with its images
+  and the fonts another PC may not have, and **Open…** opens one beside a
+  configuration file. Opening replaces only the dashboard, keeps that PC's LED
+  and connection settings, and adds the images and fonts to its libraries,
+  renamed where the PC already uses a name for something else. Files stay small:
+  an icon adds about 8 KB, a full-screen photograph about 300 KB.
+- `Save to board` installs the images the dashboard draws, the way it installs
+  fonts, and sends them only when the board does not already hold them.
+- `Save to board` downloads a Google font the dashboard names and this PC lacks,
+  instead of asking for a file.
+- **GF Rally Mode**, the 480×480 rally DDU from GEAR FACTORY's YouTube build
+  video, is a starter dashboard with its background artwork. `Use` puts the
+  artwork in the image library and `Save to board` installs it; the card links
+  to the author's channel.
+
+**Changed**
+
+- The Images page keeps images on this PC instead of installing them: add an
+  image there, pick it in the inspector, and `Save to board` puts it on the
+  board. The images this PC installed before are moved there on first start.
+
 **Fixed**
 
+- Soft edges and see-through parts of images were darker on the board than on
+  the canvas. The next `Save to board` installs corrected images.
+- A board that lost a font or an image the dashboard needs gets it back on the
+  next `Save to board`, even when the document itself matches.
 - The build and lint tools no longer pull in a `minimatch` with a published
   vulnerability (GHSA-g3hv-75wg-m249): `electron-builder`, `eslint` and
   `typescript-eslint` now use 11.0.8. The installed applications never
   contained it.
+- A configuration that names no connection speed, opened from a file or the
+  configuration library and saved to a Guition ESP32-4848S040, moved the board to
+  921600 baud, which its CH340 bridge cannot hold, so the board stopped
+  answering after the restart. Opening one, `Save to board` and resetting the
+  speed on the Protocol page now keep the board's own 460800, and a board
+  already at that speed is not restarted for the protocol. A board an earlier
+  version left at 921600 goes back to 460800 at its next `Save to board`: connect
+  at 921600, save, and connect again once it has restarted.
 
 ## 0.3.2 — 2026-11-16
 

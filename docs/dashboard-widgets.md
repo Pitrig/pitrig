@@ -419,10 +419,11 @@ the table cannot state.
 
 An `image` widget draws an uploaded asset by identifier. The device holds no
 decoder: the configurator converts the source PNG, JPEG or BMP into the pixel
-layout the display draws, at the size chosen on the Images page. Resizing the
-widget leaves the bitmap as it was — artwork changes size only by being
-converted and uploaded again — and images are neither scaled nor rotated at
-runtime, which is also what keeps the ESP32-P4 on its accelerated draw path.
+layout the display draws, at the size chosen on the Images page, and keeps it
+in its image library; `Save to board` installs the images the dashboard draws.
+Resizing the widget leaves the bitmap as it was — artwork changes size only by
+being converted again — and images are neither scaled nor rotated at runtime,
+which is also what keeps the ESP32-P4 on its accelerated draw path.
 
 Image identifiers follow the font-family rule: 1 to 31 lowercase ASCII letters,
 digits, `_`, or `-`. Resolution is exact — a configuration naming an image the
@@ -431,15 +432,14 @@ exactly like a missing font family. The package format and its upload protocol
 are defined in [Image asset storage](image-assets.md); installing a package
 requires a reboot before its images can be drawn.
 
-The Images page shows both halves as pictures rather than as names. An installed
-image is drawn from the configurator's own copy of what it sent — the board
-never sends one back — so what is on screen is the converted bitmap, banding and
-all, rather than the source file; a staged one is drawn from the file that was
-picked, because what it will become depends on the size and format still being
-chosen. Both sit on a checkerboard, so transparency reads as transparency rather
-than as black. Beside them are two bars over the same seven megabytes: what the
-installed package occupies, and what the staged selection would occupy once
-packed — not their sum, because installing replaces the package whole.
+The Images page shows the images on this PC and those on the board as pictures
+rather than as names. A library image is drawn from the converted bytes, banding
+and all, and marked when the open dashboard draws it and when the board holds it
+or holds a different copy; one staged from a file is drawn from that file,
+because what it will become depends on the size and format still being chosen.
+All of them sit on a checkerboard, so transparency reads as transparency rather
+than as black, and one bar shows what the board's package occupies of its seven
+megabytes.
 
 ## Widget captions
 

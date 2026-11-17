@@ -269,7 +269,8 @@
       "theDraftTargetsBoardThe": "The draft targets {board}, the board is {boardId}.",
       "theBoardLacksJoinSaving": "The board lacks {join}. Saving installs the fonts.",
       "noLocalConfiguration": "No local configuration.",
-      "configurationIsNotValidJson": "Configuration is not valid JSON."
+      "configurationIsNotValidJson": "Configuration is not valid JSON.",
+      "theBoardLacksImages": "The board does not hold {images} yet. Saving installs the images."
     },
     "documentStatus": {
       "refused": "{label} config refused",
@@ -281,7 +282,10 @@
       "savedButTheBoardDid": "Saved, but the board did not come back on its port. Reconnect it by hand.",
       "savedTheBoardKeepsShowing": "Saved. The board keeps showing the previous dashboard until it restarts: {applyFailed}",
       "fontsInstalledAndConfigurationSaved": "Fonts installed and configuration saved. The board restarted and is running the new dashboard.",
-      "savedTheBoardIsRunning": "Saved. The board is running the new configuration — no restart needed."
+      "savedTheBoardIsRunning": "Saved. The board is running the new configuration — no restart needed.",
+      "fontsAndImagesInstalled": "Fonts and images installed and configuration saved. The board restarted and is running the new dashboard.",
+      "imagesInstalled": "Images installed and configuration saved. The board restarted and is running the new dashboard.",
+      "keptBoardImages": "The board kept its own copy of {images}, because this PC has none."
     },
     "documentState": {
       "absent": "Factory defaults",
@@ -556,7 +560,7 @@
         "width": "Thickness of every trace. Half of it is kept clear inside the plot on each side — plus whatever a rounded frame needs for the corners to clear the curve — so a value at the top or the bottom of its range is drawn whole rather than cut by the frame."
       },
       "image": {
-        "image": "Images are uploaded to the board and converted in the configurator to the size they are drawn at. The device neither scales nor rotates, so match the widget box to the bitmap.",
+        "image": "Images live in this PC's image library, converted to the size they are drawn at, and Save to board installs the ones the dashboard draws. The device neither scales nor rotates, so match the widget box to the bitmap.",
         "frame": "Which picture of a sprite sheet to draw. A sheet is several images uploaded as one, so switching between them costs nothing on the board and spends one of its 32 entries rather than one per picture.",
         "frameSource": "Chooses the picture from telemetry instead: the value is rounded to a whole number and clamped to the frames the sheet holds, so 0 is the first and anything past the last stays on the last. This is what draws a gear, a flag or a lamp set from one widget rather than a stack of them.",
         "recolor": "Tints the bitmap towards this colour, which is how one white icon serves every state. An alpha8 image is the colour rather than tinted by it: it carries only coverage, and is drawn white until this says otherwise.",
@@ -807,7 +811,6 @@
     },
     "widgetEditors": {
       "bitmap": "Bitmap",
-      "uploadImagesToTheBoard": "Upload images to the board to choose one here.",
       "frameFrom": "Frame from",
       "recolor": "Recolour",
       "strength": "Strength",
@@ -816,13 +819,16 @@
       "addSource": "Add source",
       "alignment": "Alignment",
       "fallback": "Fallback",
-      "imageIsNotInstalledOn": "\"{image}\" is not installed on the connected board, so the device will refuse this configuration.",
       "imageHasASingleFrame": "\"{image}\" has a single frame, so the device will refuse a frame or a frame source on it.",
       "thisShapeHoldsNoWidgets": "This shape holds no widgets. Drag widgets onto it to make it a container; an empty one with an action is an invisible tap zone.",
       "holdsHeldWidgetSPlaced": "Holds {held} widget(s), placed relative to this box.",
       "lengthSources": "{length} sources",
       "unassigned": "Unassigned",
-      "unbound": "Unbound"
+      "unbound": "Unbound",
+      "addImagesFirst": "Add images on the Images page to choose one here.",
+      "imageIsNowhere": "\"{image}\" is neither on this PC nor on the board, so the board will refuse this dashboard. Add it on the Images page.",
+      "imageNotOnBoardYet": "\"{image}\" is not on the board yet. Save to board installs it.",
+      "imageOnlyOnBoard": "Only the board holds \"{image}\". This PC has no copy, so a shared dashboard file goes without it."
     },
     "infoHint": {
       "aboutLabel": "About {label}",
@@ -1257,27 +1263,21 @@
       "images": "Images",
       "addImage": "Add image…",
       "onTheBoard": "On the board",
-      "whatTheInstalledPackageHolds": "What the installed package holds. A widget refers to one of these names.",
+      "whatTheInstalledPackageHolds": "What the board holds now. Save to board replaces it with the images the dashboard draws.",
       "installed": "Installed",
-      "restartTheBoardBeforeUploading": "Restart the board before uploading again.",
-      "readyToInstall": "Ready to install",
-      "theWholePackageIsReplaced": "The whole package is replaced at once, so this list is what the board will hold.",
-      "thisSelection": "This selection",
       "addingAnImageConvertsIt": "Adding an image converts it here, at the size the board will draw it — the device neither scales nor rotates.",
-      "nothingStaged": "Nothing staged",
       "aNameUsesLowerCase": "A name uses lower case letters, digits, dash and underscore, up to 31 characters.",
       "twoImagesShareAName": "Two images share a name.",
       "widthHeightFormat": "{width}×{height} · {format}",
       "frameCountFrames": " · {frameCount} frames",
-      "addAPngOrJpeg": "Add a PNG, JPEG or BMP with Add image…, give it the name a widget will refer to, and install.",
       "connectABoardWhoseFirmware": "Connect a board whose firmware carries an image partition.",
-      "uploading": "Uploading…",
-      "convertedHereAndStoredOn": "Converted here and stored on the board as one package. Installing replaces every image and needs a restart.",
-      "theConnectedFirmwareDoesNot": "The connected firmware does not support uploaded images.",
       "noImagesInstalled": "No images installed",
       "noImageSupport": "No image support",
       "eraseEveryImageInstalledOn": "Erase every image installed on the board?",
-      "boardImagePackageErasedRestart": "Board image package erased. Restart the board, then install again."
+      "boardImagePackageErasedRestart": "Board image package erased. Restart the board; the next Save to board installs the dashboard's images again.",
+      "description": "Images are converted here and kept on this PC. Save to board installs the ones the dashboard draws, as one package, and restarts the board when they changed.",
+      "saveInstallsThem": "Save to board installs the images the dashboard draws.",
+      "restartTheBoardToUse": "The board restarts to use the new images."
     },
     "stagedImageCard": {
       "nameAWidgetRefersTo": "Name a widget refers to",
@@ -1336,13 +1336,58 @@
     },
     "dialog": {
       "filter": "Images"
+    },
+    "imageLibrary": {
+      "notOnThisPc": "Image \"{id}\" is not on this PC. Add it on the Images page.",
+      "damaged": "The copy of image \"{id}\" on this PC is damaged. Add the image again on the Images page.",
+      "tooLarge": "Image \"{id}\" needs {size} KB on a board, and a board holds {limit} KB of images.",
+      "notAdded": "The image could not be added.",
+      "notRemoved": "The image could not be removed."
+    },
+    "library": {
+      "title": "On this PC",
+      "description": "Every image installed from this PC or opened with a dashboard file, {size} in all. Save to board installs the ones the open dashboard draws.",
+      "dashboardDraws": {
+        "$plural": {
+          "one": "The open dashboard draws {count} image.",
+          "other": "The open dashboard draws {count} images."
+        }
+      },
+      "notOnThisPc": "Not on this PC: {images}. Add them here, or the board's own copies are kept.",
+      "empty": "No images on this PC yet",
+      "emptyHint": "Add a PNG, JPEG or BMP with Add image…, or open a dashboard file that carries images.",
+      "inDashboard": "In the dashboard",
+      "board": {
+        "same": "On the board",
+        "differs": "Board copy differs",
+        "absent": "Not on the board"
+      },
+      "remove": "Remove \"{id}\" from this PC? The board keeps its copy until the next save that replaces it.",
+      "removeUsed": "The open dashboard draws \"{id}\". Remove it from this PC anyway? The board keeps its copy, but this PC can no longer install or share it.",
+      "unreadable": {
+        "$plural": {
+          "one": "{count} stored image could not be read and is left out.",
+          "other": "{count} stored images could not be read and are left out."
+        }
+      }
+    },
+    "staged": {
+      "title": "Ready to add",
+      "add": "Add {count} to this PC",
+      "added": {
+        "$plural": {
+          "one": "Added {count} image to this PC.",
+          "other": "Added {count} images to this PC."
+        }
+      },
+      "replace": "This PC already holds {images}. Replace them? Dashboards that draw them show the new pictures, and the next Save to board installs them."
     }
   },
   "save": {
     "stage": {
-      "preparing": "Checking fonts",
-      "building": "Building the font package",
-      "uploading": "Installing fonts",
+      "preparing": "Checking fonts and images",
+      "building": "Preparing fonts and images",
+      "uploading": "Installing on the board",
       "saving": "Saving the configuration",
       "applying": "Applying to the board",
       "rebooting": "Restarting the board",
@@ -1352,11 +1397,26 @@
     "saveToBoardService": {
       "noPitrigBoardIsConnected": "No Pitrig board is connected.",
       "theConfigurationIsNotValid": "The configuration is not valid.",
-      "checkingTheFontsThisDashboard": "Checking the fonts this dashboard needs",
+      "checkingTheFontsThisDashboard": "Checking the fonts and images this dashboard needs",
       "savingTheAndConfiguration": "Saving the {and} configuration",
       "savedTheBoardIsRestarting": "Saved. The board is restarting out of safe mode.",
       "savedTheBoardIsRunning": "Saved. The board is running the new dashboard.",
       "nothingToSaveTheBoard": "Nothing to save — the board already holds this configuration."
+    },
+    "fontDelivery": {
+      "building": "Building the font package",
+      "noFaceCalled": "The font library has no face called \"{family}\".",
+      "noFaceForSome": "The font library has no face for {count} of this dashboard's families."
+    },
+    "imageDelivery": {
+      "building": "Building the image package",
+      "failed": "The images could not be installed.",
+      "noStorage": "This dashboard draws images, but the board has no image storage.",
+      "unavailable": "This dashboard draws images that are neither on this PC nor on the board: {images}. Add them on the Images page.",
+      "tooMany": "This dashboard draws {count} images, and a board holds at most {maximum}.",
+      "tooLarge": "This dashboard's images need {size} KB, and a board holds {limit} KB of images.",
+      "boardOnly": "Only the board holds {images}, and this PC has no copy, so it cannot install {pending} without removing them. Add {images} on the Images page first.",
+      "fontsWithoutImages": "The fonts were installed but the images were not: {error} Save to board again before the board restarts, or it starts without its images."
     }
   },
   "common": {
@@ -1651,7 +1711,9 @@
       "nameWouldNotBeAccepted": "\"{name}\" would not be accepted on this board, so the draft was left alone. {error}",
       "failedToApplyTheTemplate": "Failed to apply the template.",
       "nameIsNowTheLocal": "\"{name}\" is now the local draft.",
-      "wholeLayoutsScaledToSize": "Whole layouts, scaled to {size} on the way in. Add takes screens from one; Use replaces what you have open."
+      "wholeLayoutsScaledToSize": "Whole layouts, scaled to {size} on the way in. Add takes screens from one; Use replaces what you have open.",
+      "creditBy": "by {name}",
+      "creditOpen": "Open the page of {name} in the browser"
     },
     "dashboardThumbnail": {
       "noPreview": "No preview",
@@ -1817,7 +1879,7 @@
       "convertedToTarget": "Converted to {target}.",
       "loadedTheDocumentConfigurationFrom": "Loaded the {document} configuration from the board.",
       "discardTheCurrentLocalDraft": "Discard the current local draft and create a new configuration?",
-      "discardTheCurrentLocalDraft2": "Discard the current local draft and open a JSON file?",
+      "discardTheCurrentLocalDraft2": "Open a file in place of what you have open? A dashboard file replaces only the dashboard; a configuration file replaces everything.",
       "discardTheCurrentLocalDraft3": "Discard the current local draft and open \"{id}\"?",
       "discardTheCurrentLocalDraft4": "Discard the current local draft and open this file?",
       "activeConfigurationReadFromThe": "Active configuration read from the board.",
@@ -1997,7 +2059,8 @@
     "dialog": {
       "loadTitle": "Load Pitrig configuration",
       "saveTitle": "Save Pitrig configuration",
-      "filter": "Pitrig configuration"
+      "filter": "Pitrig configuration",
+      "anyFilter": "Pitrig files"
     }
   },
   "layers": {
@@ -2178,7 +2241,8 @@
     "registerLibraryHandlers": {
       "invalidConfigurationFileRequest": "Invalid configuration file request.",
       "invalidConfigurationLibraryRequest": "Invalid configuration library request.",
-      "invalidTemplateRequest": "Invalid template request."
+      "invalidTemplateRequest": "Invalid template request.",
+      "invalidDashboardFileRequest": "Invalid dashboard file request."
     },
     "requestGuards": {
       "invalidDeviceConfigurationRequest": "Invalid device configuration request."
@@ -2514,6 +2578,50 @@
       "state": "Sending",
       "turnOff": "Turn off",
       "turnOn": "Turn on"
+    }
+  },
+  "share": {
+    "button": {
+      "label": "Share…",
+      "title": "Save this dashboard with its images and fonts as one file that opens on another PC as it is"
+    },
+    "dialog": {
+      "saveTitle": "Share dashboard",
+      "saveButton": "Save",
+      "saveFile": "Save file…",
+      "saving": "Saving…",
+      "filter": "Pitrig dashboard",
+      "defaultName": "My dashboard",
+      "intro": "One file with the dashboard, its images and the fonts another PC may not have. Opening it replaces the dashboard there; LED and connection settings stay as they are.",
+      "saved": "Saved {fileName}, {size}.",
+      "savedWithout": "It goes without {names}, which this PC does not have."
+    },
+    "summary": {
+      "images": "Images in the file: {count}.",
+      "fonts": "Fonts: {embedded} in the file, {google} downloaded from Google Fonts on the other PC, {builtin} built into Pitrig.",
+      "size": "About {size}.",
+      "missingImages": "Not on this PC, so not in the file: {images}. They show as named boxes on the other PC.",
+      "missingFonts": "Not in this PC's font library, so not in the file: {fonts}."
+    },
+    "file": {
+      "damaged": "This dashboard file is damaged or incomplete.",
+      "newer": "This dashboard file was made with a newer Pitrig. Update Pitrig to open it.",
+      "newerVersion": "This dashboard file was made with Pitrig {version}. Update Pitrig to open it.",
+      "tooLarge": "The dashboard file would be larger than {limit} MB."
+    },
+    "errors": {
+      "name": "A dashboard name is 1 to {maximum} characters.",
+      "description": "A description is at most {maximum} characters.",
+      "notSaved": "The dashboard file was not saved."
+    },
+    "open": {
+      "opened": "Opened {name}.",
+      "added": "Added to this PC: {names}.",
+      "renamed": "Renamed to keep this PC's own copies: {names}.",
+      "imagesMissing": "Images not in the file and not on this PC: {images}.",
+      "fontsMissing": "Fonts not found: {fonts}. Connect to the internet for Google fonts, or add them on the Fonts page.",
+      "scaled": "It was made for another screen size, so it was scaled; images keep their size.",
+      "next": "Save to board installs everything it needs."
     }
   }
 }

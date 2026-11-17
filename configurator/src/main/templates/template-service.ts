@@ -1,6 +1,7 @@
 import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
+import { emptyOpenReport, type OpenedDashboard } from '../../shared/dashboard-files'
 import {
   MAXIMUM_TEMPLATE_FILE_SIZE,
   MAXIMUM_USER_TEMPLATES,
@@ -12,9 +13,11 @@ import {
   isBundledTemplateId,
   templateIdFor,
   type DashboardTemplateSummary,
+  type TemplateCredit,
   type TemplateDocument,
   type TemplateKind,
   type TemplateLibrary,
+  type TemplateReadValue,
   type TemplateResult,
   type TemplateSaveRequest,
   type TemplateSummary,
@@ -29,31 +32,26 @@ import {
   parseWidgetTemplateDocument,
   widgetSummary
 } from './template-documents'
-import { BUNDLED_TEMPLATE_SOURCES } from './bundled-templates'
+import type { BundledTemplateLibrary } from './bundled-template-library'
 import { writeFileAtomic } from '../write-file-atomic'
 import { t } from '@shared/ui-text'
 
 const FILE_EXTENSION = '.json'
 
 export class TemplateService {
-  constructor(private readonly directory: string) {}
+  constructor(
+    private readonly directory: string,
+    private readonly bundled: BundledTemplateLibrary
+  ) {}
 
   private get widgetDirectory(): string {
     return join(this.directory, WIDGET_TEMPLATE_SUBDIRECTORY)
   }
 
   async list(): Promise<TemplateResult<TemplateLibrary>> {
-    const bundled: DashboardTemplateSummary[] = []
-    let unreadable = 0
-    for (const entry of BUNDLED_TEMPLATE_SOURCES) {
-      try {
-        bundled.push(
-          dashboardSummary(entry.id, 'bundled', parseTemplateDocument(entry.source))
-        )
-      } catch {
-        unreadable += 1
-      }
-    }
+    const starters = await this.bundled.list()
+    const bundled = starters.summaries
+    let unreadable = starters.unreadable
 
     const dashboards: DashboardTemplateSummary[] = []
     for (const id of await this.savedIds('dashboard')) {
@@ -87,27 +85,35 @@ export class TemplateService {
     return { ok: true, value: { dashboards: [...bundled, ...dashboards], widgets, unreadable } }
   }
 
-  async read(id: string, kind: TemplateKind): Promise<TemplateResult<TemplateDocument>> {
-    if (kind === 'dashboard') {
-      const bundled = BUNDLED_TEMPLATE_SOURCES.find((entry) => entry.id === id)
-      if (bundled) {
-        try {
-          return { ok: true, value: parseTemplateDocument(bundled.source) }
-        } catch (error) {
-          return failure(
-            'invalid_template',
-            messageOf(error, t('templates.templateService.theStarterTemplateIsUnreadable'))
-          )
-        }
-      }
-      if (isBundledTemplateId(id)) return failure('not_found', t('templates.templateService.noStarterTemplateNamedId', { id: id }))
-    }
+  async read(id: string, kind: TemplateKind): Promise<TemplateResult<TemplateReadValue>> {
+    if (kind === 'dashboard' && isBundledTemplateId(id)) return this.bundled.read(id)
     try {
       return { ok: true, value: await this.readSaved(id, kind) }
     } catch (error) {
-      if (isMissing(error)) return failure('not_found', t('templates.templateService.noTemplateNamedId', { id: id }))
-      return failure('invalid_template', messageOf(error, t('templates.templateService.theTemplateIsUnreadable')))
+      return savedFailure(id, error)
     }
+  }
+
+  async adopt(id: string): Promise<TemplateResult<OpenedDashboard>> {
+    if (isBundledTemplateId(id)) return this.bundled.adopt(id)
+    try {
+      const document = parseTemplateDocument(await this.readSavedValue(id, 'dashboard'))
+      return {
+        ok: true,
+        value: {
+          name: document.name,
+          ...(document.description ? { description: document.description } : {}),
+          configuration: document.configuration,
+          report: emptyOpenReport()
+        }
+      }
+    } catch (error) {
+      return savedFailure(id, error)
+    }
+  }
+
+  credit(id: string): TemplateCredit | undefined {
+    return this.bundled.credit(id)
   }
 
   async save(request: TemplateSaveRequest): Promise<TemplateResult<TemplateSummary>> {
@@ -222,4 +228,14 @@ export class TemplateService {
     }
     return path
   }
+}
+
+function savedFailure(id: string, error: unknown): TemplateResult<never> {
+  if (isMissing(error)) {
+    return failure('not_found', t('templates.templateService.noTemplateNamedId', { id }))
+  }
+  return failure(
+    'invalid_template',
+    messageOf(error, t('templates.templateService.theTemplateIsUnreadable'))
+  )
 }

@@ -5,7 +5,7 @@ import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
 import { useDeviceStore } from '@/features/device/device-store'
 import { mutateDraftConfiguration } from '@/features/configuration/editor/document'
 import { CheckboxField, NumberField, SelectField } from '@/features/configuration/inspector/fields'
-import { SUPPORTED_BAUD_RATES, type DeviceConfiguration } from '@shared/device'
+import { BOARD_PROFILES, SUPPORTED_BAUD_RATES, type DeviceConfiguration } from '@shared/device'
 import {
   TELEMETRY_TRANSPORT_ID_VALUES,
   type TelemetryTransportId
@@ -42,7 +42,8 @@ export function TransportSection(): React.JSX.Element {
     })
   }
 
-  const baudRate = effectiveBaudRate(draft)
+  const ownBaudRate = BOARD_PROFILES[draft.board]?.telemetryUartBaudRate
+  const baudRate = effectiveBaudRate(draft, ownBaudRate ?? SIMHUB_BAUD_RATE)
   const baudOptions = baudRateOptions(baudRate)
 
   return (
@@ -110,7 +111,7 @@ export function TransportSection(): React.JSX.Element {
           value={String(baudRate)}
           options={baudOptions}
           modified={uart?.baud_rate !== undefined}
-          onReset={() => writeUart((current) => delete current.baud_rate)}
+          onReset={() => writeUart((current) => resetBaudRate(current, ownBaudRate))}
           onChange={(value) => writeUart((current) => (current.baud_rate = Number(value)))}
         />
       </fieldset>
@@ -161,12 +162,17 @@ export function TransportSection(): React.JSX.Element {
   )
 }
 
-function effectiveBaudRate(configuration: DeviceConfiguration): number {
+function effectiveBaudRate(configuration: DeviceConfiguration, fallback: number): number {
   const configured = configuration.telemetry_transport?.uart?.baud_rate
   return Number.isInteger(configured) && configured !== undefined &&
     configured >= 9_600 && configured <= 2_000_000
     ? configured
-    : SIMHUB_BAUD_RATE
+    : fallback
+}
+
+function resetBaudRate(uart: Record<string, unknown>, own: number | undefined): void {
+  if (own === undefined) delete uart.baud_rate
+  else uart.baud_rate = own
 }
 
 function baudRateOptions(effective: number): readonly string[] {
