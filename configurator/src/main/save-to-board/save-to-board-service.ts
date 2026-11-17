@@ -11,12 +11,13 @@ import type {
   SaveToBoardRequest,
   SaveToBoardResult
 } from '../../shared/save-to-board'
-import type {
-  DeviceConfiguration,
-  DeviceConfigurationApplyResult,
-  DeviceConfigurationSaveResult,
-  DeviceResult,
-  DeviceSession
+import {
+  applyBoardTransportDefaults,
+  type DeviceConfiguration,
+  type DeviceConfigurationApplyResult,
+  type DeviceConfigurationSaveResult,
+  type DeviceResult,
+  type DeviceSession
 } from '../../shared/device'
 import { DeviceService } from '../device/device-service'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
@@ -50,7 +51,7 @@ export class SaveToBoardService {
     private readonly onProgress: (progress: SaveProgress) => void
   ) {}
 
-  async save(request: SaveToBoardRequest, options: SaveOptions = {}): Promise<SaveToBoardResult> {
+  async save(submitted: SaveToBoardRequest, options: SaveOptions = {}): Promise<SaveToBoardResult> {
     const session = this.deviceService.getState().session
     if (!session) {
       return saveFailure('device_error', t('save.saveToBoardService.noPitrigBoardIsConnected'))
@@ -58,7 +59,7 @@ export class SaveToBoardService {
 
     let configuration: DeviceConfiguration
     try {
-      configuration = parseDeviceConfigurationJson(request.json)
+      configuration = applyBoardTransportDefaults(parseDeviceConfigurationJson(submitted.json))
     } catch (error) {
       return saveFailure('invalid_configuration', messageOf(error, t('save.saveToBoardService.theConfigurationIsNotValid')))
     }
@@ -73,6 +74,7 @@ export class SaveToBoardService {
       )
     }
 
+    const request = { ...submitted, json: JSON.stringify(configuration) }
     const requested = request.documents
     const changed = documentsDiffering(configuration, session.configuration).filter(
       (document) => requested === undefined || requested.includes(document)

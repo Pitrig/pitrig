@@ -61,6 +61,14 @@ The configurator only: no firmware update and no schema change.
   vulnerability (GHSA-g3hv-75wg-m249): `electron-builder`, `eslint` and
   `typescript-eslint` now use 11.0.8. The installed applications never
   contained it.
+- A configuration that names no connection speed, opened from a file or the
+  configuration library and saved to a Guition ESP32-4848S040, moved the board to
+  921600 baud, which its CH340 bridge cannot hold, so the board stopped
+  answering after the restart. Opening one, `Save to board` and resetting the
+  speed on the Protocol page now keep the board's own 460800, and a board
+  already at that speed is not restarted for the protocol. A board an earlier
+  version left at 921600 goes back to 460800 at its next `Save to board`: connect
+  at 921600, save, and connect again once it has restarted.
 
 ## 0.3.2 — 2026-11-16
 

@@ -31,7 +31,7 @@ import { boardLabel, fitOutcome } from './board-labels'
 export type ActionFeedback = { kind: 'success' | 'error'; message: string }
 
 function adoptNewDocument(configuration: DeviceConfiguration, fileName?: string): void {
-  useDeviceStore.getState().replaceLocalDraft(configuration, fileName)
+  useDeviceStore.getState().replaceLocalDraft(applyBoardTransportDefaults(configuration), fileName)
   useDashboardEditorStore.getState().resetEditorState()
   useOpenReportStore.getState().dismiss()
 }
@@ -44,7 +44,7 @@ export async function createConfiguration(board: PitrigBoardId): Promise<ActionF
   ) {
     return { kind: 'error', message: t('dashboard.configurationActions.keptTheCurrentDraft') }
   }
-  adoptNewDocument(applyBoardTransportDefaults({ board }))
+  adoptNewDocument({ board })
   return { kind: 'success', message: t('dashboard.configurationActions.newBoardConfigurationCreatedLocally', { board: board }) }
 }
 

@@ -111,12 +111,13 @@ Presence rules:
 - The Guition ESP32-4848S040 is the exception, and it is expressed in documents
   rather than in the default: its telemetry runs over the board's CH340 bridge,
   which does not hold `921600`, so the configurator fills
-  `telemetry_transport.uart.baud_rate` with `460800` when it creates, converts
-  or applies a template onto a document for that board and the document names no
-  rate of its own. An explicit `921600` survives the conversion and has to be
-  changed by hand. The board's factory payload names the same rate, and a sparse
-  document is never expanded through a board profile, so the property has to be
-  present to have an effect.
+  `telemetry_transport.uart.baud_rate` with `460800` when it creates, opens,
+  converts or applies a template onto a document for that board, and when it
+  saves one to the board, if the document names no rate of its own; resetting
+  the speed on the Protocol page returns it to `460800` too. An explicit `921600`
+  survives all of these and has to be changed by hand. The board's factory
+  payload names the same rate, and a sparse document is never expanded through a
+  board profile, so the property has to be present to have an effect.
 - Unknown properties are rejected.
 - Loading a preset inserts only the properties explicitly present in that
   preset.
@@ -304,6 +305,9 @@ once at startup, so a transport written without a restart would be a setting
 that is stored and not in force, and the firmware says so by answering
 `reboot_required=1` for that document alone. A changed speed also means the
 board comes back at the new one, which is the case the reconnect can fail on.
+A protocol that names no speed is compared and written with the board's own, as
+under [Sparse authoring format](#sparse-authoring-format), so it costs no write
+and no restart on a board already at that speed.
 Otherwise the save ends in `@PR:APPLY` for each document it wrote, which
 rebuilds the running composition from what was just written to NVS. That is why
 an ordinary save costs no dark screen.
