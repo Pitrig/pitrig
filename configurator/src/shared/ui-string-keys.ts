@@ -1780,13 +1780,22 @@ export type UiStringKey =
   | 'updates.banner.updatePlugin'
   | 'updates.firmware.alreadyDownloading'
   | 'updates.firmware.behind'
+  | 'updates.firmware.changesCount'
+  | 'updates.firmware.changesRelease'
+  | 'updates.firmware.changesTitle'
+  | 'updates.firmware.changesUnreleased'
   | 'updates.firmware.current'
   | 'updates.firmware.downloadAndUpdate'
   | 'updates.firmware.downloading'
+  | 'updates.firmware.kind.added'
+  | 'updates.firmware.kind.changed'
+  | 'updates.firmware.kind.fixed'
+  | 'updates.firmware.kind.removed'
   | 'updates.firmware.notInRelease'
   | 'updates.firmware.nothingNewer'
   | 'updates.firmware.offer'
   | 'updates.firmware.released'
+  | 'updates.firmware.schemaNote'
   | 'updates.releaseFeed.downloadDamaged'
   | 'updates.releaseFeed.downloadFailed'
   | 'updates.releaseFeed.githubAnswered'
@@ -2407,6 +2416,9 @@ export interface UiStringParameters {
   'updates.banner.pluginStale': { bundled: string | number, installed: string | number }
   'updates.banner.simhubOld': { minimum: string | number, version: string | number }
   'updates.firmware.behind': { running: string | number, version: string | number }
+  'updates.firmware.changesCount': { count: number }
+  'updates.firmware.changesRelease': { version: string | number }
+  'updates.firmware.changesTitle': { board: string | number }
   'updates.firmware.current': { running: string | number }
   'updates.firmware.downloading': { progress: string | number }
   'updates.firmware.notInRelease': { name: string | number, version: string | number }

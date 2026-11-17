@@ -1569,7 +1569,23 @@
       "current": "The board runs {running}, up to date",
       "downloading": "Downloading the firmware… {progress}%",
       "offer": "Firmware {version} for this board comes with this version of Pitrig.",
-      "downloadAndUpdate": "Download and update"
+      "downloadAndUpdate": "Download and update",
+      "changesTitle": "What changes on the {board}",
+      "changesCount": {
+        "$plural": {
+          "one": "{count} change",
+          "other": "{count} changes"
+        }
+      },
+      "changesRelease": "Firmware {version}",
+      "changesUnreleased": "Not released yet",
+      "schemaNote": "This firmware reads a newer configuration format. Update board keeps a copy of the board's configuration and puts it back.",
+      "kind": {
+        "added": "Added",
+        "changed": "Changed",
+        "fixed": "Fixed",
+        "removed": "Removed"
+      }
     },
     "simhub": {
       "noSimHubFound": "SimHub was not found on this PC.",
