@@ -101,6 +101,7 @@ Editor gaps against SimHub are in
 - [ ] Safe mode shown on screen
 - [ ] Firmware version awareness
 - [ ] Firmware downloaded from the latest release and installed in the app
+- [ ] First install from the app on a board still running its factory firmware
 
 # Phase 7 — Telemetry
 
@@ -120,7 +121,8 @@ Editor gaps against SimHub are in
 # Phase 8 — Distribution
 
 - [ ] Dashboard bundle
-- [ ] Sharing a dashboard as a file
+- [ ] Sharing a dashboard as one file with its images, opened on another PC as it was
+- [ ] Templates that carry their images
 - [ ] In-app gallery
 - [ ] CI on pull requests
 - [*] Compatibility policy and changelog
