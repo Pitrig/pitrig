@@ -1,7 +1,7 @@
-import { useId } from 'react'
+import { useContext, useId } from 'react'
 import { type ImageWidgetConfiguration } from '@shared/configuration-schema'
 import { completePlacement } from '../dashboard-editor'
-import { usePreviewAssetStore } from './preview-assets'
+import { PreviewImageOverrides, usePreviewAssetStore } from './preview-assets'
 import { markupId } from './canvas-geometry'
 import { contentArea } from './preview-geometry-paint'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
@@ -19,9 +19,11 @@ export function ImagePreview({
   style: PreviewStyle
 }): React.JSX.Element | null {
   const recolorId = markupId(useId())
-  const bitmap = usePreviewAssetStore((state) =>
+  const overrides = useContext(PreviewImageOverrides)
+  const stored = usePreviewAssetStore((state) =>
     configuration.image ? state.images[configuration.image] : undefined
   )
+  const bitmap = (configuration.image ? overrides?.[configuration.image] : undefined) ?? stored
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
   const tint = normalizeColor(style.color)

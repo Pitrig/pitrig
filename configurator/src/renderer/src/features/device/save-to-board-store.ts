@@ -73,6 +73,8 @@ export async function saveDraftToBoard(
 
 function describeSave(value: {
   fontsUploaded: boolean
+  imagesUploaded: boolean
+  imagesKept?: string[]
   restarted: boolean
   reconnectFailed?: boolean
   applyFailed?: string
@@ -83,12 +85,20 @@ function describeSave(value: {
   if (value.applyFailed) {
     return t('device.saveToBoardStore.savedTheBoardKeepsShowing', { applyFailed: value.applyFailed })
   }
+  const kept = value.imagesKept?.length
+    ? ` ${t('device.saveToBoardStore.keptBoardImages', { images: value.imagesKept.join(', ') })}`
+    : ''
+  if (value.fontsUploaded && value.imagesUploaded) {
+    return `${t('device.saveToBoardStore.fontsAndImagesInstalled')}${kept}`
+  }
+  if (value.imagesUploaded) {
+    return `${t('device.saveToBoardStore.imagesInstalled')}${kept}`
+  }
   if (value.fontsUploaded) {
-    return t('device.saveToBoardStore.fontsInstalledAndConfigurationSaved')
+    return `${t('device.saveToBoardStore.fontsInstalledAndConfigurationSaved')}${kept}`
   }
   if (value.restarted) {
-    return t('save.saveToBoardService.savedTheBoardIsRestarting')
+    return `${t('save.saveToBoardService.savedTheBoardIsRestarting')}${kept}`
   }
-  return t('device.saveToBoardStore.savedTheBoardIsRunning')
+  return `${t('device.saveToBoardStore.savedTheBoardIsRunning')}${kept}`
 }
-

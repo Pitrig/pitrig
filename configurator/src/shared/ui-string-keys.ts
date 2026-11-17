@@ -190,6 +190,7 @@ export type UiStringKey =
   | 'configs.configurationFileService.invalidConfigurationJson'
   | 'configs.configurationFileService.loadConfiguration'
   | 'configs.configurationFileService.saveConfiguration'
+  | 'configs.dialog.anyFilter'
   | 'configs.dialog.filter'
   | 'configs.dialog.loadTitle'
   | 'configs.dialog.saveTitle'
@@ -458,6 +459,7 @@ export type UiStringKey =
   | 'device.draftState.noLocalConfiguration'
   | 'device.draftState.theBoardFirmwareReadsSchema'
   | 'device.draftState.theBoardIsInSafe'
+  | 'device.draftState.theBoardLacksImages'
   | 'device.draftState.theBoardLacksJoinSaving'
   | 'device.draftState.theDraftIsNotValid'
   | 'device.draftState.theDraftTargetsBoardThe'
@@ -584,7 +586,10 @@ export type UiStringKey =
   | 'device.safeModeBanner.boardIsInSafeMode'
   | 'device.safeModeBanner.explanation'
   | 'device.safeModeBanner.theLastOnePhase'
+  | 'device.saveToBoardStore.fontsAndImagesInstalled'
   | 'device.saveToBoardStore.fontsInstalledAndConfigurationSaved'
+  | 'device.saveToBoardStore.imagesInstalled'
+  | 'device.saveToBoardStore.keptBoardImages'
   | 'device.saveToBoardStore.savedButTheBoardDid'
   | 'device.saveToBoardStore.savedTheBoardIsRunning'
   | 'device.saveToBoardStore.savedTheBoardKeepsShowing'
@@ -803,6 +808,11 @@ export type UiStringKey =
   | 'images.imageAssetService.theConnectedDeviceChangedDuring'
   | 'images.imageAssetService.theConnectedFirmwareDoesNot'
   | 'images.imageAssetService.theDeviceStoresAtMost'
+  | 'images.imageLibrary.damaged'
+  | 'images.imageLibrary.notAdded'
+  | 'images.imageLibrary.notOnThisPc'
+  | 'images.imageLibrary.notRemoved'
+  | 'images.imageLibrary.tooLarge'
   | 'images.imagePackage.anImagePackageNeedsAt'
   | 'images.imagePackage.nameCouldNotBeResized'
   | 'images.imagePackage.nameDecodedToAnUnexpected'
@@ -824,29 +834,40 @@ export type UiStringKey =
   | 'images.imagePageParts.unavailable'
   | 'images.imagePageParts.usedOfLimit'
   | 'images.imagesPage.aNameUsesLowerCase'
-  | 'images.imagesPage.addAPngOrJpeg'
   | 'images.imagesPage.addImage'
   | 'images.imagesPage.addingAnImageConvertsIt'
   | 'images.imagesPage.boardImagePackageErasedRestart'
   | 'images.imagesPage.connectABoardWhoseFirmware'
-  | 'images.imagesPage.convertedHereAndStoredOn'
+  | 'images.imagesPage.description'
   | 'images.imagesPage.eraseEveryImageInstalledOn'
   | 'images.imagesPage.frameCountFrames'
   | 'images.imagesPage.images'
   | 'images.imagesPage.installed'
   | 'images.imagesPage.noImageSupport'
   | 'images.imagesPage.noImagesInstalled'
-  | 'images.imagesPage.nothingStaged'
   | 'images.imagesPage.onTheBoard'
-  | 'images.imagesPage.readyToInstall'
-  | 'images.imagesPage.restartTheBoardBeforeUploading'
-  | 'images.imagesPage.theConnectedFirmwareDoesNot'
-  | 'images.imagesPage.theWholePackageIsReplaced'
-  | 'images.imagesPage.thisSelection'
+  | 'images.imagesPage.restartTheBoardToUse'
+  | 'images.imagesPage.saveInstallsThem'
   | 'images.imagesPage.twoImagesShareAName'
-  | 'images.imagesPage.uploading'
   | 'images.imagesPage.whatTheInstalledPackageHolds'
   | 'images.imagesPage.widthHeightFormat'
+  | 'images.library.board.absent'
+  | 'images.library.board.differs'
+  | 'images.library.board.same'
+  | 'images.library.dashboardDraws'
+  | 'images.library.description'
+  | 'images.library.empty'
+  | 'images.library.emptyHint'
+  | 'images.library.inDashboard'
+  | 'images.library.notOnThisPc'
+  | 'images.library.remove'
+  | 'images.library.removeUsed'
+  | 'images.library.title'
+  | 'images.library.unreadable'
+  | 'images.staged.add'
+  | 'images.staged.added'
+  | 'images.staged.replace'
+  | 'images.staged.title'
   | 'images.stagedImageCard.addFrameLength'
   | 'images.stagedImageCard.format'
   | 'images.stagedImageCard.height'
@@ -1129,6 +1150,7 @@ export type UiStringKey =
   | 'inspector.telemetryBindingField.unknownTelemetryBinding'
   | 'inspector.valueColorList.positionColour'
   | 'inspector.valueColorList.removeNounPosition'
+  | 'inspector.widgetEditors.addImagesFirst'
   | 'inspector.widgetEditors.addSource'
   | 'inspector.widgetEditors.alignment'
   | 'inspector.widgetEditors.bitmap'
@@ -1136,7 +1158,9 @@ export type UiStringKey =
   | 'inspector.widgetEditors.frameFrom'
   | 'inspector.widgetEditors.holdsHeldWidgetSPlaced'
   | 'inspector.widgetEditors.imageHasASingleFrame'
-  | 'inspector.widgetEditors.imageIsNotInstalledOn'
+  | 'inspector.widgetEditors.imageIsNowhere'
+  | 'inspector.widgetEditors.imageNotOnBoardYet'
+  | 'inspector.widgetEditors.imageOnlyOnBoard'
   | 'inspector.widgetEditors.kind'
   | 'inspector.widgetEditors.lengthSources'
   | 'inspector.widgetEditors.recolor'
@@ -1145,7 +1169,6 @@ export type UiStringKey =
   | 'inspector.widgetEditors.thisShapeHoldsNoWidgets'
   | 'inspector.widgetEditors.unassigned'
   | 'inspector.widgetEditors.unbound'
-  | 'inspector.widgetEditors.uploadImagesToTheBoard'
   | 'inspector.widgetInspector.selectAnExistingWidgetOn'
   | 'inspector.widgetInspector.widgetName'
   | 'ipc.registerAssetHandlers.familyCouldNotBeDownloaded'
@@ -1156,6 +1179,7 @@ export type UiStringKey =
   | 'ipc.registerIpcHandlers.invalidSerialConnectionRequest'
   | 'ipc.registerLibraryHandlers.invalidConfigurationFileRequest'
   | 'ipc.registerLibraryHandlers.invalidConfigurationLibraryRequest'
+  | 'ipc.registerLibraryHandlers.invalidDashboardFileRequest'
   | 'ipc.registerLibraryHandlers.invalidTemplateRequest'
   | 'ipc.requestGuards.invalidDeviceConfigurationRequest'
   | 'layers.layerList.fold'
@@ -1571,6 +1595,17 @@ export type UiStringKey =
   | 'protocol.transportSection.uARTPins'
   | 'protocol.transportSection.whateverThisBoardWasBuilt'
   | 'protocol.transportSection.whichLinkCarriesTelemetryAnd'
+  | 'save.fontDelivery.building'
+  | 'save.fontDelivery.noFaceCalled'
+  | 'save.fontDelivery.noFaceForSome'
+  | 'save.imageDelivery.boardOnly'
+  | 'save.imageDelivery.building'
+  | 'save.imageDelivery.failed'
+  | 'save.imageDelivery.fontsWithoutImages'
+  | 'save.imageDelivery.noStorage'
+  | 'save.imageDelivery.tooLarge'
+  | 'save.imageDelivery.tooMany'
+  | 'save.imageDelivery.unavailable'
   | 'save.saveToBoardService.checkingTheFontsThisDashboard'
   | 'save.saveToBoardService.noPitrigBoardIsConnected'
   | 'save.saveToBoardService.nothingToSaveTheBoard'
@@ -1586,6 +1621,36 @@ export type UiStringKey =
   | 'save.stage.reconnecting'
   | 'save.stage.saving'
   | 'save.stage.uploading'
+  | 'share.button.label'
+  | 'share.button.title'
+  | 'share.dialog.defaultName'
+  | 'share.dialog.filter'
+  | 'share.dialog.intro'
+  | 'share.dialog.saveButton'
+  | 'share.dialog.saveFile'
+  | 'share.dialog.saveTitle'
+  | 'share.dialog.saved'
+  | 'share.dialog.savedWithout'
+  | 'share.dialog.saving'
+  | 'share.errors.description'
+  | 'share.errors.name'
+  | 'share.errors.notSaved'
+  | 'share.file.damaged'
+  | 'share.file.newer'
+  | 'share.file.newerVersion'
+  | 'share.file.tooLarge'
+  | 'share.open.added'
+  | 'share.open.fontsMissing'
+  | 'share.open.imagesMissing'
+  | 'share.open.next'
+  | 'share.open.opened'
+  | 'share.open.renamed'
+  | 'share.open.scaled'
+  | 'share.summary.fonts'
+  | 'share.summary.images'
+  | 'share.summary.missingFonts'
+  | 'share.summary.missingImages'
+  | 'share.summary.size'
   | 'shortcuts.cmdCtrl'
   | 'shortcuts.cmdCtrlA'
   | 'shortcuts.cmdCtrlC'
@@ -1606,6 +1671,8 @@ export type UiStringKey =
   | 'templates.dashboardListControls.showOnlyTheDashboardsDrawn'
   | 'templates.dashboardListControls.smallestDisplayFirstOrBy'
   | 'templates.dashboardSection.addScreensFromThisTemplate'
+  | 'templates.dashboardSection.creditBy'
+  | 'templates.dashboardSection.creditOpen'
   | 'templates.dashboardSection.dashboards'
   | 'templates.dashboardSection.dismiss'
   | 'templates.dashboardSection.emptyAfter'
@@ -2024,6 +2091,7 @@ export interface UiStringParameters {
   'device.documentStatus.refused': { label: string | number }
   'device.documentStatus.shownNotSaved': { label: string | number }
   'device.draftState.theBoardFirmwareReadsSchema': { expected: string | number, schema: string | number }
+  'device.draftState.theBoardLacksImages': { images: string | number }
   'device.draftState.theBoardLacksJoinSaving': { join: string | number }
   'device.draftState.theDraftIsNotValid': { error: string | number }
   'device.draftState.theDraftTargetsBoardThe': { board: string | number, boardId: string | number }
@@ -2048,6 +2116,7 @@ export interface UiStringParameters {
   'device.protocolParsers.unsupportedConfigurationSchemaSchema': { schema: string | number }
   'device.safeModeBanner.explanation': { failures: string | number, phase: string | number }
   'device.safeModeBanner.theLastOnePhase': { phase: string | number }
+  'device.saveToBoardStore.keptBoardImages': { images: string | number }
   'device.saveToBoardStore.savedTheBoardKeepsShowing': { applyFailed: string | number }
   'device.schemaBanner.explanation': { expected: string | number, schema: string | number }
   'device.serialRequest.theDeviceDidNotAnswer': { trim: string | number }
@@ -2106,6 +2175,9 @@ export interface UiStringParameters {
   'images.imageAssetService.nameIsNotAValid': { name: string | number }
   'images.imageAssetService.pathCouldNotBeRead': { path: string | number }
   'images.imageAssetService.theDeviceStoresAtMost': { mAXIMUM_IMAGES: string | number }
+  'images.imageLibrary.damaged': { id: string | number }
+  'images.imageLibrary.notOnThisPc': { id: string | number }
+  'images.imageLibrary.tooLarge': { id: string | number, limit: string | number, size: string | number }
   'images.imagePackage.nameCouldNotBeResized': { height: string | number, name: string | number, width: string | number }
   'images.imagePackage.nameDecodedToAnUnexpected': { name: string | number }
   'images.imagePackage.nameHasFramecountFramesThe': { frameCount: string | number, mAXIMUM_SPRITE_FRAMES: string | number, name: string | number }
@@ -2124,6 +2196,15 @@ export interface UiStringParameters {
   'images.imagePageParts.usedOfLimit': { limit: string | number, rest: string | number, used: string | number }
   'images.imagesPage.frameCountFrames': { frameCount: string | number }
   'images.imagesPage.widthHeightFormat': { format: string | number, height: string | number, width: string | number }
+  'images.library.dashboardDraws': { count: number }
+  'images.library.description': { size: string | number }
+  'images.library.notOnThisPc': { images: string | number }
+  'images.library.remove': { id: string | number }
+  'images.library.removeUsed': { id: string | number }
+  'images.library.unreadable': { count: number }
+  'images.staged.add': { count: number }
+  'images.staged.added': { count: number }
+  'images.staged.replace': { images: string | number }
   'images.stagedImageCard.addFrameLength': { length: string | number }
   'images.stagedImageCard.removeFrameIndex': { index: string | number }
   'inspector.actionEditor.goToScreen': { screen: string | number }
@@ -2175,7 +2256,9 @@ export interface UiStringParameters {
   'inspector.valueColorList.removeNounPosition': { noun: string | number, position: string | number }
   'inspector.widgetEditors.holdsHeldWidgetSPlaced': { held: string | number }
   'inspector.widgetEditors.imageHasASingleFrame': { image: string | number }
-  'inspector.widgetEditors.imageIsNotInstalledOn': { image: string | number }
+  'inspector.widgetEditors.imageIsNowhere': { image: string | number }
+  'inspector.widgetEditors.imageNotOnBoardYet': { image: string | number }
+  'inspector.widgetEditors.imageOnlyOnBoard': { image: string | number }
   'inspector.widgetEditors.lengthSources': { length: string | number }
   'ipc.registerAssetHandlers.familyCouldNotBeDownloaded': { family: string | number }
   'layers.layerList.typeDoubleClickToRename': { type: string | number }
@@ -2257,9 +2340,34 @@ export interface UiStringParameters {
   'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
   'protocol.bridgeService.portTaken': { port: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
+  'save.fontDelivery.noFaceCalled': { family: string | number }
+  'save.fontDelivery.noFaceForSome': { count: number }
+  'save.imageDelivery.boardOnly': { images: string | number, pending: string | number }
+  'save.imageDelivery.fontsWithoutImages': { error: string | number }
+  'save.imageDelivery.tooLarge': { limit: string | number, size: string | number }
+  'save.imageDelivery.tooMany': { count: number, maximum: string | number }
+  'save.imageDelivery.unavailable': { images: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
+  'share.dialog.saved': { fileName: string | number, size: string | number }
+  'share.dialog.savedWithout': { names: string | number }
+  'share.errors.description': { maximum: string | number }
+  'share.errors.name': { maximum: string | number }
+  'share.file.newerVersion': { version: string | number }
+  'share.file.tooLarge': { limit: string | number }
+  'share.open.added': { names: string | number }
+  'share.open.fontsMissing': { fonts: string | number }
+  'share.open.imagesMissing': { images: string | number }
+  'share.open.opened': { name: string | number }
+  'share.open.renamed': { names: string | number }
+  'share.summary.fonts': { builtin: string | number, embedded: string | number, google: string | number }
+  'share.summary.images': { count: number }
+  'share.summary.missingFonts': { fonts: string | number }
+  'share.summary.missingImages': { images: string | number }
+  'share.summary.size': { size: string | number }
   'telemetry.gameMarks.sentBy': { games: string | number }
   'templates.dashboardListControls.allSizesLength': { length: string | number }
+  'templates.dashboardSection.creditBy': { name: string | number }
+  'templates.dashboardSection.creditOpen': { name: string | number }
   'templates.dashboardSection.nameIsNowTheLocal': { name: string | number }
   'templates.dashboardSection.nameWouldNotBeAccepted': { error: string | number, name: string | number }
   'templates.dashboardSection.replaceEverythingYouHaveOpen2': { name: string | number }

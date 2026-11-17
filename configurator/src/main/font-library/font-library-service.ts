@@ -201,6 +201,23 @@ export class FontLibraryService {
     }, bytes)
   }
 
+  async adopt(
+    entry: Omit<StoredEntry, 'file' | 'bytes' | 'tabularDigits'>,
+    bytes: Uint8Array
+  ): Promise<FontLibraryResult<FontLibraryEntry>> {
+    await this.load()
+    if (!FONT_FAMILY_PATTERN.test(entry.id) || this.has(entry.id)) {
+      return failure('id_taken', t('fonts.fontLibraryService.theLibraryAlreadyHoldsA', { id: entry.id }))
+    }
+    if (this.index.entries.length >= MAXIMUM_USER_FACES) {
+      return failure('limit_reached', t('fonts.fontLibraryService.theLibraryHoldsAtMost', { mAXIMUM_USER_FACES: MAXIMUM_USER_FACES }))
+    }
+    const invalid = faceProblem(bytes)
+    if (invalid) return failure('not_a_font', invalid)
+    const tabular = optionalTabular(hasTabularDigits(bytes))
+    return this.store({ ...entry, file: `${entry.id}${FACE_EXTENSION}`, bytes: bytes.byteLength, ...tabular }, bytes)
+  }
+
   async remove(id: string): Promise<FontLibraryResult<void>> {
     await this.load()
     if (BUNDLED_FACES.some((face) => face.id === id)) {
@@ -280,5 +297,4 @@ export class FontLibraryService {
       await this.writeIndex().catch(() => undefined)
     }
   }
-
 }

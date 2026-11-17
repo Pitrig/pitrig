@@ -115,8 +115,7 @@ describes itself and a bitmap does not, which is the whole of the difference.
   only one of them can be working.
 - The converted pixels are unreachable once uploaded — the device sends nothing
   back and the picked source is gone with the session — so the configurator
-  keeps its own copy of them for the editor's preview, under the asset cache
-  decided in
+  keeps them in its image library, decided in
   [the amendment below](#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs).
   The preview draws the converted image, so RGB565 banding shows there rather
   than first on the board.
@@ -242,33 +241,48 @@ Left open.
 
 An uploaded image is converted before it is sent and the converted pixels exist
 nowhere else: the device holds no decoder and hands nothing back, and the picked
-source file is a path held in memory for the length of one session. Without a
-copy the canvas would fall back to a named box for the rest of the project's
-life.
+source file is a path held in memory for the length of one session.
 
-**Decision.** The configurator writes each image it installs to a cache under
-the app's `userData` directory, re-encoded from the *converted* pixels so the
-preview carries the resize and the colour reduction the upload applied. Faces
-are deliberately not cached: the font library of
-[ADR 0010](0010-uploaded-font-assets.md) owns them and answers whether or not a
-board was ever given them.
+**Decision.** The configurator keeps an image library under the app's `userData`
+directory, the way it keeps a font library: every image it converts on the
+Images page, and every image an opened dashboard file brings
+([ADR 0041](0041-dashboard-files.md)), is stored once as the exact bytes a
+package entry carries, with a PNG beside it for the canvas and a record of its
+geometry, format, frames and SHA-256. An image identifier in a dashboard is the
+id of a library entry. Faces are deliberately not stored here: the font library
+of [ADR 0010](0010-uploaded-font-assets.md) owns them.
 
-The cache mirrors a device package rather than anything the author wrote, so:
+`Save to board` installs from the library as it installs fonts: it builds a
+package holding exactly the images the dashboard draws and sends it only when
+the board does not already hold them, then restarts. The board reports names,
+geometry and package size but no checksum, so the configurator remembers the
+last sixteen packages it installed with a SHA-256 per image, the newest install
+of a given shape replacing the older; a board reporting one of them is known
+exactly, and otherwise equal names, geometry and package size count as the same.
+Two boards holding packages of the same shape with different pictures cannot be
+told apart this way: the newest record wins until the board reports a checksum.
+An image the board holds and this PC does not is left on the board when nothing
+else needs installing. One neither holds, or one the save could install only by
+removing a picture this PC lacks, stops the save before anything is written.
 
-- it is replaced whole on upload and emptied on clear, exactly as the package
-  it stands for;
-- nothing depends on it. A missing, stale or unreadable entry costs the preview
-  its fidelity and falls back to the named image box — never the upload, the
-  document, or validation;
-- it stays out of the saved project. A project is a sparse configuration
-  document, and binding megabytes of asset to it is a separate decision about
-  the project format that this does not take.
+Colours are stored straight. Electron decodes to premultiplied BGRA and LVGL
+blends RGB565A8 as colour plus mask, so the conversion divides by alpha and the
+preview multiplies back; storing the premultiplied value drew every soft edge
+darker on the board than on the canvas.
+
+The first form of this decision was a cache mirroring the last package, replaced
+whole on every upload. On first start its pictures move into the library and
+the cache directory is removed.
 
 **Consequences.**
 
-- An image drawn on the canvas is the bitmap the board holds, but only for one
-  installed by *this* installation; someone else's project draws a named box
-  until its images are uploaded here.
+- A dashboard installed long ago can still be installed and shared from this PC.
+  The library grows until entries are removed on the Images page.
+- The canvas draws an image the board does not hold yet; the inspector says so,
+  and live apply waits until a save installs it. An image installed on the board
+  from another PC draws a named box here.
+- A PNG preview moves a partly transparent pixel by at most one RGB565 step; the
+  stored bytes do not.
 - Glyph rasterization still differs: the browser and LVGL's TinyTTF hint and
   antialias differently, so the preview matches the board's layout, not its
   pixels.

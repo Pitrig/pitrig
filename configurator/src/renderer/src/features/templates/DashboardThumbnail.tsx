@@ -3,6 +3,7 @@ import { useEffect, useMemo } from 'react'
 import { screensOf } from '@shared/configuration-access'
 import { BOARD_PROFILES, type PitrigBoardId } from '@shared/device'
 
+import { PreviewImageOverrides } from '@/features/configuration/preview/preview-assets'
 import { ScreenGallery } from './ScreenGallery'
 import { useTemplatesStore } from './templates-store'
 import { t } from '@shared/ui-text'
@@ -17,6 +18,7 @@ export function DashboardThumbnail({
   className?: string
 }): React.JSX.Element {
   const document = useTemplatesStore((state) => state.documents[id])
+  const images = useTemplatesStore((state) => state.images[id])
   const loadDocument = useTemplatesStore((state) => state.loadDocument)
 
   useEffect(() => {
@@ -35,7 +37,11 @@ export function DashboardThumbnail({
   if (typeof document !== 'object') {
     return <Note className={className}>{t('templates.dashboardThumbnail.reading')}</Note>
   }
-  return <ScreenGallery screens={screens} display={display} className={className} />
+  return (
+    <PreviewImageOverrides.Provider value={images}>
+      <ScreenGallery screens={screens} display={display} className={className} />
+    </PreviewImageOverrides.Provider>
+  )
 }
 
 function Note({

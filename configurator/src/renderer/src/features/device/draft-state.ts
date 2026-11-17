@@ -8,6 +8,18 @@ import {
   type ValidationResult
 } from '@shared/configuration-validate'
 import { PITRIG_BOARD_IDS, type DeviceConfiguration } from '@shared/device'
+import { documentImageIds } from '@shared/document-assets'
+import {
+  MAXIMUM_IMAGES,
+  MAXIMUM_IMAGE_PACKAGE_SIZE,
+  type ImageAssetState
+} from '@shared/image-assets'
+import {
+  planImageDelivery,
+  type ImageDeliveryPlan,
+  type ImageLibrarySnapshot
+} from '@shared/image-library'
+import { useImageLibraryStore } from '@/features/image-assets/image-library-store'
 import {
   collectFontRequirements,
   missingFontFamilies
@@ -25,6 +37,9 @@ export interface DraftState {
   safeMode: boolean
   boardMismatch: boolean
   missingFamilies: string[]
+  imagePlan: ImageDeliveryPlan
+  documentSaveBlockedReason?: string
+  imageSaveBlockedReason?: string
   saveBlockedReason?: string
   liveApplyBlockedReason?: string
   liveApplyAllowed: boolean
@@ -38,6 +53,7 @@ export function useDraftState(): DraftState {
   const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const runningConfiguration = useDeviceStore((state) => state.runningConfiguration)
+  const imageLibrary = useImageLibraryStore((state) => state.snapshot)
 
   const { parsed, missingFamilies } = inspect(
     draft,
@@ -55,8 +71,16 @@ export function useDraftState(): DraftState {
   const boardMismatch =
     parsed.ok && session ? parsed.configuration.board !== session.info.boardId : false
   const outdated = session ? outdatedFirmware(session.info.schemaVersion) : undefined
+  const imagePlan = planImages(
+    parsed.ok ? parsed.configuration : undefined,
+    imageLibrary,
+    session?.imageAssets
+  )
+  const fontsPending = missingFamilies.length > 0 && Boolean(session?.fontAssets?.storageAvailable)
+  const assetsPending = !safeMode && (fontsPending || imagePlan.install)
+  const imageBlocker = connected && !safeMode ? imageBlockerReason(imagePlan) : undefined
 
-  const saveBlockedReason = !connected
+  const documentSaveBlockedReason = !connected
     ? 'Connect a Pitrig board before saving.'
     : outdated
       ? outdated
@@ -66,9 +90,11 @@ export function useDraftState(): DraftState {
         ? parsed.error
         : !session?.info.storageAvailable
           ? 'Persistent configuration storage is unavailable on this board.'
-          : !dirty
-            ? 'The draft already matches what the board holds.'
-            : undefined
+          : undefined
+  const saveBlockedReason =
+    documentSaveBlockedReason ??
+    imageBlocker ??
+    (!dirty && !assetsPending ? 'The draft already matches what the board holds.' : undefined)
 
   const liveApplyBlockedReason = outdated ?? liveApplyBlocker({
     connected,
@@ -76,7 +102,8 @@ export function useDraftState(): DraftState {
     parsed,
     boardMismatch,
     boardId: session?.info.boardId,
-    missingFamilies
+    missingFamilies,
+    missingImages: imagePlan.missingOnBoard
   })
 
   return {
@@ -89,6 +116,9 @@ export function useDraftState(): DraftState {
     safeMode,
     boardMismatch,
     missingFamilies,
+    imagePlan,
+    documentSaveBlockedReason,
+    imageSaveBlockedReason: imageBlocker,
     saveBlockedReason,
     liveApplyBlockedReason,
     liveApplyAllowed: liveApplyBlockedReason === undefined
@@ -128,6 +158,7 @@ function liveApplyBlocker(state: {
   boardMismatch: boolean
   boardId?: string
   missingFamilies: string[]
+  missingImages: string[]
 }): string | undefined {
   if (!state.connected) return t('device.draftState.connectAPitrigBoardTo')
   if (state.safeMode) {
@@ -142,7 +173,65 @@ function liveApplyBlocker(state: {
   if (state.missingFamilies.length > 0) {
     return t('device.draftState.theBoardLacksJoinSaving', { join: state.missingFamilies.join(', ') })
   }
+  if (state.missingImages.length > 0) {
+    return t('device.draftState.theBoardLacksImages', { images: state.missingImages.join(', ') })
+  }
   return undefined
+}
+
+let imageMemo:
+  | {
+      configuration: DeviceConfiguration | undefined
+      library: ImageLibrarySnapshot
+      board: ImageAssetState | undefined
+      value: ImageDeliveryPlan
+    }
+  | undefined
+
+function planImages(
+  configuration: DeviceConfiguration | undefined,
+  library: ImageLibrarySnapshot,
+  board: ImageAssetState | undefined
+): ImageDeliveryPlan {
+  if (
+    imageMemo &&
+    imageMemo.configuration === configuration &&
+    imageMemo.library === library &&
+    imageMemo.board === board
+  ) {
+    return imageMemo.value
+  }
+  const value = planImageDelivery({
+    needed: documentImageIds(configuration),
+    library: library.entries,
+    board,
+    installed: library.installed
+  })
+  imageMemo = { configuration, library, board, value }
+  return value
+}
+
+function imageBlockerReason(plan: ImageDeliveryPlan): string | undefined {
+  switch (plan.blocker) {
+    case 'unavailable':
+      return t('save.imageDelivery.unavailable', { images: plan.unavailable.join(', ') })
+    case 'board_only':
+      return t('save.imageDelivery.boardOnly', {
+        images: plan.notOnPc.join(', '),
+        pending: [...plan.missingOnBoard, ...plan.differing].join(', ')
+      })
+    case 'too_many':
+      return t('save.imageDelivery.tooMany', { count: plan.needed.length, maximum: MAXIMUM_IMAGES })
+    case 'too_large':
+      return t('save.imageDelivery.tooLarge', {
+        size: Math.ceil(plan.packageSize / 1024),
+        limit: Math.floor(MAXIMUM_IMAGE_PACKAGE_SIZE / 1024)
+      })
+    case 'no_storage':
+      return t('save.imageDelivery.noStorage')
+    default:
+      return undefined
+  }
 }
 
 function compare(

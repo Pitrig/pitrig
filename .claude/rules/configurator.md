@@ -8,17 +8,20 @@ paths:
 Standard electron-vite three-way split: `main/` (Node — serial, the device
 service and the protocol under `device/`, where `asset-upload.ts` and
 `device-uploads.ts` are the one `SCF1` engine font, image and firmware upload
-all run through; `assets/` holds the base every asset service extends, the file
-chooser and the preview cache; then the `font-library/` face store and Google
-Fonts catalog, the `save-to-board/` orchestrator, `firmware-update/` with the
+all run through; `assets/` holds the base every asset service extends and the
+file chooser; then the `font-library/` face store and Google Fonts catalog, the
+`image-library/` store of converted images (ADR 0018) with the one-time move of
+the old preview cache, `dashboard-files/` for `.pitrigdash` share and open
+(ADR 0041), the `save-to-board/` orchestrator with its font and image delivery,
+`firmware-update/` with the
 `Update board` sequence, the `telemetry-bridge/` relay, the `updates/` channel
 (ADR 0037, registered by the product entry point only, like the bridge), the
 `usage/` reporter (ADR 0040, product entry point only, off in development), the
 `ipc/` registrations, config files, the dashboard `templates/` library, the
 `configs/` folder and recent-files list),
 `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
-`configuration`, `controls`, `device`, `firmware-update`, `font-library`, `image-assets`,
-`modules`, `protocol`, `telemetry`, `templates`, `updates`). `shared/` is everything both
+`configuration`, `controls`, `dashboard-files`, `device`, `firmware-update`, `font-library`,
+`image-assets`, `modules`, `protocol`, `telemetry`, `templates`, `updates`). `shared/` is everything both
 processes run, not only types: the validators, the layout transfer, LED
 rendering, `t()` and the generated contracts.
 `src/shared/ipc.ts` declares the `PitrigApi` surface and `APP_GET_INFO_CHANNEL`
@@ -27,8 +30,9 @@ alone; **every other channel is declared in the shared module for its feature** 
 `save-to-board.ts`, `telemetry-bridge.ts` and the rest. A new one goes there
 beside its request and result types, into `PitrigApi`, into the registration
 that owns the area — `main/ipc/register-ipc-handlers.ts` for the device and the
-save, `register-library-handlers.ts` for files, configurations and templates,
-`register-asset-handlers.ts` for fonts, images and firmware,
+save, `register-library-handlers.ts` for files, configurations, templates and
+dashboard files, `register-asset-handlers.ts` for fonts, images, the image
+library and firmware,
 `main/telemetry-bridge/register-telemetry-bridge.ts` for the bridge — and the
 preload bridge.
 
@@ -135,18 +139,34 @@ placeholders.
 ## Save to board
 
 "Save to board" writes only the documents that differ from the board, protocol
-first and dashboard last. When the dashboard is among them it resolves that
-document's families against the font library, builds a package holding exactly
-those, and skips the upload when `@PR:FONT:INFO` reports the same `crc` and
-`entries`. It restarts the board only when a package was actually installed,
-when the board already owed a restart, when the `protocol` document was written
+first and dashboard last, after the assets: `save-to-board/font-delivery.ts`
+resolves the dashboard's families against the font library (downloading a
+Google face the catalog knows) and skips the upload when `@PR:FONT:INFO` reports
+the same `crc` and `entries`, and `image-delivery.ts` builds the package of
+exactly the images the dashboard draws from the image library and skips it when
+`planImageDelivery` in `shared/image-library.ts` finds the board holding them —
+the same function draft-state uses to enable the button and hold live apply
+back. Assets are checked whenever the dashboard is in scope, not only when its
+document changed, so a board that lost a face or an image gets it back. It
+restarts the board only when a package was actually installed, when the board
+already owed a restart, when the `protocol` document was written
 (`reboot_required=1`), or when a write takes the board out of safe mode;
 otherwise it closes with `@PR:APPLY` per written document. That list is stated
 once, in `docs/device-configuration.md` under "Saving to the board" — change it
-there too. An unresolvable family stops the save and asks for a file, and live
-apply is suppressed while the board lacks a family, because firmware rejects
+there too. An unresolvable family stops the save and asks for a file, an image
+on neither this PC nor the board stops it with the names, as does one the save
+could install only by dropping a picture just the board holds, and live apply is
+suppressed while the board lacks a family or an image, because firmware rejects
 the document whole. `family` **is** the library id — bundled, Google or
-imported — and a weight is its own entry and one of the eight slots.
+imported — and a weight is its own entry and one of the eight slots; an image id
+is an image-library id the same way.
+
+A `.pitrigdash` file opens through the same `Open…` as a configuration file:
+`ConfigurationFileService` hands it to `DashboardFileService`, which validates
+the whole container before it adds anything, then the renderer adopts the
+dashboard through `features/templates/adopt-dashboard.ts`, the function a
+template's `Use` calls, and `OpenReportNotice` keeps the report above the
+dashboard pages until it is dismissed.
 
 ## Workspaces and transfer
 
@@ -178,7 +198,10 @@ as does a screen imported through `insert-screen.ts`. A template is its payload 
 an envelope, and a widget fragment is validated inside the smallest document
 that can carry it — the trick the clipboard uses on paste (ADR 0023). The
 example configurations in `src/main/templates/bundled/` are starting points,
-not inheritance profiles.
+not inheritance profiles. A starter that draws images is a `.pitrigdash` file
+there, listed with its author's credit in `bundled-templates.ts` and opened by
+`bundled-template-library.ts` through the dashboard file service, so `Use` and
+`Add` (`templates:adopt`) bring its images into the library.
 
 ## Traps
 

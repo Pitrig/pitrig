@@ -7,9 +7,12 @@ import {
   isFontFacesRequest,
   isFontLibraryAddRequest,
   isFontLibraryIdRequest,
-  isFontLibraryImportRequest,
-  isImageUploadRequest
+  isFontLibraryImportRequest
 } from './request-guards'
+import {
+  isImageLibraryAddRequest,
+  isImageLibraryIdRequest
+} from './asset-request-guards'
 import type { AssetResult } from '../../shared/asset-upload'
 import {
   BOARD_UPDATE_CHANNEL,
@@ -33,11 +36,14 @@ import {
 import {
   IMAGE_CANCEL_UPLOAD_CHANNEL,
   IMAGE_CLEAR_CHANNEL,
-  IMAGE_SELECT_SOURCE_CHANNEL,
-  IMAGE_UPLOAD_CHANNEL
+  IMAGE_SELECT_SOURCE_CHANNEL
 } from '../../shared/image-assets'
+import {
+  IMAGE_LIBRARY_ADD_CHANNEL,
+  IMAGE_LIBRARY_LIST_CHANNEL,
+  IMAGE_LIBRARY_REMOVE_CHANNEL
+} from '../../shared/image-library'
 import { PREVIEW_ASSETS_READ_CHANNEL } from '../../shared/preview-assets'
-import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
 import { BoardUpdateService } from '../firmware-update/board-update-service'
 import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
@@ -45,6 +51,7 @@ import { FontAssetService } from '../font-assets/font-asset-service'
 import { FontCatalogService } from '../font-library/font-catalog-service'
 import { FontLibraryService } from '../font-library/font-library-service'
 import { ImageAssetService } from '../image-assets/image-asset-service'
+import type { ImageLibraryService } from '../image-library/image-library-service'
 import { broadcastFontLibraryChanged } from './register-ipc-handlers'
 import { t } from '@shared/ui-text'
 
@@ -54,7 +61,7 @@ export function registerAssetHandlers(
   imageAssetService: ImageAssetService,
   firmwareUpdateService: FirmwareUpdateService,
   boardUpdateService: BoardUpdateService,
-  previewAssetCache: PreviewAssetCache,
+  imageLibraryService: ImageLibraryService,
   fontLibraryService: FontLibraryService,
   fontCatalogService: FontCatalogService
 ): void {
@@ -134,27 +141,31 @@ export function registerAssetHandlers(
     imageAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )
   ipcMain.handle(IMAGE_CANCEL_UPLOAD_CHANNEL, () => imageAssetService.cancel())
-  ipcMain.handle(IMAGE_CLEAR_CHANNEL, async () => {
-    const result = await deviceService.clearImages()
-    if (result.ok) await previewAssetCache.clearImages().catch(() => undefined)
-    return result
+  ipcMain.handle(IMAGE_CLEAR_CHANNEL, () => deviceService.clearImages())
+  ipcMain.handle(PREVIEW_ASSETS_READ_CHANNEL, async () => ({
+    images: await imageLibraryService.previews().catch(() => [])
+  }))
+  ipcMain.handle(IMAGE_LIBRARY_LIST_CHANNEL, () => imageLibraryService.snapshot())
+  ipcMain.handle(IMAGE_LIBRARY_ADD_CHANNEL, (_event, request: unknown) => {
+    if (!isImageLibraryAddRequest(request)) return invalidImageRequest()
+    return imageAssetService.addToLibrary(request.assets)
   })
-  ipcMain.handle(PREVIEW_ASSETS_READ_CHANNEL, () => {
-    const assets = deviceService.getState().session?.imageAssets
-    return previewAssetCache.read(
-      assets ? new Set(assets.images.map(({ name }) => name)) : undefined
-    )
-  })
-  ipcMain.handle(IMAGE_UPLOAD_CHANNEL, (_event, request: unknown) => {
-    if (!isImageUploadRequest(request)) {
-      const result: AssetResult<void> = {
-        ok: false,
-        error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidImageUploadRequest') }
-      }
-      return result
+  ipcMain.handle(IMAGE_LIBRARY_REMOVE_CHANNEL, async (_event, request: unknown) => {
+    if (!isImageLibraryIdRequest(request)) return invalidImageRequest()
+    try {
+      return { ok: true, value: await imageLibraryService.remove(request.id) }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('images.imageLibrary.notRemoved')
+      return { ok: false, error: { code: 'device_error', message } }
     }
-    return imageAssetService.upload(request)
   })
+}
+
+function invalidImageRequest(): AssetResult<never> {
+  return {
+    ok: false,
+    error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidImageUploadRequest') }
+  }
 }
 
 function invalidFontLibraryRequest(): FontLibraryResult<never> {

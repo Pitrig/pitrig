@@ -28,7 +28,7 @@ import { useBoardUpdateStore } from '@/features/firmware-update/board-update-sto
 import { UpdateBanner } from '@/features/updates/UpdateBanner'
 import { subscribeToUpdates } from '@/features/updates/update-store'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
-import { useImageUploadStore } from '@/features/image-assets/image-assets-store'
+import { subscribeToImageLibrary } from '@/features/image-assets/image-library-store'
 import { ModulesPage } from '@/features/modules/ModulesPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
 import { subscribeToTelemetryBridge } from '@/features/telemetry/bridge-store'
@@ -49,10 +49,7 @@ export function App(): React.JSX.Element {
 
   useEffect(() => subscribeToFontLibrary(), [])
   useEffect(() => subscribeToUpdates(), [])
-  useEffect(
-    () => window.pitrig.onImageUploadProgress(useImageUploadStore.getState().setProgress),
-    []
-  )
+  useEffect(() => subscribeToImageLibrary(), [])
   useEffect(() => subscribeToTelemetryBridge(), [])
   useEffect(() => startLiveTelemetry(), [])
   useTelemetryInterest()

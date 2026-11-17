@@ -39,8 +39,10 @@ import {
   type SaveProgress,
   type SaveToBoardResult
 } from '../../shared/save-to-board'
-import type { AssetUploadProgress } from '../../shared/asset-upload'
-import { IMAGE_UPLOAD_PROGRESS_CHANNEL } from '../../shared/image-assets'
+import {
+  IMAGE_LIBRARY_CHANGED_CHANNEL,
+  type ImageLibrarySnapshot
+} from '../../shared/image-library'
 import type { AppServices } from '../app-services'
 import { t } from '@shared/ui-text'
 
@@ -51,7 +53,8 @@ export function registerIpcHandlers({
   firmwareUpdateService,
   boardUpdateService,
   configurationFileService,
-  previewAssetCache,
+  dashboardFileService,
+  imageLibraryService,
   templateService,
   fontLibraryService,
   fontCatalogService,
@@ -63,14 +66,19 @@ export function registerIpcHandlers({
     version: app.getVersion(),
     platform: process.platform
   }))
-  registerLibraryHandlers(configurationFileService, configLibraryService, templateService)
+  registerLibraryHandlers(
+    configurationFileService,
+    configLibraryService,
+    templateService,
+    dashboardFileService
+  )
   registerAssetHandlers(
     deviceService,
     fontAssetService,
     imageAssetService,
     firmwareUpdateService,
     boardUpdateService,
-    previewAssetCache,
+    imageLibraryService,
     fontLibraryService,
     fontCatalogService
   )
@@ -125,8 +133,8 @@ export function broadcastFontLibraryChanged(snapshot: FontLibrarySnapshot): void
   broadcastToWindows(FONT_LIBRARY_CHANGED_CHANNEL, snapshot)
 }
 
-export function broadcastImageUploadProgress(progress: AssetUploadProgress): void {
-  broadcastToWindows(IMAGE_UPLOAD_PROGRESS_CHANNEL, progress)
+export function broadcastImageLibraryChanged(snapshot: ImageLibrarySnapshot): void {
+  broadcastToWindows(IMAGE_LIBRARY_CHANGED_CHANNEL, snapshot)
 }
 
 export function broadcastFirmwareUploadProgress(progress: FirmwareUploadProgress): void {

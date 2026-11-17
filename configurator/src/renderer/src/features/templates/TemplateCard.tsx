@@ -9,6 +9,7 @@ export function TemplateCard({
   badges,
   description,
   meta,
+  credit,
   actions
 }: {
   preview: ReactNode
@@ -16,6 +17,7 @@ export function TemplateCard({
   badges?: ReactNode
   description?: string
   meta: string
+  credit?: ReactNode
   actions: ReactNode
 }): React.JSX.Element {
   return (
@@ -34,6 +36,7 @@ export function TemplateCard({
           <div className="flex flex-none flex-col gap-1">{actions}</div>
         </div>
         <span className="text-[11px] text-muted-foreground">{meta}</span>
+        {credit}
         {description ? (
           <p className="text-[11px] leading-4 text-muted-foreground">{description}</p>
         ) : null}

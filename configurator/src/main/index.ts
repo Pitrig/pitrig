@@ -17,7 +17,8 @@ import {
   broadcastDeviceState,
   broadcastBoardUpdateProgress,
   broadcastFirmwareUploadProgress,
-  broadcastImageUploadProgress,
+  broadcastFontLibraryChanged,
+  broadcastImageLibraryChanged,
   broadcastSaveProgress,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
@@ -38,7 +39,8 @@ const services: AppServices = createAppServices({
   },
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onBoardUpdateProgress: broadcastBoardUpdateProgress,
-  onImageUploadProgress: broadcastImageUploadProgress,
+  onFontLibraryChanged: broadcastFontLibraryChanged,
+  onImageLibraryChanged: broadcastImageLibraryChanged,
   onSaveProgress: (progress) => {
     broadcastSaveProgress(progress)
     usage.observeSave(progress)
