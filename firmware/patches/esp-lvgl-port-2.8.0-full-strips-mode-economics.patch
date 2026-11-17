@@ -1,3 +1,15 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+--- a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
++++ b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+@@ -139,6 +139,8 @@ lv_display_t *lvgl_port_add_disp_rgb(const lvgl_port_display_cfg_t *disp_cfg,
+  */
+ esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free);
+ 
++void lvgl_port_disp_restart_mode_choice(lv_display_t *disp);
++
+ esp_err_t lvgl_port_remove_disp(lv_display_t *disp);
+ 
+ #ifdef __cplusplus
 diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
 --- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
 +++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
@@ -17,7 +29,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      lv_draw_buf_t             third_draw_buf;
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
      async_memcpy_handle_t     mcp;
-@@ -87,7 +89,21 @@ typedef struct {
+@@ -87,7 +89,22 @@ typedef struct {
      uint16_t                  recon_rects[16][4];
      volatile uint8_t          recon_fired;
      volatile uint8_t          recon_completed;
@@ -29,6 +41,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +    uint8_t                   mode_settled;
 +    uint8_t                   settle_run;
 +    uint16_t                  settle_frames;
++    int64_t                   settle_t0;
 +    uint8_t                   seed_taken[2];
 +    uint32_t                  seed_low[2];
 +    uint32_t                  probe_baseline;
@@ -39,7 +52,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      uint8_t                   strip_target;
      lvgl_port_rounder_cb_t    rounder_cb;     /* Rounder callback for display area */
  #if LVGL_PORT_PPA
-@@ -216,14 +232,69 @@ static void lvgl_port_recon_wait(lvgl_port_display_ctx_t *ctx, uint16_t x1, uint
+@@ -216,14 +233,69 @@ static void lvgl_port_recon_wait(lvgl_port_display_ctx_t *ctx, uint16_t x1, uint
  }
  #endif
  
@@ -75,7 +88,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +    const uint8_t loser_bit = (uint8_t)(1U << (disp_ctx->mode_best ^ 1U));
 +    const bool loser_unknown = (disp_ctx->mode_measured & loser_bit) == 0U;
 +    const bool probe_unseen = other_cost + (other_cost >> 3) <= budget;
-+    const uint16_t probe_mask = other_cost < best_cost + (best_cost >> 1) ? 127U : 1023U;
++    const uint16_t probe_mask = (loser_unknown || other_cost < best_cost + (best_cost >> 1)) ? 127U : 1023U;
 +    if (best_cost > 17500U && (loser_unknown || probe_unseen)
 +            && (disp_ctx->probe_tick & probe_mask) < 4U) {
 +        mode = disp_ctx->mode_best ^ 1U;
@@ -109,19 +122,47 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  }
  
  static void lvgl_port_flush_worker(void *arg)
-@@ -310,8 +381,10 @@ static void lvgl_port_flush_worker(void *arg)
+@@ -310,8 +382,11 @@ static void lvgl_port_flush_worker(void *arg)
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
                  lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
  #endif
-+                const uint32_t vsync_gap =
-+                    lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best]);
++                const uint32_t vsync_gap = ctx->mode_settled
++                                           ? lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best])
++                                           : 1U;
                  uint32_t waits = 0;
 -                while (ctx->refresh_count == ctx->queued_refresh_count && waits < 10U) {
 +                while (ctx->refresh_count - ctx->queued_refresh_count < vsync_gap && waits < 10U) {
                      xSemaphoreTake(ctx->vsync_sem, pdMS_TO_TICKS(100));
                      waits++;
                  }
-@@ -870,7 +943,13 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -532,6 +607,26 @@ lv_display_t *lvgl_port_add_disp_rgb(const lvgl_port_display_cfg_t *disp_cfg,
+     return disp;
+ }
+ 
++void lvgl_port_disp_restart_mode_choice(lv_display_t *disp)
++{
++    if (disp == NULL) {
++        return;
++    }
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
++    if (disp_ctx == NULL || !disp_ctx->flags.full_strips) {
++        return;
++    }
++    disp_ctx->mode_best = 0U;
++    disp_ctx->mode_measured = 0U;
++    disp_ctx->mode_seen = 0U;
++    disp_ctx->mode_settled = 0U;
++    disp_ctx->settle_run = 0U;
++    disp_ctx->settle_frames = 0U;
++    disp_ctx->seed_taken[0] = 0U;
++    disp_ctx->seed_taken[1] = 0U;
++    disp_ctx->probe_tick = 0U;
++}
++
+ esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free)
+ {
+     ESP_RETURN_ON_FALSE(disp != NULL, ESP_ERR_INVALID_ARG, TAG, "Display is NULL");
+@@ -870,7 +965,13 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
                  disp_ctx->panel_fbs[0] = fb0;
                  disp_ctx->panel_fbs[1] = fb1;
                  disp_ctx->panel_fbs[2] = fb2;
@@ -135,7 +176,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
              } else {
                  ESP_LOGW(TAG, "No DMA channel for full-strips mode; plain partial rendering stays");
              }
-@@ -1191,6 +1270,7 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+@@ -1191,6 +1292,7 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
                  disp_ctx->strip_target = (uint8_t)((disp_ctx->strip_target + 1U) % 3U);
                  disp_ctx->recon_fired = 0;
                  disp_ctx->recon_completed = 0;
@@ -143,7 +184,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
                  uint16_t piece_y1 = 0;
                  const uint16_t recon_vres = (uint16_t)lv_disp_get_ver_res(drv);
                  while (piece_y1 < recon_vres) {
-@@ -1237,13 +1317,86 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+@@ -1237,13 +1339,90 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
                      }
                      piece_y1 = piece_y2;
                  }
@@ -168,13 +209,17 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +            lvgl_port_cost_wait_us = lvgl_port_cost_wait_us - (lvgl_port_cost_wait_us >> 3) + (waited >> 3);
 +            frame_cost = frame_cost > waited ? frame_cost - waited : 0;
 +            if (!disp_ctx->mode_settled) {
++                if (disp_ctx->settle_frames == 0U) {
++                    disp_ctx->settle_t0 = esp_timer_get_time();
++                }
 +                if (disp_ctx->settle_frames < 0xFFFFU) {
 +                    disp_ctx->settle_frames++;
 +                }
 +                disp_ctx->settle_run = whole_screen
 +                                       ? 0U
 +                                       : (uint8_t)(disp_ctx->settle_run + 1U);
-+                if (disp_ctx->settle_run >= 8U || disp_ctx->settle_frames >= 240U) {
++                if (disp_ctx->settle_run >= 8U
++                        || esp_timer_get_time() - disp_ctx->settle_t0 >= 4000000) {
 +                    disp_ctx->mode_settled = 1U;
 +                    disp_ctx->settle_run = 0U;
 +                    disp_ctx->settle_frames = 0U;

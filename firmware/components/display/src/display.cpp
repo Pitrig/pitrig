@@ -125,6 +125,14 @@ bool rendering_in_progress() {
   return display_state != nullptr && display_state->rendering.load(std::memory_order_acquire);
 }
 
+void restart_frame_mode_choice(lv_display_t* const display) {
+  if (display == nullptr || !lvgl_port_lock(0)) {
+    return;
+  }
+  lvgl_port_disp_restart_mode_choice(display);
+  lvgl_port_unlock();
+}
+
 bool refresh_and_wait(lv_display_t* const display, const std::uint32_t timeout_ms) {
   DisplayState* const display_state = state_of(display);
   if (display_state == nullptr || display_state->refresh_signal == nullptr) {

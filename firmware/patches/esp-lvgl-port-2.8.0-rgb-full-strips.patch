@@ -88,7 +88,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  #endif
  
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
-@@ -132,6 +189,9 @@ typedef struct {
+@@ -133,6 +190,9 @@ typedef struct {
      uint32_t                  strip_rows;
      uint32_t                  strip_px;
      uint8_t                   strip_target;
@@ -98,7 +98,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      lvgl_port_rounder_cb_t    rounder_cb;     /* Rounder callback for display area */
  #if LVGL_PORT_PPA
      lvgl_port_ppa_handle_t    ppa_handle;
-@@ -143,6 +203,7 @@ typedef struct {
+@@ -144,6 +204,7 @@ typedef struct {
          unsigned int direct_mode: 1;    /* Use screen-sized buffers and draw to absolute coordinates */
          unsigned int rgb_redirect: 1;
          unsigned int full_strips: 1;
@@ -106,7 +106,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
          unsigned int sw_rotate: 1;    /* Use software rotation (slower) or PPA if available */
      } flags;
  } lvgl_port_display_ctx_t;
-@@ -161,6 +222,8 @@ typedef struct {
+@@ -162,6 +223,8 @@ typedef struct {
      uint8_t target;
      uint8_t reconcile;
      uint8_t source;
@@ -115,7 +115,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  } lvgl_port_flush_job_t;
  
  static QueueHandle_t s_flush_queue = NULL;
-@@ -374,6 +437,9 @@ volatile uint32_t lvgl_port_sched_burst_armed = 0;
+@@ -375,6 +438,9 @@ volatile uint32_t lvgl_port_sched_burst_armed = 0;
  volatile uint32_t lvgl_port_sched_blocked = 0;
  volatile uint32_t lvgl_port_pkt_lines = 0;
  static uint32_t s_pkt_last_line_lo32 = 0;
@@ -125,7 +125,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  
  static void lvgl_port_disp_jit_wait(void)
  {
-@@ -537,6 +603,12 @@ void lvgl_port_disp_note_feed_line(void)
+@@ -538,6 +604,12 @@ void lvgl_port_disp_note_feed_line(void)
      const uint32_t gap = now - s_pkt_last_line_lo32;
      const bool first = s_pkt_last_line_lo32 == 0U;
      s_pkt_last_line_lo32 = now;
@@ -138,7 +138,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      lvgl_port_pkt_lines++;
      if (first || gap >= 3000U) {
          lvgl_port_disp_note_feed_burst(now_us);
-@@ -616,14 +688,434 @@ static void lvgl_port_flush_wait_cb(lv_display_t *disp)
+@@ -617,14 +689,434 @@ static void lvgl_port_flush_wait_cb(lv_display_t *disp)
      }
  }
  
@@ -574,7 +574,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
          if (job.reconcile) {
              lvgl_port_display_ctx_t *ctx = job.ctx;
              const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(job.drv));
-@@ -972,6 +1464,9 @@ esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free)
+@@ -994,6 +1486,9 @@ esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free)
                          || disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI,
                          ESP_ERR_NOT_SUPPORTED, TAG, "Only RGB and DSI panels can switch");
      ESP_RETURN_ON_FALSE(disp_ctx->vsync_sem != NULL, ESP_ERR_INVALID_STATE, TAG, "No vsync semaphore");
@@ -584,7 +584,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      lvgl_port_async_flush_drain();
      if ((disp_ctx->flags.direct_mode != 0 || disp_ctx->flags.full_refresh != 0
              || disp_ctx->flags.rgb_redirect != 0) == tear_free) {
-@@ -1035,6 +1530,19 @@ esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
+@@ -1057,6 +1552,19 @@ esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
      lvgl_port_lock(0);
      lv_disp_remove(disp);
      lvgl_port_unlock();
@@ -604,7 +604,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  
      if (disp_ctx->draw_buffs[0]) {
          free(disp_ctx->draw_buffs[0]);
-@@ -1341,6 +1849,63 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -1363,6 +1871,63 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
      }
  #endif
  
@@ -668,7 +668,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      /* Use SW rotation */
      if (disp_cfg->flags.sw_rotate) {
  #if LVGL_PORT_PPA
-@@ -1473,6 +2038,21 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_rgb_vsync_ready_callback(esp_lcd_pane
+@@ -1495,6 +2060,21 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_rgb_vsync_ready_callback(esp_lcd_pane
          return false;
      }
  
@@ -690,7 +690,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      if (disp_ctx->vsync_sem) {
          xSemaphoreGiveFromISR(disp_ctx->vsync_sem, &need_yield);
      }
-@@ -1662,6 +2242,32 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+@@ -1684,6 +2264,32 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
          _lvgl_port_transform_monochrome(drv, area, &color_map);
      }
  

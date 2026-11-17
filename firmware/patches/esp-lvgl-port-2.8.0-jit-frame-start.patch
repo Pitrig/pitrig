@@ -22,7 +22,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      uint8_t                   mode_best;
      uint8_t                   mode_measured;
      uint8_t                   mode_seen;
-@@ -246,10 +252,13 @@ static uint32_t lvgl_port_vsync_gap(uint32_t frame_cost)
+@@ -247,10 +253,13 @@ static uint32_t lvgl_port_vsync_gap(uint32_t frame_cost)
      return 1U;
  }
  
@@ -36,7 +36,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      disp_ctx->wait_accum_us = 0U;
      uint8_t mode = disp_ctx->mode_best;
      disp_ctx->probe_tick = (uint16_t)((disp_ctx->probe_tick + 1U) & 1023U);
-@@ -280,9 +289,48 @@ static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
+@@ -281,9 +290,48 @@ static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
  }
  
  static lvgl_port_display_ctx_t *s_strips_ctx = NULL;
@@ -85,7 +85,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  static void lvgl_port_flush_wait_cb(lv_display_t *disp)
  {
      (void)disp;
-@@ -381,14 +429,39 @@ static void lvgl_port_flush_worker(void *arg)
+@@ -382,15 +430,40 @@ static void lvgl_port_flush_worker(void *arg)
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
                  lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
  #endif
@@ -93,8 +93,9 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +#ifdef CONFIG_PITRIG_DISPLAY_UNCAPPED
 +                ctx->last_swap_wait_us = 0;
 +#else
-                 const uint32_t vsync_gap =
-                     lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best]);
+                 const uint32_t vsync_gap = ctx->mode_settled
+                                            ? lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best])
+                                            : 1U;
 +                const int64_t wait_start = esp_timer_get_time();
                  uint32_t waits = 0;
                  while (ctx->refresh_count - ctx->queued_refresh_count < vsync_gap && waits < 10U) {
@@ -126,7 +127,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  #endif
                  esp_lcd_panel_draw_bitmap(ctx->panel_handle, 0, 0, lv_disp_get_hor_res(job.drv),
                                            lv_disp_get_ver_res(job.drv), fb);
-@@ -949,6 +1022,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -971,6 +1044,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
                  disp_ctx->mode_cost_ema[1] = 30000U;
                  disp_ctx->probe_baseline = 30000U;
                  disp_ctx->flags.full_strips = 1;
@@ -134,7 +135,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
                  s_strips_ctx = disp_ctx;
                  lv_display_add_event_cb(disp, lvgl_port_adaptive_refr_start_callback,
                                          LV_EVENT_REFR_START, disp_ctx);
-@@ -1054,6 +1128,17 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_pane
+@@ -1076,6 +1150,17 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_pane
      }
  
      disp_ctx->refresh_count = disp_ctx->refresh_count + 1;

@@ -92,6 +92,15 @@ the image package with it.
   already at that speed is not restarted for the protocol. A board an earlier
   version left at 921600 goes back to 460800 at its next `Save to board`: connect
   at 921600, save, and connect again once it has restarted.
+- The Guition JC1060P470C measures two ways of composing a frame and keeps the
+  faster. A dashboard saved or applied without a restart was judged by what the
+  previous dashboard had cost, so it could keep the slower way until the board
+  restarted: the debugger's `all_widgets` ran at 29.5 fps after `graphs_6`
+  instead of 40. Every new dashboard is now judged as after a restart, and a way
+  the board has not measured yet is tried a few seconds after the screen
+  settles instead of up to half a minute later. A screen that is still being
+  measured is no longer held to half the frame rate by what the screen before
+  it cost.
 
 **Removed**
 

@@ -254,24 +254,41 @@ widened, whatever the dashboard is really worth.
 
 **Decision.** Nothing is recorded until the screen stops changing shape. A
 settle gate stays shut until eight consecutive frames have covered less than
-half the screen, or four seconds have passed for a dashboard whose ordinary
-damage really is the whole screen. While it is shut the display keeps drawing
-whichever mode is believed — both are correct — but nothing is measured and
-nothing is probed. Once open, each mode seeds from the cheapest of its first
-four frames, because frame cost has a hard floor and a one-sided tail. Two
-events that used to share one threshold are told apart: ordinary drift in the
-winner's cost, by half, only stops the loser being believed and lets it be
-probed again; a move by a factor of four means the dashboard was replaced and
-shuts the gate. The cost a frame is charged is its span minus the time slept
-in the flush wait, so the previous swap's hold cannot leak into it
-([ADR 0032](0032-burst-scheduled-frames.md)).
+half the screen, or four seconds have passed, counted in time rather than
+frames, for a dashboard whose ordinary damage really is the whole screen. While
+it is shut the display keeps drawing whichever mode is believed — both are
+correct — but nothing is measured and nothing is probed. Once open, each mode
+seeds from the cheapest of its first four frames, because frame cost has a hard
+floor and a one-sided tail. Two events that used to share one threshold are
+told apart: ordinary drift in the winner's cost, by half, only stops the loser
+being believed and lets it be probed again; a move by a factor of four means
+the dashboard was replaced and shuts the gate. Composing a dashboard, at boot
+or when a document is applied or saved, starts the choice again: the gate
+shuts, both modes count as unmeasured, and the reconciled mode is drawn until
+each is seeded afresh. Until a screen has been measured its frames are not held
+for pacing, because the only cost at hand would be the previous screen's. A
+cost the previous dashboard left above the probe budget otherwise kept the
+loser from ever being measured again, so a new dashboard whose own cost held
+level kept the slower mode. A mode not yet measured is probed within 128 frames
+rather than the 1,024 a known loser waits. The cost a frame is charged is its
+span minus the time slept in the flush wait, so the previous swap's hold cannot
+leak into it ([ADR 0032](0032-burst-scheduled-frames.md)).
 
-**Consequences.** That main screen is 59 fps on every boot of six
-(render 4.6 ms, latency 21 ms); over the debugger's sixteen stress patterns
-`shapes_96` went 33 to 59 fps, `text_32_plain` 46 to 57, `text_32` 50 to 55,
-`bars_24` 47 to 51, and eleven did not move. Two pay for it — `full_screen_bar`
-49 to 42 and `indicators_12` 58.5 to 54 — because the gate delays electing the
-widened mode on the screens that want it most.
+**Consequences.** That main screen is 59 fps on every boot of six (render 4.6
+ms, latency 21 ms); over the debugger's sixteen stress patterns `shapes_96`
+went 33 to 59 fps, `text_32_plain` 46 to 57, `text_32` 50 to 55, `bars_24` 47
+to 51, and eleven did not move. Two pay for it — `full_screen_bar` 49 to 42 and
+`indicators_12` 58.5 to 54 — because the gate delays electing the widened mode
+on the screens that want it most. Restarting the choice on every composition
+took the order out of it: the battery reads the same forward and reversed on
+every screen but `full_screen_bar`, `all_widgets` applied after `graphs_6` runs
+40 fps instead of 29.5, and `text_16` after `full_screen_bar` draws in 8.3 ms
+instead of 15. A screen that redraws half the panel each frame waits four
+seconds rather than 240 of its own frames, and none is held to 30 fps by the
+cost of the screen before it: `graphs_6` reaches 29 fps within twelve seconds
+of being applied instead of eighteen, and `indicators_12` applied after
+`full_screen_bar` runs 54 fps from the start instead of 36
+([performance-baselines.md](../performance-baselines.md)).
 
 ## Amendment: the RGB board composes tear-free too
 

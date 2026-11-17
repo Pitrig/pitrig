@@ -189,6 +189,7 @@ bool create(lv_display_t* const display,
     log::error(kTag, "Failed to bind dashboard tap actions");
     initialized = false;
   }
+  display::restart_frame_mode_choice(display);
 
   (void)telemetry_transport;
 #if PITRIG_DEBUG

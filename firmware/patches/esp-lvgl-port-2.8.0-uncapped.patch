@@ -1,15 +1,15 @@
 diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
 --- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
 +++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
-@@ -381,6 +381,7 @@ static void lvgl_port_flush_worker(void *arg)
+@@ -382,6 +382,7 @@ static void lvgl_port_flush_worker(void *arg)
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
                  lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
  #endif
 +#ifndef CONFIG_PITRIG_DISPLAY_UNCAPPED
-                 const uint32_t vsync_gap =
-                     lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best]);
-                 uint32_t waits = 0;
-@@ -388,6 +389,7 @@ static void lvgl_port_flush_worker(void *arg)
+                 const uint32_t vsync_gap = ctx->mode_settled
+                                            ? lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best])
+                                            : 1U;
+@@ -390,6 +391,7 @@ static void lvgl_port_flush_worker(void *arg)
                      xSemaphoreTake(ctx->vsync_sem, pdMS_TO_TICKS(100));
                      waits++;
                  }

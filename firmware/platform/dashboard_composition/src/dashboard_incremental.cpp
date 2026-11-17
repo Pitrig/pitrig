@@ -11,6 +11,7 @@
 #include "dashboard_screens.hpp"
 #include "dashboard_state.hpp"
 #include "dashboard_storages.hpp"
+#include "display.hpp"
 #include "esp_lvgl_port.h"
 #include "logger.hpp"
 #include "lvgl.h"
@@ -161,6 +162,7 @@ bool apply_incremental(const configuration::ApplicationConfiguration& previous,
     return decline("a tap target could not be bound");
   }
   assets::release_unused_fonts(next, dashboard.fonts);
+  display::restart_frame_mode_choice(dashboard.slot.layout.display);
   return true;
 }
 

@@ -259,7 +259,9 @@ patterns and that dashboard's three screens: its main screen 59 fps on every
 boot of six (was five of eight), `shapes_96` 33 to 59, `text_32_plain` 46 to 57,
 `text_32` 50 to 55, `bars_24` 47 to 51, eleven unchanged; `full_screen_bar`
 49 to 42 and `indicators_12` 58.5 to 54 pay for it, because the gate delays
-electing the widened mode on the screens that want it.
+electing the widened mode on the screens that want it. Every composition
+starts the choice again, as a boot does, so a dashboard applied or saved
+without a restart is not judged by the costs of the one before it.
 
 ### Where a frame's latency actually goes
 
