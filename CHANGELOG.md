@@ -24,6 +24,15 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
+## Unreleased
+
+**Fixed**
+
+- The build and lint tools no longer pull in a `minimatch` with a published
+  vulnerability (GHSA-g3hv-75wg-m249): `electron-builder`, `eslint` and
+  `typescript-eslint` now use 11.0.8. The installed applications never
+  contained it.
+
 ## 0.3.2 — 2026-11-16
 
 **Configuration schema 27, firmware 0.3.1 and the same partition table:** a
