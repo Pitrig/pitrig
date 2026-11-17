@@ -49,7 +49,6 @@ Fragments appended to `SDKCONFIG_DEFAULTS` select what a build trades; the figur
 | --- | --- | --- |
 | `sdkconfig.defaults.debug` | `CONFIG_PITRIG_DEBUG` | observation only — `@PR:DIAG` and the overlay — never product behaviour (ADR 0028) |
 | `sdkconfig.defaults.render-partial` | `PITRIG_DISPLAY_RENDER_PARTIAL`, P4 | the fastest mode, accepting the seam; `CONFIG_PITRIG_DISPLAY_RENDER_FULL_STRIPS`, the tear-free strip mode, is the default |
-| `sdkconfig.defaults.render-full` | `PITRIG_DISPLAY_RENDER_FULL`, P4 | the whole frame into PSRAM, with the 512 KB L2 cache |
 | `sdkconfig.defaults.color-24bit` | `CONFIG_PITRIG_DISPLAY_COLOR_24BIT`, P4 | RGB888 end to end; the render strips move to external RAM |
 | `sdkconfig.defaults.vsync-lock` | `CONFIG_PITRIG_DISPLAY_VSYNC_LOCK`, P4 | frames scheduled from the telemetry burst (ADR 0032); off by default |
 | `sdkconfig.defaults.uncapped` | `CONFIG_PITRIG_DISPLAY_UNCAPPED`, P4 | no pacing hold; a measurement option, not a shipping one |
@@ -77,7 +76,7 @@ four OTA images, its notes written by `tools/release_notes.py` from the files ac
 and the version's `CHANGELOG.md` entry. Packages are checked for debug traces (an `app.asar` grep);
 nothing is signed, so macOS needs `xattr -dr com.apple.quarantine`.
 
-**VS Code** ([.vscode/tasks.json](.vscode/tasks.json)) carries twelve `Pitrig: Build …` tasks,
+**VS Code** ([.vscode/tasks.json](.vscode/tasks.json)) carries eleven `Pitrig: Build …` tasks,
 `Pitrig: Build All Firmware` (sequential, esp32s3 first), `Pitrig: Flash` / `Monitor` /
 `Flash and Monitor` over a picked build directory, `Pitrig: Check Generated Contracts` and
 `Regenerate Contracts`, and `Configurator: …` / `Debugger: …` for both Electron applications; there

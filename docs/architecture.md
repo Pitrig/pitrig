@@ -428,15 +428,17 @@ shutdown handler before a software reset. Keeping the ESP32-P4 MIPI-DSI display
 interrupts cache-safe during flash writes is a build measure rather than driver
 code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus the first of the
 version-pinned `esp_lvgl_port` patches under `firmware/patches/` — a stack of
-nine, one concern each, that `firmware/cmake/` applies in order — so the port's
+ten, one concern each, that `firmware/cmake/` applies in order — so the port's
 flush callback honours it. Three further pinned patches fix
 LVGL 9.5.0's experimental PPA backend: it passes the draw buffer's unaligned
 `data_size` to `esp_cache_msync()`, which breaks the cache-line contract, it
 synchronizes the whole buffer per operation rather than the rows it touched —
 multiple megabytes twice over when LVGL renders straight into a full-screen
 frame buffer — and it hands the accelerator fills too small to outrun the
-processor. The board's own defaults keep its High-Speed USB port in
-slave/IRQ mode rather than DMA: ESP32-P4 rev 1.x can hand the TinyUSB DWC2
+processor. A fourth, applied on every board, makes the software renderer draw
+circles, rings and arcs faster without changing a pixel (ADR 0026). The board's
+own defaults keep its High-Speed USB port in slave/IRQ mode rather than DMA:
+ESP32-P4 rev 1.x can hand the TinyUSB DWC2
 driver an invalid EP0 setup-packet DMA address, and enumeration fails.
 
 What exists:

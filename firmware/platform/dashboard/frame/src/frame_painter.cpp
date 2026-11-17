@@ -152,6 +152,12 @@ void Painter::apply_style(const conditions::ResolvedStyle& style) {
   if (style.color != applied_style_.color && apply_color_ != nullptr) {
     apply_color_(color_context_, style.color);
   }
+  conditions::ResolvedStyle recoloured = applied_style_;
+  recoloured.color = style.color;
+  if (content_self_invalidating_ && recoloured == style) {
+    applied_style_ = style;
+    return;
+  }
   if (style.background_color != applied_style_.background_color) {
     const bool painted = style.background_color != configuration::kTransparentColor;
     lv_obj_t* const filled =

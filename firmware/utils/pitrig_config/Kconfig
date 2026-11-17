@@ -55,20 +55,16 @@ choice PITRIG_DISPLAY_RENDER_MODE
         boundary, so nothing tears at frame rates in partial's league.
         Partial blends the same strips straight into the buffer being
         scanned — the fastest measured steady state, and the one that
-        accepts the one-frame seam ADR 0027 describes. Direct and full
-        render into the panel's PSRAM frame buffers instead, tear-free at
-        roughly half the frame rate. The RGB boards keep partial: their
-        panel underruns when the processor blends into the scanning PSRAM
-        buffer.
+        accepts the one-frame seam ADR 0027 describes. Direct renders into
+        the panel's PSRAM frame buffers instead, tear-free at roughly half
+        the frame rate. The ESP32-4848S040 composes tear-free
+        strips of its own and has no mode to choose.
 
 config PITRIG_DISPLAY_RENDER_PARTIAL
     bool "Partial strips (fastest, glyph seams)"
 
 config PITRIG_DISPLAY_RENDER_DIRECT
     bool "Direct into panel buffers (tear-free, changed areas only)"
-
-config PITRIG_DISPLAY_RENDER_FULL
-    bool "Full-screen redraw into panel buffers (tear-free)"
 
 config PITRIG_DISPLAY_RENDER_FULL_STRIPS
     bool "Full-screen redraw through internal strips (tear-free)"

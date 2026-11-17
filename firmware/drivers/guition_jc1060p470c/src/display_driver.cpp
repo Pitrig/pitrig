@@ -37,8 +37,7 @@ driver::Configuration initialize() {
     return {};
   }
 
-  constexpr bool kPanelBuffers =
-      PITRIG_DISPLAY_RENDER_DIRECT != 0 || PITRIG_DISPLAY_RENDER_FULL != 0;
+  constexpr bool kPanelBuffers = PITRIG_DISPLAY_RENDER_DIRECT != 0;
   return {
       .io = hardware.io,
       .panel = hardware.panel,
@@ -58,7 +57,7 @@ driver::Configuration initialize() {
       .bounce_buffers = false,
       .avoid_tearing = kPanelBuffers,
       .direct_mode = PITRIG_DISPLAY_RENDER_DIRECT != 0,
-      .full_refresh = PITRIG_DISPLAY_RENDER_FULL != 0,
+      .full_refresh = false,
       .full_strips = PITRIG_DISPLAY_RENDER_FULL_STRIPS != 0,
   };
 }

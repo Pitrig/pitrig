@@ -134,28 +134,6 @@
       }
     },
     {
-      "label": "Pitrig: Build Guition JC1060P470C (Render Full)",
-      "detail": "esp32p4 \u00b7 build-jc1060p470c-render-full \u00b7 whole frame into PSRAM, 512 KB L2",
-      "type": "shell",
-      "command": "/bin/zsh",
-      "args": [
-        "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-render-full >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-render-full && idf.py -B build-jc1060p470c-render-full -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-render-full -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.render-full\" build"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}/firmware"
-      },
-      "problemMatcher": [
-        "$gcc"
-      ],
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
-    },
-    {
       "label": "Pitrig: Build Guition JC1060P470C (Render Partial)",
       "detail": "esp32p4 \u00b7 build-jc1060p470c-render-partial \u00b7 fastest, accepts the seam",
       "type": "shell",
@@ -278,7 +256,6 @@
         "Pitrig: Build ESP32-S3 DevKitC-1 Debug",
         "Pitrig: Build Guition JC1060P470C",
         "Pitrig: Build Guition JC1060P470C Debug",
-        "Pitrig: Build Guition JC1060P470C (Render Full)",
         "Pitrig: Build Guition JC1060P470C (Render Partial)",
         "Pitrig: Build Guition JC1060P470C (24-bit Colour)",
         "Pitrig: Build Guition JC1060P470C (VSync Lock)"
@@ -540,7 +517,6 @@
         "build-devkit-debug",
         "build-jc1060p470c",
         "build-jc1060p470c-debug",
-        "build-jc1060p470c-render-full",
         "build-jc1060p470c-render-partial",
         "build-jc1060p470c-24bit",
         "build-jc1060p470c-vsync-lock"

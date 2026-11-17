@@ -105,7 +105,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.value_height = value_height;
   state.text_width = 0;
   state.offset_y = has_title ? title_height / 4 : 0;
-#if PITRIG_DISPLAY_RENDER_FULL || PITRIG_DISPLAY_RENDER_FULL_STRIPS
+#if PITRIG_DISPLAY_RENDER_FULL_STRIPS
   state.full_width = true;
 #endif
   lv_obj_add_event_cb(state.container, &drawing::draw_value, LV_EVENT_DRAW_MAIN_END, &state);

@@ -22,17 +22,66 @@ constexpr float kFullTurnGapDeg = 0.1F;
 
 constexpr float kNeedleInvalidateMargin = 1.0F;
 
+constexpr float kIndicatorChunkDeg = 30.0F;
+
+constexpr std::int32_t kIndicatorInvalidateMarginPx = 2;
+
 [[nodiscard]] float drawn_sector(const Config& config) {
   const auto sector = static_cast<float>(config.sector_deg);
   return sector >= 360.0F ? 360.0F - kFullTurnGapDeg : sector;
 }
 
+[[nodiscard]] bool same_on_display(const lv_obj_t* const object, const std::uint32_t first,
+                                   const std::uint32_t second) {
+  if (first == second) {
+    return true;
+  }
+  return lv_display_get_color_format(lv_obj_get_display(object)) == LV_COLOR_FORMAT_RGB565 &&
+         lv_color_to_u16(lv_color_hex(first)) == lv_color_to_u16(lv_color_hex(second));
+}
+
+void invalidate_indicator(const State& state) {
+  float left = lv_arc_get_angle_end(state.arc) - lv_arc_get_angle_start(state.arc);
+  while (left < 0.0F) {
+    left += 360.0F;
+  }
+  left = std::min(left, 360.0F);
+  lv_area_t coords{};
+  lv_obj_get_coords(state.arc, &coords);
+  const std::int32_t radius = std::min(lv_area_get_width(&coords), lv_area_get_height(&coords)) / 2;
+  const std::int32_t width = lv_obj_get_style_arc_width(state.arc, LV_PART_INDICATOR);
+  const bool rounded = lv_obj_get_style_arc_rounded(state.arc, LV_PART_INDICATOR);
+  float from = std::fmod(lv_arc_get_angle_start(state.arc) + 360.0F, 360.0F);
+  while (left > 0.0F) {
+    const float quarter_end = (std::floor(from / 90.0F) + 1.0F) * 90.0F;
+    const float to = std::min({from + kIndicatorChunkDeg, quarter_end, from + left});
+    lv_area_t area{};
+    lv_draw_arc_get_area(coords.x1 + radius, coords.y1 + radius, static_cast<std::uint16_t>(radius),
+                         std::floor(from), std::min(std::ceil(to), quarter_end), width, rounded,
+                         &area);
+    lv_area_increase(&area, kIndicatorInvalidateMarginPx, kIndicatorInvalidateMarginPx);
+    (void)lv_obj_invalidate_area(state.arc, &area);
+    left -= to - from;
+    from = to >= 360.0F ? to - 360.0F : to;
+  }
+}
+
 void apply_indicator_color(void* const context, const std::uint32_t rgb) {
   auto& state = *static_cast<State*>(context);
-  lv_obj_set_style_arc_color(state.arc, lv_color_hex(rgb), LV_PART_INDICATOR);
   if (state.gradient != nullptr) {
+    lv_obj_set_style_arc_color(state.arc, lv_color_hex(rgb), LV_PART_INDICATOR);
     lv_obj_set_style_arc_image_src(state.arc, rgb == state.fill_rgb ? state.gradient : nullptr,
                                    LV_PART_INDICATOR);
+    return;
+  }
+  const std::uint32_t drawn = state.indicator_rgb;
+  state.indicator_rgb = rgb;
+  lv_display_t* const display = lv_obj_get_display(state.arc);
+  lv_display_enable_invalidation(display, false);
+  lv_obj_set_style_arc_color(state.arc, lv_color_hex(rgb), LV_PART_INDICATOR);
+  lv_display_enable_invalidation(display, true);
+  if (!same_on_display(state.arc, drawn, rgb)) {
+    invalidate_indicator(state);
   }
 }
 
@@ -207,7 +256,9 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
     build_needle(state, config, ring, sector_start);
     state.painter.configure(config.frame, box, config.fill_color, &apply_needle_color, &state);
   } else {
+    state.indicator_rgb = config.fill_color;
     state.painter.configure(config.frame, box, config.fill_color, &apply_indicator_color, &state);
+    state.painter.set_content_self_invalidating(state.gradient == nullptr);
   }
   state.painter.bind(binding.condition_read, binding.condition_context);
   state.painter.bind_caption(binding.caption_read, binding.caption_context);

@@ -26,8 +26,6 @@ the image package with it.
 
 ## Unreleased
 
-The configurator only: no firmware update and no schema change.
-
 **Added**
 
 - **Share…** saves the open dashboard as one `.pitrigdash` file with its images
@@ -47,12 +45,37 @@ The configurator only: no firmware update and no schema change.
 
 **Changed**
 
+- The Guition ESP32-4848S040 draws without tearing: each frame is composed in
+  a frame buffer the panel is not showing and handed over at the panel's frame
+  boundary, so a moving bar or a sliding screen no longer breaks apart. The
+  panel refreshes at about 60 Hz instead of 56, in step with a 60 Hz feed, and
+  most screens draw as fast as before or faster; a frame can no longer outrun
+  the panel. Firmware only, with the same schema and partition table.
+- On the Guition ESP32-4848S040 a light screen shows a value about 17 ms after
+  it arrives instead of 54: the board no longer lets finished frames queue up
+  behind the panel, starts a frame once the whole telemetry packet is in, and
+  times the next one to land on the very next refresh. A screen that does not
+  change stops waking the processor 250 times a second.
+- A ring arc whose colour follows a ramp or a condition repaints only its filled
+  part when the colour changes, not the whole widget and everything under it.
+  The `round-dial-480` template draws at about 38 fps instead of 25 on the
+  Guition ESP32-4848S040, with the same picture.
+- Circles, rings and arcs draw faster on every board, pixel for pixel the same.
+  On the Guition ESP32-4848S040 `round-dial-480` holds about 29 fps instead of
+  16 while its rev ring is in the colour ramp, and 60 instead of 55 below it.
+  On the Guition JC1060P470C, with the ring repaint above, `round-twin-dial`
+  draws at 49 fps instead of 40.
+- The boot screen's animated border costs a fifth of what it did and moves at
+  60 frames a second instead of about 14.
 - The Images page keeps images on this PC instead of installing them: add an
   image there, pick it in the inspector, and `Save to board` puts it on the
   board. The images this PC installed before are moved there on first start.
 
 **Fixed**
 
+- A debug image for the Guition ESP32-4848S040 started without a display,
+  because its second render strip no longer fit in internal RAM, and the
+  product image had about half a kilobyte to spare. The strips are smaller now.
 - Soft edges and see-through parts of images were darker on the board than on
   the canvas. The next `Save to board` installs corrected images.
 - A board that lost a font or an image the dashboard needs gets it back on the
@@ -69,6 +92,12 @@ The configurator only: no firmware update and no schema change.
   already at that speed is not restarted for the protocol. A board an earlier
   version left at 921600 goes back to 460800 at its next `Save to board`: connect
   at 921600, save, and connect again once it has restarted.
+
+**Removed**
+
+- The Guition JC1060P470C's full-screen render mode (`sdkconfig.defaults.render-full`
+  and its build task). It trailed the other modes on every screen and no longer
+  linked; the released firmware never used it.
 
 ## 0.3.2 — 2026-11-16
 

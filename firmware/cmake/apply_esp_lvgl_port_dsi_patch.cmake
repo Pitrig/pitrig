@@ -12,7 +12,8 @@ set(_pitrig_port_patches
     "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-full-strips-mode-economics.patch"
     "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-uncapped.patch"
     "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-jit-frame-start.patch"
-    "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-burst-scheduled-frames.patch")
+    "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-burst-scheduled-frames.patch"
+    "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-rgb-full-strips.patch")
 
 if(NOT EXISTS "${_pitrig_port_manifest}")
     message(FATAL_ERROR
