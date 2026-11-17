@@ -64,10 +64,16 @@ Editor gaps against SimHub are in
 - [ ] On-screen button and slider
 - [ ] Gamepad report mapping
 - [ ] Images kept in their original format
-- [ ] Image gauge — a filled image revealed over an empty one by a value
-- [ ] Image masks for any widget
-- [ ] Polygon and path shapes
-- [ ] Containers clipped to an ellipse or a mask
+- [ ] Image gauge — two images, empty and full; a value reveals the full one left to
+  right, bottom to top or around a centre. A clip rather than a mask, so the P4
+  keeps its accelerated draw; replaces the cut-out background over a bar
+- [ ] Image masks for any widget — an image's alpha decides where a widget shows
+  (LVGL `bitmap_mask_src`). Drawn through a layer, so measure the P4 cost first
+- [ ] Polygon and path shapes — chevrons, trapezoids and slanted panels drawn from
+  points in the editor. Filled in software, so large ones bound to telemetry cost
+  frames
+- [ ] Containers clipped to an ellipse or a mask — for round displays (GC9A01) and
+  shaped panels; the container form of image masks
 - [ ] Table widget
 - [ ] Track map widget
 
