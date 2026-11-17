@@ -19,6 +19,10 @@
     <Compile Remove="**\*.Debug.cs" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(PITRIG_OFFICIAL_BUILD)' != '1' Or '$(Configuration)' == 'Debug'">
+    <Compile Remove="**\*.Official.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />

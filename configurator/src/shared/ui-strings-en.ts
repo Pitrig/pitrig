@@ -1761,7 +1761,7 @@ export const EN_UI_STRINGS: Readonly<Record<string, string>> = {
   'updates.simhub.stillRunning': 'SimHub is still running. Close it, including its icon in the system tray, and try again.',
   'updates.simhub.unknownVersion': 'Version unknown',
   'updates.simhub.versionTooOld': '{version}, older than {minimum}',
-  'usage.section.description': 'Helps decide what to build next. The configurator and the Pitrig plugin in SimHub send a random install number, their versions, the system, the board model and firmware, the games that run in SimHub, and when a save finishes or the app crashes. No names, files, dashboards or addresses are sent. This switch covers the SimHub plugin on this computer too.',
+  'usage.section.description': 'Helps decide what to build next. The configurator and the Pitrig plugin in SimHub send a random install number, whether Pitrig was used on this computer before, their versions, the system, the board model and firmware, the games that run in SimHub, and when a save finishes or the app crashes. No names, files, dashboards or addresses are sent. This switch covers the SimHub plugin on this computer too.',
   'usage.section.developmentBuild': 'This is a development build, so it sends nothing.',
   'usage.section.disabled': 'Off',
   'usage.section.enabled': 'On',

@@ -46,9 +46,9 @@ namespace Pitrig.SimHub
 
         public void Start()
         {
-            var development = false;
-            MarkDevelopment(ref development);
-            if (development) return;
+            var official = false;
+            MarkOfficial(ref official);
+            if (!official) return;
             lock (gate)
             {
                 if (timer != null) return;
@@ -69,7 +69,7 @@ namespace Pitrig.SimHub
             Report("game", null, game);
         }
 
-        static partial void MarkDevelopment(ref bool development);
+        static partial void MarkOfficial(ref bool official);
 
         private void Check()
         {
@@ -115,7 +115,7 @@ namespace Pitrig.SimHub
             {
                 var usage = UsageFile.Read();
                 if (usage == null || !usage.Enabled) return;
-                Post(Payload(usage.Install, name, board, detail));
+                Post(Payload(usage.Install, UsageFile.UsedBefore(), name, board, detail));
             }
             catch (WebException exception) when (exception.Status == WebExceptionStatus.ProtocolError)
             {
@@ -127,7 +127,7 @@ namespace Pitrig.SimHub
             }
         }
 
-        private string Payload(string install, string name, string board, string detail)
+        private string Payload(string install, bool? existing, string name, string board, string detail)
         {
             var body = new Dictionary<string, object>
             {
@@ -137,6 +137,7 @@ namespace Pitrig.SimHub
                 ["os"] = "win32",
                 ["arch"] = Environment.Is64BitOperatingSystem ? "x64" : "ia32"
             };
+            if (existing.HasValue) body["existing"] = existing.Value;
             var boardId = Clean(board);
             if (boardId.Length > 0) body["board"] = boardId;
             var text = Clean(detail);

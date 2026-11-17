@@ -8,8 +8,10 @@ const SEND_TIMEOUT_MS = 10_000
 
 export class UsageReporter {
   private readonly endpoint = process.env.PITRIG_USAGE_URL ?? DEFAULT_ENDPOINT
-  readonly active = app.isPackaged || process.env.PITRIG_USAGE_URL !== undefined
+  readonly active =
+    (app.isPackaged && __PITRIG_OFFICIAL_BUILD__) || process.env.PITRIG_USAGE_URL !== undefined
   private readonly sent = new Set<string>()
+  private existing: Promise<boolean | undefined> | undefined
 
   constructor(private readonly store: UsageStore) {}
 
@@ -24,12 +26,15 @@ export class UsageReporter {
       this.sent.delete(key)
       return
     }
+    this.existing ??= this.store.existedBefore()
+    const existing = await this.existing
     const report: UsageReport = {
       install: state.install,
       event,
       version: app.getVersion(),
       os: process.platform,
       arch: process.arch,
+      ...(existing === undefined ? {} : { existing }),
       ...(board ? { board } : {}),
       ...(detail ? { detail: detail.slice(0, 48) } : {})
     }

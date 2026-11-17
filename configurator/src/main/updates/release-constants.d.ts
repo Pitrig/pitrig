@@ -1,1 +1,2 @@
 declare const __PITRIG_FIRMWARE_VERSION__: string
+declare const __PITRIG_OFFICIAL_BUILD__: boolean

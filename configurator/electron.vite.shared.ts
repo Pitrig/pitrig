@@ -9,7 +9,8 @@ export const sharedAlias = {
 export const releaseDefine = {
   __PITRIG_FIRMWARE_VERSION__: JSON.stringify(
     readFileSync(resolve('../firmware/version.txt'), 'utf8').trim()
-  )
+  ),
+  __PITRIG_OFFICIAL_BUILD__: JSON.stringify(process.env.PITRIG_OFFICIAL_BUILD === '1')
 }
 
 export const rendererAlias = {

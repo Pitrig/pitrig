@@ -2,9 +2,9 @@ namespace Pitrig.SimHub
 {
     internal sealed partial class UsageReporter
     {
-        static partial void MarkDevelopment(ref bool development)
+        static partial void MarkOfficial(ref bool official)
         {
-            development = true;
+            official = true;
         }
     }
 }
