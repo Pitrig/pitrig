@@ -64,6 +64,10 @@ Editor gaps against SimHub are in
 - [ ] On-screen button and slider
 - [ ] Gamepad report mapping
 - [ ] Images kept in their original format
+- [ ] Image gauge — a filled image revealed over an empty one by a value
+- [ ] Image masks for any widget
+- [ ] Polygon and path shapes
+- [ ] Containers clipped to an ellipse or a mask
 - [ ] Table widget
 - [ ] Track map widget
 
