@@ -40,6 +40,10 @@ The configurator only: no firmware update and no schema change.
   fonts, and sends them only when the board does not already hold them.
 - `Save to board` downloads a Google font the dashboard names and this PC lacks,
   instead of asking for a file.
+- **GF Rally Mode**, the 480×480 rally DDU from GEAR FACTORY's YouTube build
+  video, is a starter dashboard with its background artwork. `Use` puts the
+  artwork in the image library and `Save to board` installs it; the card links
+  to the author's channel.
 
 **Changed**
 
