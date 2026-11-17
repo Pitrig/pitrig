@@ -3,6 +3,7 @@ import type { WidgetPlacement } from '@shared/configuration-schema'
 import { NEW_WIDGET_SIZE, addTapZone, addWidget, draftValueFont, useDashboardEditorStore, type WidgetSelection } from '../dashboard-editor'
 import type { CanvasTool } from '../editor/store'
 import { useDeviceStore } from '@/features/device/device-store'
+import { useImageLibraryStore } from '@/features/image-assets/image-library-store'
 
 export function createWidget(
   tool: Exclude<CanvasTool, 'select'>,
@@ -17,7 +18,9 @@ export function createWidget(
   const family = useDashboardEditorStore.getState().defaultFontFamily
   return addWidget(tool, display, {
     font: draftValueFont(draft, family),
-    image: session?.imageAssets?.images[0]?.name,
+    image:
+      useImageLibraryStore.getState().snapshot.entries[0]?.id ??
+      session?.imageAssets?.images[0]?.name,
     ...options
   })
 }

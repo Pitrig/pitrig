@@ -7,6 +7,10 @@ import { MAXIMUM_SCREENS } from '@shared/configuration-schema'
 import { BOARD_PROFILES, type DeviceConfiguration } from '@shared/device'
 import { TEMPLATE_FORMAT, type DashboardTemplateSummary } from '@shared/templates'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
+import {
+  PreviewImageOverrides,
+  type PreviewImages
+} from '@/features/configuration/preview/preview-assets'
 import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 import { displaySize } from '@/features/configuration/board-labels'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -26,6 +30,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
   const setActiveScreen = useDashboardEditorStore((state) => state.setActiveScreen)
   const [chosen, setChosen] = useState<DashboardTemplateSummary>()
   const [document, setDocument] = useState<DeviceConfiguration>()
+  const [images, setImages] = useState<PreviewImages>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const request = useRef(0)
@@ -43,6 +48,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
     setBusy(false)
     setChosen(undefined)
     setDocument(undefined)
+    setImages(undefined)
     setError(undefined)
     close()
   }
@@ -64,13 +70,16 @@ export function InsertScreenDialog(): React.JSX.Element | null {
       }
       setChosen(summary)
       setDocument(result.value.configuration)
+      setImages(
+        Object.fromEntries((result.value.previews ?? []).map((image) => [image.name, image]))
+      )
     } finally {
       if (ticket === request.current) setBusy(false)
     }
   }
 
-  const take = (indices: readonly number[]): void => {
-    if (!document || !draft) return
+  const take = async (indices: readonly number[]): Promise<void> => {
+    if (!document || !draft || !chosen) return
     const room = MAXIMUM_SCREENS - Math.max(screensOf(draft).length, 1)
     if (indices.length > room) {
       setError(
@@ -80,13 +89,28 @@ export function InsertScreenDialog(): React.JSX.Element | null {
       )
       return
     }
-    const result = insertScreensFromDocument(document, indices, { board: draft.board, fit })
-    if (!result.ok) {
-      setError(result.error)
-      return
+    const ticket = (request.current += 1)
+    setBusy(true)
+    try {
+      const adopted = await window.pitrig.adoptTemplate({ id: chosen.id, kind: 'dashboard' })
+      if (ticket !== request.current) return
+      if (!adopted.ok) {
+        setError(adopted.error.message)
+        return
+      }
+      const result = insertScreensFromDocument(adopted.value.configuration, indices, {
+        board: draft.board,
+        fit
+      })
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      setActiveScreen(result.index)
+      dismiss()
+    } finally {
+      if (ticket === request.current) setBusy(false)
     }
-    setActiveScreen(result.index)
-    dismiss()
   }
 
   const screens = document ? screensOf(document) : []
@@ -136,7 +160,8 @@ export function InsertScreenDialog(): React.JSX.Element | null {
                 <button
                   type="button"
                   className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed px-2 py-2 text-left hover:bg-muted"
-                  onClick={() => take(screens.map((_, index) => index))}
+                  disabled={busy}
+                  onClick={() => void take(screens.map((_, index) => index))}
                 >
                   <span>{t('templates.insertScreenDialog.allScreens')}</span>
                   <span className="flex-none text-[11px] text-muted-foreground">
@@ -150,10 +175,13 @@ export function InsertScreenDialog(): React.JSX.Element | null {
                       key={screen.id ?? index}
                       type="button"
                       className="flex w-full items-center gap-2.5 rounded-md border p-2 text-left hover:bg-muted"
-                      onClick={() => take([index])}
+                      disabled={busy}
+                      onClick={() => void take([index])}
                     >
                       <span className="h-16 w-24 flex-none overflow-hidden rounded border bg-black/40 p-1">
-                        <ScreenView screen={screen} display={display} />
+                        <PreviewImageOverrides.Provider value={images}>
+                          <ScreenView screen={screen} display={display} />
+                        </PreviewImageOverrides.Provider>
                       </span>
                       <span className="min-w-0 flex-1">
                         {/* eslint-disable-next-line no-restricted-syntax */}

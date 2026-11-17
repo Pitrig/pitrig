@@ -75,7 +75,8 @@ first time the configurator connects to it.
   effects and artwork drawn in the configurator.
 - **Lap timer** and value smoothing, which keeps needles moving between packets
   when SimHub Free caps the feed at 10 Hz.
-- **Your own fonts and images**, uploaded to the board and packed for it.
+- **Your own fonts and images**, packed for the board when you save, and shared
+  with a dashboard as one file that opens on another PC as it was.
 
 Updates arrive over the air: the configurator uploads new firmware over the same
 cable, and applying a configuration does not restart the board.

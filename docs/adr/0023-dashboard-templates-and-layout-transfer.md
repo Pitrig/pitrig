@@ -55,7 +55,11 @@ rejects, so a file can never produce one and one can never name a file — which
 makes "a starter is read-only" a property of the scheme rather than a check
 somebody has to remember. Both kinds go through the same parse a loaded file and
 a device payload go through, so a starter that drifts from the contract fails
-visibly instead of shipping.
+visibly instead of shipping. A starter that draws images ships as a dashboard
+file ([ADR 0041](0041-dashboard-files.md)) among the application's assets, and
+`Use` and `Add` open it the way a shared file is opened, so its images reach the
+image library; one made by somebody else names them, with a link the card opens
+in the browser.
 
 **Moving a layout scales every pixel-valued property, in one of two fits the
 author chooses.** `contain` applies `min(destWidth/srcWidth,
@@ -133,6 +137,9 @@ applying a template authored for another board, and taking a screen from one.
 - The envelope is a second persisted format the configurator has to keep
   reading. `format_version` is what makes that survivable, and the configuration
   inside continues through the existing migration.
+- Version 2 of the envelope is the shared dashboard file of
+  [ADR 0041](0041-dashboard-files.md): the same header in a container that also
+  carries the images and fonts the dashboard names.
 - Font sizes scale but families do not, and the device rasterizes any size from
   an installed family — so a conversion never changes what has to be uploaded.
   Applying a template authored elsewhere can introduce a family, which the

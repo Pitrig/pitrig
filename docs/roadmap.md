@@ -97,7 +97,7 @@ Editor gaps against SimHub are in
 - [*] Live values in the preview
 - [ ] Setting a telemetry value by hand in the preview
 - [ ] Named styles
-- [ ] Image delivery on save
+- [*] Image delivery on save
 - [ ] Reflow on layout transfer
 - [ ] Single screen export
 - [ ] Keyboard navigation and layer search
@@ -131,7 +131,7 @@ Editor gaps against SimHub are in
 # Phase 8 — Distribution
 
 - [ ] Dashboard bundle
-- [ ] Sharing a dashboard as one file with its images, opened on another PC as it was
+- [*] Sharing a dashboard as one file with its images, opened on another PC as it was
 - [ ] Templates that carry their images
 - [ ] In-app gallery
 - [ ] CI on pull requests

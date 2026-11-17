@@ -33,7 +33,13 @@ export function BoardDocumentsSection({
   const session = useDeviceStore((state) => state.session)
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const draft = useDeviceStore((state) => state.draft)
-  const { connected, dirtyDocuments, saveBlockedReason } = useDraftState()
+  const {
+    connected,
+    dirtyDocuments,
+    saveBlockedReason,
+    documentSaveBlockedReason,
+    imageSaveBlockedReason
+  } = useDraftState()
   const [feedback, setFeedback] = useState<ActionFeedback>()
 
   return (
@@ -87,7 +93,15 @@ export function BoardDocumentsSection({
                     {t('common.load')}</Button>
                   <Button
                     variant="outline"
-                    disabled={!connected || working || !modified || Boolean(saveBlockedReason)}
+                    disabled={
+                      !connected ||
+                      working ||
+                      !modified ||
+                      Boolean(
+                        documentSaveBlockedReason ??
+                          (id === 'dashboard' ? imageSaveBlockedReason : undefined)
+                      )
+                    }
                     title={t('configs.boardDocumentsSection.writeOnlyThisDocumentTo')}
                     onClick={() => void saveDraftToBoard([id])}
                   >

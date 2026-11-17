@@ -20,6 +20,8 @@ import { FontsPage } from '@/features/font-library/FontsPage'
 import { ImagesPage } from '@/features/image-assets/ImagesPage'
 import { InsertScreenDialog } from '@/features/templates/InsertScreenDialog'
 import { SaveToTemplatesButton } from '@/features/templates/SaveToTemplates'
+import { ShareDashboardButton } from '@/features/dashboard-files/ShareDashboardDialog'
+import { OpenReportNotice } from '@/features/dashboard-files/OpenReportNotice'
 import { TemplatesPage } from '@/features/templates/TemplatesPage'
 import { t } from '@shared/ui-text'
 
@@ -63,11 +65,13 @@ export function DashboardWorkspace(): React.JSX.Element {
                 {t('dashboard.configsPage.modified')}</Badge>
             ) : null}
             {view === 'canvas' ? <SaveToTemplatesButton /> : null}
+            {view === 'canvas' ? <ShareDashboardButton /> : null}
             <RestartBoardButton />
             <SaveToBoardButton className="flex-none" />
           </>
         }
       />
+      <OpenReportNotice />
       {view === 'canvas' ? (
         <CanvasView />
       ) : view === 'templates' ? (

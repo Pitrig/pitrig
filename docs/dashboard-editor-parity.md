@@ -173,9 +173,10 @@ Missing: **reflow.** Neither fit rearranges anything, so a layout that wants a
 different arrangement on a differently shaped display is hand work. Image
 assets do not follow a transfer either — the board draws a bitmap at the size it
 was uploaded at ([ADR 0018](adr/0018-uploaded-image-assets.md)) — so the report
-names each one and the size it now needs. Also missing: saving a single screen
-on its own, and sharing a template as a file rather than through the user data
-folder.
+names each one and the size it now needs. A dashboard travels as one file with
+its images and fonts ([ADR 0041](adr/0041-dashboard-files.md)). Also missing:
+saving a single screen on its own, and templates in the library that carry their
+images.
 
 ### 9. Style details
 

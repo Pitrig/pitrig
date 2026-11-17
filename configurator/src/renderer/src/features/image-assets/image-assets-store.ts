@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 
-import { createUploadOperationStore } from '@/lib/upload-operation-store'
 import type { ImageColorFormat, ImageSourceSelection } from '@shared/image-assets'
 
 export interface ImageEntry {
@@ -31,8 +30,6 @@ function suggestedName(fileName: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, 31)
 }
-
-export const useImageUploadStore = createUploadOperationStore()
 
 export const useImageAssetsStore = create<ImageAssetsStore>((set) => ({
   entries: [],

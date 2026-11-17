@@ -5,10 +5,6 @@ import {
   type TelemetrySimulation
 } from '../../shared/telemetry-bridge'
 import {
-  IMAGE_COLOR_FORMATS,
-  type ImageUploadRequest
-} from '@shared/image-assets'
-import {
   MAXIMUM_CONFIGURATION_TEXT_SIZE,
   isConfigurationDocumentId
 } from '@shared/configuration-documents'
@@ -46,25 +42,6 @@ import { PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
 import { t } from '@shared/ui-text'
 
 const MAXIMUM_WIRING_TEXT = 16_384
-
-export function isImageUploadRequest(value: unknown): value is ImageUploadRequest {
-  if (typeof value !== 'object' || value === null) return false
-  const assets = (value as ImageUploadRequest).assets
-  return (
-    Array.isArray(assets) &&
-    assets.every(
-      (asset) =>
-        typeof asset === 'object' &&
-        asset !== null &&
-        Array.isArray(asset.sourceIds) &&
-        asset.sourceIds.every((sourceId) => typeof sourceId === 'string') &&
-        typeof asset.name === 'string' &&
-        typeof asset.width === 'number' &&
-        typeof asset.height === 'number' &&
-        IMAGE_COLOR_FORMATS.includes(asset.format)
-    )
-  )
-}
 
 export function isConnectRequest(value: unknown): value is ConnectDeviceRequest {
   if (!value || typeof value !== 'object') {

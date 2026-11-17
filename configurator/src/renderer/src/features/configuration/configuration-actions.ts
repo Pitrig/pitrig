@@ -24,6 +24,8 @@ import {
   type LayoutFit,
   type LayoutTransferResult
 } from '@shared/layout-transfer'
+import { adoptOpenedDashboard } from '@/features/dashboard-files/open-dashboard'
+import { useOpenReportStore } from '@/features/dashboard-files/open-report-store'
 import { boardLabel, fitOutcome } from './board-labels'
 
 export type ActionFeedback = { kind: 'success' | 'error'; message: string }
@@ -31,6 +33,7 @@ export type ActionFeedback = { kind: 'success' | 'error'; message: string }
 function adoptNewDocument(configuration: DeviceConfiguration, fileName?: string): void {
   useDeviceStore.getState().replaceLocalDraft(configuration, fileName)
   useDashboardEditorStore.getState().resetEditorState()
+  useOpenReportStore.getState().dismiss()
 }
 
 export async function createConfiguration(board: PitrigBoardId): Promise<ActionFeedback> {
@@ -55,6 +58,9 @@ export async function openConfigurationFile(): Promise<ActionFeedback | undefine
     writeEventLog('Configuration file load completed', result)
     if (!result.ok) return { kind: 'error', message: result.error.message }
     if (!result.value) return undefined
+    if (result.value.kind === 'dashboard') {
+      return adoptOpenedDashboard(result.value.dashboard, result.value.fileName)
+    }
     adoptNewDocument(result.value.configuration, result.value.fileName)
     return { kind: 'success', message: t('dashboard.configurationActions.fileNameLoaded', { fileName: result.value.fileName }) }
   } catch (error) {

@@ -26,8 +26,33 @@ the image package with it.
 
 ## Unreleased
 
+The configurator only: no firmware update and no schema change.
+
+**Added**
+
+- **Share…** saves the open dashboard as one `.pitrigdash` file with its images
+  and the fonts another PC may not have, and **Open…** opens one beside a
+  configuration file. Opening replaces only the dashboard, keeps that PC's LED
+  and connection settings, and adds the images and fonts to its libraries,
+  renamed where the PC already uses a name for something else. Files stay small:
+  an icon adds about 8 KB, a full-screen photograph about 300 KB.
+- `Save to board` installs the images the dashboard draws, the way it installs
+  fonts, and sends them only when the board does not already hold them.
+- `Save to board` downloads a Google font the dashboard names and this PC lacks,
+  instead of asking for a file.
+
+**Changed**
+
+- The Images page keeps images on this PC instead of installing them: add an
+  image there, pick it in the inspector, and `Save to board` puts it on the
+  board. The images this PC installed before are moved there on first start.
+
 **Fixed**
 
+- Soft edges and see-through parts of images were darker on the board than on
+  the canvas. The next `Save to board` installs corrected images.
+- A board that lost a font or an image the dashboard needs gets it back on the
+  next `Save to board`, even when the document itself matches.
 - The build and lint tools no longer pull in a `minimatch` with a published
   vulnerability (GHSA-g3hv-75wg-m249): `electron-builder`, `eslint` and
   `typescript-eslint` now use 11.0.8. The installed applications never

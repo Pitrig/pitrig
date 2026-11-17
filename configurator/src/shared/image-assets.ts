@@ -1,8 +1,6 @@
 export const IMAGE_SELECT_SOURCE_CHANNEL = 'image-assets:select-source' as const
-export const IMAGE_UPLOAD_CHANNEL = 'image-assets:upload' as const
 export const IMAGE_CANCEL_UPLOAD_CHANNEL = 'image-assets:cancel-upload' as const
 export const IMAGE_CLEAR_CHANNEL = 'image-assets:clear' as const
-export const IMAGE_UPLOAD_PROGRESS_CHANNEL = 'image-assets:upload-progress' as const
 
 export const MAXIMUM_IMAGES = 32
 export const MAXIMUM_IMAGE_PACKAGE_SIZE = 7 * 1024 * 1024
@@ -62,15 +60,23 @@ export function imageAssetBytes(
   return color + alpha
 }
 
+export function alignImageOffset(value: number): number {
+  return Math.ceil(value / IMAGE_PACKAGE_ALIGNMENT) * IMAGE_PACKAGE_ALIGNMENT
+}
+
+export function storedImagePackageSize(storedSizes: readonly number[]): number {
+  return storedSizes.reduce(
+    (offset, size) => alignImageOffset(offset + size),
+    IMAGE_PACKAGE_DATA_OFFSET
+  )
+}
+
 export function imagePackageSize(
   images: readonly { width: number; height: number; format: ImageColorFormat }[]
 ): number {
-  let offset = IMAGE_PACKAGE_DATA_OFFSET
-  for (const image of images) {
-    const bytes = imageAssetBytes(image.width, image.height, image.format)
-    offset = Math.ceil((offset + bytes) / IMAGE_PACKAGE_ALIGNMENT) * IMAGE_PACKAGE_ALIGNMENT
-  }
-  return Math.max(offset, IMAGE_PACKAGE_DATA_OFFSET)
+  return storedImagePackageSize(
+    images.map((image) => imageAssetBytes(image.width, image.height, image.format))
+  )
 }
 
 export interface ImageAssetState {

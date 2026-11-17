@@ -1,25 +1,34 @@
 import { nativeImage, type BrowserWindow } from 'electron'
 import { basename } from 'node:path'
 
-const THUMBNAIL_EDGE_PX = 192
-
 import type { AssetError, AssetResult, AssetUploadProgress } from '../../shared/asset-upload'
 import {
   IMAGE_ID_PATTERN,
   MAXIMUM_IMAGES,
+  type ImageAssetInput,
   type ImageSourceSelection,
   type ImageUploadRequest
 } from '../../shared/image-assets'
+import type { ImageLibraryEntry } from '../../shared/image-library'
 import {
   AssetServiceBase,
   failure,
   success,
   type AssetKind
 } from '../assets/asset-service-base'
-import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
-import { buildImagePackage, convertImage, type ConvertedImage } from './image-package'
+import type { ImageLibraryService } from '../image-library/image-library-service'
+import { hasTransparency } from './image-pixels'
+import {
+  buildImagePackage,
+  convertImage,
+  packageImage,
+  type ConvertedImage,
+  type PackageImage
+} from './image-package'
 import { t } from '@shared/ui-text'
+
+const THUMBNAIL_EDGE_PX = 192
 
 const kImages: AssetKind = {
   sessionKey: 'imageAssets',
@@ -59,22 +68,10 @@ function thumbnailOf(
   }
 }
 
-function hasTransparency(decoded: Electron.NativeImage): boolean {
-  const { width, height } = decoded.getSize()
-  const bgra = decoded.toBitmap()
-  const pixels = width * height
-  if (bgra.byteLength < pixels * 4) return true
-  for (let index = 0; index < pixels; ++index) {
-    if (bgra[index * 4 + 3] !== 0xff) return true
-  }
-  return false
-}
-
 export class ImageAssetService extends AssetServiceBase {
   constructor(
     deviceService: DeviceService,
-    private readonly onProgress: (progress: AssetUploadProgress) => void,
-    private readonly previewAssets: PreviewAssetCache
+    private readonly library: ImageLibraryService
   ) {
     super(deviceService, kImages)
   }
@@ -110,66 +107,72 @@ export class ImageAssetService extends AssetServiceBase {
     })
   }
 
-  async upload(request: ImageUploadRequest): Promise<AssetResult<void>> {
+  async addToLibrary(assets: readonly ImageAssetInput[]): Promise<AssetResult<ImageLibraryEntry[]>> {
+    const invalid = validateNames(assets, Number.POSITIVE_INFINITY)
+    if (invalid) return { ok: false, error: invalid }
+    try {
+      const converted = this.convert(assets)
+      if (!converted.ok) return converted
+      return success(await this.library.add(converted.value))
+    } catch (error) {
+      return failure(
+        'invalid_request',
+        error instanceof Error ? error.message : t('images.imageLibrary.notAdded')
+      )
+    }
+  }
+
+  async upload(
+    request: ImageUploadRequest,
+    report: (progress: AssetUploadProgress) => void = () => undefined
+  ): Promise<AssetResult<void>> {
+    const invalid = validateNames(request.assets, MAXIMUM_IMAGES)
+    if (invalid) return { ok: false, error: invalid }
+    report({
+      stage: 'reading',
+      completed: 0,
+      total: 0,
+      message: t('images.imageAssetService.readingImageSources')
+    })
+    try {
+      const converted = this.convert(request.assets)
+      if (!converted.ok) return failed(report, converted.error.code, converted.error.message)
+      const packaged = await Promise.all(converted.value.map((image) => packageImage(image)))
+      return await this.install(packaged, report)
+    } catch (error) {
+      return failed(
+        report,
+        'invalid_request',
+        error instanceof Error ? error.message : t('images.imageLibrary.notAdded')
+      )
+    }
+  }
+
+  async install(
+    images: readonly PackageImage[],
+    report: (progress: AssetUploadProgress) => void
+  ): Promise<AssetResult<void>> {
     const blocked = this.preflight()
     if (blocked) return blocked
-    const validationError = this.validateRequest(request)
-    if (validationError) return { ok: false, error: validationError }
     const session = this.deviceService.getState().session
-
     const operation = new AbortController()
     this.activeOperation = operation
     try {
-      this.onProgress({
-        stage: 'reading',
-        completed: 0,
-        total: 0,
-        message: t('images.imageAssetService.readingImageSources')
-      })
-      const converted: ConvertedImage[] = []
-      for (const asset of request.assets) {
-        operation.signal.throwIfAborted()
-        const paths: string[] = []
-        for (const sourceId of asset.sourceIds) {
-          const source = this.sources.get(sourceId)
-          if (!source) {
-            return this.failWithProgress(
-              'source_missing',
-              t('images.imageAssetService.selectTheImageFileAgain')
-            )
-          }
-          paths.push(source.path)
-        }
-        converted.push(
-          convertImage({
-            name: asset.name,
-            paths,
-            format: asset.format,
-            width: asset.width,
-            height: asset.height
-          })
-        )
-      }
-
-      this.onProgress({
+      report({
         stage: 'building',
         completed: 0,
         total: 0,
         message: t('images.imageAssetService.buildingTheImagePackage')
       })
-      const packageBytes = await buildImagePackage(converted)
-
+      const packageBytes = buildImagePackage(images)
       if (this.deviceService.getState().session !== session) {
-        return this.failWithProgress(
-          'device_error',
-          t('images.imageAssetService.theConnectedDeviceChangedDuring')
-        )
+        throw new Error(t('images.imageAssetService.theConnectedDeviceChangedDuring'))
       }
       await this.deviceService.uploadImages(
         packageBytes,
-        this.onProgress,
+        report,
         operation.signal,
-        converted.map(({ name, width, height, format, frameCount }) => ({
+        images.map(({ name, width, height, format, frameCount }) => ({
           name,
           width,
           height,
@@ -177,8 +180,8 @@ export class ImageAssetService extends AssetServiceBase {
           frameCount
         }))
       )
-      await this.previewAssets.storeImages(converted).catch(() => undefined)
-      this.onProgress({
+      await this.library.recordInstalled(images, packageBytes.byteLength).catch(() => undefined)
+      report({
         stage: 'completed',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
@@ -189,51 +192,70 @@ export class ImageAssetService extends AssetServiceBase {
       const cancelled = operation.signal.aborted
       const message =
         error instanceof Error ? error.message : 'The image upload failed for an unknown reason.'
-      this.onProgress({
-        stage: cancelled ? 'cancelled' : 'error',
-        completed: 0,
-        total: 0,
-        message
-      })
+      report({ stage: cancelled ? 'cancelled' : 'error', completed: 0, total: 0, message })
       return failure(cancelled ? 'cancelled' : 'device_error', message)
     } finally {
-      if (this.activeOperation === operation) this.activeOperation = undefined
+      this.release(operation)
     }
   }
 
-  cancel(): AssetResult<void> {
-    this.activeOperation?.abort()
-    return success(undefined)
-  }
-
-  private failWithProgress<T>(code: AssetError['code'], message: string): AssetResult<T> {
-    this.onProgress({ stage: 'error', completed: 0, total: 0, message })
-    return failure(code, message)
-  }
-
-  private validateRequest(request: ImageUploadRequest): AssetError | undefined {
-    if (!Array.isArray(request.assets) || request.assets.length === 0) {
-      return { code: 'invalid_request', message: t('images.imageAssetService.selectAtLeastOneImage') }
+  private convert(assets: readonly ImageAssetInput[]): AssetResult<ConvertedImage[]> {
+    const converted: ConvertedImage[] = []
+    for (const asset of assets) {
+      const paths: string[] = []
+      for (const sourceId of asset.sourceIds) {
+        const source = this.sources.get(sourceId)
+        if (!source) {
+          return failure('source_missing', t('images.imageAssetService.selectTheImageFileAgain'))
+        }
+        paths.push(source.path)
+      }
+      converted.push(
+        convertImage({
+          name: asset.name,
+          paths,
+          format: asset.format,
+          width: asset.width,
+          height: asset.height
+        })
+      )
     }
-    if (request.assets.length > MAXIMUM_IMAGES) {
+    return success(converted)
+  }
+
+}
+
+function failed<T>(
+  report: (progress: AssetUploadProgress) => void,
+  code: AssetError['code'],
+  message: string
+): AssetResult<T> {
+  report({ stage: 'error', completed: 0, total: 0, message })
+  return failure(code, message)
+}
+
+function validateNames(assets: readonly ImageAssetInput[], maximum: number): AssetError | undefined {
+  if (!Array.isArray(assets) || assets.length === 0) {
+    return { code: 'invalid_request', message: t('images.imageAssetService.selectAtLeastOneImage') }
+  }
+  if (assets.length > maximum) {
+    return {
+      code: 'invalid_request',
+      message: t('images.imageAssetService.theDeviceStoresAtMost', { mAXIMUM_IMAGES: MAXIMUM_IMAGES })
+    }
+  }
+  const names = new Set<string>()
+  for (const asset of assets) {
+    if (!IMAGE_ID_PATTERN.test(asset.name)) {
       return {
         code: 'invalid_request',
-        message: t('images.imageAssetService.theDeviceStoresAtMost', { mAXIMUM_IMAGES: MAXIMUM_IMAGES })
+        message: t('images.imageAssetService.nameIsNotAValid', { name: asset.name })
       }
     }
-    const names = new Set<string>()
-    for (const asset of request.assets) {
-      if (!IMAGE_ID_PATTERN.test(asset.name)) {
-        return {
-          code: 'invalid_request',
-          message: t('images.imageAssetService.nameIsNotAValid', { name: asset.name })
-        }
-      }
-      if (names.has(asset.name)) {
-        return { code: 'invalid_request', message: t('images.imageAssetService.imageNameIsListedTwice', { name: asset.name }) }
-      }
-      names.add(asset.name)
+    if (names.has(asset.name)) {
+      return { code: 'invalid_request', message: t('images.imageAssetService.imageNameIsListedTwice', { name: asset.name }) }
     }
-    return undefined
+    names.add(asset.name)
   }
+  return undefined
 }

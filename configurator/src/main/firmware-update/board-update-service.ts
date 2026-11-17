@@ -176,7 +176,7 @@ export class BoardUpdateService {
     )
     const saved = await this.saveToBoard.save(
       { json: JSON.stringify(backup.configuration), documents },
-      { keepBoardFonts: true }
+      { keepBoardAssets: true }
     )
     if (!saved.ok) return { documents: [], applied: true, failed: saved.error.message }
     if (saved.value.reconnectFailed) {

@@ -2,11 +2,14 @@ import type { BoardId, WidgetConfiguration } from './configuration-schema'
 import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from './configuration-documents'
 import type { DeviceConfiguration } from './device'
 import { LIBRARY_ID_PATTERN, libraryIdFor } from './library-id'
+import type { PreviewImageAsset } from './preview-assets'
 
 export const TEMPLATE_LIST_CHANNEL = 'templates:list' as const
 export const TEMPLATE_READ_CHANNEL = 'templates:read' as const
 export const TEMPLATE_SAVE_CHANNEL = 'templates:save' as const
 export const TEMPLATE_DELETE_CHANNEL = 'templates:delete' as const
+export const TEMPLATE_ADOPT_CHANNEL = 'templates:adopt' as const
+export const TEMPLATE_OPEN_CREDIT_CHANNEL = 'templates:open-credit' as const
 
 export const TEMPLATE_FORMAT = 'pitrig-dashboard-template' as const
 export const WIDGET_TEMPLATE_FORMAT = 'pitrig-widget-template' as const
@@ -37,6 +40,11 @@ export type TemplateDocument = DashboardTemplateDocument | WidgetTemplateDocumen
 
 export type TemplateOrigin = 'bundled' | 'user'
 
+export interface TemplateCredit {
+  name: string
+  url: string
+}
+
 export interface DashboardTemplateSummary {
   kind: 'dashboard'
   id: string
@@ -46,6 +54,7 @@ export interface DashboardTemplateSummary {
   origin: TemplateOrigin
   screenCount: number
   widgetCount: number
+  credit?: TemplateCredit
 }
 
 export interface WidgetTemplateSummary {
@@ -62,6 +71,8 @@ export interface WidgetTemplateSummary {
 }
 
 export type TemplateSummary = DashboardTemplateSummary | WidgetTemplateSummary
+
+export type TemplateReadValue = TemplateDocument & { previews?: PreviewImageAsset[] }
 
 export interface TemplateLibrary {
   dashboards: DashboardTemplateSummary[]

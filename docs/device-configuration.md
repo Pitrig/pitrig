@@ -164,6 +164,14 @@ confirmed in the numbers the new display produces, with the same
 `Fit`/`Stretch` preference the Configs page uses
 ([ADR 0023](adr/0023-dashboard-templates-and-layout-transfer.md)).
 
+`Share…` saves the open dashboard as one `.pitrigdash` file with its images and
+the fonts another PC may lack, and `Open…` accepts it beside a configuration
+file ([ADR 0041](adr/0041-dashboard-files.md)). Opening one replaces only the
+dashboard, scaled to the board in hand like a template, and keeps the LED and
+connection settings; its images and fonts join this PC's libraries, renamed
+where this PC already uses the name for something else, and the next
+`Save to board` installs them.
+
 Supported bindings are listed in the generated
 [telemetry catalog](telemetry-catalog.md); the binding input shows the field's
 category, type, unit, recommended update rate and wire ID.
@@ -178,7 +186,7 @@ preview and the device agree. A drawn widget arrives with more than its box: a
 text widget carries the draft's commonest font and an empty source, a bar, an
 arc, an indicator and a graph each carry a starting binding and their colours,
 an indicator six segments and a slot two pages, and a new image widget starts on
-the first installed image, because without one it has nothing to draw.
+the first image in this PC's library, because without one it has nothing to draw.
 
 The canvas draws live telemetry whenever the [SimHub plugin](simhub-plugin.md)
 answers the bridge the Protocol page shows, with the widget's `unavailable_text`
@@ -277,17 +285,18 @@ rather than what is composed.
 
 `Save to board` is one sequence in the main process: work out which documents
 differ from what the board is holding, resolve the families the dashboard names
-against the font library, build the package, send it only when the board does
-not already hold those exact bytes, and `@PR:SET` each differing document —
+against the font library and its images against the image library, build a
+package of each, send a package only when the board does not already hold it,
+and `@PR:SET` each differing document —
 protocol first, dashboard last, so a partial failure leaves the cheap writes
 done and the expensive one untouched. A document that matches the board is not
 written at all, which is why changing a baud rate no longer costs sixty
 kilobytes of dashboard.
 
-How it ends depends on what it did. A face the board did not have becomes
-usable only after a restart, so installing one ends in `@PR:REBOOT` and a
-reconnect — as does saving onto a board that already owes a restart for a font
-or image package it has accepted, as does writing the protocol document, and as
+How it ends depends on what it did. A face or an image the board did not have
+becomes usable only after a restart, so installing either ends in `@PR:REBOOT`
+and a reconnect — as does saving onto a board that already owes a restart for a
+font or image package it has accepted, as does writing the protocol document, and as
 does writing anything at all onto a board in safe mode, which is how it leaves
 safe mode.
 That last one is the whole reason the document is separate: the link is selected
@@ -355,11 +364,14 @@ that library, builds a package holding exactly those, and installs it only when
 the device does not already report the same `crc` and `entries`; what the save
 does next is under [Saving to the board](#saving-to-the-board). A family the
 library cannot resolve stops the save before anything is written and asks for a
-file. Images are not checked that way — they are uploaded by hand, and the
-editor reads the installed list only to offer a widget an image and to draw one
-— so a document naming an image the board does not hold is caught by firmware,
-which checks fonts and images alike before it lets a configuration replace the
-running dashboard.
+file, after it has tried Google Fonts for a family the catalog knows. An image
+identifier is the id of an entry in the image library the same way
+([ADR 0018](adr/0018-uploaded-image-assets.md#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs)):
+the save installs exactly the images the dashboard draws, keeps the board's own
+copy of one this PC lacks, and stops before writing when an image is on neither
+or when installing would remove a picture only the board holds.
+Firmware checks fonts and images alike before it lets a configuration replace
+the running dashboard.
 
 ## Control protocol
 
