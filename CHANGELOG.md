@@ -34,6 +34,7 @@ a release says when either applies.
 
 - **Guition ESP32-4848S040.** No more tearing; the screen refreshes at 60 Hz.
 - **Guition ESP32-4848S040.** Values reach the screen faster: 17 ms instead of 54.
+- **Guition ESP32-4848S040.** Busy screens draw faster.
 - **Display boards.** Ring arcs that change colour redraw faster.
 - **Display boards.** Circles, rings and arcs draw faster.
 - **Display boards.** The boot animation is smoother and lighter.
@@ -45,6 +46,7 @@ a release says when either applies.
 - **Configurator.** `Save to board` puts back fonts and images the board lost.
 - **Configurator.** A configuration without a link speed no longer cuts off the Guition ESP32-4848S040.
 - **Guition JC1060P470C.** After a dashboard change the board keeps the faster drawing mode.
+- **Guition ESP32-4848S040.** Saving to the board or updating it no longer garbles the screen.
 - **Development.** The Guition ESP32-4848S040 debug image starts with a display again.
 - **Development.** Build tools no longer use a vulnerable `minimatch`.
 

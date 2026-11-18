@@ -334,7 +334,7 @@ light screen, the port:
 Screens that are not light keep the full queue: it absorbs their frame-to-frame
 cost, where one frame missing its refresh would show as a repeat.
 
-Five settings make it fit and fast:
+Six settings make it fit and fast:
 
 - **480×32 strips instead of 480×40.** With 40 rows a debug image could not
   allocate its second strip: the main internal region was 7.7 KB short and the
@@ -356,6 +356,15 @@ Five settings make it fit and fast:
   template's frame, pixel for pixel the same.
 - **The light-screen scheduling above.** On a still screen core 1 falls from
   5.3 % to 1.9 % on `text_only` and from 9.2 % to 3.2 % on `round-dial-480`.
+- **Code and read-only data in PSRAM** (`CONFIG_SPIRAM_XIP_FROM_PSRAM`).
+  Without it every erase and write to flash — a font, image or firmware
+  upload, a saved document — turns the cache off, the bounce buffers stop
+  refilling, and the panel repeats one band of rows until the write ends. With
+  it the cache stays on and the picture holds through an upload. Fonts and
+  images are already drawn from their copies in external RAM, so nothing reads
+  flash while it is written. Instruction fetches leave the flash bus as well:
+  `round-dial-480` rose from 34 to 47–54 fps and `all_widgets` from 38 to 49,
+  for about 0.7 MB of PSRAM (`docs/performance-baselines.md`).
 
 Measured on a debug build with a 60 Hz feed, against the seamed partial mode
 with the same 480×32 strips, before the scheduling and the caches (the

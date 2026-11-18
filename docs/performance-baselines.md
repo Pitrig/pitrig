@@ -176,3 +176,54 @@ and `text_32` without the full-row text repaint of 0f27e7f reads 47, so the
 gap is older than this change and not that commit. Those figures used
 `roboto_black`, which the board no longer holds; the gap is unexplained, and
 this entry is the baseline instead.
+
+## Guition ESP32-4848S040 (ESP32-S3)
+
+### 2026-11-18 — code and read-only data in PSRAM
+
+The first entry for this board. 480×480 RGB565, the tear-free strip mode at
+17.1 MHz, `roboto_bold`, no image named, so `sprites_24` draws its text grid;
+the five bundled templates are cut to their screens. 7f74bef with
+`CONFIG_SPIRAM_XIP_FROM_PSRAM` (ADR 0027); *before* is 7f74bef without it. A
+range is the spread of the two runs.
+
+| Document | fps | render ms | latency ms | before fps | before render ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `text_only` | 57.3–59.0 | 2.68–2.73 | 11.2–12.0 | 57.1–58.0 | 3.05–3.08 |
+| `text_16` | 60.4–60.5 | 9.16–9.18 | 23.1–23.3 | 60.4 | 9.58–9.67 |
+| `text_32` | 40.7–40.9 | 17.55–17.66 | 33.3–34.0 | 37.9–38.1 | 18.52–18.73 |
+| `text_32_plain` | 43.2 | 16.06–16.11 | 32.1–32.2 | 40.3–40.4 | 16.99–17.26 |
+| `text_32_shapes` | 28.1–28.4 | 24.90–25.01 | 45.8–47.1 | 27.1–27.2 | 25.55–25.79 |
+| `text_64` | 13.3–13.6 | 60.88–62.54 | 96.3–101.3 | 13.2 | 61.74–61.95 |
+| `huge_text_4` | 60.0–60.1 | 7.34–7.40 | 23.2 | 59.0–59.5 | 7.34–7.66 |
+| `shapes_96` | 58.6–58.7 | 9.74–9.77 | 15.9 | 56.9–57.2 | 10.14–10.22 |
+| `arcs_12` | 60.4 | 6.89–6.95 | — | 60.2–60.3 | 8.05–8.17 |
+| `bars_24` | 40.0–40.2 | 12.21–12.40 | — | 36.6–36.8 | 12.95–13.36 |
+| `full_screen_bar` | 44.5–44.9 | 12.61–13.35 | 28.0–28.2 | 41.3–42.0 | 13.49–13.64 |
+| `indicators_12` | 30.8–31.3 | 12.71–14.02 | — | 29.6–29.8 | 14.64–14.77 |
+| `graphs_6` | 25.6–25.7 | 29.27–29.31 | — | 23.0–23.1 | 31.53–31.64 |
+| `sprites_24` | 53.0–53.2 | 12.82–12.90 | 26.1–26.4 | 48.7–49.2 | 13.67–13.98 |
+| `nested_containers` | 44.4–44.7 | 15.59–15.81 | 30.5–31.0 | 42.4–42.6 | 16.04–16.09 |
+| `all_widgets` | 48.5–50.0 | 12.62–13.52 | 26.1–26.6 | 38.5–38.6 | 16.44–16.49 |
+| `guition-reference` | 60.3 | 6.75–6.94 | 21.4 | 57.5–59.3 | 7.98–8.55 |
+| `guition-screens-and-slots` drive | 60.4 | 5.00–5.16 | 20.1–21.4 | 59.4–60.1 | 4.68–5.22 |
+| `guition-screens-and-slots` lap | 60.4–60.5 | 2.84–2.86 | 24.8–26.0 | 60.3–60.4 | 3.24–3.30 |
+| `round-dial-480` dial | 46.6–53.5 | 12.46–17.45 | 29.2–36.3 | 33.8–34.6 | 27.64–27.66 |
+| `round-dial-480` data | 12.2–12.8 | 3.26–3.32 | 6.3–6.4 | 11.5–11.8 | 3.77–3.78 |
+| `round-screen-480` | 56.8–56.9 | 10.63–11.47 | 26.3–26.9 | 55.3–59.7 | 10.58–12.40 |
+| `tyre-corners-480` | 1.8–2.0 | 14.53–14.60 | 27.6–32.7 | 1.8 | 14.94–15.24 |
+
+Latency is `lat_us`, which on this board stops where LVGL finishes the frame,
+not at the glass (ADR 0027), and is blank where the screen holds no text
+readout. `tyre-corners-480` reads 2 fps because its bindings are all `slow`.
+
+Faster with the code in PSRAM: `round-dial-480` dial 34 → 47–54 fps (render
+27.6 → 12.5–17.5 ms), `all_widgets` 38.5 → 49, `graphs_6`, `bars_24`,
+`sprites_24`, `text_32` and `text_32_plain` 7–11 %, every render 0–21 % shorter
+except the spread of `round-screen-480` and `guition-screens-and-slots` drive.
+Nothing is slower beyond the noise. On the light screens that hold 60 fps,
+`lat_us` reads up to 1.5 ms more (`guition-screens-and-slots` drive 15–19 →
+20–21 ms), within the light-screen scheduling, which starts a frame as late as
+it can still make its refresh. The copy costs about 0.7 MB of PSRAM: the
+lowest free external RAM read 3.04 MB against 3.74 MB, internal RAM 45.4 KB
+against 46.7 KB.
