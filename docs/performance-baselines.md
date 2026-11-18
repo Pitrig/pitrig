@@ -227,3 +227,48 @@ Nothing is slower beyond the noise. On the light screens that hold 60 fps,
 it can still make its refresh. The copy costs about 0.7 MB of PSRAM: the
 lowest free external RAM read 3.04 MB against 3.74 MB, internal RAM 45.4 KB
 against 46.7 KB.
+
+## LilyGO T-Display-S3 (ESP32-S3)
+
+### 2026-11-18 — 7f74bef
+
+The first entry for this board. 320×170 RGB565 over the 8-bit parallel bus,
+`roboto_bold`, no image named, so `sprites_24` draws its text grid; the four
+bundled templates are cut to their screens. A range is the spread of the two
+runs.
+
+| Document | fps | render ms | latency ms |
+| --- | ---: | ---: | ---: |
+| `text_only` | 61.0–61.2 | 2.23–2.26 | 4.1 |
+| `text_16` | 63.6–65.5 | 5.67–5.86 | 9.2 |
+| `text_32` | 49.0–49.3 | 13.91–13.97 | 28.6–28.8 |
+| `text_32_plain` | 52.9–53.0 | 12.74–12.76 | 26.9–27.1 |
+| `text_32_shapes` | 36.9 | 18.10–18.12 | 34.9–35.6 |
+| `text_64` | 25.7–25.8 | 28.69–28.89 | 50.0–50.1 |
+| `huge_text_4` | 60.8–62.2 | 2.09–2.13 | 3.6 |
+| `shapes_96` | 60.3–60.7 | 1.73–1.74 | 3.5 |
+| `arcs_12` | 66.0–68.8 | 5.32–5.51 | — |
+| `bars_24` | 63.0–63.7 | 6.01–6.08 | — |
+| `full_screen_bar` | 63.0–63.5 | 4.07–4.14 | 6.7–6.8 |
+| `indicators_12` | 53.8–54.5 | 7.27–7.38 | — |
+| `graphs_6` | 62.8–63.0 | 8.45–8.48 | — |
+| `sprites_24` | 61.5–63.1 | 9.08–9.32 | 13.8 |
+| `nested_containers` | 53.0–53.2 | 12.76–12.80 | 26.8–27.0 |
+| `all_widgets` | 110.2–111.3 | 4.28–4.29 | 11.3 |
+| `flag-strip` | 189.6–190.5 | 1.13–1.20 | 4.9–5.2 |
+| `fuel-card` fuel | 1.4–1.7 | 2.39–2.81 | 5.1–5.8 |
+| `fuel-card` stint | 4.3–4.5 | 1.93–1.97 | 4.1 |
+| `lilygo-lap` | 6.0–7.1 | 2.24–2.43 | 124.3–148.5 |
+| `rallye-stage` stage | 188.5–189.0 | 1.58–1.64 | 4.8–5.0 |
+| `rallye-stage` detail | 12.0–15.7 | 2.82–2.92 | 5.1–5.3 |
+
+The panel keeps its own frame memory and frames are not paced to a refresh, so
+under a 60 Hz feed a screen can draw more than 60 frames a second
+(`flag-strip` 190, `all_widgets` 111). Latency is
+blank where the screen holds no text readout. `lilygo-lap` is fed its flag
+fields too, and a flag at 1 raises a full-screen flag page that blinks every
+125–250 ms and hides the lap time, which is what its row measures; with the
+flags at 0 the lap time draws about 200 frames a second through the
+`lap_timer` modifier (core 1 at 68 %), the same as 0.3.1, and 61 frames at
+4.3 ms without it. The lowest free internal RAM read 90.2 KB, external RAM
+5.4 MB.
