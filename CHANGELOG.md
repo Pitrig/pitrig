@@ -39,6 +39,7 @@ a release says when either applies.
 - **Display boards.** Circles, rings and arcs draw faster.
 - **Display boards.** The boot animation is smoother and lighter.
 - **Configurator.** Images stay in the PC image library until `Save to board`.
+- **Configurator.** The Round dial 480 template has a new design.
 
 **Fixed**
 

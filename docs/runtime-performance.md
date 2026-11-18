@@ -184,9 +184,10 @@ per-screen tuning:
 - **A ring arc whose colour follows a ramp or a condition repaints only its
   filled part**, in 30° pieces, and only when the new colour differs in the
   panel's pixel format; before, every change repainted the arc's whole box and
-  everything under it, and `round-dial-480` drew a frame in 53 ms instead of 31.
-  Every piece still redraws whatever its box reaches — on `round-dial-480` the
-  bezel, the plate, the shift lamps and the numbers — so a large ramped ring
+  everything under it, and the first design of `round-dial-480`, built on such a
+  ring, drew a frame in 53 ms instead of 31. Every piece still redraws whatever
+  its box reaches — there the bezel, the plate, the shift lamps and the
+  numbers — so a large ramped ring
   stays the most expensive gauge a round screen can hold: on the ESP32-S3 that
   dial draws in 29 ms while its ring is ramping and in 8 ms below the ramp.
   Smaller pieces are slower, not faster, because each redrawn area carries

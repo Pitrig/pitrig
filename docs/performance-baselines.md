@@ -16,6 +16,11 @@ measurement history of a single decision stays in its ADR (0026, 0027, 0032).
   `bench-signals.ts` waveforms at 60 Hz. Bundled templates are cut to one
   screen and fed only their own bindings, each a slow sine sent at its catalog
   rate (`fast` 60 Hz, `normal` 10, `slow` and `changes` 1).
+- Some templates named below have left
+  `configurator/src/main/templates/bundled/`. Take them from commit `2ca80d1`,
+  the last one that holds them. `ddu-1024` is its 1024 x 600 template with the
+  screens `main`, `times` and `fuel`. The `round-dial-480` figures below measure
+  the design of that commit too; the template has been redrawn since.
 - Each document is applied with `@PR:APPLY`, 3 s are discarded, and 6 s of
   `@PR:DIAG` replies, four a second, are averaged. The battery runs twice, in
   the order of the table, without a reboot.
@@ -54,9 +59,9 @@ The tree of the entry below with the settle gate timed in seconds instead of
 | `sprites_24` | 55.1 | 11.56 | 26.2 | 54.7–55.4 |
 | `nested_containers` | 55.2 | 11.21 | 26.0 | 56.0 |
 | `all_widgets` | 42.8 | 12.60 | 29.9 | 43.2 |
-| `lsr-ddu` main | 58.9 | 2.01 | 22.9–24.0 | 58.9 |
-| `lsr-ddu` times | 9.9–10.7 | 1.17 | 8.6 | 10.6 |
-| `lsr-ddu` fuel | 9.9 | 1.70 | 15.3–17.6 | 10.0 |
+| `ddu-1024` main | 58.9 | 2.01 | 22.9–24.0 | 58.9 |
+| `ddu-1024` times | 9.9–10.7 | 1.17 | 8.6 | 10.6 |
+| `ddu-1024` fuel | 9.9 | 1.70 | 15.3–17.6 | 10.0 |
 | `round-twin-dial` dial | 48.5 | 10.30 | 28.2–29.3 | 48.3 |
 | `race-ddu` race | 58.8 | 4.68 | 23.6 | 58.8 |
 
@@ -94,9 +99,9 @@ forward and reversed, twice each; a range is the spread of the four runs, and
 | `sprites_24` | 54.7–55.4 | 11.58 | 26.4 | 38.5–55.5 |
 | `nested_containers` | 56.0 | 11.09 | 25.7 | 55.9 |
 | `all_widgets` | 43.2 | 12.40 | 29.5 | 43.2 |
-| `lsr-ddu` main | 58.9 | 2.00 | 23.4 | 58.9 |
-| `lsr-ddu` times | 10.6 | 1.15 | 8.7 | 10.6 |
-| `lsr-ddu` fuel | 10.0 | 1.69 | 15.1–17.6 | 10.0 |
+| `ddu-1024` main | 58.9 | 2.00 | 23.4 | 58.9 |
+| `ddu-1024` times | 10.6 | 1.15 | 8.7 | 10.6 |
+| `ddu-1024` fuel | 10.0 | 1.69 | 15.1–17.6 | 10.0 |
 | `round-twin-dial` dial | 48.3 | 10.40 | 28.7–29.9 | 48.6 |
 | `race-ddu` race | 58.8 | 4.68 | 22.6–24.0 | 58.8 |
 
@@ -105,7 +110,7 @@ noise on every document but `full_screen_bar` (34–36 fps forward, 42 reversed)
 and documents applied after the ones that used to trap them run in their faster
 mode: `all_widgets` after `graphs_6` at 39.7 fps instead of 29.5, `text_16`
 after `full_screen_bar` in 8.3 ms at 56% of core 1 instead of 15 ms at 92%, and
-the `lsr-ddu` main screen after `full_screen_bar` at 58.9 from the start
+the `ddu-1024` main screen after `full_screen_bar` at 58.9 from the start
 instead of 51. `sprites_24` reads 55 in every run instead of 38–55.
 
 A screen that redraws half the panel nearly every frame waits the gate's 240
@@ -144,9 +149,9 @@ range is the spread of the two runs.
 | `sprites_24` | 38.5–55.5 | 11.5–19.8 | 26.2–34.8 | 49.0–55.3 | 11.6–13.5 |
 | `nested_containers` | 55.9 | 11.04 | 25.5 | 56.2 | 11.06 |
 | `all_widgets` | 43.2 | 12.52 | 30.0 | 42.9 | 12.65 |
-| `lsr-ddu` main | 58.9 | 2.01 | 23.4 | 58.9 | 2.07 |
-| `lsr-ddu` times | 10.6 | 1.14 | 8.7 | 10.7 | 1.13 |
-| `lsr-ddu` fuel | 10.0 | 1.69 | 15.1 | 9.8 | 1.83 |
+| `ddu-1024` main | 58.9 | 2.01 | 23.4 | 58.9 | 2.07 |
+| `ddu-1024` times | 10.6 | 1.14 | 8.7 | 10.7 | 1.13 |
+| `ddu-1024` fuel | 10.0 | 1.69 | 15.1 | 9.8 | 1.83 |
 | `round-twin-dial` dial | 48.6 | 10.14 | 28.3 | 39.5–40.5 | 21.5–22.7 |
 | `race-ddu` race | 58.8 | 4.67 | 23.2 | 58.7 | 4.80 |
 
@@ -166,7 +171,7 @@ modes (reconciled rows / whole frame) give `full_screen_bar` 35 / 43 fps,
 `indicators_12` 55 / 59, `graphs_6` 23 / 29, `sprites_24` 55 / 45,
 `all_widgets` 40 / 36, and `all_widgets` applied after `graphs_6` stays at
 29.5. The other documents ended in a mode within 2 fps of the faster one in
-every run; the `lsr-ddu` main screen, applied after `full_screen_bar`, needed a
+every run; the `ddu-1024` main screen, applied after `full_screen_bar`, needed a
 few seconds to leave the whole-frame mode.
 
 Against the settle-gate figures of ADR 0027 (September): `text_32` 55 → 49,
