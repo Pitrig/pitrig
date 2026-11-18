@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace Pitrig.SimHub
@@ -27,6 +28,20 @@ namespace Pitrig.SimHub
         private const string LmuMotorMapMaximum = "DataCorePlugin.GameRawData.PlayerNativeTelemetry.mMotorMapMax";
         private const int IracingDrsAvailable = 2;
         private const int IracingDrsOpen = 3;
+
+        private static readonly string[] F1DeployNames = { "NONE", "MEDIUM", "HOTLAP", "OVERTAKE" };
+
+        private static readonly Dictionary<string, string[]> DeployNames = new Dictionary<string, string[]>
+        {
+            { "F12019", new[] { "NONE", "LOW", "MEDIUM", "HIGH", "OVERTAKE", "HOTLAP" } },
+            { "F12020", new[] { "NONE", "MEDIUM", "OVERTAKE", "HOTLAP" } },
+            { "F12021", F1DeployNames },
+            { "F12022", F1DeployNames },
+            { "F12023", F1DeployNames },
+            { "F12024", F1DeployNames },
+            { "F12025", F1DeployNames },
+            { Ams2, new[] { null, "OFF", "BUILD", "BALANCED", "ATTACK", "QUAL" } },
+        };
 
         public static double? BrakeBias(TelemetryState state)
         {
@@ -60,19 +75,19 @@ namespace Pitrig.SimHub
         {
             if (state.Status == null || !ShowsErs(state)) return null;
             var game = state.GameName ?? string.Empty;
-            if (game == Iracing) return IracingDeployName(Whole(state, IracingDeployMode));
-            if (game.StartsWith(F1Prefix, StringComparison.Ordinal)) return F1DeployName(Whole(state, F1DeployMode));
-            if (game == Ams2) return Ams2DeployName(Mode(state, Ams2DeployMode));
-            return DeployName(Mode(state, PowerLevel));
+            var reported = Raw(state, DeployProperty(game));
+            if (reported == null) return null;
+            var mode = (int)reported.Value;
+            return DeployNames.TryGetValue(game, out var names) && mode >= 0 && mode < names.Length
+                ? names[mode]
+                : "MODE " + mode.ToString(CultureInfo.InvariantCulture);
         }
 
         public static string ErsRecoveryMode(TelemetryState state)
         {
             if (state.Status == null) return null;
             var level = Raw(state, RecoveryLevel);
-            if (level == null) return null;
-            if (level < 0) return "BUI";
-            return level > 0 ? "DEP" : "OFF";
+            return level == null ? null : Text(level.Value);
         }
 
         public static double? ErsPercent(TelemetryState state)
@@ -129,82 +144,11 @@ namespace Pitrig.SimHub
             return battery > 0 || available || percent > 0;
         }
 
-        private static string IracingDeployName(int mode)
+        private static string DeployProperty(string game)
         {
-            switch (mode)
-            {
-                case 0:
-                    return "QUAL";
-                case 1:
-                case 25:
-                    return "ATTACK";
-                case 2:
-                case 50:
-                    return "BALANCED";
-                case 3:
-                case 75:
-                    return "BUILD";
-                default:
-                    return "NO DEPLOY";
-            }
-        }
-
-        private static string F1DeployName(int mode)
-        {
-            switch (mode)
-            {
-                case 0:
-                    return "NO DEPLOY";
-                case 1:
-                    return "MEDIUM";
-                case 2:
-                    return "HOTLAP";
-                case 3:
-                    return "OVERTAKE";
-                default:
-                    return "ERS" + mode.ToString(CultureInfo.InvariantCulture);
-            }
-        }
-
-        private static string Ams2DeployName(double mode)
-        {
-            switch (mode)
-            {
-                case 2:
-                    return "BUILD";
-                case 3:
-                    return "BALANCED";
-                case 4:
-                    return "ATTACK";
-                case 5:
-                    return "QUALI";
-                default:
-                    return "NO DEPLOY";
-            }
-        }
-
-        private static string DeployName(double mode)
-        {
-            switch (mode)
-            {
-                case 0:
-                    return "NO DEPLOY";
-                case 1:
-                    return "BUILD";
-                case 2:
-                    return "LOW";
-                case 3:
-                    return "BALANCED";
-                case 4:
-                    return "HIGH";
-                default:
-                    return "ATTACK";
-            }
-        }
-
-        private static double Mode(TelemetryState state, string property)
-        {
-            return Raw(state, property) ?? 0;
+            if (game == Iracing) return IracingDeployMode;
+            if (game == Ams2) return Ams2DeployMode;
+            return game.StartsWith(F1Prefix, StringComparison.Ordinal) ? F1DeployMode : PowerLevel;
         }
 
         private static int Whole(TelemetryState state, string property)

@@ -103,8 +103,8 @@
     {"name":"vehicle.energy.level","type":"float32","unit":"source","category":"fuel_energy","rate":"normal","availability":"optional","description":"Remaining electrical energy."},
     {"name":"vehicle.energy.percent","type":"float32","unit":"percent","category":"fuel_energy","rate":"normal","availability":"optional","description":"Battery charge as a whole percentage, empty for a car without hybrid energy."},
     {"name":"vehicle.energy.virtual","wire_id":"VE","type":"float32","unit":"percent","category":"fuel_energy","rate":"slow","availability":"game_specific","description":"Virtual energy left, as LMU reports it for the stint."},
-    {"name":"vehicle.energy.deployment_mode","type":"text","unit":"source","category":"fuel_energy","rate":"changes","availability":"game_specific","description":"Hybrid deployment mode by name, such as BALANCED, empty for a car without hybrid energy."},
-    {"name":"vehicle.energy.recovery_mode","type":"text","unit":"source","category":"fuel_energy","rate":"changes","availability":"game_specific","description":"Energy recovery: DEP, BUI or OFF."},
+    {"name":"vehicle.energy.deployment_mode","type":"text","unit":"source","category":"fuel_energy","rate":"changes","availability":"game_specific","description":"Hybrid deployment mode: its name where the game documents one, otherwise MODE and the number; empty for a car without hybrid energy."},
+    {"name":"vehicle.energy.recovery_mode","type":"text","unit":"source","category":"fuel_energy","rate":"changes","availability":"game_specific","description":"Energy recovery level as the game reports it."},
     {"name":"vehicle.energy.laps_remaining","type":"float32","unit":"count","category":"fuel_energy","rate":"slow","availability":"game_specific","description":"Estimated laps remaining on electrical energy."},
 
     {"name":"vehicle.aids.traction_control_level","wire_id":"T","type":"text","unit":"source","category":"electronics_state","rate":"normal","availability":"optional","description":"Configured traction-control level."},

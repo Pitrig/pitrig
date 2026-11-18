@@ -124,8 +124,8 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.energy.level` | `1v` | `float32` | `source` | `normal` | `optional` | AC | Remaining electrical energy. |
 | `vehicle.energy.percent` | `1w` | `float32` | `percent` | `normal` | `optional` | AC, iRacing, LMU | Battery charge as a whole percentage, empty for a car without hybrid energy. |
 | `vehicle.energy.virtual` | `VE` | `float32` | `percent` | `slow` | `game_specific` | LMU | Virtual energy left, as LMU reports it for the stint. |
-| `vehicle.energy.deployment_mode` | `1x` | `text` | `source` | `changes` | `game_specific` | AC, iRacing | Hybrid deployment mode by name, such as BALANCED, empty for a car without hybrid energy. |
-| `vehicle.energy.recovery_mode` | `1y` | `text` | `source` | `changes` | `game_specific` | AC | Energy recovery: DEP, BUI or OFF. |
+| `vehicle.energy.deployment_mode` | `1x` | `text` | `source` | `changes` | `game_specific` | AC, iRacing | Hybrid deployment mode: its name where the game documents one, otherwise MODE and the number; empty for a car without hybrid energy. |
+| `vehicle.energy.recovery_mode` | `1y` | `text` | `source` | `changes` | `game_specific` | AC | Energy recovery level as the game reports it. |
 | `vehicle.energy.laps_remaining` | `1z` | `float32` | `count` | `slow` | `game_specific` | none | Estimated laps remaining on electrical energy. |
 ## Electronics and vehicle state
 
