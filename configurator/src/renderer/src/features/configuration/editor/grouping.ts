@@ -1,7 +1,8 @@
 import { WIDGET_POOL_CAPACITIES, allWidgetsOf, createWidgetId, stackOrder, subtreeHeight, widgetsOf } from '@shared/configuration-access'
 import { MAXIMUM_NESTING_DEPTH, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration } from '@shared/configuration-schema'
 import type { WidgetPlacement } from '@shared/configuration-schema'
-import { type WidgetLocation, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, widgetArrayOf } from './document'
+import { type WidgetLocation, ancestorsOf, findWidget, mutateDraftConfiguration, widgetArrayOf } from './document'
+import { completePlacement } from './document-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function wrapInShape(ids: readonly string[]): string | undefined {

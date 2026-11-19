@@ -1,13 +1,8 @@
-import { MINIMUM_SIZE_PX } from '../preview/snapping'
+import { MINIMUM_SIZE_PX } from '../preview/snap-resize'
 import { BOARD_PROFILES, type DeviceConfiguration } from '@shared/device'
 import { clamp, clampToDisplay } from './placement'
-import {
-  absolutePlacement,
-  ancestorsOf,
-  findWidget,
-  mutateSelectedWidget,
-  parentOffset
-} from './document'
+import { ancestorsOf, findWidget, mutateSelectedWidget } from './document'
+import { absolutePlacement, parentOffset } from './document-geometry'
 import { scaleWidgets } from './geometry-commands'
 import { useSnapStore } from './snap-store'
 import type { WidgetSelection } from './store'

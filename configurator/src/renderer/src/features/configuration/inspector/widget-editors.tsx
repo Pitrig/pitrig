@@ -5,12 +5,14 @@ import { SlotHomeField } from './slot-controls'
 import { pagesOf, widgetsOf } from '@shared/configuration-access'
 import { type ImageWidgetConfiguration, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { DEFAULT_WIDGET_FONT_SIZE_PX, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
-import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
+import { SourceEditor } from './SourceEditor'
+import { TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Group } from './Group'
 import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
-import { ColorField, FontEditor, Hint, NumberField, OptionalColorField, SelectField, TextField } from './fields'
+import { ColorField, Hint, NumberField, OptionalColorField, SelectField, TextField } from './fields'
+import { FontEditor } from './font-fields'
 import { ContainerEditor } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -175,6 +177,3 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
     </>
   )
 }
-
-export { ArcEditor, BarEditor, GraphEditor } from './gauge-editors'
-export { IndicatorEditor } from './indicator-editor'

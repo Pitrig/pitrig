@@ -22,9 +22,9 @@ import {
   broadcastFirmwareUploadProgress,
   broadcastFontLibraryChanged,
   broadcastImageLibraryChanged,
-  broadcastSaveProgress,
-  registerIpcHandlers
-} from '@main/ipc/register-ipc-handlers'
+  broadcastSaveProgress
+} from '@main/ipc/broadcast'
+import { registerIpcHandlers } from '@main/ipc/register-ipc-handlers'
 
 if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)

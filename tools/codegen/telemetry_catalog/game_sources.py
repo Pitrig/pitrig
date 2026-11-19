@@ -77,10 +77,6 @@ def validate_game_sources(
         validate_game_source(field, game_id, source)
 
 
-def has_game_sources(mapping: dict[str, Any]) -> bool:
-    return any(isinstance(source, dict) for source in mapping.get("games", {}).values())
-
-
 def tracked_games(mapping: dict[str, Any]) -> list[str] | None:
     sources = mapping.get("games")
     return None if sources is None else list(sources)

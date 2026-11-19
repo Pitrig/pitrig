@@ -1,7 +1,8 @@
 import type { WidgetConfiguration } from '@shared/configuration-schema'
 import { scaleWidgetPixels } from '@shared/layout-transfer'
 import { clamp } from './placement'
-import { completePlacement, mutateDraftConfiguration } from './document'
+import { mutateDraftConfiguration } from './document'
+import { completePlacement } from './document-geometry'
 import type { PendingInsert, WidgetSelection } from './store'
 import { insertWidget } from './widgets'
 

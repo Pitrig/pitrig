@@ -52,7 +52,7 @@ import { FontCatalogService } from '../font-library/font-catalog-service'
 import { FontLibraryService } from '../font-library/font-library-service'
 import { ImageAssetService } from '../image-assets/image-asset-service'
 import type { ImageLibraryService } from '../image-library/image-library-service'
-import { broadcastFontLibraryChanged } from './register-ipc-handlers'
+import { broadcastFontLibraryChanged } from './broadcast'
 import { t } from '@shared/ui-text'
 
 export function registerAssetHandlers(

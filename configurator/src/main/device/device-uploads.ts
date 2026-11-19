@@ -12,7 +12,7 @@ import { DeviceServiceError, failure, success } from './device-errors'
 import type { ConnectionManager } from './device-connection'
 import type { OperationRunner } from './device-operation'
 import { clearFontAssets, clearImageAssets } from './pitrig-protocol'
-import { parseFontAssetInfo, parseImageAssetInfo } from './protocol-parsers'
+import { parseFontAssetInfo, parseImageAssetInfo } from './asset-info-parsers'
 import { requestResponse } from './serial-request'
 import { t } from '@shared/ui-text'
 

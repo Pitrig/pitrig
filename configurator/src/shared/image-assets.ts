@@ -71,14 +71,6 @@ export function storedImagePackageSize(storedSizes: readonly number[]): number {
   )
 }
 
-export function imagePackageSize(
-  images: readonly { width: number; height: number; format: ImageColorFormat }[]
-): number {
-  return storedImagePackageSize(
-    images.map((image) => imageAssetBytes(image.width, image.height, image.format))
-  )
-}
-
 export interface ImageAssetState {
   storageAvailable: boolean
   packageAvailable: boolean

@@ -21,6 +21,4 @@ inline void unwatch_task(TaskHandle_t task) {
   }
 }
 
-inline void unwatch_current_task() { (void)esp_task_wdt_delete(nullptr); }
-
 }

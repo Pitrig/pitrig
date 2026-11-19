@@ -180,5 +180,3 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
     </PropertyRow>
   )
 }
-
-export { SourceEditor } from './SourceEditor'

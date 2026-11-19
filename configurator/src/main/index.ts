@@ -19,9 +19,9 @@ import {
   broadcastFirmwareUploadProgress,
   broadcastFontLibraryChanged,
   broadcastImageLibraryChanged,
-  broadcastSaveProgress,
-  registerIpcHandlers
-} from './ipc/register-ipc-handlers'
+  broadcastSaveProgress
+} from './ipc/broadcast'
+import { registerIpcHandlers } from './ipc/register-ipc-handlers'
 import { registerTelemetryBridge } from './telemetry-bridge/register-telemetry-bridge'
 import { registerUpdates } from './updates/register-updates'
 import { registerUsage } from './usage/register-usage'

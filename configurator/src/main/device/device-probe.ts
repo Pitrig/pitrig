@@ -2,12 +2,8 @@ import type { SerialPort } from 'serialport'
 
 import type { DeviceInfo, DeviceSession } from '@shared/device'
 import { DeviceServiceError } from './device-errors'
-import {
-  parseDeviceInfo,
-  parseFirmwareUpdateInfo,
-  parseFontAssetInfo,
-  parseImageAssetInfo
-} from './protocol-parsers'
+import { parseFirmwareUpdateInfo, parseFontAssetInfo, parseImageAssetInfo } from './asset-info-parsers'
+import { parseDeviceInfo } from './protocol-parsers'
 import { requestResponse, type TrafficCallback } from './serial-request'
 import { readConfiguration } from './pitrig-protocol'
 

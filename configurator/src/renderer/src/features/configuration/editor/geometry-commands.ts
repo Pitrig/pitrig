@@ -1,7 +1,8 @@
 import type { WidgetConfiguration, WidgetPlacement } from '@shared/configuration-schema'
 import { scaleWidgetPixels } from '@shared/layout-transfer'
 
-import { findWidget, mutateDraftConfiguration, parentOffset, widgetArrayOf, writePlacement } from './document'
+import { findWidget, mutateDraftConfiguration, widgetArrayOf } from './document'
+import { parentOffset, writePlacement } from './document-geometry'
 import { clamp, clampToDisplay } from './placement'
 
 export interface DragFollower {

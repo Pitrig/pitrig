@@ -3,7 +3,8 @@ import { type Draw, type Interaction, containerAt, intersects } from './canvas-g
 import { absolutePlacement, moveWidgetInto, parentContainerId } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useSnapStore } from '../editor/snap-store'
-import { resolveMove, resolveResize } from './snapping'
+import { resolveResize } from './snap-resize'
+import { resolveMove } from './snapping'
 import { createWidget, defaultToolBox } from './widget-creation'
 import {
   type CanvasContext,

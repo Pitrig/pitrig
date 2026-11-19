@@ -261,5 +261,3 @@ export function IdField({
     </PropertyRow>
   )
 }
-
-export { FontEditor, FontFamilyField, FontFamilyPicker } from './font-fields'
