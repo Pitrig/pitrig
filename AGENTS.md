@@ -188,6 +188,11 @@ Avoid unrelated refactoring.
 
 Keep commits focused.
 
+Before every commit, bring `CHANGELOG.md` up to date. Anything a user or a
+contributor would notice gets one short line under `Unreleased`, in the format
+the file's introduction and CONTRIBUTING.md give; refactoring, docs and other
+internal changes get none.
+
 Never commit, branch, merge or push unless asked for it in that message. Finish
 the work and leave it uncommitted; when a git operation needs a clean tree, ask
 rather than decide.

@@ -29,6 +29,7 @@ a release says when either applies.
 - **Configurator.** `Save to board` installs the images a dashboard uses.
 - **Configurator.** `Save to board` downloads missing Google fonts by itself.
 - **Configurator.** New starter dashboard: GF Rally Mode, 480×480.
+- **Configurator.** **Update board** lists what changes on that board.
 
 **Changed**
 
@@ -41,6 +42,7 @@ a release says when either applies.
 - **Configurator.** Images stay in the PC image library until `Save to board`.
 - **Configurator.** The Round dial 480 template has a new design.
 - **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
+- **Configurator, SimHub plugin.** Usage reports tell a new install from an update; only official builds send them.
 - **Development.** Every dependency is pinned to one exact version; updates wait seven days and a review.
 - **Development.** Lint rejects import cycles in the configurator.
 
@@ -51,6 +53,8 @@ a release says when either applies.
 - **Configurator.** A configuration without a link speed no longer cuts off the Guition ESP32-4848S040.
 - **Guition JC1060P470C.** After a dashboard change the board keeps the faster drawing mode.
 - **Guition ESP32-4848S040.** Saving to the board or updating it no longer garbles the screen.
+- **SimHub plugin.** Usage reports name the right SimHub version.
+- **Configurator.** The installers include the licence of the bundled fonts.
 - **Development.** The Guition ESP32-4848S040 debug image starts with a display again.
 - **Development.** Build tools no longer use a vulnerable `minimatch`.
 
