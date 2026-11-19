@@ -333,6 +333,16 @@ export type UiStringKey =
   | 'device.assetUpload.theUploadWasCancelled'
   | 'device.assetUpload.uploadedReceivedOfBytelengthBytes'
   | 'device.assetUpload.validatingAndCommittingTheLabel'
+  | 'device.boardHealth.boardHealth'
+  | 'device.boardHealth.crashed'
+  | 'device.boardHealth.crashedTitle'
+  | 'device.boardHealth.crashedWhile'
+  | 'device.boardHealth.earlierCrashes'
+  | 'device.boardHealth.loadAnotherSetup'
+  | 'device.boardHealth.recovered'
+  | 'device.boardHealth.safeMode'
+  | 'device.boardHealth.startedInSafeMode'
+  | 'device.boardHealth.startedNormally'
   | 'device.boardSyncDialog.boardAndDraftDiffer'
   | 'device.boardSyncDialog.decideLaterTheBoardKeeps'
   | 'device.boardSyncDialog.documentDiffers'
@@ -389,13 +399,6 @@ export type UiStringKey =
   | 'device.deviceUploads.theConnectedDeviceChangedDuring2'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot2'
-  | 'device.documentState.absent'
-  | 'device.documentState.corrupt_payload'
-  | 'device.documentState.malformed_record'
-  | 'device.documentState.rejected'
-  | 'device.documentState.unsupported_schema'
-  | 'device.documentState.valid'
-  | 'device.documentState.withGeneration'
   | 'device.documentStatus.inSync'
   | 'device.documentStatus.notOnBoard'
   | 'device.documentStatus.refused'
@@ -478,43 +481,21 @@ export type UiStringKey =
   | 'device.health.phase.configuration'
   | 'device.health.phase.display'
   | 'device.health.phase.link'
-  | 'device.infoPage.application'
-  | 'device.infoPage.available'
-  | 'device.infoPage.baudRate'
   | 'device.infoPage.board'
-  | 'device.infoPage.connectAPitrigBoardTo'
-  | 'device.infoPage.connection'
   | 'device.infoPage.display'
   | 'device.infoPage.displaySize'
   | 'device.infoPage.firmware'
   | 'device.infoPage.firmwareSlots'
   | 'device.infoPage.firmwareSlotsValue'
-  | 'device.infoPage.idConfig'
   | 'device.infoPage.info'
   | 'device.infoPage.lastBoot'
   | 'device.infoPage.name'
-  | 'device.infoPage.noBoardConnected'
-  | 'device.infoPage.noDisplay'
-  | 'device.infoPage.normalMode'
-  | 'device.infoPage.notConnected'
-  | 'device.infoPage.path'
-  | 'device.infoPage.persistentStorage'
-  | 'device.infoPage.pickAPortAtThe'
-  | 'device.infoPage.platform'
   | 'device.infoPage.port'
   | 'device.infoPage.recentFailures'
-  | 'device.infoPage.reportedByTheFirmwareItself'
-  | 'device.infoPage.safeMode'
-  | 'device.infoPage.schemaVersion'
   | 'device.infoPage.singlePartition'
   | 'device.infoPage.speed'
-  | 'device.infoPage.startup'
-  | 'device.infoPage.status'
-  | 'device.infoPage.theConnectedBoardTheLink'
-  | 'device.infoPage.theSerialLinkThisWindow'
-  | 'device.infoPage.thisBuildOfTheConfigurator'
-  | 'device.infoPage.unavailable'
   | 'device.infoPage.version'
+  | 'device.infoPage.versionsUpdatesAndWhat'
   | 'device.lineExchange.theRequestWasCancelled'
   | 'device.liveApplyIndicator.applyingToTheBoard'
   | 'device.liveApplyIndicator.livePreviewFailedError'
@@ -553,6 +534,29 @@ export type UiStringKey =
   | 'device.status.disconnecting'
   | 'device.status.error'
   | 'device.status.scanning'
+  | 'device.supportDetails.board'
+  | 'device.supportDetails.boardValue'
+  | 'device.supportDetails.copied'
+  | 'device.supportDetails.copy'
+  | 'device.supportDetails.detailsForSupport'
+  | 'device.supportDetails.documentState'
+  | 'device.supportDetails.documentStored'
+  | 'device.supportDetails.link'
+  | 'device.supportDetails.linkValue'
+  | 'device.supportDetails.noDisplay'
+  | 'device.supportDetails.noStorage'
+  | 'device.supportDetails.notConnected'
+  | 'device.supportDetails.schema'
+  | 'device.supportDetails.schemaValue'
+  | 'device.supportDetails.setupOnBoard'
+  | 'device.supportDetails.state.absent'
+  | 'device.supportDetails.state.corrupt_payload'
+  | 'device.supportDetails.state.malformed_record'
+  | 'device.supportDetails.state.rejected'
+  | 'device.supportDetails.state.unsupported_schema'
+  | 'device.supportDetails.state.valid'
+  | 'device.supportDetails.storageAvailable'
+  | 'device.supportDetails.system'
   | 'documents.label.dashboard'
   | 'documents.label.modules'
   | 'documents.label.protocol'
@@ -582,35 +586,35 @@ export type UiStringKey =
   | 'firmware.boardUpdate.updatedNothingStored'
   | 'firmware.boardUpdate.updatedUnchanged'
   | 'firmware.dialog.filter'
-  | 'firmware.factoryReset.eraseTheSetupSaved'
+  | 'firmware.factoryReset.eraseTheSetupOnThe'
   | 'firmware.factoryReset.factoryReset'
   | 'firmware.factoryReset.resetToFactory'
+  | 'firmware.fileInstall.aPitrigFirmwareFile'
+  | 'firmware.fileInstall.install'
+  | 'firmware.fileInstall.installFromAFile'
+  | 'firmware.fileInstall.selectFile'
+  | 'firmware.fileInstall.sizeBytes'
   | 'firmware.firmwarePackage.theFirmwareImageIsBytelength'
   | 'firmware.firmwarePackage.theFirmwareImageIsEmpty'
   | 'firmware.firmwarePackage.unsupportedPitrigBoardBoard'
-  | 'firmware.firmwarePage.aPackagedPitrigFirmwareImage'
-  | 'firmware.firmwarePage.anImageIsWaiting'
-  | 'firmware.firmwarePage.connectABoardWithTwo'
+  | 'firmware.firmwarePage.connectABoardToSee'
   | 'firmware.firmwarePage.image'
-  | 'firmware.firmwarePage.installAFirmwareImageInto'
-  | 'firmware.firmwarePage.installsInto'
-  | 'firmware.firmwarePage.noImageSelected'
-  | 'firmware.firmwarePage.noSecondSlot'
-  | 'firmware.firmwarePage.notAvailable'
+  | 'firmware.firmwarePage.keepTheBoardsFirmware'
   | 'firmware.firmwarePage.percent'
   | 'firmware.firmwarePage.restartBoard'
-  | 'firmware.firmwarePage.restartIntoTheInstalledImage'
-  | 'firmware.firmwarePage.running'
-  | 'firmware.firmwarePage.selectImage'
-  | 'firmware.firmwarePage.sizeBytes'
   | 'firmware.firmwarePage.slots'
-  | 'firmware.firmwarePage.theConnectedFirmwarePredatesThe'
-  | 'firmware.firmwarePage.theImageTakesOverAt'
-  | 'firmware.firmwarePage.thisImageHasNotBeen'
-  | 'firmware.firmwarePage.updateBoard'
-  | 'firmware.firmwarePage.updateKeepsTheConfiguration'
-  | 'firmware.firmwarePage.updating'
-  | 'firmware.firmwarePage.whatThisBoardCanDo'
+  | 'firmware.firmwareStatus.boardRuns'
+  | 'firmware.firmwareStatus.cannotUpdateItself'
+  | 'firmware.firmwareStatus.firmwareVersion'
+  | 'firmware.firmwareStatus.notConfirmedYet'
+  | 'firmware.firmwareStatus.openWebFlasher'
+  | 'firmware.firmwareStatus.restartToFinish'
+  | 'firmware.firmwareStatus.restartWaiting'
+  | 'firmware.firmwareStatus.setupStays'
+  | 'firmware.firmwareStatus.upToDate'
+  | 'firmware.firmwareStatus.updateTo'
+  | 'firmware.firmwareStatus.versionAvailable'
+  | 'firmware.firmwareStatus.whatChanges'
   | 'firmware.firmwareUpdateService.aFirmwareUploadIsAlready'
   | 'firmware.firmwareUpdateService.cannotReadName'
   | 'firmware.firmwareUpdateService.firmwareInstalledIntoTargetRestart'
@@ -1719,14 +1723,7 @@ export type UiStringKey =
   | 'templates.widgetSection.partsOfADashboardKept'
   | 'templates.widgetSection.placeThisOnTheCanvas'
   | 'templates.widgetSection.widgets'
-  | 'updates.app.available'
-  | 'updates.app.checking'
-  | 'updates.app.current'
-  | 'updates.app.downloading'
-  | 'updates.app.failed'
   | 'updates.app.noWindowsUpdate'
-  | 'updates.app.notChecked'
-  | 'updates.app.ready'
   | 'updates.banner.addPlugin'
   | 'updates.banner.appAvailable'
   | 'updates.banner.appReady'
@@ -1741,13 +1738,8 @@ export type UiStringKey =
   | 'updates.banner.simhubOld'
   | 'updates.banner.updatePlugin'
   | 'updates.firmware.alreadyDownloading'
-  | 'updates.firmware.behind'
-  | 'updates.firmware.changesCount'
   | 'updates.firmware.changesRelease'
-  | 'updates.firmware.changesTitle'
   | 'updates.firmware.changesUnreleased'
-  | 'updates.firmware.current'
-  | 'updates.firmware.downloadAndUpdate'
   | 'updates.firmware.downloading'
   | 'updates.firmware.kind.added'
   | 'updates.firmware.kind.changed'
@@ -1755,22 +1747,30 @@ export type UiStringKey =
   | 'updates.firmware.kind.removed'
   | 'updates.firmware.notInRelease'
   | 'updates.firmware.nothingNewer'
-  | 'updates.firmware.offer'
-  | 'updates.firmware.released'
   | 'updates.firmware.schemaNote'
   | 'updates.releaseFeed.downloadDamaged'
   | 'updates.releaseFeed.downloadFailed'
   | 'updates.releaseFeed.githubAnswered'
+  | 'updates.section.available'
   | 'updates.section.boardFirmware'
+  | 'updates.section.boardNameFirmware'
+  | 'updates.section.checkFailed'
   | 'updates.section.checkNow'
   | 'updates.section.checking'
-  | 'updates.section.configurator'
-  | 'updates.section.description'
-  | 'updates.section.disabled'
+  | 'updates.section.connectABoard'
+  | 'updates.section.downloading'
+  | 'updates.section.justNow'
   | 'updates.section.lastChecked'
+  | 'updates.section.notChecked'
+  | 'updates.section.ok'
+  | 'updates.section.olderThan'
+  | 'updates.section.openFirmware'
+  | 'updates.section.pitrig'
   | 'updates.section.plugin'
+  | 'updates.section.ready'
   | 'updates.section.simhub'
-  | 'updates.section.title'
+  | 'updates.section.upToDate'
+  | 'updates.section.versions'
   | 'updates.simhub.closeToReplace'
   | 'updates.simhub.copyFailed'
   | 'updates.simhub.copyFailedPlain'
@@ -1778,19 +1778,14 @@ export type UiStringKey =
   | 'updates.simhub.noBundledPlugin'
   | 'updates.simhub.noSimHubFound'
   | 'updates.simhub.pluginInstalled'
-  | 'updates.simhub.pluginMissing'
-  | 'updates.simhub.pluginStale'
   | 'updates.simhub.stillRunning'
-  | 'updates.simhub.unknownVersion'
-  | 'updates.simhub.versionTooOld'
   | 'usage.section.description'
   | 'usage.section.developmentBuild'
   | 'usage.section.disabled'
   | 'usage.section.enabled'
-  | 'usage.section.state'
+  | 'usage.section.noNamesFilesOrDashboards'
   | 'usage.section.title'
-  | 'usage.section.turnOff'
-  | 'usage.section.turnOn'
+  | 'usage.section.whatIsSent'
   | 'validation.configuration.configurationMustBeAJson'
   | 'validation.configuration.configurationMustTargetASupported'
   | 'validation.configuration.theConfigurationCouldNotBe'
@@ -2042,13 +2037,16 @@ export interface UiStringParameters {
   'device.assetUpload.theDeviceReturnedAnInvalid2': { label: string | number }
   'device.assetUpload.uploadedReceivedOfBytelengthBytes': { byteLength: string | number, received: string | number }
   'device.assetUpload.validatingAndCommittingTheLabel': { label: string | number }
+  'device.boardHealth.crashed': { count: number }
+  'device.boardHealth.crashedWhile': { count: number, phase: string | number }
+  'device.boardHealth.earlierCrashes': { count: number }
+  'device.boardHealth.recovered': { lastBoot: string | number }
   'device.boardSyncDialog.documentDiffers': { label: string | number }
   'device.boardSyncDialog.explanation': { board: string | number, reason: string | number }
   'device.boardSyncDialog.onBoardid': { boardId: string | number }
   'device.configurationJson.configurationBoardMustRemainBoard': { board: string | number }
   'device.connection.connectedAt': { baudRate: string | number, displayName: string | number }
   'device.connection.scanningAt': { baudRate: string | number, displayName: string | number }
-  'device.documentState.withGeneration': { generation: string | number, label: string | number }
   'device.documentStatus.inSync': { label: string | number }
   'device.documentStatus.notOnBoard': { label: string | number }
   'device.documentStatus.refused': { label: string | number }
@@ -2068,10 +2066,8 @@ export interface UiStringParameters {
   'device.error.validationDetail': { location: string | number, message: string | number, property: string | number }
   'device.health.crashCount': { count: number }
   'device.health.lastBoot': { cause: string | number, phase: string | number }
-  'device.infoPage.baudRate': { baudRate: string | number }
   'device.infoPage.displaySize': { height: string | number, width: string | number }
   'device.infoPage.firmwareSlotsValue': { running: string | number, target: string | number }
-  'device.infoPage.idConfig': { id: string | number }
   'device.liveApplyIndicator.livePreviewFailedError': { error: string | number }
   'device.liveApplyIndicator.theBoardIsNotFollowing': { liveApplyBlockedReason: string | number }
   'device.protocolParsers.theDeviceReturnedMalformedFieldname': { fieldName: string | number }
@@ -2083,6 +2079,11 @@ export interface UiStringParameters {
   'device.saveToBoardStore.savedTheBoardKeepsShowing': { applyFailed: string | number }
   'device.schemaBanner.explanation': { expected: string | number, schema: string | number }
   'device.serialRequest.theDeviceDidNotAnswer': { trim: string | number }
+  'device.supportDetails.boardValue': { board: string | number, display: string | number }
+  'device.supportDetails.documentState': { document: string | number, state: string | number }
+  'device.supportDetails.documentStored': { document: string | number, generation: string | number }
+  'device.supportDetails.linkValue': { baudRate: string | number, path: string | number }
+  'device.supportDetails.schemaValue': { schema: string | number, storage: string | number }
   'firmware.boardUpdate.backupFailed': { reason: string | number }
   'firmware.boardUpdate.backupName': { date: string | number, version: string | number }
   'firmware.boardUpdate.didNotComeBack': { backup: string | number }
@@ -2094,10 +2095,15 @@ export interface UiStringParameters {
   'firmware.boardUpdate.updatedAndRestored': { backup: string | number, version: string | number }
   'firmware.boardUpdate.updatedNothingStored': { version: string | number }
   'firmware.boardUpdate.updatedUnchanged': { backup: string | number, version: string | number }
+  'firmware.fileInstall.sizeBytes': { size: string | number }
   'firmware.firmwarePackage.theFirmwareImageIsBytelength': { byteLength: string | number }
   'firmware.firmwarePackage.unsupportedPitrigBoardBoard': { board: string | number }
   'firmware.firmwarePage.percent': { percent: string | number }
-  'firmware.firmwarePage.sizeBytes': { size: string | number }
+  'firmware.firmwareStatus.boardRuns': { board: string | number }
+  'firmware.firmwareStatus.firmwareVersion': { version: string | number }
+  'firmware.firmwareStatus.updateTo': { version: string | number }
+  'firmware.firmwareStatus.versionAvailable': { version: string | number }
+  'firmware.firmwareStatus.whatChanges': { count: number }
   'firmware.firmwareUpdateService.cannotReadName': { name: string | number }
   'firmware.firmwareUpdateService.firmwareInstalledIntoTargetRestart': { target: string | number }
   'firmware.firmwareUpdateService.nameIsSizeBytesWhich': { name: string | number, size: string | number }
@@ -2360,34 +2366,24 @@ export interface UiStringParameters {
   'templates.templatesPage.deleteTheSavedKindName': { kind: string | number, name: string | number }
   'templates.templatesPage.nameDeleted': { name: string | number }
   'templates.templatesPage.unreadableFiles': { count: number }
-  'updates.app.available': { current: string | number, latest: string | number }
-  'updates.app.checking': { current: string | number }
-  'updates.app.current': { current: string | number }
-  'updates.app.downloading': { current: string | number, latest: string | number, progress: string | number }
-  'updates.app.failed': { current: string | number, error: string | number }
-  'updates.app.notChecked': { current: string | number }
-  'updates.app.ready': { current: string | number, latest: string | number }
   'updates.banner.appAvailable': { version: string | number }
   'updates.banner.appReady': { version: string | number }
   'updates.banner.firmwareAvailable': { running: string | number, version: string | number }
   'updates.banner.pluginStale': { bundled: string | number, installed: string | number }
   'updates.banner.simhubOld': { minimum: string | number, version: string | number }
-  'updates.firmware.behind': { running: string | number, version: string | number }
-  'updates.firmware.changesCount': { count: number }
   'updates.firmware.changesRelease': { version: string | number }
-  'updates.firmware.changesTitle': { board: string | number }
-  'updates.firmware.current': { running: string | number }
   'updates.firmware.downloading': { progress: string | number }
   'updates.firmware.notInRelease': { name: string | number, version: string | number }
-  'updates.firmware.offer': { version: string | number }
-  'updates.firmware.released': { version: string | number }
   'updates.releaseFeed.downloadDamaged': { name: string | number }
   'updates.releaseFeed.downloadFailed': { name: string | number, status: string | number }
   'updates.releaseFeed.githubAnswered': { status: string | number }
+  'updates.section.available': { version: string | number }
+  'updates.section.boardNameFirmware': { board: string | number }
+  'updates.section.downloading': { progress: string | number }
   'updates.section.lastChecked': { time: string | number }
+  'updates.section.olderThan': { minimum: string | number }
+  'updates.section.ready': { version: string | number }
   'updates.simhub.copyFailed': { directory: string | number }
-  'updates.simhub.pluginStale': { bundled: string | number, installed: string | number }
-  'updates.simhub.versionTooOld': { minimum: string | number, version: string | number }
   'validation.configuration.theConfigurationCouldNotBe': { detail: string | number }
   'validation.controls.actionNumber': { number: string | number }
   'validation.controls.ownerHasNoComparison': { owner: string | number }

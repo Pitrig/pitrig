@@ -1,7 +1,6 @@
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { PageSection } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import {
@@ -32,37 +31,29 @@ export function FactoryResetSection({ blocked }: { blocked: boolean }): React.JS
   }
 
   return (
-    <PageSection
-      title={t('firmware.factoryReset.factoryReset')}
-      description={t('firmware.factoryReset.eraseTheSetupSaved')}
-    >
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <Button
-            className="flex-1 text-red-400 hover:text-red-300"
-            variant="outline"
-            disabled={disabled || !session.info.storageAvailable}
-            onClick={() => void run(resetBoardConfiguration)}
-          >
-            {t('firmware.factoryReset.resetToFactory')}</Button>
-          {rebootRequired ? (
-            <Button
-              className="flex-1"
-              variant="outline"
-              disabled={disabled}
-              onClick={() => void run(restartBoard)}
-            >
-              {t('firmware.firmwarePage.restartBoard')}</Button>
-          ) : null}
+    <section className="space-y-2 rounded-xl border bg-card px-4 py-3.5 text-xs text-card-foreground shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-[13px] font-semibold">{t('firmware.factoryReset.factoryReset')}</h3>
+          <p className="mt-1 text-muted-foreground">{t('firmware.factoryReset.eraseTheSetupOnThe')}</p>
         </div>
-        {feedback ? (
-          <p
-            className={`break-words text-[11px] ${feedback.kind === 'error' ? 'text-red-400' : 'text-muted-foreground'}`}
-          >
-            {feedback.message}
-          </p>
-        ) : null}
+        <Button
+          className="flex-none text-red-400 hover:text-red-300"
+          variant="outline"
+          disabled={disabled || !session.info.storageAvailable}
+          onClick={() => void run(resetBoardConfiguration)}
+        >
+          {t('firmware.factoryReset.resetToFactory')}</Button>
       </div>
-    </PageSection>
+      {feedback ? (
+        <p className={`break-words text-[11px] ${feedback.kind === 'error' ? 'text-red-400' : 'text-muted-foreground'}`}>
+          {feedback.message}
+        </p>
+      ) : null}
+      {rebootRequired ? (
+        <Button variant="outline" disabled={disabled} onClick={() => void run(restartBoard)}>
+          {t('firmware.firmwarePage.restartBoard')}</Button>
+      ) : null}
+    </section>
   )
 }

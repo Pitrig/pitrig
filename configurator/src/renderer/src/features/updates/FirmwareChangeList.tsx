@@ -1,9 +1,7 @@
 import { ChevronRight } from 'lucide-react'
 import { Fragment } from 'react'
 
-import { BOARD_NAMES } from '@/features/configuration/board-labels'
-import { CONFIGURATION_SCHEMA_VERSION, type DeviceSession } from '@shared/device'
-import { firmwareChangesFor, type FirmwareChangeKind } from '@shared/firmware-changes'
+import type { FirmwareChangeKind, FirmwareChangeRelease } from '@shared/firmware-changes'
 import { t } from '@shared/ui-text'
 
 const INLINE = /(`[^`]+`|\*\*[^*]+\*\*)/
@@ -19,64 +17,37 @@ const KIND_STYLE: Record<FirmwareChangeKind, string> = {
 }
 
 export function FirmwareChangeList({
-  session
+  releases
 }: {
-  session: DeviceSession
-}): React.JSX.Element | null {
-  const { boardId, firmwareVersion, schemaVersion } = session.info
-  const releases = firmwareChangesFor(__PITRIG_FIRMWARE_CHANGES__, boardId, firmwareVersion)
-  const schemaChanges = schemaVersion < CONFIGURATION_SCHEMA_VERSION
-  const count = releases.reduce((total, release) => total + release.changes.length, 0)
-  if (count === 0 && !schemaChanges) return null
-
+  releases: readonly FirmwareChangeRelease[]
+}): React.JSX.Element {
   return (
-    <div className="space-y-2 text-[11px]">
-      {schemaChanges ? (
-        <p className="text-amber-400">{t('updates.firmware.schemaNote')}</p>
-      ) : null}
-      {count > 0 ? (
-        <details className="group rounded-md border bg-muted/20">
-          <summary className="flex cursor-pointer list-none items-center gap-2 p-2">
+    <div className="space-y-1 rounded-md border bg-muted/20 px-2 py-2 text-[11px]">
+      {releases.map((release, index) => (
+        <details key={release.version} open={index === 0} className="group/release">
+          <summary className={RELEASE_SUMMARY}>
             <ChevronRight
               aria-hidden="true"
-              className="size-3 transition-transform group-open:rotate-90"
+              className="size-3 transition-transform group-open/release:rotate-90"
             />
-            <span className="font-medium">
-              {t('updates.firmware.changesTitle', { board: BOARD_NAMES[boardId] })}
-            </span>
-            <span className="text-muted-foreground">
-              {t('updates.firmware.changesCount', { count })}
-            </span>
+            {release.firmware
+              ? t('updates.firmware.changesRelease', { version: release.firmware })
+              : t('updates.firmware.changesUnreleased')}
           </summary>
-          <div className="space-y-1 border-t px-2 py-2">
-            {releases.map((release, index) => (
-              <details key={release.version} open={index === 0} className="group/release">
-                <summary className={RELEASE_SUMMARY}>
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="size-3 transition-transform group-open/release:rotate-90"
-                  />
-                  {release.firmware
-                    ? t('updates.firmware.changesRelease', { version: release.firmware })
-                    : t('updates.firmware.changesUnreleased')}
-                </summary>
-                <ul className="space-y-1.5 pb-1 pl-5">
-                  {release.changes.map((change, item) => (
-                    <li key={item} className="flex gap-2">
-                      <span className={`w-14 flex-none ${KIND_STYLE[change.kind]}`}>
-                        {t(`updates.firmware.kind.${change.kind}`)}
-                      </span>
-                      <span className="min-w-0 text-foreground">
-                        <InlineText text={change.text} />
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
+          <ul className="space-y-1.5 pb-1 pl-5">
+            {release.changes.map((change, item) => (
+              <li key={item} className="flex gap-2">
+                <span className={`w-14 flex-none ${KIND_STYLE[change.kind]}`}>
+                  {t(`updates.firmware.kind.${change.kind}`)}
+                </span>
+                <span className="min-w-0 text-foreground">
+                  <InlineText text={change.text} />
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         </details>
-      ) : null}
+      ))}
     </div>
   )
 }

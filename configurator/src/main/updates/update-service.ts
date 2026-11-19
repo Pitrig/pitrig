@@ -19,6 +19,7 @@ import { t } from '@shared/ui-text'
 const FIRST_CHECK_DELAY_MS = 8_000
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
 const SIMHUB_DOWNLOAD_PAGE = 'https://www.simhubdash.com/download-2/'
+const WEB_FLASHER_PAGE = 'https://www.pitrig.com/flash'
 
 export class UpdateService {
   private readonly appUpdates = new AppUpdateTracker(() => this.publish())
@@ -73,7 +74,9 @@ export class UpdateService {
   }
 
   async openPage(page: UpdatePage): Promise<void> {
-    await shell.openExternal(page === 'simhub' ? SIMHUB_DOWNLOAD_PAGE : LATEST_RELEASE_PAGE)
+    await shell.openExternal(
+      page === 'simhub' ? SIMHUB_DOWNLOAD_PAGE : page === 'flasher' ? WEB_FLASHER_PAGE : LATEST_RELEASE_PAGE
+    )
   }
 
   async prepareFirmware(): Promise<PrepareFirmwareResult> {

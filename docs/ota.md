@@ -158,11 +158,14 @@ partition as the boot partition. `@PR:REBOOT` then starts the new image.
 
 ## Configurator
 
-The **Firmware** panel appears when the connected board answers `@PR:FW:INFO`.
-It shows the running slot and version, the slot an upload lands in, takes a
-`pitrig.bin`, wraps it for the connected board and installs it. Firmware built
-before this partition layout answers `unknown_command`, and the panel reports
-that the board cannot update itself over serial.
+The **Firmware** page shows the board's firmware version and, when the release
+of the configurator's own version carries newer firmware for that board, one
+**Update to …** button and what changes. **Install from a file** takes a
+`pitrig.bin`, wraps it for the connected board and installs it; it stays folded.
+Firmware built before this partition layout answers `unknown_command`, and a
+board without a second slot reports `storage=0`; for both the page points to the
+web flasher, because the board cannot update itself over serial. The running and
+target slots are on the Info page.
 
 `Update board` is one sequence in the main process: read the three documents
 back, keep a copy of the ones the board stores in the configurations library,
@@ -174,6 +177,6 @@ of the draft, and skips the font package while the board still holds every
 family the dashboard names. A last read compares the board with the copy. A
 board that answers from its old slot rolled back with its configuration intact;
 one that already owes a restart for an installed image runs the same sequence
-without the upload. **Download and update** first fetches `pitrig-<board>.bin` from the
-release of the configurator's own version and checks it against the size and SHA-256
-the release lists ([ADR 0037](adr/0037-update-channel.md)).
+without the upload. **Update to …** first fetches `pitrig-<board>.bin` from the
+release of the configurator's own version and checks it against the size and
+SHA-256 the release lists ([ADR 0037](adr/0037-update-channel.md)).

@@ -65,42 +65,20 @@
     },
     "infoPage": {
       "info": "Info",
-      "theConnectedBoardTheLink": "The connected board, the link, and this application.",
       "board": "Board",
       "display": "Display",
       "firmware": "Firmware",
-      "schemaVersion": "Schema version",
-      "persistentStorage": "Persistent storage",
       "firmwareSlots": "Firmware slots",
-      "startup": "Startup",
       "lastBoot": "Last boot",
       "recentFailures": "Recent failures",
-      "pickAPortAtThe": "Pick a port at the top of the window, or leave it on Auto and press Connect — the configurator walks the speeds a Pitrig board answers on.",
-      "noBoardConnected": "No board connected",
-      "connection": "Connection",
-      "theSerialLinkThisWindow": "The serial link this window is using.",
-      "status": "Status",
       "port": "Port",
-      "path": "Path",
       "speed": "Speed",
-      "application": "Application",
-      "thisBuildOfTheConfigurator": "This build of the configurator.",
       "name": "Name",
       "version": "Version",
-      "platform": "Platform",
-      "reportedByTheFirmwareItself": "Read from the board; the display size comes from this application’s board profile. Nothing here is editable.",
-      "connectAPitrigBoardTo": "Connect a Pitrig board to read its information.",
-      "idConfig": "{id} config",
       "displaySize": "{width} × {height}",
-      "noDisplay": "None — this board drives peripherals only",
       "singlePartition": "Single application partition",
-      "safeMode": "Safe mode — serial link only",
-      "normalMode": "Normal — everything composed",
-      "baudRate": "{baudRate} baud",
       "firmwareSlotsValue": "{running} running · installs into {target}",
-      "available": "Available",
-      "unavailable": "Unavailable",
-      "notConnected": "Not connected"
+      "versionsUpdatesAndWhat": "Versions, updates, and what to send when you ask for help."
     },
     "liveApplyIndicator": {
       "theBoardRunsItsOwn": "The board runs its own configuration.",
@@ -286,15 +264,6 @@
       "imagesInstalled": "Images installed and configuration saved. The board restarted and is running the new dashboard.",
       "keptBoardImages": "The board kept its own copy of {images}, because this PC has none."
     },
-    "documentState": {
-      "absent": "Factory defaults",
-      "malformed_record": "Stored record is malformed; ignored",
-      "unsupported_schema": "Stored for another schema version; ignored",
-      "corrupt_payload": "Stored record failed its checksum; ignored",
-      "rejected": "Stored record was refused; ignored",
-      "valid": "Stored",
-      "withGeneration": "{label} · generation {generation}"
-    },
     "configurationJson": {
       "configurationJsonIsMalformed": "Configuration JSON is malformed.",
       "theFragmentHoldsNoWidget": "The fragment holds no widget.",
@@ -317,6 +286,60 @@
       "theElectronBridgeIsOutdated": "The Electron bridge is outdated. Fully restart Pitrig Configurator.",
       "theConfigurationOperationFailed": "The configuration operation failed.",
       "theConfigurationFileOperationFailed": "The configuration file operation failed."
+    },
+    "boardHealth": {
+      "boardHealth": "Board health:",
+      "startedNormally": "started normally. No crashes since power-on.",
+      "safeMode": "Safe mode",
+      "crashedWhile": {
+        "$plural": {
+          "one": "The board crashed once {phase}.",
+          "other": "The board crashed {count} times {phase}."
+        }
+      },
+      "crashed": {
+        "$plural": {
+          "one": "The board crashed once.",
+          "other": "The board crashed {count} times."
+        }
+      },
+      "startedInSafeMode": "The board started in safe mode.",
+      "loadAnotherSetup": "Load another setup or reset it on Firmware.",
+      "crashedTitle": "Crashed",
+      "recovered": "{lastBoot}, then started again.",
+      "earlierCrashes": {
+        "$plural": {
+          "one": "{count} earlier start ended in a crash.",
+          "other": "{count} earlier starts ended in a crash."
+        }
+      }
+    },
+    "supportDetails": {
+      "detailsForSupport": "Details for support",
+      "copy": "Copy",
+      "copied": "Copied",
+      "board": "Board",
+      "boardValue": "{board} · {display}",
+      "noDisplay": "no display",
+      "setupOnBoard": "Setup on board",
+      "documentStored": "{document} stored ({generation})",
+      "documentState": "{document} {state}",
+      "state": {
+        "absent": "factory",
+        "valid": "stored",
+        "malformed_record": "malformed",
+        "unsupported_schema": "other schema",
+        "corrupt_payload": "corrupt",
+        "rejected": "refused"
+      },
+      "schema": "Schema",
+      "schemaValue": "{schema} · {storage}",
+      "storageAvailable": "storage available",
+      "noStorage": "no storage",
+      "link": "Link",
+      "linkValue": "{path} · {baudRate} baud",
+      "notConnected": "not connected",
+      "system": "System"
     }
   },
   "fonts": {
@@ -1460,33 +1483,37 @@
   },
   "firmware": {
     "firmwarePage": {
-      "installAFirmwareImageInto": "Install a firmware image into the slot the board is not running from.",
+      "keepTheBoardsFirmware": "Keep the board's firmware up to date.",
+      "connectABoardToSee": "Connect a board to see its firmware.",
       "restartBoard": "Restart board",
-      "slots": "Slots",
-      "theImageTakesOverAt": "The image takes over at the next restart; a startup that never finishes returns the board to the slot it came from.",
-      "running": "Running",
-      "installsInto": "Installs into",
-      "thisImageHasNotBeen": "This image has not been confirmed yet. A restart now returns the board to the previous firmware.",
+      "percent": " · {percent}%",
       "image": "Image",
-      "aPackagedPitrigFirmwareImage": "A packaged Pitrig firmware image, named for the board it was built for.",
-      "noImageSelected": "No image selected.",
-      "selectImage": "Select image…",
-      "notAvailable": "Not available",
-      "whatThisBoardCanDo": "What this board can do over serial.",
-      "noSecondSlot": "No second slot",
+      "slots": "Slots"
+    },
+    "firmwareStatus": {
+      "boardRuns": "{board} runs",
+      "firmwareVersion": "Firmware {version}",
+      "versionAvailable": "{version} available",
+      "upToDate": "Up to date",
+      "updateTo": "Update to {version}",
+      "setupStays": "Your setup stays: Pitrig keeps a copy in Configs and puts it back.",
+      "restartWaiting": "An update is installed. Restart the board to finish it; the setup stays.",
+      "restartToFinish": "Restart to finish",
+      "notConfirmedYet": "This firmware is not confirmed yet. A restart now returns the board to the previous one.",
+      "cannotUpdateItself": "This firmware cannot update itself. Update it once by USB cable in the web flasher. It erases the board's setup, so save it to a file first.",
+      "openWebFlasher": "Open web flasher",
+      "whatChanges": "What changes · {count}"
+    },
+    "fileInstall": {
+      "installFromAFile": "Install from a file",
+      "aPitrigFirmwareFile": "A Pitrig firmware file built for this board.",
       "sizeBytes": "{size} bytes",
-      "percent": " ({percent}%)",
-      "theConnectedFirmwarePredatesThe": "The connected firmware predates the two-slot partition layout, so it cannot replace itself over serial. Flash it once over USB with idf.py, and every update after that can come this way.",
-      "connectABoardWithTwo": "Connect a board with two firmware slots.",
-      "anImageIsWaiting": "An image is installed and waits for a restart. Restarting into it keeps the board's configuration the same way an update does.",
-      "updateBoard": "Update board",
-      "updating": "Updating…",
-      "restartIntoTheInstalledImage": "Restart into the installed image",
-      "updateKeepsTheConfiguration": "The update keeps a copy of the board's configuration in Configs, installs the image, restarts the board and puts the configuration back. A draft you have not saved stays a draft."
+      "selectFile": "Select file…",
+      "install": "Install"
     },
     "factoryReset": {
       "factoryReset": "Factory reset",
-      "eraseTheSetupSaved": "Erase the setup saved on the board and go back to the built-in one. Files on this PC stay.",
+      "eraseTheSetupOnThe": "Erase the setup on the board. Files on this PC stay.",
       "resetToFactory": "Reset to factory"
     },
     "boardUpdate": {
@@ -1566,44 +1593,35 @@
       "later": "Later"
     },
     "section": {
-      "title": "Updates",
-      "description": "Checked when the configurator starts and once a day against the published Pitrig releases on GitHub.",
-      "disabled": "This is a development build, so it does not check for updates.",
       "checking": "Checking…",
       "checkNow": "Check now",
-      "configurator": "Configurator",
       "boardFirmware": "Board firmware",
       "simhub": "SimHub",
       "plugin": "Pitrig plugin in SimHub",
-      "lastChecked": "Last checked {time}."
+      "lastChecked": "Last checked {time}.",
+      "versions": "Versions",
+      "justNow": "just now",
+      "pitrig": "Pitrig",
+      "boardNameFirmware": "{board} firmware",
+      "connectABoard": "Connect a board",
+      "upToDate": "Up to date",
+      "available": "{version} available",
+      "ready": "{version} ready",
+      "downloading": "Downloading {progress}%",
+      "notChecked": "Not checked yet",
+      "checkFailed": "Check failed",
+      "ok": "OK",
+      "olderThan": "Older than {minimum}",
+      "openFirmware": "Open Firmware"
     },
     "app": {
-      "notChecked": "{current}, not checked yet",
-      "checking": "{current}, checking…",
-      "current": "{current}, up to date",
-      "available": "{current}; {latest} is available",
-      "downloading": "{current}; downloading {latest} ({progress}%)",
-      "ready": "{current}; {latest} installs on restart",
-      "failed": "{current}; the check failed: {error}",
       "noWindowsUpdate": "the newest release carries no Windows update yet"
     },
     "firmware": {
       "notInRelease": "The Pitrig {version} release has no {name}.",
       "nothingNewer": "This board already runs the firmware that comes with this version of Pitrig.",
       "alreadyDownloading": "The firmware is already downloading.",
-      "released": "This version of Pitrig brings firmware {version}",
-      "behind": "The board runs {running}; {version} is available",
-      "current": "The board runs {running}, up to date",
       "downloading": "Downloading the firmware… {progress}%",
-      "offer": "Firmware {version} for this board comes with this version of Pitrig.",
-      "downloadAndUpdate": "Download and update",
-      "changesTitle": "What changes on the {board}",
-      "changesCount": {
-        "$plural": {
-          "one": "{count} change",
-          "other": "{count} changes"
-        }
-      },
       "changesRelease": "Firmware {version}",
       "changesUnreleased": "Not released yet",
       "schemaNote": "This firmware reads a newer configuration format. Update board keeps a copy of the board's configuration and puts it back.",
@@ -1622,10 +1640,6 @@
       "invalidRequest": "Invalid plugin request.",
       "closeToReplace": "SimHub is running. Close it now so the Pitrig plugin can be replaced? SimHub starts again afterwards.",
       "pluginInstalled": "The Pitrig plugin in SimHub is up to date.",
-      "unknownVersion": "Version unknown",
-      "versionTooOld": "{version}, older than {minimum}",
-      "pluginMissing": "Not installed",
-      "pluginStale": "{installed}; {bundled} is ready to install",
       "noBundledPlugin": "This build of the configurator carries no SimHub plugin."
     }
   },
@@ -2548,10 +2562,9 @@
       "description": "Helps decide what to build next. The configurator and the Pitrig plugin in SimHub send a random install number, whether Pitrig was used on this computer before, their versions, the system, the board model and firmware, the games that run in SimHub, and when a save finishes or the app crashes. No names, files, dashboards or addresses are sent. This switch covers the SimHub plugin on this computer too.",
       "enabled": "On",
       "disabled": "Off",
-      "developmentBuild": "This is a development build, so it sends nothing.",
-      "state": "Sending",
-      "turnOff": "Turn off",
-      "turnOn": "Turn on"
+      "developmentBuild": "Development build: no update checks and no statistics.",
+      "noNamesFilesOrDashboards": "No names, files or dashboards.",
+      "whatIsSent": "What is sent"
     }
   },
   "share": {

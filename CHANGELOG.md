@@ -30,6 +30,7 @@ a release says when either applies.
 - **Configurator.** `Save to board` downloads missing Google fonts by itself.
 - **Configurator.** New starter dashboard: GF Rally Mode, 480×480.
 - **Configurator.** **Update board** lists what changes on that board.
+- **Configurator.** Firmware that cannot update itself gets a link to the web flasher.
 
 **Changed**
 
@@ -46,6 +47,8 @@ a release says when either applies.
 - **Configurator.** The Configs page holds only files and one recent list; **Reset to factory** moved to Firmware.
 - **Configurator.** Buttons have their own **Controls** tab: each button and what it does on one row.
 - **Configurator.** Screen rules and the return home moved to the canvas, under **Automatic screen changes**.
+- **Configurator.** The Firmware page shows the board's version and one update button.
+- **Configurator.** The Info page shows versions with next steps, board health and details to copy.
 - **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
 - **Configurator, SimHub plugin.** Usage reports tell a new install from an update; only official builds send them.
 - **Development.** Every dependency is pinned to one exact version; updates wait seven days and a review.
