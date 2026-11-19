@@ -4,13 +4,7 @@ import { confirmAction } from '@/components/ui/confirm-store'
 import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bridge-errors'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
-import { allWidgetsOf, screensOf } from '@shared/configuration-access'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
-import type { ConfigurationDocumentId } from '@shared/configuration-schema'
-import {
-  documentOf,
-  mergeDocument
-} from '@shared/configuration-documents'
 import {
   applyBoardTransportDefaults,
   BOARD_PROFILES,
@@ -177,49 +171,6 @@ export async function resetBoardConfiguration(): Promise<ActionFeedback | undefi
     useDeviceStore.getState().markConfigurationReset(result.configuration)
     return t('dashboard.configurationActions.factoryConfigurationSavedRestartThe')
   })
-}
-
-export async function resetBoardDocument(
-  document: ConfigurationDocumentId
-): Promise<ActionFeedback | undefined> {
-  const label = t(`documents.labelLower.${document}`)
-  if (!(await confirmAction(t('dashboard.configurationActions.eraseTheSavedLabelConfiguration', { label: label }), { danger: true }))) {
-    return undefined
-  }
-  return run(
-    `reset ${document}`,
-    () => window.pitrig.resetDeviceConfiguration({ document }),
-    (result) => {
-      useDeviceStore.getState().markConfigurationReset(result.configuration)
-      return t('dashboard.configurationActions.savedLabelConfigurationErasedRestart', { label: label })
-    }
-  )
-}
-
-export function loadDocumentFromBoard(
-  document: ConfigurationDocumentId
-): ActionFeedback | undefined {
-  const store = useDeviceStore.getState()
-  const board = store.activeConfiguration
-  const draft = store.draft
-  if (!board || !draft) {
-    return { kind: 'error', message: t('dashboard.configurationActions.theBoardHasNotReported') }
-  }
-  const merged = {
-    ...mergeDocument(draft, document, documentOf(board, document)),
-    board: draft.board
-  }
-  store.setDraft(merged)
-  useDashboardEditorStore.getState().clampToDocument(
-    allWidgetsOf(merged)
-      .map((widget) => widget.id)
-      .filter((id): id is string => id !== undefined),
-    screensOf(merged).length
-  )
-  return {
-    kind: 'success',
-    message: t('dashboard.configurationActions.loadedTheDocumentConfigurationFrom', { document: t(`documents.labelLower.${document}`) })
-  }
 }
 
 export async function restartBoard(): Promise<ActionFeedback | undefined> {

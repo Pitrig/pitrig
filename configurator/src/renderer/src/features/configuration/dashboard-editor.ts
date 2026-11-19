@@ -20,6 +20,8 @@ export { addScreen, deleteScreen, ensureScreen, freeScreenId, moveScreen, mutate
 export { insertionRefusal } from './editor/capacity'
 export { DEFAULT_CAPTION_FONT_SIZE_PX, DEFAULT_WIDGET_FONT_SIZE_PX, NEW_GRAPH_BINDING, NEW_WIDGET_SIZE, actionCount, addTapZone, addWidget, applyFontFamilyToDashboard, deleteWidget, draftFontFamily, draftValueFont, duplicateWidget, insertWidget, offsetWidget } from './editor/widgets'
 export { addSlotPage, deleteSlotPage, mutateSlotPage } from './editor/slots'
+export type { SlotChoice } from './editor/controls'
+export { addBinding, addRule, applyAction, changeBinding, changeRule, controlsOf, removeBinding, removeBindingsOf, removeRule, screenIdsOf, setHomeAfter, setHomeScreen, setSwitchSlot, slotChoicesOf } from './editor/controls'
 export { copyWidget, pasteWidget } from './editor/clipboard'
 export type { AlignmentEdge } from './editor/alignment'
 export { alignWidgets, distributeWidgets } from './editor/alignment'

@@ -72,10 +72,8 @@ import type {
   ConfigurationIdRequest,
   ConfigurationLibrary,
   ConfigurationPathRequest,
-  ConfigurationSaveRequest,
   RecentConfigurationValue,
-  SavedConfigurationDocument,
-  SavedConfigurationSummary
+  SavedConfigurationDocument
 } from './config-library'
 import type {
   PluginInput,
@@ -112,9 +110,6 @@ export interface PitrigApi {
   readSavedConfiguration: (
     request: ConfigurationIdRequest
   ) => Promise<ConfigLibraryResult<SavedConfigurationDocument>>
-  saveConfigurationToLibrary: (
-    request: ConfigurationSaveRequest
-  ) => Promise<ConfigLibraryResult<SavedConfigurationSummary>>
   deleteSavedConfiguration: (request: ConfigurationIdRequest) => Promise<ConfigLibraryResult<void>>
   readRecentConfiguration: (
     request: ConfigurationPathRequest

@@ -4,7 +4,7 @@ import { create } from 'zustand'
 import type { InputButton, InputSource } from '@shared/configuration-schema'
 import type { PluginInput } from '@shared/telemetry-bridge'
 import { telemetryBridge } from '@/features/telemetry/bridge-store'
-import { assignInput, type InputTarget } from './controls-document'
+import { assignInput, type InputTarget } from './inputs-document'
 
 const HIT_MS = 300
 

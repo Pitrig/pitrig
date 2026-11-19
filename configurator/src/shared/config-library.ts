@@ -4,7 +4,6 @@ import { LIBRARY_ID_PATTERN, libraryIdFor } from './library-id'
 
 export const CONFIG_LIBRARY_LIST_CHANNEL = 'configs:list' as const
 export const CONFIG_LIBRARY_READ_CHANNEL = 'configs:read' as const
-export const CONFIG_LIBRARY_SAVE_CHANNEL = 'configs:save' as const
 export const CONFIG_LIBRARY_DELETE_CHANNEL = 'configs:delete' as const
 export const CONFIG_RECENT_READ_CHANNEL = 'configs:read-recent' as const
 export const CONFIG_RECENT_FORGET_CHANNEL = 'configs:forget-recent' as const

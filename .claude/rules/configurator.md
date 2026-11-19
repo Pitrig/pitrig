@@ -65,11 +65,11 @@ documents at the edges: `shared/configuration-documents.ts` holds `documentOf` /
 `mergeDocument` / `documentsDiffering`, and more than the protocol, the save
 orchestrator, live apply and the Configs page see three —
 `features/device/draft-state.ts`, `board-sync-store.ts`, `device-store.ts`,
-`draft-text.ts`, `features/modules/use-board-preview.ts`,
+`features/modules/use-board-preview.ts`,
 `features/templates/DashboardSection.tsx` and `shared/configuration-validate.ts`
 each work a document at a time, and `app/workspace/WorkspaceRail.tsx` marks the
 rail from the same answer. The draft owns its board identity and works fully
-disconnected; "Load config from board" is the explicit discard, and which board
+disconnected; "Load from board" is the explicit discard, and which board
 is authored while nothing is plugged in is `offlineBoard` in the device store.
 Modules is authored the same way — the same `createConfiguration` /
 `openConfigurationFile`, the same `BoardPicker` — and on a board that publishes
@@ -122,7 +122,7 @@ handback on disconnect. A board the plugin feeds counts as found in the scan
 without being opened. The renderer sends what to stream through
 `features/telemetry/telemetry-interest.ts` — the running documents' and the
 draft's bindings, or every field while the catalog table is mounted — and with
-it whether the Buttons page (`features/controls/`) wants the plugin's
+it whether the Controls page (`features/controls/`) wants the plugin's
 `@PT:INPUT` reports and the draft's `inputs`, which `PluginHandover` sends as
 `button`/`position` lines while it holds a board.
 
@@ -170,7 +170,7 @@ dashboard pages until it is dismissed.
 
 ## Workspaces and transfer
 
-`app/workspace/` owns the navigation: `WorkspaceRail` over six workspaces
+`app/workspace/` owns the navigation: `WorkspaceRail` over seven workspaces
 ordered once in `WORKSPACE_TABS`, so the rail and the `Cmd`/`Ctrl`+digit
 accelerators cannot disagree; the active workspace, its page and whether the
 rail is expanded are kept across restarts in `workspace-store.ts`

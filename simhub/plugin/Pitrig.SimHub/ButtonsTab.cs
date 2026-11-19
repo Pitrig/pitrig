@@ -18,7 +18,7 @@ namespace Pitrig.SimHub
         private const double NameSize = 11;
 
         private const string Wiring =
-            "Buttons are wired on the Buttons page of the Pitrig configurator, or in SimHub under Controls and events " +
+            "Buttons are wired on the Controls page of the Pitrig configurator, or in SimHub under Controls and events " +
             "as PitrigPlugin.Button1 to Button16 and SwitchPosition1 to SwitchPosition12.";
 
         private static readonly Brush IdleBorder = Frozen(new SolidColorBrush(Color.FromArgb(0x60, 0x9E, 0x9E, 0x9E)));

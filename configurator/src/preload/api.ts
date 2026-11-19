@@ -4,7 +4,6 @@ import {
   CONFIG_LIBRARY_DELETE_CHANNEL,
   CONFIG_LIBRARY_LIST_CHANNEL,
   CONFIG_LIBRARY_READ_CHANNEL,
-  CONFIG_LIBRARY_SAVE_CHANNEL,
   CONFIG_RECENT_FORGET_CHANNEL,
   CONFIG_RECENT_READ_CHANNEL
 } from '../shared/config-library'
@@ -139,8 +138,6 @@ export const productApi: PitrigApi = {
     ipcRenderer.invoke(CONFIGURATION_FILE_SAVE_CHANNEL, request),
   listConfigurations: () => ipcRenderer.invoke(CONFIG_LIBRARY_LIST_CHANNEL),
   readSavedConfiguration: (request) => ipcRenderer.invoke(CONFIG_LIBRARY_READ_CHANNEL, request),
-  saveConfigurationToLibrary: (request) =>
-    ipcRenderer.invoke(CONFIG_LIBRARY_SAVE_CHANNEL, request),
   deleteSavedConfiguration: (request) => ipcRenderer.invoke(CONFIG_LIBRARY_DELETE_CHANNEL, request),
   readRecentConfiguration: (request) => ipcRenderer.invoke(CONFIG_RECENT_READ_CHANNEL, request),
   forgetRecentConfiguration: (request) =>

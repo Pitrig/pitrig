@@ -7,6 +7,7 @@ import { t } from '@shared/ui-text'
 import { WIDGET_ICONS } from './icons'
 import { InfoHint } from './InfoHint'
 import { DashboardSection, ScreenEditor } from './document-sections'
+import { ScreenChangesSection } from './ScreenChangesSection'
 import { GeometryEditor } from './section-editors'
 import { ArcEditor, BarEditor, GraphEditor } from './gauge-editors'
 import { IndicatorEditor } from './indicator-editor'
@@ -42,7 +43,12 @@ export function WidgetInspector(): React.JSX.Element {
         </header>
       ) : null}
       <div ref={body} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 text-xs">
-        {configuration && !selection ? <DashboardSection configuration={configuration} /> : null}
+        {configuration && !selection ? (
+          <>
+            <DashboardSection configuration={configuration} />
+            <ScreenChangesSection configuration={configuration} />
+          </>
+        ) : null}
         {configuration && selection?.type === 'screen' ? (
           <ScreenEditor configuration={configuration} />
         ) : null}

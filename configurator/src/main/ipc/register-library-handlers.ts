@@ -3,7 +3,6 @@ import { BrowserWindow, ipcMain, shell } from 'electron'
 import {
   isConfigurationIdRequest,
   isConfigurationPathRequest,
-  isConfigurationSaveRequest,
   isJsonDocumentRequest,
   isTemplateIdRequest,
   isTemplateSaveRequest
@@ -13,7 +12,6 @@ import {
   CONFIG_LIBRARY_DELETE_CHANNEL,
   CONFIG_LIBRARY_LIST_CHANNEL,
   CONFIG_LIBRARY_READ_CHANNEL,
-  CONFIG_LIBRARY_SAVE_CHANNEL,
   CONFIG_RECENT_FORGET_CHANNEL,
   CONFIG_RECENT_READ_CHANNEL,
   type ConfigLibraryResult
@@ -82,10 +80,6 @@ export function registerLibraryHandlers(
   ipcMain.handle(CONFIG_LIBRARY_READ_CHANNEL, (_event, request: unknown) => {
     if (!isConfigurationIdRequest(request)) return invalidConfigLibraryRequest()
     return configLibraryService.read(request.id)
-  })
-  ipcMain.handle(CONFIG_LIBRARY_SAVE_CHANNEL, (_event, request: unknown) => {
-    if (!isConfigurationSaveRequest(request)) return invalidConfigLibraryRequest()
-    return configLibraryService.save(request)
   })
   ipcMain.handle(CONFIG_LIBRARY_DELETE_CHANNEL, (_event, request: unknown) => {
     if (!isConfigurationIdRequest(request)) return invalidConfigLibraryRequest()

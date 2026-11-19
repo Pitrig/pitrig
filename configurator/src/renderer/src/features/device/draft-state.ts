@@ -24,7 +24,7 @@ import {
   collectFontRequirements,
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
-import { parseConfiguration, useDeviceStore } from './device-store'
+import { useDeviceStore } from './device-store'
 import { t } from '@shared/ui-text'
 
 export interface DraftState {
@@ -49,18 +49,12 @@ export function useDraftState(): DraftState {
   const session = useDeviceStore((state) => state.session)
   const status = useDeviceStore((state) => state.status)
   const draft = useDeviceStore((state) => state.draft)
-  const rawDraft = useDeviceStore((state) => state.rawDraft)
   const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const runningConfiguration = useDeviceStore((state) => state.runningConfiguration)
   const imageLibrary = useImageLibraryStore((state) => state.snapshot)
 
-  const { parsed, missingFamilies } = inspect(
-    draft,
-    rawDraft?.text,
-    hasLocalDraft,
-    session?.fontAssets?.families
-  )
+  const { parsed, missingFamilies } = inspect(draft, hasLocalDraft, session?.fontAssets?.families)
 
   const compared = hasLocalDraft ? draft : undefined
   const dirtyDocuments = compare(compared, session ? activeConfiguration : undefined)
@@ -128,7 +122,6 @@ export function useDraftState(): DraftState {
 let memo:
   | {
       draft: DeviceConfiguration | undefined
-      rawDraft: string | undefined
       hasLocalDraft: boolean
       installed: readonly string[] | undefined
       value: { parsed: ValidationResult; missingFamilies: string[] }
@@ -248,20 +241,18 @@ function compare(
 
 function inspect(
   draft: DeviceConfiguration | undefined,
-  rawDraft: string | undefined,
   hasLocalDraft: boolean,
   installed: readonly string[] | undefined
 ): { parsed: ValidationResult; missingFamilies: string[] } {
   if (
     memo &&
     memo.draft === draft &&
-    memo.rawDraft === rawDraft &&
     memo.hasLocalDraft === hasLocalDraft &&
     memo.installed === installed
   ) {
     return memo.value
   }
-  const parsed = parseDraft(draft, rawDraft, hasLocalDraft)
+  const parsed = parseDraft(draft, hasLocalDraft)
   const value = {
     parsed,
     missingFamilies: missingFontFamilies(
@@ -269,19 +260,16 @@ function inspect(
       installed ?? []
     )
   }
-  memo = { draft, rawDraft, hasLocalDraft, installed, value }
+  memo = { draft, hasLocalDraft, installed, value }
   return value
 }
 
 function parseDraft(
   draft: DeviceConfiguration | undefined,
-  rawDraft: string | undefined,
   hasLocalDraft: boolean
 ): ValidationResult {
-  if (!hasLocalDraft) return { ok: false, error: t('device.draftState.noLocalConfiguration') }
-  if (rawDraft !== undefined && parseConfiguration(rawDraft) === undefined) {
-    return { ok: false, error: t('device.draftState.configurationIsNotValidJson') }
+  if (!hasLocalDraft || !draft) {
+    return { ok: false, error: t('device.draftState.noLocalConfiguration') }
   }
-  if (!draft) return { ok: false, error: t('device.draftState.noLocalConfiguration') }
   return validateConfigurationDocument(draft, { supportedBoards: PITRIG_BOARD_IDS })
 }

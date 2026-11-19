@@ -79,7 +79,7 @@ profile.
 The configurator can create, load, save, and edit this JSON without a connected
 device. The root `board` selects the local immutable board profile used for
 display dimensions and preview. A local draft remains available after a
-disconnect and is not replaced when another device connects. **Load config from
+disconnect and is not replaced when another device connects. **Load from
 board** is the explicit operation that discards the local draft in favor of the
 connected device configuration. **Save to board** requires the draft and
 connected device to have the same board identifier.
@@ -135,15 +135,21 @@ conditional styling and colour ramps are in
 
 ## Authoring in the configurator
 
-The window is a rail of six workspaces — **Dashboard**, **Modules**,
-**Protocol**, **Configs**, **Firmware**, **Info** — reachable with `Cmd`/`Ctrl`
-and a digit, over one page at a time. Dashboard has pages of its own (Canvas,
-Templates, Fonts, Images); `Save to board` sits above them and applies to the
-document rather than to the page. Each destructive device action lives beside
-what it affects: erasing the font package on Fonts, the images on Images,
-resetting the configuration on Configs. Restarting the board is not destructive
-and sits wherever a restart is the next step — the dashboard toolbar, Configs
-and Firmware.
+The window is a rail of seven workspaces — **Dashboard**, **Modules**,
+**Controls**, **Protocol**, **Configs**, **Firmware**, **Info** — reachable with
+`Cmd`/`Ctrl` and a digit, over one page at a time. Dashboard has pages of its
+own (Canvas, Templates, Fonts, Images); `Save to board` sits above them and
+applies to the document rather than to the page. Each destructive device action
+lives beside what it affects: erasing the font package on Fonts, the images on
+Images, and resetting the board's configuration to factory on Firmware, with the
+other board actions. Restarting the board is not destructive and sits wherever a
+restart is the next step — the dashboard toolbar and Firmware.
+
+Configs holds files: the open setup with `New`, `Open…`, `Save…` and `Share…`,
+and one recent list of the files opened or saved and of the copies Pitrig keeps
+itself, such as the backup `Update board` takes. While a board is connected, one
+line says whether it holds this setup, beside `Load from board`. Loading, saving
+or erasing one document alone, and editing its JSON, are in the Pitrig Debugger.
 
 The **Transport** section is last on the Protocol page and folded closed. It is
 the only setting that decides whether the configurator can reach the board at
@@ -177,17 +183,17 @@ Supported bindings are listed in the generated
 [telemetry catalog](telemetry-catalog.md); the binding input shows the field's
 category, type, unit, recommended update rate and wire ID.
 
-The canvas, the inspector and the advanced JSON editor all edit the same
-draft. Dragging and resizing write absolute logical `x`, `y`, `width` and
-`height` and keep the widget within the display bounds; selecting empty canvas
-exposes the screen's `background_color`. Every widget may define `z_index`
-from `-32768` through `32767`: larger values render above smaller, missing
-values default to zero, and equal values use stable configuration order so the
-preview and the device agree. A drawn widget arrives with more than its box: a
-text widget carries the draft's commonest font and an empty source, a bar, an
-arc, an indicator and a graph each carry a starting binding and their colours,
-an indicator six segments and a slot two pages, and a new image widget starts on
-the first image in this PC's library, because without one it has nothing to draw.
+The canvas and the inspector edit the same draft. Dragging and resizing write
+absolute logical `x`, `y`, `width` and `height` and keep the widget within the
+display bounds; selecting empty canvas exposes the screen's `background_color`.
+Every widget may define `z_index` from `-32768` through `32767`: larger values
+render above smaller, missing values default to zero, and equal values use
+stable configuration order so the preview and the device agree. A drawn widget
+arrives with more than its box: a text widget carries the draft's commonest font
+and an empty source, a bar, an arc, an indicator and a graph each carry a
+starting binding and their colours, an indicator six segments and a slot two
+pages, and a new image widget starts on the first image in this PC's library,
+because without one it has nothing to draw.
 
 The canvas draws live telemetry whenever the [SimHub plugin](simhub-plugin.md)
 answers the bridge the Protocol page shows, with the widget's `unavailable_text`
@@ -240,15 +246,19 @@ list picks several layers to edit together, and `Cmd`/`Ctrl` with `Z`,
 `Shift+Z` and `D`, `Delete` and `Escape` undo, redo, duplicate, remove and
 deselect there.
 
-The Modules workspace's **Buttons** page names up to 16 logical buttons and
-the positions of one multi-position switch, and lists what they do on the open
-dashboard: the actions, the slot the switch turns, the screen rules and the
-idle return home. **Assign** takes the next input SimHub reports — the page asks
-the plugin for every input change while it is open and lights each button and
-input as it is held. The wiring goes into the modules document's `inputs` and
-the actions into `dashboard.controls`; while the configurator holds a board,
-the plugin uses the draft's wiring for it, so a new assignment works before it
-is saved ([ADR 0038](adr/0038-pc-buttons-drive-the-board.md)).
+The **Controls** workspace lists the PC's buttons — on the rim, a button box, a
+gamepad or the keyboard — one row each: its name, the inputs SimHub reports for
+it and what it does on the open dashboard. **Assign** takes the next input
+SimHub reports; the page asks the plugin for every input change while it is open
+and lights each button and input as it is held. A row is logical button N of
+[ADR 0038](adr/0038-pc-buttons-drive-the-board.md): the wiring goes into the
+modules document's `inputs` and the actions into `dashboard.controls`, so a
+template's action for a button this board has not wired shows as not assigned
+yet. On a board with a display the page also lists the positions of one rotary
+switch and the slot it turns. The screen rules and the idle return home need no
+button and sit in the canvas inspector with nothing selected, under **Automatic
+screen changes**. While the configurator holds a board, the plugin uses the
+draft's wiring for it, so a new assignment works before it is saved.
 
 ### Keeping the draft and the board together
 
@@ -311,16 +321,6 @@ and no restart on a board already at that speed.
 Otherwise the save ends in `@PR:APPLY` for each document it wrote, which
 rebuilds the running composition from what was just written to NVS. That is why
 an ordinary save costs no dark screen.
-
-The Configs page lists the three documents with what each is doing on the board
-— in sync, modified, factory, or a stored record the firmware refused — and can
-load, save or erase any one of them on its own. Below that it states the
-difference between the draft and the configuration the board holds, per document
-and property by property, before any of this happens.
-Widgets and screens are matched by `id` within the array they sit in, so a
-reordered widget reads as a move; one dragged into a container reads as a
-removal from the screen and an addition inside the container, because those are
-two different arrays.
 
 ## Fonts
 

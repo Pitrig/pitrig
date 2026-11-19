@@ -43,6 +43,9 @@ a release says when either applies.
 - **Configurator.** The Round dial 480 template has a new design.
 - **Configurator.** The SimHub plugin panel shows only the plugin, its boards and what to do next.
 - **Configurator.** The Transport section says what it is for.
+- **Configurator.** The Configs page holds only files and one recent list; **Reset to factory** moved to Firmware.
+- **Configurator.** Buttons have their own **Controls** tab: each button and what it does on one row.
+- **Configurator.** Screen rules and the return home moved to the canvas, under **Automatic screen changes**.
 - **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
 - **Configurator, SimHub plugin.** Usage reports tell a new install from an update; only official builds send them.
 - **Development.** Every dependency is pinned to one exact version; updates wait seven days and a review.
@@ -63,6 +66,8 @@ a release says when either applies.
 **Removed**
 
 - **Development.** The Guition JC1060P470C full-screen render mode.
+- **Configurator.** Per-part tools, raw JSON and the change list on Configs; the Pitrig Debugger still has the first two.
+- **Configurator.** Saving a named copy inside Pitrig; **Save…** writes a file, and old copies stay in the recent list.
 
 ## 0.3.2 — 2026-11-16 — firmware 0.3.1
 

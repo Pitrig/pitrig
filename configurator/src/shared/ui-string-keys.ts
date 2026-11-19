@@ -132,43 +132,18 @@ export type UiStringKey =
   | 'common.close'
   | 'common.delete'
   | 'common.listAndMore'
-  | 'common.load'
   | 'common.none'
   | 'common.ok'
   | 'common.open'
   | 'common.pageNumber'
-  | 'common.reset'
   | 'common.save'
   | 'common.screenNumber'
   | 'common.select'
   | 'common.traceNumber'
-  | 'configs.advancedJsonSection.activeConfigurationJson'
-  | 'configs.advancedJsonSection.advancedJson'
-  | 'configs.advancedJsonSection.configurationDocuments'
-  | 'configs.advancedJsonSection.createOpenOrConnectA'
-  | 'configs.advancedJsonSection.eachDocumentExactlyAsThe'
-  | 'configs.advancedJsonSection.thisIsNotValidJson'
-  | 'configs.boardDocumentsSection.bytesBytes'
-  | 'configs.boardDocumentsSection.configsOnTheBoard'
-  | 'configs.boardDocumentsSection.eraseThisDocumentFromThe'
-  | 'configs.boardDocumentsSection.factory'
-  | 'configs.boardDocumentsSection.generationGeneration'
-  | 'configs.boardDocumentsSection.inSync'
-  | 'configs.boardDocumentsSection.loadAllFromBoard'
-  | 'configs.boardDocumentsSection.refused'
-  | 'configs.boardDocumentsSection.resetToFactoryConfiguration'
-  | 'configs.boardDocumentsSection.savingWritesOnlyTheDocuments'
-  | 'configs.boardDocumentsSection.takeThisDocumentBackFrom'
-  | 'configs.boardDocumentsSection.threeDocumentsStoredAndWritten'
-  | 'configs.boardDocumentsSection.writeOnlyThisDocumentTo'
-  | 'configs.changesSection.beforeAfter'
-  | 'configs.changesSection.changesComparedWithTheBoard'
-  | 'configs.changesSection.connectABoardToCompare'
-  | 'configs.changesSection.furtherChanges'
-  | 'configs.changesSection.nothingToCompare'
-  | 'configs.changesSection.theDraftIsComparedAgainst'
-  | 'configs.changesSection.theDraftMatchesTheBoard'
-  | 'configs.changesSection.whatASaveWouldWrite'
+  | 'configs.boardSection.boardHoldsAnotherSetup'
+  | 'configs.boardSection.boardHoldsThisSetup'
+  | 'configs.boardSection.loadFromBoard'
+  | 'configs.boardSection.loadFromBoardHint'
   | 'configs.configLibraryService.aConfigurationFileMustNot'
   | 'configs.configLibraryService.aConfigurationNameIs1'
   | 'configs.configLibraryService.failedToDeleteTheConfiguration'
@@ -183,7 +158,6 @@ export type UiStringKey =
   | 'configs.configLibraryService.theFileIsUnreadable'
   | 'configs.configLibraryService.theLibraryHoldsAtMost'
   | 'configs.configLibraryService.theSavedConfigurationIsUnreadable'
-  | 'configs.configsPage.bytesOfLimit'
   | 'configs.configurationFileService.configurationFileMustNotExceed'
   | 'configs.configurationFileService.failedToLoadTheConfiguration'
   | 'configs.configurationFileService.failedToSaveTheConfiguration'
@@ -195,26 +169,25 @@ export type UiStringKey =
   | 'configs.dialog.loadTitle'
   | 'configs.dialog.saveTitle'
   | 'configs.librarySection.deleteName'
-  | 'configs.librarySection.deleteTheSavedConfigurationId'
-  | 'configs.librarySection.endurance'
-  | 'configs.librarySection.filesOpenedOrSavedThrough'
-  | 'configs.librarySection.forgetFilename'
-  | 'configs.librarySection.keptInTheApplicationS'
-  | 'configs.librarySection.noLongerAtThisPath'
-  | 'configs.librarySection.noRecentFiles'
-  | 'configs.librarySection.nothingSavedYet'
-  | 'configs.librarySection.openingOrSavingAJson'
-  | 'configs.librarySection.readingTheFolder'
-  | 'configs.librarySection.recentFiles'
-  | 'configs.librarySection.replaceTheSavedConfigurationId'
-  | 'configs.librarySection.saveTheCurrentDashboardBelow'
-  | 'configs.librarySection.saveTheCurrentDraftAs'
-  | 'configs.librarySection.saveToLibrary'
-  | 'configs.librarySection.savedAsName'
-  | 'configs.librarySection.savedConfigurations'
   | 'configs.librarySection.screenCount'
-  | 'configs.librarySection.unreadableFiles'
   | 'configs.librarySection.widgetCount'
+  | 'configs.recentList.deleteName'
+  | 'configs.recentList.deleteTheSavedCopyName'
+  | 'configs.recentList.fileMovedOrDeleted'
+  | 'configs.recentList.forgetFilename'
+  | 'configs.recentList.nothingYet'
+  | 'configs.recentList.reading'
+  | 'configs.recentList.recent'
+  | 'configs.recentList.savedInPitrig'
+  | 'configs.recentList.unreadableCopies'
+  | 'controls.actionLine.action'
+  | 'controls.actionLine.page'
+  | 'controls.actionLine.pageNumber'
+  | 'controls.actionLine.removeAction'
+  | 'controls.actionLine.repeatWhileHeld'
+  | 'controls.actionLine.screen'
+  | 'controls.actionLine.slot'
+  | 'controls.actionLine.wrap'
   | 'controls.actions.dismiss_page'
   | 'controls.actions.display_brighter'
   | 'controls.actions.display_dimmer'
@@ -230,61 +203,35 @@ export type UiStringKey =
   | 'controls.actions.previous_screen'
   | 'controls.actions.show_page'
   | 'controls.actions.show_screen'
-  | 'controls.bindingList.action'
-  | 'controls.bindingList.addAction'
-  | 'controls.bindingList.button'
-  | 'controls.bindingList.noActionsYet'
-  | 'controls.bindingList.page'
-  | 'controls.bindingList.pageNumber'
-  | 'controls.bindingList.removeActionNumber'
-  | 'controls.bindingList.repeatWhileHeld'
-  | 'controls.bindingList.screen'
-  | 'controls.bindingList.slot'
-  | 'controls.bindingList.wrap'
-  | 'controls.buttonsView.buttons'
-  | 'controls.buttonsView.buttonsDescription'
-  | 'controls.buttonsView.down'
-  | 'controls.buttonsView.home'
-  | 'controls.buttonsView.homeDescription'
-  | 'controls.buttonsView.lastInput'
-  | 'controls.buttonsView.multiPositionSwitch'
-  | 'controls.buttonsView.pressAnyButton'
-  | 'controls.buttonsView.pressTheButtonToAssign'
-  | 'controls.buttonsView.screenRules'
-  | 'controls.buttonsView.screenRulesDescription'
-  | 'controls.buttonsView.startSimhubWithThePlugin'
-  | 'controls.buttonsView.switchDescription'
-  | 'controls.buttonsView.up'
-  | 'controls.buttonsView.whatTheButtonsDo'
-  | 'controls.buttonsView.whatTheButtonsDoDescription'
+  | 'controls.buttonList.addButton'
+  | 'controls.buttonList.allButtonsUsed'
+  | 'controls.buttonList.alsoDoSomethingElse'
+  | 'controls.buttonList.chooseWhatItDoes'
+  | 'controls.buttonList.fourInputsAtMost'
+  | 'controls.buttonList.noButtonsYet'
+  | 'controls.buttonList.notAssignedYet'
+  | 'controls.buttonList.pressAssignThenTheButton'
+  | 'controls.buttonList.removeName'
+  | 'controls.buttonList.startSimhubToAssign'
+  | 'controls.controlsPage.alsoInSimhub'
+  | 'controls.controlsPage.buttons'
+  | 'controls.controlsPage.controls'
+  | 'controls.controlsPage.down'
+  | 'controls.controlsPage.eachPositionShowsOne'
+  | 'controls.controlsPage.lastInput'
+  | 'controls.controlsPage.pressAddButtonThen'
+  | 'controls.controlsPage.pressAnyButton'
+  | 'controls.controlsPage.pressTheButtonToAssign'
+  | 'controls.controlsPage.rotarySwitch'
+  | 'controls.controlsPage.startANewSetupOn'
+  | 'controls.controlsPage.startSimhubWithThePlugin'
+  | 'controls.controlsPage.up'
+  | 'controls.controlsPage.whatTheButtonsOnYour'
   | 'controls.document.buttonNumber'
-  | 'controls.hints.homeAfter'
-  | 'controls.hints.homeScreen'
-  | 'controls.hints.ruleSource'
   | 'controls.hints.switchSlot'
-  | 'controls.homeSection.homeScreen'
-  | 'controls.homeSection.returnAfter'
-  | 'controls.homeSection.seconds'
-  | 'controls.homeSection.theFirstScreen'
-  | 'controls.inputButtonList.addButton'
-  | 'controls.inputButtonList.allButtonsUsed'
-  | 'controls.inputButtonList.clearButtonNumber'
-  | 'controls.inputButtonList.fourInputsAtMost'
-  | 'controls.inputButtonList.noButtonsYet'
-  | 'controls.inputButtonList.pressAssignThenTheButton'
-  | 'controls.inputButtonList.startSimhubToAssign'
   | 'controls.inputParts.assign'
   | 'controls.inputParts.pressAButton'
   | 'controls.inputParts.removeInput'
-  | 'controls.ruleList.addRule'
-  | 'controls.ruleList.moreConditions'
-  | 'controls.ruleList.noRulesYet'
-  | 'controls.ruleList.removeRuleNumber'
-  | 'controls.ruleList.screen'
-  | 'controls.ruleList.show'
-  | 'controls.ruleList.value'
-  | 'controls.ruleList.watch'
-  | 'controls.ruleList.while'
   | 'controls.switchSection.addPosition'
   | 'controls.switchSection.morePositionsThanPages'
   | 'controls.switchSection.noPositionsYet'
@@ -300,22 +247,25 @@ export type UiStringKey =
   | 'dashboard.boardLabels.thisBoardHasNoDisplay'
   | 'dashboard.configsPage.configs'
   | 'dashboard.configsPage.convertDraftToConverttarget'
-  | 'dashboard.configsPage.document'
+  | 'dashboard.configsPage.documentNearlyFull'
+  | 'dashboard.configsPage.documentTooBig'
   | 'dashboard.configsPage.fitToTheNewDisplay'
-  | 'dashboard.configsPage.invalidJson'
   | 'dashboard.configsPage.keepProportionsCentre'
   | 'dashboard.configsPage.modified'
   | 'dashboard.configsPage.new'
-  | 'dashboard.configsPage.noLocalConfiguration'
+  | 'dashboard.configsPage.notSavedToAFile'
+  | 'dashboard.configsPage.nothingOpen'
   | 'dashboard.configsPage.open'
+  | 'dashboard.configsPage.pickABoardFirst'
   | 'dashboard.configsPage.restartRequired'
-  | 'dashboard.configsPage.saveAs'
+  | 'dashboard.configsPage.save'
   | 'dashboard.configsPage.saveTheConfigurationToA'
-  | 'dashboard.configsPage.selectBoard'
+  | 'dashboard.configsPage.setupForAnotherBoard'
+  | 'dashboard.configsPage.startANewSetupOr'
   | 'dashboard.configsPage.stretchToFillTheDisplay'
-  | 'dashboard.configsPage.theConnectedBoardDecidesThis'
-  | 'dashboard.configsPage.theDashboardDocumentFilesSaved'
-  | 'dashboard.configsPage.unsavedLocalDraft'
+  | 'dashboard.configsPage.thisSetupHasAnError'
+  | 'dashboard.configsPage.untitledSetup'
+  | 'dashboard.configsPage.yourSetupFiles'
   | 'dashboard.configurationActions.activeConfigurationReadFromThe'
   | 'dashboard.configurationActions.convertTheDraftFromFrom'
   | 'dashboard.configurationActions.convertedToTarget'
@@ -323,18 +273,14 @@ export type UiStringKey =
   | 'dashboard.configurationActions.discardTheCurrentLocalDraft2'
   | 'dashboard.configurationActions.discardTheCurrentLocalDraft3'
   | 'dashboard.configurationActions.discardTheCurrentLocalDraft4'
-  | 'dashboard.configurationActions.eraseTheSavedLabelConfiguration'
   | 'dashboard.configurationActions.factoryConfigurationSavedRestartThe'
   | 'dashboard.configurationActions.fileNameLoaded'
   | 'dashboard.configurationActions.fileNameOpened'
   | 'dashboard.configurationActions.keptTheCurrentDraft'
-  | 'dashboard.configurationActions.loadedTheDocumentConfigurationFrom'
   | 'dashboard.configurationActions.nameOpened'
   | 'dashboard.configurationActions.newBoardConfigurationCreatedLocally'
   | 'dashboard.configurationActions.resetTheSavedConfigurationTo'
   | 'dashboard.configurationActions.restartTheConnectedPitrigBoard'
-  | 'dashboard.configurationActions.savedLabelConfigurationErasedRestart'
-  | 'dashboard.configurationActions.theBoardHasNotReported'
   | 'dashboard.configurationActions.theConvertedLayoutWouldNot'
   | 'dashboard.configurationActions.theDraftNamesAnUnknown'
   | 'dashboard.configurationActions.thereIsNoConfigurationTo'
@@ -454,7 +400,6 @@ export type UiStringKey =
   | 'device.documentStatus.notOnBoard'
   | 'device.documentStatus.refused'
   | 'device.documentStatus.shownNotSaved'
-  | 'device.draftState.configurationIsNotValidJson'
   | 'device.draftState.connectAPitrigBoardTo'
   | 'device.draftState.noLocalConfiguration'
   | 'device.draftState.theBoardFirmwareReadsSchema'
@@ -614,9 +559,6 @@ export type UiStringKey =
   | 'documents.labelLower.dashboard'
   | 'documents.labelLower.modules'
   | 'documents.labelLower.protocol'
-  | 'documents.summary.dashboard'
-  | 'documents.summary.modules'
-  | 'documents.summary.protocol'
   | 'firmware.boardUpdate.alreadyRunning'
   | 'firmware.boardUpdate.backupFailed'
   | 'firmware.boardUpdate.backupName'
@@ -640,6 +582,9 @@ export type UiStringKey =
   | 'firmware.boardUpdate.updatedNothingStored'
   | 'firmware.boardUpdate.updatedUnchanged'
   | 'firmware.dialog.filter'
+  | 'firmware.factoryReset.eraseTheSetupSaved'
+  | 'firmware.factoryReset.factoryReset'
+  | 'firmware.factoryReset.resetToFactory'
   | 'firmware.firmwarePackage.theFirmwareImageIsBytelength'
   | 'firmware.firmwarePackage.theFirmwareImageIsEmpty'
   | 'firmware.firmwarePackage.unsupportedPitrigBoardBoard'
@@ -1014,6 +959,10 @@ export type UiStringKey =
   | 'inspector.hints.ring.thickness'
   | 'inspector.hints.screen.background'
   | 'inspector.hints.screen.name'
+  | 'inspector.hints.screenChanges.group'
+  | 'inspector.hints.screenChanges.homeAfter'
+  | 'inspector.hints.screenChanges.homeScreen'
+  | 'inspector.hints.screenChanges.watch'
   | 'inspector.hints.shape.kind'
   | 'inspector.hints.slot.dismiss'
   | 'inspector.hints.slot.duration'
@@ -1083,6 +1032,19 @@ export type UiStringKey =
   | 'inspector.ringEditor.thickness'
   | 'inspector.ringEditor.xOffset'
   | 'inspector.ringEditor.yOffset'
+  | 'inspector.screenChanges.addRule'
+  | 'inspector.screenChanges.automaticScreenChanges'
+  | 'inspector.screenChanges.homeScreen'
+  | 'inspector.screenChanges.moreConditions'
+  | 'inspector.screenChanges.removeRuleNumber'
+  | 'inspector.screenChanges.returnHomeAfter'
+  | 'inspector.screenChanges.ruleCount'
+  | 'inspector.screenChanges.screen'
+  | 'inspector.screenChanges.seconds'
+  | 'inspector.screenChanges.show'
+  | 'inspector.screenChanges.theFirstScreen'
+  | 'inspector.screenChanges.value'
+  | 'inspector.screenChanges.while'
   | 'inspector.sectionEditors.clipContents'
   | 'inspector.sectionEditors.container'
   | 'inspector.sectionEditors.countWidgetS'
@@ -1193,12 +1155,12 @@ export type UiStringKey =
   | 'layers.slotPages.drawThisPageOnThe'
   | 'layers.slotPages.pageNumberNotInLoop'
   | 'misc.valueTransform.rpmThousands'
-  | 'misc.workspaceRail.buttonsEncodersAndLeds'
   | 'misc.workspaceRail.drawTheDashboardAndThe'
-  | 'misc.workspaceRail.filesSavedConfigurationsAndJson'
   | 'misc.workspaceRail.installAFirmwareImageOver'
+  | 'misc.workspaceRail.ledsAndMatricesWiredTo'
   | 'misc.workspaceRail.telemetryLinkAndSimhub'
   | 'misc.workspaceRail.whatTheConnectedBoardIs'
+  | 'misc.workspaceRail.whatYourWheelAndButtons'
   | 'modules.devicePreview.lampNumber'
   | 'modules.effectColors.addColourRule'
   | 'modules.effectColors.background'
@@ -1331,7 +1293,6 @@ export type UiStringKey =
   | 'modules.modulesPage.animationsThisStripPlays'
   | 'modules.modulesPage.artworkThisPanelDrawsDrawn'
   | 'modules.modulesPage.boardPublishesNoFreePins'
-  | 'modules.modulesPage.buttons'
   | 'modules.modulesPage.deviceView'
   | 'modules.modulesPage.eachNounOwnsOneData'
   | 'modules.modulesPage.lEDs'
@@ -2018,36 +1979,27 @@ export interface UiStringParameters {
   'common.pageNumber': { number: string | number }
   'common.screenNumber': { number: string | number }
   'common.traceNumber': { number: string | number }
-  'configs.advancedJsonSection.activeConfigurationJson': { active: string | number }
-  'configs.boardDocumentsSection.bytesBytes': { bytes: string | number }
-  'configs.boardDocumentsSection.generationGeneration': { generation: string | number }
-  'configs.changesSection.beforeAfter': { after: string | number, before: string | number }
-  'configs.changesSection.furtherChanges': { count: number }
   'configs.configLibraryService.aConfigurationFileMustNot': { maximum: string | number }
   'configs.configLibraryService.aConfigurationNameIs1': { mAXIMUM_CONFIGURATION_NAME: string | number }
   'configs.configLibraryService.idIsNotAValid': { id: string | number }
   'configs.configLibraryService.noSavedConfigurationNamedId': { id: string | number }
   'configs.configLibraryService.theLibraryHoldsAtMost': { mAXIMUM_SAVED_CONFIGURATIONS: string | number }
-  'configs.configsPage.bytesOfLimit': { bytes: string | number, limit: string | number }
   'configs.configurationFileService.configurationFileMustNotExceed': { mAXIMUM_CONFIGURATION_TEXT_SIZE: string | number }
   'configs.librarySection.deleteName': { name: string | number }
-  'configs.librarySection.deleteTheSavedConfigurationId': { id: string | number }
-  'configs.librarySection.forgetFilename': { fileName: string | number }
-  'configs.librarySection.replaceTheSavedConfigurationId': { id: string | number }
-  'configs.librarySection.savedAsName': { name: string | number }
   'configs.librarySection.screenCount': { count: number }
-  'configs.librarySection.unreadableFiles': { count: number }
   'configs.librarySection.widgetCount': { count: number }
-  'controls.bindingList.pageNumber': { number: string | number }
-  'controls.bindingList.removeActionNumber': { number: string | number }
-  'controls.buttonsView.lastInput': { input: string | number, state: string | number }
+  'configs.recentList.deleteName': { name: string | number }
+  'configs.recentList.deleteTheSavedCopyName': { name: string | number }
+  'configs.recentList.forgetFilename': { fileName: string | number }
+  'configs.recentList.unreadableCopies': { count: number }
+  'controls.actionLine.pageNumber': { number: string | number }
+  'controls.actionLine.removeAction': { action: string | number }
+  'controls.buttonList.allButtonsUsed': { count: number }
+  'controls.buttonList.fourInputsAtMost': { count: number }
+  'controls.buttonList.removeName': { name: string | number }
+  'controls.controlsPage.lastInput': { input: string | number, state: string | number }
   'controls.document.buttonNumber': { number: string | number }
-  'controls.inputButtonList.allButtonsUsed': { count: number }
-  'controls.inputButtonList.clearButtonNumber': { number: string | number }
-  'controls.inputButtonList.fourInputsAtMost': { count: number }
   'controls.inputParts.removeInput': { input: string | number }
-  'controls.ruleList.moreConditions': { count: number }
-  'controls.ruleList.removeRuleNumber': { number: string | number }
   'controls.switchSection.morePositionsThanPages': { pages: string | number, positions: string | number }
   'controls.switchSection.removePositionNumber': { number: string | number }
   'dashboard.boardLabels.boardNodisplay': { board: string | number, noDisplay: string | number }
@@ -2055,16 +2007,17 @@ export interface UiStringParameters {
   'dashboard.boardLabels.eachAxisIsScaledOn': { height: string | number, width: string | number }
   'dashboard.boardLabels.oneFactorForBothAxes': { height: string | number, height2: string | number, width: string | number, width2: string | number }
   'dashboard.configsPage.convertDraftToConverttarget': { convertTarget: string | number }
+  'dashboard.configsPage.documentNearlyFull': { label: string | number, percent: string | number }
+  'dashboard.configsPage.documentTooBig': { label: string | number, percent: string | number }
+  'dashboard.configsPage.setupForAnotherBoard': { board: string | number, draftBoard: string | number }
+  'dashboard.configsPage.thisSetupHasAnError': { error: string | number }
   'dashboard.configurationActions.convertTheDraftFromFrom': { from: string | number, outcome: string | number, to: string | number }
   'dashboard.configurationActions.convertedToTarget': { target: string | number }
   'dashboard.configurationActions.discardTheCurrentLocalDraft3': { id: string | number }
-  'dashboard.configurationActions.eraseTheSavedLabelConfiguration': { label: string | number }
   'dashboard.configurationActions.fileNameLoaded': { fileName: string | number }
   'dashboard.configurationActions.fileNameOpened': { fileName: string | number }
-  'dashboard.configurationActions.loadedTheDocumentConfigurationFrom': { document: string | number }
   'dashboard.configurationActions.nameOpened': { name: string | number }
   'dashboard.configurationActions.newBoardConfigurationCreatedLocally': { board: string | number }
-  'dashboard.configurationActions.savedLabelConfigurationErasedRestart': { label: string | number }
   'dashboard.configurationActions.theConvertedLayoutWouldNot': { error: string | number }
   'dashboard.transfer.arcEntry': { from: string | number, label: string | number, to: string | number }
   'dashboard.transfer.arcsThinned': { count: number, list: string | number }
@@ -2253,6 +2206,9 @@ export interface UiStringParameters {
   'inspector.propertyRow.labelIsSetInThis': { label: string | number }
   'inspector.ringEditor.followingTheBoxFittedPx': { fitted: string | number }
   'inspector.ringEditor.followingTheBoxFittedPxLength': { fitted: string | number }
+  'inspector.screenChanges.moreConditions': { count: number }
+  'inspector.screenChanges.removeRuleNumber': { number: string | number }
+  'inspector.screenChanges.ruleCount': { count: number }
   'inspector.sectionEditors.countWidgetS': { count: number }
   'inspector.sectionEditors.maximumUnit': { unit: string | number }
   'inspector.sectionEditors.minimumUnit': { unit: string | number }

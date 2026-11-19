@@ -17,10 +17,8 @@ import type {
 } from '@shared/font-library'
 import {
   CONFIGURATION_ID_PATTERN,
-  MAXIMUM_CONFIGURATION_NAME,
   type ConfigurationIdRequest,
-  type ConfigurationPathRequest,
-  type ConfigurationSaveRequest
+  type ConfigurationPathRequest
 } from '@shared/config-library'
 import { type BoardUpdateRequest, type FirmwareUploadRequest } from '@shared/firmware-update'
 import type {
@@ -118,17 +116,6 @@ export function isConfigurationIdRequest(value: unknown): value is Configuration
   if (!value || typeof value !== 'object') return false
   const id = (value as Partial<ConfigurationIdRequest>).id
   return typeof id === 'string' && CONFIGURATION_ID_PATTERN.test(id)
-}
-
-export function isConfigurationSaveRequest(value: unknown): value is ConfigurationSaveRequest {
-  if (!value || typeof value !== 'object') return false
-  const request = value as Partial<ConfigurationSaveRequest>
-  return (
-    typeof request.name === 'string' &&
-    request.name.length <= MAXIMUM_CONFIGURATION_NAME &&
-    typeof request.json === 'string' &&
-    request.json.length <= MAXIMUM_CONFIGURATION_TEXT_SIZE
-  )
 }
 
 export function isConfigurationPathRequest(value: unknown): value is ConfigurationPathRequest {

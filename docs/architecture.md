@@ -411,8 +411,7 @@ device holds no decoder. See [Image asset storage](image-assets.md) and
 [ADR 0018](adr/0018-uploaded-image-assets.md).
 
 The desktop configurator edits dashboard widgets in the logical display
-coordinate space: the canvas, the inspector and the advanced JSON editor all
-mutate one sparse draft, editor state such as the screen being edited is not a
+coordinate space: the canvas and the inspector both mutate one sparse draft, editor state such as the screen being edited is not a
 document property, and the draft owns its target board identity, so it resolves
 the board profile while no device is connected. See
 [Authoring in the configurator](device-configuration.md#authoring-in-the-configurator).
@@ -512,11 +511,12 @@ only pre-bound handles; periodic paths perform no name lookup.
 # Device Configuration
 
 The desktop configurator is the authoring and device-management tool. Its
-window is a rail of six workspaces — Dashboard, Modules, Protocol, Configs,
-Firmware, Info — over one page at a time; Dashboard, Modules and Protocol each
-own one of the three configuration documents, which is why each can say on its
-own whether its settings are saved, and Modules authors the addressable LED
-outputs, a strip and a matrix each on its own pin (ADR 0030). Debug tooling is
+window is a rail of seven workspaces — Dashboard, Modules, Controls, Protocol,
+Configs, Firmware, Info — over one page at a time; Dashboard, Modules and
+Protocol each own one of the three configuration documents, which is why each
+can say on its own whether its settings are saved, Modules authors the
+addressable LED outputs, a strip and a matrix each on its own pin (ADR 0030),
+and Controls what the PC's buttons do on the board (ADR 0038). Debug tooling is
 a second Electron application built from the same package, and the product
 bundle carries no debug code (ADR 0028).
 

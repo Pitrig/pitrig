@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell, ReadOnlyField } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
 import { BoardUpdateSteps } from './BoardUpdateSteps'
+import { FactoryResetSection } from './FactoryResetSection'
 import { updateBoard, useBoardUpdateStore } from './board-update-store'
 import { useFirmwareUpdateStore } from './firmware-update-store'
 import { ReleaseFirmwareOffer } from '@/features/updates/ReleaseFirmwareOffer'
@@ -133,6 +134,8 @@ export function FirmwarePage(): React.JSX.Element {
           <p className="text-[11px] text-muted-foreground">{t('firmware.firmwarePage.updateKeepsTheConfiguration')}</p>
         </div>
       </PageSection>
+
+      <FactoryResetSection blocked={running || busy} />
     </PageShell>
   )
 }

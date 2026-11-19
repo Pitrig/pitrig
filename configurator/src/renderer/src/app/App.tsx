@@ -30,6 +30,7 @@ import { subscribeToUpdates } from '@/features/updates/update-store'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
 import { subscribeToImageLibrary } from '@/features/image-assets/image-library-store'
 import { ModulesPage } from '@/features/modules/ModulesPage'
+import { ControlsPage } from '@/features/controls/ControlsPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
 import { subscribeToTelemetryBridge } from '@/features/telemetry/bridge-store'
 import { startLiveTelemetry } from '@/features/telemetry/live-telemetry'
@@ -117,6 +118,8 @@ function WorkspacePage(): React.JSX.Element {
       return <ConfigsPage />
     case 'modules':
       return <ModulesPage />
+    case 'controls':
+      return <ControlsPage />
     case 'firmware':
       return <FirmwarePage />
   }

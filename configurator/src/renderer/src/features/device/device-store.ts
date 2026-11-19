@@ -16,14 +16,7 @@ import type {
   PitrigBoardId
 } from '@shared/device'
 
-export interface RawDraft {
-  document: ConfigurationDocumentId
-  text: string
-}
-
 const MAXIMUM_HISTORY_ENTRIES = 100
-
-type EditSource = 'structured' | 'raw'
 
 interface DeviceStore {
   status: DeviceStatus
@@ -35,7 +28,6 @@ interface DeviceStore {
   activeConfiguration?: DeviceConfiguration
   runningConfiguration?: DeviceConfiguration
   draft?: DeviceConfiguration
-  rawDraft?: RawDraft
   hasLocalDraft: boolean
   draftFileName?: string
   offlineBoard?: PitrigBoardId
@@ -45,10 +37,8 @@ interface DeviceStore {
   future: DeviceConfiguration[]
   editDepth: number
   editRecorded: boolean
-  editSource: EditSource
   applyDeviceState: (state: DeviceState) => void
   setDraft: (configuration: DeviceConfiguration) => void
-  setRawDraft: (document: ConfigurationDocumentId, text: string) => void
   replaceLocalDraft: (configuration: DeviceConfiguration, fileName?: string) => void
   reloadDraft: (session: DeviceSession) => void
   saveFeedback?: { kind: 'success' | 'error'; message: string }
@@ -94,7 +84,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
   future: [],
   editDepth: 0,
   editRecorded: false,
-  editSource: 'structured',
   applyDeviceState: (state) =>
     set((current) => {
       const link = { connection: state.connection, scan: state.scan, error: state.error }
@@ -137,7 +126,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
           ? {}
           : {
               draft: adopt(activeConfiguration),
-              rawDraft: undefined,
               hasLocalDraft: true,
               ...clearedHistory()
             }),
@@ -147,27 +135,12 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
   setDraft: (draft) =>
     set((current) => ({
       draft,
-      rawDraft: undefined,
       hasLocalDraft: true,
-      editSource: 'structured',
-      ...recordHistory(current, 'structured')
+      ...recordHistory(current)
     })),
-  setRawDraft: (document, text) =>
-    set((current) => {
-      const parsed = parseConfiguration(text)
-      if (!parsed || !current.draft) return { rawDraft: { document, text }, hasLocalDraft: true }
-      return {
-        rawDraft: { document, text },
-        draft: mergeDocument(current.draft, document, parsed),
-        hasLocalDraft: true,
-        editSource: 'raw',
-        ...recordHistory(current, 'raw')
-      }
-    }),
   replaceLocalDraft: (configuration, draftFileName) =>
     set({
       draft: adopt(configuration),
-      rawDraft: undefined,
       hasLocalDraft: true,
       draftFileName,
       ...clearedHistory()
@@ -177,7 +150,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       session,
       activeConfiguration: session.configuration,
       draft: adopt(session.configuration),
-      rawDraft: undefined,
       hasLocalDraft: true,
       draftFileName: undefined,
       rebootRequired: current.rebootRequired || (session.fontAssets?.rebootRequired ?? false),
@@ -224,9 +196,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       if (previous === undefined || current.draft === undefined) return {}
       return {
         draft: previous,
-        rawDraft: undefined,
         hasLocalDraft: true,
-        editSource: 'structured',
         past: current.past.slice(0, -1),
         future: [current.draft, ...current.future]
       }
@@ -237,22 +207,16 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       if (next === undefined || current.draft === undefined) return {}
       return {
         draft: next,
-        rawDraft: undefined,
         hasLocalDraft: true,
-        editSource: 'structured',
         past: [...current.past, current.draft],
         future: rest
       }
     })
 }))
 
-function recordHistory(
-  current: DeviceStore,
-  source: EditSource
-): Partial<DeviceStore> {
+function recordHistory(current: DeviceStore): Partial<DeviceStore> {
   const grouped = current.editDepth > 0 && current.editRecorded
-  const continuingRawSession = source === 'raw' && current.editSource === 'raw'
-  if (current.draft === undefined || grouped || continuingRawSession) return {}
+  if (current.draft === undefined || grouped) return {}
   return {
     past: [...current.past, current.draft].slice(-MAXIMUM_HISTORY_ENTRIES),
     future: [],
@@ -260,11 +224,4 @@ function recordHistory(
   }
 }
 
-import { parseConfiguration } from './draft-text'
-
-export {
-  documentDraftText,
-  draftText,
-  formatConfiguration,
-  parseConfiguration
-} from './draft-text'
+export { draftText, formatConfiguration } from './draft-text'
