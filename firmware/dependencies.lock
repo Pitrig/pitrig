@@ -16,7 +16,7 @@ dependencies:
       require: private
       version: '>=4.1'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 0.5.3
   espressif/esp_io_expander:
@@ -26,7 +26,7 @@ dependencies:
       require: private
       version: '>=4.4.2'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.2.1
   espressif/esp_lcd_panel_io_additions:
@@ -129,7 +129,7 @@ dependencies:
       require: private
       version: '>=5.0'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     targets:
     - esp32s2
@@ -151,13 +151,16 @@ dependencies:
     version: 9.5.0
 direct_dependencies:
 - espressif/cjson
+- espressif/cmake_utilities
+- espressif/esp_io_expander
 - espressif/esp_lcd_panel_io_additions
 - espressif/esp_lcd_st7701
 - espressif/esp_lcd_touch
 - espressif/esp_lcd_touch_gt911
 - espressif/esp_lvgl_port
 - espressif/esp_tinyusb
+- espressif/tinyusb
 - lvgl/lvgl
-manifest_hash: b0ce5bd6a2304671c65255d32f003c696e5e0673a7f7f3c33e0e4408f6f05b3b
+manifest_hash: ca55277470ba1102f6713a4efb2470773ddf1ee8b113f84ad0a5e1b5dc4cce71
 target: esp32s3
 version: 3.0.0

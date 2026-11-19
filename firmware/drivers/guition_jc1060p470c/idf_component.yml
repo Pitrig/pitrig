@@ -1,5 +1,6 @@
 dependencies:
-  espressif/esp_lcd_jd9165: ">=2.0.2,<3.0.0"
+  espressif/cmake_utilities: "0.5.3"
+  espressif/esp_lcd_jd9165: "2.0.2"
   idf: ">=5.4"
 targets:
   - esp32p4

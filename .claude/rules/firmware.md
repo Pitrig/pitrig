@@ -124,6 +124,12 @@ gitignored, so an edit to the vendored source is written back into the layer it
 belongs to, with no comments, before the next configure. A clean checkout needs
 `reconfigure` twice before `build`, because the first configure records the
 unpatched port's requirements and the P4 build then fails on `esp_cache.h`.
+The temporary index needs a git repository: a tree exported without `.git`
+fails the check as "matching neither", so a scratch copy runs `git init` first.
+Every registry component, the ones another component pulls in included, is
+pinned exactly in the `idf_component.yml` that needs it, because re-solving a
+lock after any manifest edit otherwise moves them to their newest revision
+(ADR 0042).
 The stack is applied for **every** target, not only the P4, because the
 `dsi-full-strips` patch is what declares `full_strips`, and `components/display`
 sets that flag on every board. Keep S3 and P4 builds sequential: an S3

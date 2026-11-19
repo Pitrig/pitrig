@@ -65,16 +65,18 @@ LED outputs like every other board.
 the OTA status.
 
 **CI** ([.github/workflows/build.yml](.github/workflows/build.yml)) runs on a push to `release` and
-on demand: `checks` (the five generators with `--check`, `check_debug_isolation.py --check`, the
-configurator's typecheck and lint), `simhub-plugin` (the Release DLL built on `windows-latest` against
+on demand: `checks` (`check_pinned_dependencies.py` before anything is installed, the five
+generators with `--check`, `check_debug_isolation.py --check`, the configurator's typecheck and
+lint), `simhub-plugin` (the Release DLL built on `windows-latest` against
 a SimHub pinned by digest, and checked for the development build's `*.Debug.cs` types),
 `configurator` (electron-builder on Windows and on macOS for Apple silicon only; the Windows
 installer carries the DLL and copies it into SimHub through `configurator/installer/simhub-plugin.nsh`),
-`firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers, the
+`firmware` (four boards in `espressif/idf:v6.0.2`, pinned by digest), then a **draft** release with the installers, the
 Windows `latest.yml` and blockmap the configurator updates itself from (ADR 0037), the DLL and
 four OTA images, its notes written by `tools/release_notes.py` from the files actually built
 and the version's `CHANGELOG.md` entry. Packages are checked for debug traces (an `app.asar` grep);
-nothing is signed, so macOS needs `xattr -dr com.apple.quarantine`.
+nothing is signed, so macOS needs `xattr -dr com.apple.quarantine`. Actions are pinned by commit
+SHA and tool versions are exact (ADR 0042); the token only reads, except in the release job.
 
 **VS Code** ([.vscode/tasks.json](.vscode/tasks.json)) carries eleven `Pitrig: Build …` tasks,
 `Pitrig: Build All Firmware` (sequential, esp32s3 first), `Pitrig: Flash` / `Monitor` /
@@ -105,10 +107,14 @@ install; without it `pnpm run dev` fails with `Error: Electron uninstall`.
 
 ```bash
 python3 tools/check_debug_isolation.py --check
+python3 tools/check_pinned_dependencies.py
 ```
 
-Records the `#if PITRIG_DEBUG` hooks production firmware carries and fails when the set changes;
-run it without `--check` to accept a deliberate change (ADR 0028).
+The first records the `#if PITRIG_DEBUG` hooks production firmware carries and fails when the set
+changes; run it without `--check` to accept a deliberate change (ADR 0028). The second fails on a
+dependency, action, image or tool version not pinned to one exact version, on a lock file
+component no `idf_component.yml` pins, and on a pnpm workspace without the seven-day and trust
+rules (ADR 0042).
 
 Five generators own checked-in code, each run with `python3 -m` **from the repository root** and
 each accepting `--check`; never hand-edit an output:

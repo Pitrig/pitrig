@@ -41,6 +41,7 @@ a release says when either applies.
 - **Configurator.** Images stay in the PC image library until `Save to board`.
 - **Configurator.** The Round dial 480 template has a new design.
 - **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
+- **Development.** Every dependency is pinned to one exact version; updates wait seven days and a review.
 
 **Fixed**
 

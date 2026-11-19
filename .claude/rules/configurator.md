@@ -212,7 +212,12 @@ reads `node_modules/electron/path.txt` instead of downloading, and without the
 binary `pnpm run dev` fails with `Error: Electron uninstall` while packaging
 still works. An unanswered entry
 (pnpm writes `set this to true or false`) makes every `pnpm run` fail until it
-is decided. Nothing is code-signed (`identity: null`). Test the serial protocol
+is decided. The same file's `minimumReleaseAge` (seven days) and
+`trustPolicy: no-downgrade` stop `pnpm add`, `pnpm update` and even a frozen
+install on a version that is too new or published with less trust: answer with
+a reviewed exact-version entry in `minimumReleaseAgeExclude` or
+`trustPolicyExclude` (ADR 0042), never by lowering the setting. Nothing is
+code-signed (`identity: null`). Test the serial protocol
 under Electron rather than plain node. Both applications show no menu
 (`src/main/app-menu.ts`): `null` on Windows and Linux; on macOS the edit, window
 and quit roles stay as hidden items, because a macOS text field cuts, copies,
