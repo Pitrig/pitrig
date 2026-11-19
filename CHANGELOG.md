@@ -41,6 +41,8 @@ a release says when either applies.
 - **Display boards.** The boot animation is smoother and lighter.
 - **Configurator.** Images stay in the PC image library until `Save to board`.
 - **Configurator.** The Round dial 480 template has a new design.
+- **Configurator.** The SimHub plugin panel shows only the plugin, its boards and what to do next.
+- **Configurator.** The Transport section says what it is for.
 - **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
 - **Configurator, SimHub plugin.** Usage reports tell a new install from an update; only official builds send them.
 - **Development.** Every dependency is pinned to one exact version; updates wait seven days and a review.

@@ -1545,6 +1545,7 @@ export type UiStringKey =
   | 'protocol.bridgeSection.simhubHost'
   | 'protocol.bridgeSection.simhubHostHint'
   | 'protocol.bridgeSection.simhubPort'
+  | 'protocol.bridgeSection.summary'
   | 'protocol.bridgeSection.suspended'
   | 'protocol.bridgeSection.title'
   | 'protocol.bridgeSection.waiting'

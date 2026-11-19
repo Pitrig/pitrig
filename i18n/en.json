@@ -1631,6 +1631,7 @@
     "bridgeSection": {
       "title": "SimHub plugin",
       "description": "The Pitrig plugin in SimHub feeds the board by itself. While this configurator is connected to a board the plugin hands it over and its telemetry passes through here on the way, so the dashboard, the lamps and the catalog below show it as it arrives.",
+      "summary": "The Pitrig plugin in SimHub sends telemetry to the board.",
       "pluginVersion": "Plugin {version}",
       "pluginMissing": "No plugin",
       "pluginHint": "No Pitrig plugin answers on this PC. The Windows installer of this configurator adds it to SimHub; restart SimHub afterwards and enable Pitrig telemetry when it asks.",
@@ -1672,10 +1673,10 @@
     },
     "transportSection": {
       "transport": "Transport",
-      "theLinkTheBoardTalks": "The link the board talks over.",
+      "theLinkTheBoardTalks": "How the board connects to this PC — over USB or the serial pins — and how fast.",
       "createOrOpenAConfiguration": "Create or open a configuration on the Configs page first — the transport is the draft’s protocol document rather than a setting kept on the board.",
       "noConfigurationOpen": "No configuration open",
-      "theLinkTheBoardTalks2": "The link the board talks over. Its own stored configuration, saved and restarted on its own — and changing it can cut the board off.",
+      "theLinkTheBoardTalks2": "How the board connects to this PC — over USB or the serial pins — and how fast. Keep the board default unless the board is wired another way.",
       "changingThisCanCutThe": "Changing this can cut the board off",
       "aSavedChangeRestartsThe": "A saved change restarts the board, and the board comes back on the new link — at the new speed, if that is what changed. This window reconnects at the old one and will report that the board did not come back.",
       "notEverySpeedSurvivesEvery": "Not every speed survives every board. A USB-serial bridge is what limits it, not the firmware, and a rate the bridge cannot hold leaves a board that answers nothing.",
