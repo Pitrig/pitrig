@@ -4,6 +4,7 @@ import { pagesOf, widgetsOf } from '@shared/configuration-access'
 import type { SlotWidgetConfiguration } from '@shared/configuration-schema'
 import { visibleSlotPage } from '../preview/canvas-geometry'
 import { canMoveWidgetInto, moveWidgetInto, useDashboardEditorStore } from '../dashboard-editor'
+// eslint-disable-next-line import-x/no-cycle
 import { LayerList } from './LayerList'
 import { dropOrder } from './layer-row-state'
 import type { RowState } from './layer-row-state'

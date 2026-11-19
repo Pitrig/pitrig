@@ -1,8 +1,13 @@
+import { fileURLToPath, URL } from 'node:url'
+
 import js from '@eslint/js'
+import { createNodeResolver, importX } from 'eslint-plugin-import-x'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
+
+const sourceFolder = (folder) => fileURLToPath(new URL(`./src/${folder}`, import.meta.url))
 
 const productSources = [
   'src/main/**/*.{ts,tsx,js,mjs,cjs,mts}',
@@ -66,6 +71,28 @@ export default tseslint.config(
   {
     rules: {
       'no-empty': ['error', { allowEmptyCatch: true }]
+    }
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    plugins: { 'import-x': importX },
+    settings: {
+      'import-x/extensions': ['.ts', '.tsx', '.js'],
+      'import-x/parsers': { '@typescript-eslint/parser': ['.ts', '.tsx'] },
+      'import-x/resolver-next': [
+        createNodeResolver({
+          extensions: ['.ts', '.tsx', '.js', '.json'],
+          alias: {
+            '@': [sourceFolder('renderer/src')],
+            '@shared': [sourceFolder('shared')],
+            '@main': [sourceFolder('main')],
+            '@debug-shared': [sourceFolder('debug/shared')]
+          }
+        })
+      ]
+    },
+    rules: {
+      'import-x/no-cycle': ['error', { ignoreExternal: true }]
     }
   },
   {
