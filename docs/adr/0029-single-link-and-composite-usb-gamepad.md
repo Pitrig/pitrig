@@ -26,7 +26,7 @@ other port, the one the CDC transport already drives.
 
 ## Decision
 
-**One link.** `Composition::kMaximumLinks` is 1, unconditionally. The
+**One link.** `Composition` holds a single `Link`, unconditionally. The
 `PITRIG_SECOND_TELEMETRY_LINK` option, its log-silencing companion, the
 `usb_serial_jtag` transport driver and the `second-link` build profiles are
 removed. The P4's link is its native USB CDC port, the one its `protocol`

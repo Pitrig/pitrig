@@ -146,6 +146,7 @@ platform composition ----> services
 board registry -----------> drivers
 transport composition ----> transport drivers
 modules ------------------> services and components
+modules ------------------> interfaces   (rgb_leds: the LED chip type only)
 components ---------------> interfaces <--------------- drivers
 components / drivers -----> services   (diagnostics instrumentation only)
 services -----------------> interfaces (transport-facing control services)
