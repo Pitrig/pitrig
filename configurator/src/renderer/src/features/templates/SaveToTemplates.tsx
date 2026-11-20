@@ -121,7 +121,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
                 className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
                 disabled={busy}
                 maxLength={MAXIMUM_TEMPLATE_NAME}
-                placeholder={kind === 'widget' ? t('templates.saveToTemplates.rPMGauge') : t('templates.saveToTemplates.enduranceLayout')}
+                placeholder={kind === 'widget' ? t('templates.saveToTemplates.rPMGauge') : t('templates.saveToTemplates.raceLayout')}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 onKeyDown={(event) => {

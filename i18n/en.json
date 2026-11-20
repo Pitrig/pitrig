@@ -1795,7 +1795,7 @@
       "aNameNeedsAtLeast": "A name needs at least one letter or digit.",
       "theWholeDashboardGoesTo": "The whole dashboard goes to the dashboard library — {draft}.",
       "rPMGauge": "RPM gauge",
-      "enduranceLayout": "Endurance layout",
+      "raceLayout": "Race layout",
       "greenBelow6000RedAbove": "Green below 6000, red above",
       "fuelAndTyresForLong": "Fuel and tyres for long runs",
       "replaceTheSavedKindId": "Replace the saved {kind} \"{id}\"?",
