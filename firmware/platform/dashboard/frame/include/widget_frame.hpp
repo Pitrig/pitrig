@@ -71,6 +71,9 @@ class Painter {
                  ApplyContentColor apply_color, void* color_context);
   void bind(ValueReadCallback read, void* context);
   void bind_caption(ValueReadCallback read, void* context);
+  void set_content_self_invalidating(bool self_invalidating) {
+    content_self_invalidating_ = self_invalidating;
+  }
   void render();
   void release();
   void paint_caption_mask(lv_layer_t* layer) const;
@@ -117,6 +120,7 @@ class Painter {
   bool caption_rendered_{};
   ApplyContentColor apply_color_{};
   void* color_context_{};
+  bool content_self_invalidating_{};
 };
 
 }

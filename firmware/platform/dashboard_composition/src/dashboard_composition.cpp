@@ -61,9 +61,7 @@ void on_screen_shown(void* const context) {
 }
 
 void on_telemetry_updated(const events::Event&, void* const context) {
-#if PITRIG_DISPLAY_VSYNC_LOCK
   lvgl_port_disp_note_feed_line();
-#endif
   if (display::rendering_in_progress()) {
     return;
   }
@@ -191,6 +189,7 @@ bool create(lv_display_t* const display,
     log::error(kTag, "Failed to bind dashboard tap actions");
     initialized = false;
   }
+  display::restart_frame_mode_choice(display);
 
   (void)telemetry_transport;
 #if PITRIG_DEBUG

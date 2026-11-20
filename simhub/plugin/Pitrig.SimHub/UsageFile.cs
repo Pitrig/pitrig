@@ -18,6 +18,8 @@ namespace Pitrig.SimHub
         private static readonly string FilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Pitrig", "usage.json");
 
+        private static readonly TimeSpan EarlierUse = TimeSpan.FromMinutes(10);
+
         private UsageFile(string install, bool enabled)
         {
             Install = install;
@@ -42,6 +44,28 @@ namespace Pitrig.SimHub
                 {
                     return null;
                 }
+            }
+        }
+
+        public static bool? UsedBefore()
+        {
+            try
+            {
+                var file = new FileInfo(FilePath);
+                var folder = file.Directory;
+                if (!file.Exists || folder == null) return null;
+                var oldest = folder.CreationTimeUtc;
+                foreach (var entry in folder.EnumerateFileSystemInfos())
+                {
+                    if (entry.Name.StartsWith(file.Name, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (entry.CreationTimeUtc < oldest) oldest = entry.CreationTimeUtc;
+                }
+                return oldest < file.CreationTimeUtc - EarlierUse;
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException ||
+                                              exception is SecurityException)
+            {
+                return null;
             }
         }
 

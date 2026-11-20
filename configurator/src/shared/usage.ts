@@ -18,6 +18,7 @@ export interface UsageReport {
   version: string
   os: string
   arch: string
+  existing?: boolean
   board?: string
   detail?: string
 }

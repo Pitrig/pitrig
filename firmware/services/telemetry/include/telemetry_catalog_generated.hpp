@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 263;
+inline constexpr std::size_t kFieldCount = 272;
 inline constexpr std::size_t kMaximumFieldCount = 350;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -83,6 +83,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"session.finished", ValueType::boolean},
     {"session.checkered", ValueType::boolean},
     {"session.starting_grid_position", ValueType::uint32},
+    {"session.positions_gained", ValueType::int32},
     {"session.gap_ahead", ValueType::text},
     {"session.gap_behind", ValueType::text},
     {"session.gap_leader", ValueType::text},
@@ -128,6 +129,10 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"vehicle.damage.left_grade", ValueType::text},
     {"vehicle.damage.right_grade", ValueType::text},
     {"vehicle.damage.repair_time", ValueType::uint32},
+    {"vehicle.damage.front_repair_time", ValueType::uint32},
+    {"vehicle.damage.rear_repair_time", ValueType::uint32},
+    {"vehicle.damage.left_repair_time", ValueType::uint32},
+    {"vehicle.damage.right_repair_time", ValueType::uint32},
     {"vehicle.damage.suspension", ValueType::float32},
     {"vehicle.damage.transmission", ValueType::float32},
     {"session.flag.current", ValueType::text},
@@ -270,6 +275,10 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"brake.front_right.temperature_average", ValueType::float32},
     {"brake.rear_left.temperature_average", ValueType::float32},
     {"brake.rear_right.temperature_average", ValueType::float32},
+    {"tyre.front_left.temperature_working", ValueType::float32},
+    {"tyre.front_right.temperature_working", ValueType::float32},
+    {"tyre.rear_left.temperature_working", ValueType::float32},
+    {"tyre.rear_right.temperature_working", ValueType::float32},
 }};
 
 static_assert(kFieldCount <= kMaximumFieldCount);

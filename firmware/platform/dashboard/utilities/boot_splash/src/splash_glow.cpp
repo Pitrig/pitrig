@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "lvgl.h"
+#include "lvgl_private.h"
 
 namespace pitrig::dashboard::boot_splash {
 namespace {
@@ -16,6 +17,7 @@ constexpr std::int32_t kGlintWidthDeg = 42;
 constexpr std::int32_t kCornerSteps = 6;
 constexpr std::int32_t kSeamOverlapDeg = 3;
 constexpr std::int32_t kSeamOverlapPx = 1;
+constexpr std::int32_t kArcMarginPx = 2;
 
 [[nodiscard]] std::uint32_t mix(const std::uint32_t from, const std::uint32_t to,
                                 const std::int32_t amount) {
@@ -65,6 +67,7 @@ void Glow::paint(lv_layer_t* const layer) const {
   arc.radius = static_cast<std::uint16_t>(corner);
 
   std::int32_t travelled = 0;
+  const lv_area_t clip = layer->_clip_area;
 
   const auto side = [&](const bool horizontal, const bool forward, const std::int32_t fixed,
                         const std::int32_t span) {
@@ -74,12 +77,15 @@ void Glow::paint(lv_layer_t* const layer) const {
       const std::int32_t tail = end == span ? kSeamOverlapPx : 0;
       const std::int32_t near = corner + (forward ? offset - lead : span - end - tail);
       const std::int32_t far = corner + (forward ? end + tail : span - offset + lead) - 1;
-      rect.bg_color = hue_at(travelled + offset, perimeter);
       const lv_area_t area = horizontal
                                  ? lv_area_t{origin_x + near, origin_y + fixed, origin_x + far,
                                              origin_y + fixed + thickness - 1}
                                  : lv_area_t{origin_x + fixed, origin_y + near,
                                              origin_x + fixed + thickness - 1, origin_y + far};
+      if (!lv_area_is_on(&area, &clip)) {
+        continue;
+      }
+      rect.bg_color = hue_at(travelled + offset, perimeter);
       lv_draw_rect(layer, &rect, &area);
     }
     travelled += span;
@@ -92,8 +98,18 @@ void Glow::paint(lv_layer_t* const layer) const {
       const std::int32_t overlap = index == 0 ? 0 : kSeamOverlapDeg;
       arc.start_angle = start_deg + index * 90 / kCornerSteps - overlap;
       arc.end_angle = start_deg + (index + 1) * 90 / kCornerSteps;
+      lv_area_t reach{};
+      lv_draw_arc_get_area(arc.center.x, arc.center.y, arc.radius, arc.start_angle, arc.end_angle,
+                           arc.width, false, &reach);
+      lv_area_increase(&reach, kArcMarginPx, kArcMarginPx);
+      lv_area_t narrowed{};
+      if (!lv_area_intersect(&narrowed, &reach, &clip)) {
+        continue;
+      }
       arc.color = hue_at(travelled + index * quarter / kCornerSteps, perimeter);
+      layer->_clip_area = narrowed;
       lv_draw_arc(layer, &arc);
+      layer->_clip_area = clip;
     }
     travelled += quarter;
   };
@@ -123,17 +139,22 @@ void Glow::invalidate_border() const {
   }
   lv_area_t coords{};
   lv_obj_get_coords(geometry_.container, &coords);
-  const std::int32_t depth = std::max(geometry_.thickness, geometry_.corner);
+  const std::int32_t corner = geometry_.corner + kArcMarginPx;
+  const std::int32_t band = geometry_.thickness;
   const std::int32_t x1 = coords.x1 + geometry_.x;
   const std::int32_t y1 = coords.y1 + geometry_.y;
   const std::int32_t x2 = x1 + geometry_.width - 1;
   const std::int32_t y2 = y1 + geometry_.height - 1;
-  const lv_area_t sides[] = {{x1, y1, x2, y1 + depth - 1},
-                             {x1, y2 - depth + 1, x2, y2},
-                             {x1, y1, x1 + depth - 1, y2},
-                             {x2 - depth + 1, y1, x2, y2}};
-  for (const lv_area_t& side : sides) {
-    (void)lv_obj_invalidate_area(geometry_.container, &side);
+  const lv_area_t parts[] = {{x1 - kArcMarginPx, y1 - kArcMarginPx, x1 + corner, y1 + corner},
+                             {x2 - corner, y1 - kArcMarginPx, x2 + kArcMarginPx, y1 + corner},
+                             {x1 - kArcMarginPx, y2 - corner, x1 + corner, y2 + kArcMarginPx},
+                             {x2 - corner, y2 - corner, x2 + kArcMarginPx, y2 + kArcMarginPx},
+                             {x1 + corner, y1, x2 - corner, y1 + band - 1},
+                             {x1 + corner, y2 - band + 1, x2 - corner, y2},
+                             {x1, y1 + corner, x1 + band - 1, y2 - corner},
+                             {x2 - band + 1, y1 + corner, x2, y2 - corner}};
+  for (const lv_area_t& part : parts) {
+    (void)lv_obj_invalidate_area(geometry_.container, &part);
   }
 }
 

@@ -18,4 +18,6 @@ bool set_backlight(std::uint8_t percent);
 
 [[nodiscard]] bool rendering_in_progress();
 
+void restart_frame_mode_choice(lv_display_t* display);
+
 }

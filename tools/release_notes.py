@@ -64,14 +64,16 @@ def board_rows(names: list[str], repo: str, tag: str) -> list[str]:
     return rows
 
 
-def changelog_entry(version: str) -> str:
+def changelog_entry(version: str, firmware: str) -> str:
     text = CHANGELOG.read_text(encoding="utf-8")
     match = re.search(
-        rf"^## {re.escape(version)}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.MULTILINE | re.DOTALL
+        rf"^## {re.escape(version)}\b([^\n]*)\n(.*?)(?=^## |\Z)", text, re.MULTILINE | re.DOTALL
     )
     if not match:
         fail(f"CHANGELOG.md has no entry for {version}")
-    return match.group(1).strip()
+    if not match.group(1).endswith(f" — firmware {firmware}"):
+        fail(f"the CHANGELOG.md heading for {version} must end with \" — firmware {firmware}\"")
+    return match.group(2).strip()
 
 
 def render(args: argparse.Namespace) -> str:
@@ -109,7 +111,7 @@ def render(args: argparse.Namespace) -> str:
         "",
         "## Changes",
         "",
-        changelog_entry(args.version),
+        changelog_entry(args.version, args.firmware),
         "",
     ]
     return "\n".join(lines)

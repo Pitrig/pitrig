@@ -33,6 +33,8 @@ live source keeps updating next to a silent one. The widget-level
 `unavailable_text` is shown only while no source has a value at all, and only
 once telemetry has started: before the first line the widget shows the zeros,
 so a board still waiting for its feed does not read as a list of missing values.
+An optional `unavailable_color` paints what is shown then over any styling rule,
+so a missing value never wears a colour meant for a real one.
 
 After binding, a bounded ordered `modifiers` list may apply stateful typed-value
 processing. Modifiers preserve the value type. The initial `lap_timer` modifier
@@ -47,7 +49,18 @@ A text widget may select an optional transform. The `time` transform supports:
 - `clock_ms` renders an unsigned millisecond value as `HH:MM:SS`, which is what
   a session or stint clock wants;
 - `signed_duration_ms` renders a signed millisecond value as `+S.mmm` or
-  `-S.mmm`.
+  `-S.mmm`;
+- `compact_duration_ms` renders `M:SS.mmm` with no leading zero, and `S.mmm`
+  under a minute, so a lap and a sector share one format;
+- `compact_clock_ms` renders `M:SS`, and `H:MM:SS` from an hour;
+- `signed_digits_ms` renders a signed value in four digits whose point moves
+  (`+0.214`, `+12.35`, `-123.5`, `+1235`, held at `±9999`), so a delta keeps
+  one width in its box however far it grows;
+- `split_ms` renders a sector as `S.mmm`, `M:SS.s` from a minute and `M:SS`
+  from ten, so a sector that runs long keeps the width of one that does not.
+
+The four compact formats are additions: the older ones render as they did, so
+no stored document changes meaning and the schema version did not move.
 
 The `number` transform renders `value * scale + offset` with a fixed `decimals`
 count. Unit conversion is expressed as scale and offset rather than as a table

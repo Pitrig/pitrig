@@ -13,6 +13,7 @@ import {
 } from '../dashboard-editor'
 import { dropOrder, type RowState } from './layer-row-state'
 import { RenameField } from './RenameField'
+// eslint-disable-next-line import-x/no-cycle
 import { SlotPages } from './SlotPages'
 import { t } from '@shared/ui-text'
 

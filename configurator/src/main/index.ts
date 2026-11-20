@@ -17,10 +17,11 @@ import {
   broadcastDeviceState,
   broadcastBoardUpdateProgress,
   broadcastFirmwareUploadProgress,
-  broadcastImageUploadProgress,
-  broadcastSaveProgress,
-  registerIpcHandlers
-} from './ipc/register-ipc-handlers'
+  broadcastFontLibraryChanged,
+  broadcastImageLibraryChanged,
+  broadcastSaveProgress
+} from './ipc/broadcast'
+import { registerIpcHandlers } from './ipc/register-ipc-handlers'
 import { registerTelemetryBridge } from './telemetry-bridge/register-telemetry-bridge'
 import { registerUpdates } from './updates/register-updates'
 import { registerUsage } from './usage/register-usage'
@@ -38,7 +39,8 @@ const services: AppServices = createAppServices({
   },
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onBoardUpdateProgress: broadcastBoardUpdateProgress,
-  onImageUploadProgress: broadcastImageUploadProgress,
+  onFontLibraryChanged: broadcastFontLibraryChanged,
+  onImageLibraryChanged: broadcastImageLibraryChanged,
   onSaveProgress: (progress) => {
     broadcastSaveProgress(progress)
     usage.observeSave(progress)

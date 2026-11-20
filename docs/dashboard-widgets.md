@@ -234,7 +234,9 @@ rests at its low end and a centred bar rests at its origin rather than at the
 range minimum. Once the first telemetry line has
 reached the board, a widget still without a value shows its `unavailable_text`
 instead when it has one: before the feed starts nothing is missing yet, after
-it a value the game does not send is.
+it a value the game does not send is. `unavailable_color` paints that text, or
+the zero when there is none, over whatever a styling rule says, so a dim `—`
+stays dim beside a value that turns red.
 
 A text widget renders its `sources` in order and joins them into one string, up
 to three of them. Each source is a telemetry field with its own modifiers and
@@ -294,7 +296,16 @@ Text widgets support the optional `time` transform:
   stint or fuel clock reads as — the same field as a lap, told over hours
   instead of thousandths;
 - `signed_duration_ms` accepts signed milliseconds and renders `+S.mmm` or
-  `-S.mmm`.
+  `-S.mmm`;
+- `compact_duration_ms` renders `M:SS.mmm` without a leading zero, and `S.mmm`
+  under a minute, so one format serves a lap and a sector;
+- `compact_clock_ms` renders `M:SS`, and `H:MM:SS` from an hour;
+- `signed_digits_ms` renders a delta in four digits whose point moves —
+  `+0.214`, `+12.35`, `-123.5`, `+1235` — and holds at `±9999`, so the text
+  keeps one width;
+- `split_ms` renders a sector as `S.mmm`, as `M:SS.s` from a minute and as
+  `M:SS` from ten, so an out-lap sector keeps the six characters a box is sized
+  for.
 
 The `number` transform renders `value * scale + offset` with `decimals` digits
 after the point:
@@ -419,10 +430,11 @@ the table cannot state.
 
 An `image` widget draws an uploaded asset by identifier. The device holds no
 decoder: the configurator converts the source PNG, JPEG or BMP into the pixel
-layout the display draws, at the size chosen on the Images page. Resizing the
-widget leaves the bitmap as it was — artwork changes size only by being
-converted and uploaded again — and images are neither scaled nor rotated at
-runtime, which is also what keeps the ESP32-P4 on its accelerated draw path.
+layout the display draws, at the size chosen on the Images page, and keeps it
+in its image library; `Save to board` installs the images the dashboard draws.
+Resizing the widget leaves the bitmap as it was — artwork changes size only by
+being converted again — and images are neither scaled nor rotated at runtime,
+which is also what keeps the ESP32-P4 on its accelerated draw path.
 
 Image identifiers follow the font-family rule: 1 to 31 lowercase ASCII letters,
 digits, `_`, or `-`. Resolution is exact — a configuration naming an image the
@@ -431,15 +443,14 @@ exactly like a missing font family. The package format and its upload protocol
 are defined in [Image asset storage](image-assets.md); installing a package
 requires a reboot before its images can be drawn.
 
-The Images page shows both halves as pictures rather than as names. An installed
-image is drawn from the configurator's own copy of what it sent — the board
-never sends one back — so what is on screen is the converted bitmap, banding and
-all, rather than the source file; a staged one is drawn from the file that was
-picked, because what it will become depends on the size and format still being
-chosen. Both sit on a checkerboard, so transparency reads as transparency rather
-than as black. Beside them are two bars over the same seven megabytes: what the
-installed package occupies, and what the staged selection would occupy once
-packed — not their sum, because installing replaces the package whole.
+The Images page shows the images on this PC and those on the board as pictures
+rather than as names. A library image is drawn from the converted bytes, banding
+and all, and marked when the open dashboard draws it and when the board holds it
+or holds a different copy; one staged from a file is drawn from that file,
+because what it will become depends on the size and format still being chosen.
+All of them sit on a checkerboard, so transparency reads as transparency rather
+than as black, and one bar shows what the board's package occupies of its seven
+megabytes.
 
 ## Widget captions
 
@@ -541,8 +552,9 @@ The first rule whose comparison holds describes the widget, and whatever it
 leaves unset stays as authored — rules do not accumulate, so order is the
 priority. `op` is `above`, `at_or_above`, `below`, `at_or_below`, `equal`, or
 `not_equal`, compared against `value`. A rule may set `color`,
-`background_color`, `border_color`, `hidden`, and `blink_ms`; up to four rules
-per widget.
+`background_color`, `border_color`, `title_color`, `hidden`, and `blink_ms`; up
+to four rules per widget. `title_color` repaints the caption, so a `LAST` label
+can turn with the lap time it names.
 
 `color` is the widget's content colour, and what content means is the type's own
 business: text paints its label, a bar and an arc their fill, a graph its line,

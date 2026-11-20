@@ -102,6 +102,8 @@ namespace {
          parse_optional_font(value, config.value.font, failure) &&
          read_color(value, "color", config.value.color, kValueName, failure) &&
          read_text(value, "unavailable_text", config.value.unavailable_text, kValueName, failure) &&
+         read_color(value, "unavailable_color", config.value.unavailable_color, kValueName,
+                    failure) &&
          read_enum(value, "alignment", config.value.alignment, text_alignment_from_name, kValueName,
                    failure);
 }

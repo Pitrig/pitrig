@@ -35,6 +35,13 @@ namespace Pitrig.SimHub
             return position > 0 ? position : null;
         }
 
+        public static int? PositionsGained(TelemetryState state)
+        {
+            var start = StartingPosition(state);
+            var position = state.Player?.Position;
+            return start == null || !(position > 0) ? null : start - position;
+        }
+
         private static double? Gap(TelemetryState state, int? position)
         {
             var opponent = state.Status.Opponents.FirstOrDefault(candidate => candidate.Position == position);

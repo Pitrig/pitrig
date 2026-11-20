@@ -16,7 +16,7 @@ dependencies:
       require: private
       version: '>=4.1'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 0.5.3
   espressif/esp_lcd_jd9165:
@@ -100,7 +100,7 @@ dependencies:
       require: private
       version: '>=5.0'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     targets:
     - esp32s2
@@ -122,13 +122,15 @@ dependencies:
     version: 9.5.0
 direct_dependencies:
 - espressif/cjson
+- espressif/cmake_utilities
 - espressif/esp_lcd_jd9165
 - espressif/esp_lcd_touch
 - espressif/esp_lcd_touch_gt911
 - espressif/esp_lvgl_port
 - espressif/esp_tinyusb
+- espressif/tinyusb
 - idf
 - lvgl/lvgl
-manifest_hash: 7f61f6787c60344c752fe62a4d09a585dfe2cb2d848568a369ee1318ff0bc304
+manifest_hash: 0ae726e8b2541ee74e99b9e25a8c390cf3ba8c1b22865c37cd764dbcc04cac47
 target: esp32p4
 version: 3.0.0

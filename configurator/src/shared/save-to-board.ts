@@ -29,6 +29,8 @@ export interface SaveToBoardValue {
   configuration: unknown
   documents: ConfigurationDocumentId[]
   fontsUploaded: boolean
+  imagesUploaded: boolean
+  imagesKept?: string[]
   restarted: boolean
   reconnectFailed?: boolean
   applyFailed?: string
@@ -46,6 +48,8 @@ export interface SaveToBoardError {
     | 'busy'
     | 'device_error'
     | 'font_upload_failed'
+    | 'image_upload_failed'
+    | 'images_unavailable'
   message: string
 }
 

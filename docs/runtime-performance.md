@@ -58,10 +58,13 @@ far more than the frame counters do, and neither figure moves within a window.
 - **FPS:** number of LVGL refreshes that performed rendering, divided by the
   window's own measured duration. Idle refresh callbacks are not counted, so a
   dashboard whose values change more slowly than the display refreshes reports
-  fewer frames without being late. Since [ADR
+  fewer frames without being late. In the partial mode of [ADR
   0027](adr/0027-partial-render-buffers-and-unsynchronized-scan-out.md) no
   board waits for the panel before reusing a buffer, so FPS can exceed the
-  panel scan rate; the panel shows at most its own rate of them.
+  panel scan rate; the panel shows at most its own rate of them. The
+  strip-composed tear-free modes — the JC1060P470C's default and the
+  ESP32-4848S040's only mode — show every frame once, so there FPS stops at
+  the panel rate.
 - **CPU0 / CPU1:** `100%` minus the idle task runtime percentage for each core,
   calculated from consecutive FreeRTOS runtime-counter samples.
 - **Render time:** average drawing time per rendered frame, measured between
@@ -89,7 +92,9 @@ far more than the frame counters do, and neither figure moves within a window.
 - **Latency** (`lat_us` / `lat_max_us` / `lat_n` on the link): average and worst
   time from a telemetry value's commit into its slot to the display accepting
   the frame that drew it, and how many frames carried one. The one figure that
-  covers the whole path — wake, render and flush together.
+  covers the whole path — wake, render and flush together. In the
+  strip-composed modes it ends when LVGL hands over the last strip, and the
+  frame can still wait one or two refreshes for its latch (ADR 0027).
 - **Frame accounting** (`acc_vsyncs`, `acc_swaps`, `acc_start_timer` /
   `acc_start_late` / `acc_start_fallback` / `acc_start_burst` / `acc_start_other`,
   `wake_nothing`, `sched_*`, `pkt_*`, `cost_span` / `cost_wait`): cumulative
@@ -176,6 +181,18 @@ per-screen tuning:
   feed is 20 Hz or 60. Indicators and conditions stay on the packet. A needle is
   the cheapest of them to follow: it invalidates only the box around its pivot
   and its two positions, not the square it is drawn in.
+- **A ring arc whose colour follows a ramp or a condition repaints only its
+  filled part**, in 30° pieces, and only when the new colour differs in the
+  panel's pixel format; before, every change repainted the arc's whole box and
+  everything under it, and the first design of `round-dial-480`, built on such a
+  ring, drew a frame in 53 ms instead of 31. Every piece still redraws whatever
+  its box reaches — there the bezel, the plate, the shift lamps and the
+  numbers — so a large ramped ring
+  stays the most expensive gauge a round screen can hold: on the ESP32-S3 that
+  dial draws in 29 ms while its ring is ramping and in 8 ms below the ramp.
+  Smaller pieces are slower, not faster, because each redrawn area carries
+  about 1 ms of fixed cost. An arc with a gradient instead of a ramp repaints
+  only the part its value moves.
 - **Screens that are not shown cost nothing**, so splitting a dense dashboard
   across screens buys frame budget directly; transitions are tear-free and do
   not tax the steady state. Widget timers and the slot controller skip instances
@@ -184,7 +201,9 @@ per-screen tuning:
   exception — their sampler keeps running and the render is what drains its
   ring, so skipping one would lose history.
 - **Verify, don't guess**: apply the document and read `render_us` and
-  `lat_us` back over `@PR:DIAG`, with the FPS chip on the panel.
+  `lat_us` back over `@PR:DIAG`, with the FPS chip on the panel. A firmware
+  change is checked the same way against the board's newest entry in
+  [performance-baselines.md](performance-baselines.md).
 
 ### Where an area's time goes
 
@@ -241,7 +260,9 @@ patterns and that dashboard's three screens: its main screen 59 fps on every
 boot of six (was five of eight), `shapes_96` 33 to 59, `text_32_plain` 46 to 57,
 `text_32` 50 to 55, `bars_24` 47 to 51, eleven unchanged; `full_screen_bar`
 49 to 42 and `indicators_12` 58.5 to 54 pay for it, because the gate delays
-electing the widened mode on the screens that want it.
+electing the widened mode on the screens that want it. Every composition
+starts the choice again, as a boot does, so a dashboard applied or saved
+without a restart is not judged by the costs of the one before it.
 
 ### Where a frame's latency actually goes
 

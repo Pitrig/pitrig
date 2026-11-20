@@ -197,5 +197,3 @@ function parseDocumentState(value: string | undefined): ConfigurationDocumentSta
   }
   return { outcome: outcome as ConfigurationDocumentOutcome, generation }
 }
-
-export { parseFirmwareUpdateInfo, parseFontAssetInfo, parseImageAssetInfo } from './asset-info-parsers'

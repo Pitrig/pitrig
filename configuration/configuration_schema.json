@@ -279,7 +279,7 @@
       "cpp_header": "time_transform.hpp",
       "typescript": "TimeTransform",
       "keys": ["format"],
-      "doc": "Stateless time formatting configuration owned by utils/transformers/time_transform. format is duration_ms (MM:SS.mmm, a lap), clock_ms (HH:MM:SS, a session or stint clock) or signed_duration_ms (+S.mmm, a delta)."
+      "doc": "Stateless time formatting configuration owned by utils/transformers/time_transform. format is duration_ms (MM:SS.mmm, a lap), clock_ms (HH:MM:SS, a session or stint clock), signed_duration_ms (+S.mmm, a delta), compact_duration_ms (M:SS.mmm, or S.mmm under a minute: a lap or a sector), compact_clock_ms (M:SS, or H:MM:SS from an hour), signed_digits_ms (a delta in four digits whose point moves: +0.214, +12.35, -123.5) or split_ms (S.mmm, M:SS.s from a minute and M:SS from ten: a sector that keeps six characters)."
     },
     "NumberTransformConfig": {
       "cpp": "transformers::number_transform::Config",
@@ -632,7 +632,8 @@
         { "name": "font", "kind": "external", "external": "FontSpec" },
         { "name": "color", "kind": "color", "default": "0xE8E8E8" },
         { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "doc": "Which point of the widget's content area the value label is anchored to." },
-        { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "doc": "Shown while the bound value is unavailable once telemetry has started. Before the first telemetry line, and when empty, a zero renders through the widget's own transform, so a plain value reads 0 and a time value keeps its format." }
+        { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "doc": "Shown while the bound value is unavailable once telemetry has started. Before the first telemetry line, and when empty, a zero renders through the widget's own transform, so a plain value reads 0 and a time value keeps its format." },
+        { "name": "unavailable_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of what the widget draws while no source has a value once telemetry has started, whatever a styling rule says, so a missing value reads as missing. Omitted keeps the value colour." }
       ]
     },
 
@@ -710,6 +711,7 @@
         { "name": "color", "kind": "optional_color", "default": "kTransparentColor" },
         { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
         { "name": "border_color", "kind": "optional_color", "default": "kTransparentColor" },
+        { "name": "title_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of the widget's caption while this rule applies, so a caption can turn with its value. Omitted keeps title.color." },
         { "name": "hidden", "kind": "bool", "default": false },
         { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of the widget value. 0 renders steady." },
         { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps this rule applied for this long after it stops matching, so a momentary trigger such as traction control still produces a visible flash. 0 applies the rule only while it matches." }

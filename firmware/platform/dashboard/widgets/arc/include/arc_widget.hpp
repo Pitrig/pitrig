@@ -29,6 +29,7 @@ struct State {
   lv_obj_t* arc{};
   lv_draw_buf_t* gradient{};
   std::uint32_t fill_rgb{};
+  std::uint32_t indicator_rgb{};
   std::uint32_t needle_rgb{};
   std::int32_t needle_width{};
   bool needle{};

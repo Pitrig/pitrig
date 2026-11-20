@@ -51,6 +51,7 @@ struct State {
   std::array<char, telemetry::kTelemetryTextCapacity> unavailable_text{};
   std::array<char, telemetry::kTelemetryTextCapacity> displayed_text{};
   std::uint32_t color{};
+  std::uint32_t unavailable_color{};
   Alignment alignment{};
   std::int32_t value_height{};
   std::int32_t text_width{};
@@ -58,6 +59,7 @@ struct State {
   bool full_width{};
   bool initialized{};
   bool rendered_started{};
+  bool showing_unavailable{};
 };
 
 class Collection final : public frame::Collection<Collection, State, kMaximumInstances> {

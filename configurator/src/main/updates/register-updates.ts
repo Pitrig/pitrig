@@ -45,7 +45,7 @@ export function registerUpdates(
 
 function isOpenPageRequest(value: unknown): value is OpenUpdatePageRequest {
   const page = (value as Partial<OpenUpdatePageRequest> | null)?.page
-  return page === 'release' || page === 'simhub'
+  return page === 'release' || page === 'simhub' || page === 'flasher'
 }
 
 function isInstallPluginRequest(value: unknown): value is InstallPluginRequest {

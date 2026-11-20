@@ -54,10 +54,11 @@ A descriptor's five entry points are the same five calls for every type: bind
 this type's sources, hand its collection the result, hand back a root object,
 rebuild one instance, wake the timers. Only two things vary — whether a type
 draws a bound value or only restyles on one, and, for images, that it also draws
-from the image registry. So the entry points are written twice rather than once
-per type, as `ValueWidgetOps` and `ConditionWidgetOps` over the type's storage
-struct, in the same idiom `ValueBinder` / `ConditionBinder` already use a layer
-below.
+from the image registry. So the entry points are written once for every drawn
+type, as `ValueWidgetOps` over the type's storage struct, which picks the
+image and container variants from the storage's members; slots have their own
+`SlotWidgetOps`, and both share `WidgetOpsCommon`. The value-or-restyle split
+stays a layer below, in `ValueBinder` / `ConditionBinder`.
 
 What those templates cannot deduce — how many instances of a type a document
 holds, where its pool is, which property names it — comes from a

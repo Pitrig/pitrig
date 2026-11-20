@@ -34,8 +34,10 @@ waited for scan-out, so it is unchanged.
 ## Decision
 
 - Both boards hand the port partial buffers (two strips in internal DMA RAM),
-  `avoid_tearing = false`, `direct_mode = false`. The 4848S040 runs its pixel
-  clock at 16 MHz with 480×20 px bounce buffers.
+  `avoid_tearing = false`, `direct_mode = false`. The 4848S040 composes those
+  strips tear-free into three PSRAM frame buffers (see the amendment on the
+  RGB board below), with 480×32 px strips, 480×20 px bounce buffers and its
+  pixel clock at 17.1 MHz.
 - Tearing is accepted for widget updates: a strip lands in the frame buffer
   mid-scan, and for numeric readouts the artifact is a one-frame horizontal
   seam inside a glyph, judged worth 14–17 ms of latency on every value the
@@ -57,7 +59,10 @@ waited for scan-out, so it is unchanged.
   buffers at the frame boundary. A frame that covered less does not swap — its
   strips wait in the hidden buffer for the next full animation frame, so a
   stray widget-only refresh cannot swap ghost content in. At rest the switch
-  costs nothing; verified tear-free on both boards.
+  costs nothing; verified tear-free on both boards. The 4848S040 no longer
+  takes this path: its strips are tear-free on every frame, so the switch
+  refuses it, and the redirect remains only for an RGB panel that exposes no
+  frame buffers to compose into.
 - The JC1060P470C's DPI panel copies each strip with DMA2D
   (`esp_lcd_dpi_panel_enable_dma2d`, called once when the panel is created).
   Without it `esp_lcd_panel_draw_bitmap` falls back to a per-line `memcpy`
@@ -108,8 +113,9 @@ waited for scan-out, so it is unchanged.
 ## Consequences
 
 - Latency (commit → panel accepted) at 60 Hz telemetry, eight readouts:
-  T-Display-S3 ~7 ms, 4848S040 ~8.5 ms, JC1060P470C ~6 ms. Sixty fps holds to
-  roughly sixteen concurrently changing readouts on each board.
+  T-Display-S3 ~7 ms, JC1060P470C ~6 ms in partial mode. Sixty fps holds to
+  roughly sixteen concurrently changing readouts on each board. The 4848S040's
+  figures are in the amendment on the RGB board.
 - The cost model of [runtime-performance.md](../runtime-performance.md)
   changes shape on the two boards: flush is a strip copy (2–4 ms a frame)
   rather than a scan-out wait — and on the JC1060P470C the copy runs on the
@@ -134,23 +140,17 @@ waited for scan-out, so it is unchanged.
 - The JC1060P470C's buffering is a build-time choice
   (`PITRIG_DISPLAY_RENDER_MODE`): the strip-composed tear-free mode by default
   (see the amendment below), partial strips as the opt-out
-  (`sdkconfig.defaults.render-partial`), and direct and full-screen modes for a
-  build that trades frame rate for rendering straight into the panel's PSRAM
-  buffers. Full was re-measured with PPA on and with two draw units and stays
-  2-3x behind partial on every pattern — repainting the whole 614k-pixel frame
-  into PSRAM is bandwidth-bound — and the tear-free builds skip the navigation
-  controller's transition switching.
-- Full mode (`sdkconfig.defaults.render-full`) gets a third panel frame buffer
-  handed to LVGL (`lv_display_set_3rd_draw_buffer`), so a frame renders while
-  the previous one is queued and a third is on screen, and the core-0 worker
-  queues the swap throttled only by the vsync ISR's refresh counter. The
-  fragment selects the 512 KB L2 cache with 128-byte lines, which fits only
-  because full mode allocates no internal-RAM strips (~77 KB of internal RAM
-  stays free with the debug overlay on — mind that headroom), and the text
-  widget sizes its label to the box there, because the whole screen repaints
-  anyway. Together the bench battery moved +29-115% over plain full mode
-  (text_only 19.6→42.1 fps). `-O3` measured 1-2% behind `-O2` and stays
-  rejected.
+  (`sdkconfig.defaults.render-partial`), and direct mode for a build that
+  trades frame rate for rendering straight into the panel's PSRAM buffers. The
+  tear-free builds skip the navigation controller's transition switching.
+- Full-screen mode, which repainted the whole frame into PSRAM every frame, is
+  removed and is not to be brought back. Even with a third panel frame buffer,
+  the 512 KB L2 cache and two draw units it stayed 2-3x behind partial on every
+  pattern, because repainting all 614k pixels into PSRAM is bandwidth-bound,
+  and by 2026-11-17 its build no longer linked. The `dsi-triple-buffer` port
+  layer keeps its full-refresh path, which nothing selects any more, because
+  the fields it adds carry the later layers. `-O3` measured 1-2% behind `-O2`
+  and stays rejected.
 - The fourth option, `PITRIG_DISPLAY_RENDER_FULL_STRIPS` — now the default —
   is the tear-free mode closest to partial's frame rates. LVGL renders only the
   damage into 60-line internal-RAM strips; an AXI-GDMA channel carries each
@@ -254,21 +254,151 @@ widened, whatever the dashboard is really worth.
 
 **Decision.** Nothing is recorded until the screen stops changing shape. A
 settle gate stays shut until eight consecutive frames have covered less than
-half the screen, or four seconds have passed for a dashboard whose ordinary
-damage really is the whole screen. While it is shut the display keeps drawing
-whichever mode is believed — both are correct — but nothing is measured and
-nothing is probed. Once open, each mode seeds from the cheapest of its first
-four frames, because frame cost has a hard floor and a one-sided tail. Two
-events that used to share one threshold are told apart: ordinary drift in the
-winner's cost, by half, only stops the loser being believed and lets it be
-probed again; a move by a factor of four means the dashboard was replaced and
-shuts the gate. The cost a frame is charged is its span minus the time slept
-in the flush wait, so the previous swap's hold cannot leak into it
-([ADR 0032](0032-burst-scheduled-frames.md)).
+half the screen, or four seconds have passed, counted in time rather than
+frames, for a dashboard whose ordinary damage really is the whole screen. While
+it is shut the display keeps drawing whichever mode is believed — both are
+correct — but nothing is measured and nothing is probed. Once open, each mode
+seeds from the cheapest of its first four frames, because frame cost has a hard
+floor and a one-sided tail. Two events that used to share one threshold are
+told apart: ordinary drift in the winner's cost, by half, only stops the loser
+being believed and lets it be probed again; a move by a factor of four means
+the dashboard was replaced and shuts the gate. Composing a dashboard, at boot
+or when a document is applied or saved, starts the choice again: the gate
+shuts, both modes count as unmeasured, and the reconciled mode is drawn until
+each is seeded afresh. Until a screen has been measured its frames are not held
+for pacing, because the only cost at hand would be the previous screen's. A
+cost the previous dashboard left above the probe budget otherwise kept the
+loser from ever being measured again, so a new dashboard whose own cost held
+level kept the slower mode. A mode not yet measured is probed within 128 frames
+rather than the 1,024 a known loser waits. The cost a frame is charged is its
+span minus the time slept in the flush wait, so the previous swap's hold cannot
+leak into it ([ADR 0032](0032-burst-scheduled-frames.md)).
 
-**Consequences.** That main screen is 59 fps on every boot of six
-(render 4.6 ms, latency 21 ms); over the debugger's sixteen stress patterns
-`shapes_96` went 33 to 59 fps, `text_32_plain` 46 to 57, `text_32` 50 to 55,
-`bars_24` 47 to 51, and eleven did not move. Two pay for it — `full_screen_bar`
-49 to 42 and `indicators_12` 58.5 to 54 — because the gate delays electing the
-widened mode on the screens that want it most.
+**Consequences.** That main screen is 59 fps on every boot of six (render 4.6
+ms, latency 21 ms); over the debugger's sixteen stress patterns `shapes_96`
+went 33 to 59 fps, `text_32_plain` 46 to 57, `text_32` 50 to 55, `bars_24` 47
+to 51, and eleven did not move. Two pay for it — `full_screen_bar` 49 to 42 and
+`indicators_12` 58.5 to 54 — because the gate delays electing the widened mode
+on the screens that want it most. Restarting the choice on every composition
+took the order out of it: the battery reads the same forward and reversed on
+every screen but `full_screen_bar`, `all_widgets` applied after `graphs_6` runs
+40 fps instead of 29.5, and `text_16` after `full_screen_bar` draws in 8.3 ms
+instead of 15. A screen that redraws half the panel each frame waits four
+seconds rather than 240 of its own frames, and none is held to 30 fps by the
+cost of the screen before it: `graphs_6` reaches 29 fps within twelve seconds
+of being applied instead of eighteen, and `indicators_12` applied after
+`full_screen_bar` runs 54 fps from the start instead of 36
+([performance-baselines.md](../performance-baselines.md)).
+
+## Amendment: the RGB board composes tear-free too
+
+The 4848S040 kept the seam the first decision accepted, even after the
+JC1060P470C moved to the strip-composed mode. It now composes tear-free as
+well, through its own port layer, `rgb-full-strips`. LVGL still renders the
+damage into internal-RAM strips; the flush worker copies each strip into a
+frame buffer the panel is not scanning, copies the areas the two previous
+frames changed from the newest complete buffer, less the areas this frame
+redraws, and hands the buffer to the driver, which latches it when the bounce
+buffers wrap. Three frame buffers let LVGL draw the next frame while the last
+one waits for its latch, and every frame is shown once. The areas a frame draws
+are read at `LV_EVENT_RENDER_START`, after LVGL has joined them. They never
+overlap the copied areas, so the worker copies those in the gaps between strips
+and finishes before the swap. A frame whose strips do not add up to its areas
+turns the subtraction off and redraws the screen once. The RGB path waits for
+its flush on a semaphore the worker gives, not on the tick-polled wait the DSI
+path keeps.
+
+Three buffers also let LVGL run three frames ahead of the panel, and with a
+feed at the panel rate that queue never drained: on `text_only` a value reached
+the glass about 54 ms after it arrived, of which `lat_us` sees only the first
+24. The port therefore measures every frame, from the moment LVGL resumes for
+it to the hand-over less any wait on an earlier frame's latch, and the panel
+period at each bounce-buffer wrap. A screen whose decaying peak frame cost plus
+a margin stays 3 ms under the period for 60 frames running is light, and stops
+being light the moment it comes within 1.5 ms. Before LVGL runs its timers on a
+light screen, the port:
+
+- waits until the telemetry burst has been quiet for 0.6 ms: the board's CH340
+  bridge delivers a 14-line packet in about six pieces over 1.6 ms, and a frame
+  started mid-burst is followed by another one for the rest;
+- lets the queue drain to one waiting frame;
+- when a frame is waiting and the next one would finish before it latches,
+  starts the next one as late as it can still make the refresh after, so it
+  draws fresher values for the same refresh. The margin starts at 2 ms, grows by
+  0.5 ms whenever such a frame misses and shrinks by 0.25 ms after 64 that make
+  it;
+- with nothing in flight and no new line, sleeps until the next frame's start
+  point, and a telemetry line wakes it at once, so a still screen wakes once a
+  refresh instead of every 4 ms.
+
+Screens that are not light keep the full queue: it absorbs their frame-to-frame
+cost, where one frame missing its refresh would show as a repeat.
+
+Six settings make it fit and fast:
+
+- **480×32 strips instead of 480×40.** With 40 rows a debug image could not
+  allocate its second strip: the main internal region was 7.7 KB short and the
+  32 KB internal reserve holds 31.7 KB, so the display never came up; the
+  product image had about 0.6 KB to spare. A 30,720-byte strip fits either
+  region.
+- **64-byte data-cache lines** (`sdkconfig.defaults.guition-esp32-4848s040`).
+  Every PSRAM transfer moves in longer bursts: the bounce-buffer refill, the
+  strip copies, the copied areas and LVGL's own reads. On the stress patterns
+  frame rates rose by up to 23 % and core 0 load fell by up to 26 points. On
+  the heaviest template the bounce-buffer interrupt ran more than 0.8 ms late
+  four times a minute instead of nine, and twice with this whole amendment.
+- **A 17.1 MHz pixel clock.** The panel refreshes at about 60.4 Hz instead of
+  56.4, in step with a 60 Hz feed. 18 MHz (63.4 Hz) gained only on screens
+  that already outran the feed and slowed the heavy ones, so it was rejected.
+- **A 16-entry circle cache and the style cache.** `round-dial-480` draws
+  circles of seven radii and LVGL kept the masks of four; the style cache is
+  the one the JC1060P470C already uses. Together they take 12 % off that
+  template's frame, pixel for pixel the same.
+- **The light-screen scheduling above.** On a still screen core 1 falls from
+  5.3 % to 1.9 % on `text_only` and from 9.2 % to 3.2 % on `round-dial-480`.
+- **Code and read-only data in PSRAM** (`CONFIG_SPIRAM_XIP_FROM_PSRAM`).
+  Without it every erase and write to flash — a font, image or firmware
+  upload, a saved document — turns the cache off, the bounce buffers stop
+  refilling, and the panel repeats one band of rows until the write ends. With
+  it the cache stays on and the picture holds through an upload. Fonts and
+  images are already drawn from their copies in external RAM, so nothing reads
+  flash while it is written. Instruction fetches leave the flash bus as well:
+  `round-dial-480` rose from 34 to 47–54 fps and `all_widgets` from 38 to 49,
+  for about 0.7 MB of PSRAM (`docs/performance-baselines.md`).
+
+Measured on a debug build with a 60 Hz feed, against the seamed partial mode
+with the same 480×32 strips, before the scheduling and the caches (the
+latencies are `lat_us`):
+
+| Screen | Partial, 16 MHz | Tear-free, 17.1 MHz |
+| --- | ---: | ---: |
+| `text_only` | 111.1 fps, 5.4 ms | 60.4 fps, 24.3 ms |
+| `text_16` | 59.9 fps, 26.7 ms | 60.4 fps, 23.4 ms |
+| `huge_text_4` | 52.2 fps | 60.3 fps |
+| `shapes_96` | 51.9 fps | 58.3 fps |
+| `all_widgets` | 32.8 fps | 36.6 fps |
+| `graphs_6` | 17.2 fps | 22.2 fps |
+| `full_screen_bar` | 40.6 fps | 40.4 fps |
+| `bars_24` | 37.5 fps | 34.0 fps |
+| `indicators_12` | 38.9 fps | 30.3 fps |
+| `guition-reference` template | 70.7 fps, 9.4 ms | 56.8 fps, 18.0 ms |
+| `round-dial-480` template | 25.1 fps | 25.4 fps |
+
+Frame rate stops at the panel's. Screens whose damage moves every frame, such
+as `indicators_12`, pay for the copied areas on core 0. A full redraw after any
+incremental frame was byte-identical to it on sixteen screens, and the same
+frozen screen drew the same frame buffer, byte for byte, in both modes.
+
+Packet to panel, read from a debug-build log of every burst, frame start,
+hand-over and latch, before and after the scheduling, the caches and the arc
+repaint described in `runtime-performance.md`:
+
+| Screen | Before | After |
+| --- | ---: | ---: |
+| `text_only` | 54 ms, no repeats | 17 ms, 0.2–1 repeats/s |
+| `round-dial-480` template | 180 ms, 25 fps | 90 ms, 38 fps |
+
+The feed runs at 60.0 Hz and the panel at 60.4, so about 0.4 refreshes a second
+have nothing new to show on any scheduling. `text_16`, `huge_text_4`,
+`guition-reference` and `round-screen-480` are not light and keep their
+latencies of 40–45 ms.

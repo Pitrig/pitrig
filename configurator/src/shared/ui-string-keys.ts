@@ -132,43 +132,18 @@ export type UiStringKey =
   | 'common.close'
   | 'common.delete'
   | 'common.listAndMore'
-  | 'common.load'
   | 'common.none'
   | 'common.ok'
   | 'common.open'
   | 'common.pageNumber'
-  | 'common.reset'
   | 'common.save'
   | 'common.screenNumber'
   | 'common.select'
   | 'common.traceNumber'
-  | 'configs.advancedJsonSection.activeConfigurationJson'
-  | 'configs.advancedJsonSection.advancedJson'
-  | 'configs.advancedJsonSection.configurationDocuments'
-  | 'configs.advancedJsonSection.createOpenOrConnectA'
-  | 'configs.advancedJsonSection.eachDocumentExactlyAsThe'
-  | 'configs.advancedJsonSection.thisIsNotValidJson'
-  | 'configs.boardDocumentsSection.bytesBytes'
-  | 'configs.boardDocumentsSection.configsOnTheBoard'
-  | 'configs.boardDocumentsSection.eraseThisDocumentFromThe'
-  | 'configs.boardDocumentsSection.factory'
-  | 'configs.boardDocumentsSection.generationGeneration'
-  | 'configs.boardDocumentsSection.inSync'
-  | 'configs.boardDocumentsSection.loadAllFromBoard'
-  | 'configs.boardDocumentsSection.refused'
-  | 'configs.boardDocumentsSection.resetToFactoryConfiguration'
-  | 'configs.boardDocumentsSection.savingWritesOnlyTheDocuments'
-  | 'configs.boardDocumentsSection.takeThisDocumentBackFrom'
-  | 'configs.boardDocumentsSection.threeDocumentsStoredAndWritten'
-  | 'configs.boardDocumentsSection.writeOnlyThisDocumentTo'
-  | 'configs.changesSection.beforeAfter'
-  | 'configs.changesSection.changesComparedWithTheBoard'
-  | 'configs.changesSection.connectABoardToCompare'
-  | 'configs.changesSection.furtherChanges'
-  | 'configs.changesSection.nothingToCompare'
-  | 'configs.changesSection.theDraftIsComparedAgainst'
-  | 'configs.changesSection.theDraftMatchesTheBoard'
-  | 'configs.changesSection.whatASaveWouldWrite'
+  | 'configs.boardSection.boardHoldsAnotherSetup'
+  | 'configs.boardSection.boardHoldsThisSetup'
+  | 'configs.boardSection.loadFromBoard'
+  | 'configs.boardSection.loadFromBoardHint'
   | 'configs.configLibraryService.aConfigurationFileMustNot'
   | 'configs.configLibraryService.aConfigurationNameIs1'
   | 'configs.configLibraryService.failedToDeleteTheConfiguration'
@@ -183,37 +158,36 @@ export type UiStringKey =
   | 'configs.configLibraryService.theFileIsUnreadable'
   | 'configs.configLibraryService.theLibraryHoldsAtMost'
   | 'configs.configLibraryService.theSavedConfigurationIsUnreadable'
-  | 'configs.configsPage.bytesOfLimit'
   | 'configs.configurationFileService.configurationFileMustNotExceed'
   | 'configs.configurationFileService.failedToLoadTheConfiguration'
   | 'configs.configurationFileService.failedToSaveTheConfiguration'
   | 'configs.configurationFileService.invalidConfigurationJson'
   | 'configs.configurationFileService.loadConfiguration'
   | 'configs.configurationFileService.saveConfiguration'
+  | 'configs.dialog.anyFilter'
   | 'configs.dialog.filter'
   | 'configs.dialog.loadTitle'
   | 'configs.dialog.saveTitle'
   | 'configs.librarySection.deleteName'
-  | 'configs.librarySection.deleteTheSavedConfigurationId'
-  | 'configs.librarySection.endurance'
-  | 'configs.librarySection.filesOpenedOrSavedThrough'
-  | 'configs.librarySection.forgetFilename'
-  | 'configs.librarySection.keptInTheApplicationS'
-  | 'configs.librarySection.noLongerAtThisPath'
-  | 'configs.librarySection.noRecentFiles'
-  | 'configs.librarySection.nothingSavedYet'
-  | 'configs.librarySection.openingOrSavingAJson'
-  | 'configs.librarySection.readingTheFolder'
-  | 'configs.librarySection.recentFiles'
-  | 'configs.librarySection.replaceTheSavedConfigurationId'
-  | 'configs.librarySection.saveTheCurrentDashboardBelow'
-  | 'configs.librarySection.saveTheCurrentDraftAs'
-  | 'configs.librarySection.saveToLibrary'
-  | 'configs.librarySection.savedAsName'
-  | 'configs.librarySection.savedConfigurations'
   | 'configs.librarySection.screenCount'
-  | 'configs.librarySection.unreadableFiles'
   | 'configs.librarySection.widgetCount'
+  | 'configs.recentList.deleteName'
+  | 'configs.recentList.deleteTheSavedCopyName'
+  | 'configs.recentList.fileMovedOrDeleted'
+  | 'configs.recentList.forgetFilename'
+  | 'configs.recentList.nothingYet'
+  | 'configs.recentList.reading'
+  | 'configs.recentList.recent'
+  | 'configs.recentList.savedInPitrig'
+  | 'configs.recentList.unreadableCopies'
+  | 'controls.actionLine.action'
+  | 'controls.actionLine.page'
+  | 'controls.actionLine.pageNumber'
+  | 'controls.actionLine.removeAction'
+  | 'controls.actionLine.repeatWhileHeld'
+  | 'controls.actionLine.screen'
+  | 'controls.actionLine.slot'
+  | 'controls.actionLine.wrap'
   | 'controls.actions.dismiss_page'
   | 'controls.actions.display_brighter'
   | 'controls.actions.display_dimmer'
@@ -229,61 +203,35 @@ export type UiStringKey =
   | 'controls.actions.previous_screen'
   | 'controls.actions.show_page'
   | 'controls.actions.show_screen'
-  | 'controls.bindingList.action'
-  | 'controls.bindingList.addAction'
-  | 'controls.bindingList.button'
-  | 'controls.bindingList.noActionsYet'
-  | 'controls.bindingList.page'
-  | 'controls.bindingList.pageNumber'
-  | 'controls.bindingList.removeActionNumber'
-  | 'controls.bindingList.repeatWhileHeld'
-  | 'controls.bindingList.screen'
-  | 'controls.bindingList.slot'
-  | 'controls.bindingList.wrap'
-  | 'controls.buttonsView.buttons'
-  | 'controls.buttonsView.buttonsDescription'
-  | 'controls.buttonsView.down'
-  | 'controls.buttonsView.home'
-  | 'controls.buttonsView.homeDescription'
-  | 'controls.buttonsView.lastInput'
-  | 'controls.buttonsView.multiPositionSwitch'
-  | 'controls.buttonsView.pressAnyButton'
-  | 'controls.buttonsView.pressTheButtonToAssign'
-  | 'controls.buttonsView.screenRules'
-  | 'controls.buttonsView.screenRulesDescription'
-  | 'controls.buttonsView.startSimhubWithThePlugin'
-  | 'controls.buttonsView.switchDescription'
-  | 'controls.buttonsView.up'
-  | 'controls.buttonsView.whatTheButtonsDo'
-  | 'controls.buttonsView.whatTheButtonsDoDescription'
+  | 'controls.buttonList.addButton'
+  | 'controls.buttonList.allButtonsUsed'
+  | 'controls.buttonList.alsoDoSomethingElse'
+  | 'controls.buttonList.chooseWhatItDoes'
+  | 'controls.buttonList.fourInputsAtMost'
+  | 'controls.buttonList.noButtonsYet'
+  | 'controls.buttonList.notAssignedYet'
+  | 'controls.buttonList.pressAssignThenTheButton'
+  | 'controls.buttonList.removeName'
+  | 'controls.buttonList.startSimhubToAssign'
+  | 'controls.controlsPage.alsoInSimhub'
+  | 'controls.controlsPage.buttons'
+  | 'controls.controlsPage.controls'
+  | 'controls.controlsPage.down'
+  | 'controls.controlsPage.eachPositionShowsOne'
+  | 'controls.controlsPage.lastInput'
+  | 'controls.controlsPage.pressAddButtonThen'
+  | 'controls.controlsPage.pressAnyButton'
+  | 'controls.controlsPage.pressTheButtonToAssign'
+  | 'controls.controlsPage.rotarySwitch'
+  | 'controls.controlsPage.startANewSetupOn'
+  | 'controls.controlsPage.startSimhubWithThePlugin'
+  | 'controls.controlsPage.up'
+  | 'controls.controlsPage.whatTheButtonsOnYour'
   | 'controls.document.buttonNumber'
-  | 'controls.hints.homeAfter'
-  | 'controls.hints.homeScreen'
-  | 'controls.hints.ruleSource'
   | 'controls.hints.switchSlot'
-  | 'controls.homeSection.homeScreen'
-  | 'controls.homeSection.returnAfter'
-  | 'controls.homeSection.seconds'
-  | 'controls.homeSection.theFirstScreen'
-  | 'controls.inputButtonList.addButton'
-  | 'controls.inputButtonList.allButtonsUsed'
-  | 'controls.inputButtonList.clearButtonNumber'
-  | 'controls.inputButtonList.fourInputsAtMost'
-  | 'controls.inputButtonList.noButtonsYet'
-  | 'controls.inputButtonList.pressAssignThenTheButton'
-  | 'controls.inputButtonList.startSimhubToAssign'
   | 'controls.inputParts.assign'
   | 'controls.inputParts.pressAButton'
   | 'controls.inputParts.removeInput'
-  | 'controls.ruleList.addRule'
-  | 'controls.ruleList.moreConditions'
-  | 'controls.ruleList.noRulesYet'
-  | 'controls.ruleList.removeRuleNumber'
-  | 'controls.ruleList.screen'
-  | 'controls.ruleList.show'
-  | 'controls.ruleList.value'
-  | 'controls.ruleList.watch'
-  | 'controls.ruleList.while'
   | 'controls.switchSection.addPosition'
   | 'controls.switchSection.morePositionsThanPages'
   | 'controls.switchSection.noPositionsYet'
@@ -299,22 +247,25 @@ export type UiStringKey =
   | 'dashboard.boardLabels.thisBoardHasNoDisplay'
   | 'dashboard.configsPage.configs'
   | 'dashboard.configsPage.convertDraftToConverttarget'
-  | 'dashboard.configsPage.document'
+  | 'dashboard.configsPage.documentNearlyFull'
+  | 'dashboard.configsPage.documentTooBig'
   | 'dashboard.configsPage.fitToTheNewDisplay'
-  | 'dashboard.configsPage.invalidJson'
   | 'dashboard.configsPage.keepProportionsCentre'
   | 'dashboard.configsPage.modified'
   | 'dashboard.configsPage.new'
-  | 'dashboard.configsPage.noLocalConfiguration'
+  | 'dashboard.configsPage.notSavedToAFile'
+  | 'dashboard.configsPage.nothingOpen'
   | 'dashboard.configsPage.open'
+  | 'dashboard.configsPage.pickABoardFirst'
   | 'dashboard.configsPage.restartRequired'
-  | 'dashboard.configsPage.saveAs'
+  | 'dashboard.configsPage.save'
   | 'dashboard.configsPage.saveTheConfigurationToA'
-  | 'dashboard.configsPage.selectBoard'
+  | 'dashboard.configsPage.setupForAnotherBoard'
+  | 'dashboard.configsPage.startANewSetupOr'
   | 'dashboard.configsPage.stretchToFillTheDisplay'
-  | 'dashboard.configsPage.theConnectedBoardDecidesThis'
-  | 'dashboard.configsPage.theDashboardDocumentFilesSaved'
-  | 'dashboard.configsPage.unsavedLocalDraft'
+  | 'dashboard.configsPage.thisSetupHasAnError'
+  | 'dashboard.configsPage.untitledSetup'
+  | 'dashboard.configsPage.yourSetupFiles'
   | 'dashboard.configurationActions.activeConfigurationReadFromThe'
   | 'dashboard.configurationActions.convertTheDraftFromFrom'
   | 'dashboard.configurationActions.convertedToTarget'
@@ -322,18 +273,14 @@ export type UiStringKey =
   | 'dashboard.configurationActions.discardTheCurrentLocalDraft2'
   | 'dashboard.configurationActions.discardTheCurrentLocalDraft3'
   | 'dashboard.configurationActions.discardTheCurrentLocalDraft4'
-  | 'dashboard.configurationActions.eraseTheSavedLabelConfiguration'
   | 'dashboard.configurationActions.factoryConfigurationSavedRestartThe'
   | 'dashboard.configurationActions.fileNameLoaded'
   | 'dashboard.configurationActions.fileNameOpened'
   | 'dashboard.configurationActions.keptTheCurrentDraft'
-  | 'dashboard.configurationActions.loadedTheDocumentConfigurationFrom'
   | 'dashboard.configurationActions.nameOpened'
   | 'dashboard.configurationActions.newBoardConfigurationCreatedLocally'
   | 'dashboard.configurationActions.resetTheSavedConfigurationTo'
   | 'dashboard.configurationActions.restartTheConnectedPitrigBoard'
-  | 'dashboard.configurationActions.savedLabelConfigurationErasedRestart'
-  | 'dashboard.configurationActions.theBoardHasNotReported'
   | 'dashboard.configurationActions.theConvertedLayoutWouldNot'
   | 'dashboard.configurationActions.theDraftNamesAnUnknown'
   | 'dashboard.configurationActions.thereIsNoConfigurationTo'
@@ -386,6 +333,16 @@ export type UiStringKey =
   | 'device.assetUpload.theUploadWasCancelled'
   | 'device.assetUpload.uploadedReceivedOfBytelengthBytes'
   | 'device.assetUpload.validatingAndCommittingTheLabel'
+  | 'device.boardHealth.boardHealth'
+  | 'device.boardHealth.crashed'
+  | 'device.boardHealth.crashedTitle'
+  | 'device.boardHealth.crashedWhile'
+  | 'device.boardHealth.earlierCrashes'
+  | 'device.boardHealth.loadAnotherSetup'
+  | 'device.boardHealth.recovered'
+  | 'device.boardHealth.safeMode'
+  | 'device.boardHealth.startedInSafeMode'
+  | 'device.boardHealth.startedNormally'
   | 'device.boardSyncDialog.boardAndDraftDiffer'
   | 'device.boardSyncDialog.decideLaterTheBoardKeeps'
   | 'device.boardSyncDialog.documentDiffers'
@@ -442,22 +399,15 @@ export type UiStringKey =
   | 'device.deviceUploads.theConnectedDeviceChangedDuring2'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot2'
-  | 'device.documentState.absent'
-  | 'device.documentState.corrupt_payload'
-  | 'device.documentState.malformed_record'
-  | 'device.documentState.rejected'
-  | 'device.documentState.unsupported_schema'
-  | 'device.documentState.valid'
-  | 'device.documentState.withGeneration'
   | 'device.documentStatus.inSync'
   | 'device.documentStatus.notOnBoard'
   | 'device.documentStatus.refused'
   | 'device.documentStatus.shownNotSaved'
-  | 'device.draftState.configurationIsNotValidJson'
   | 'device.draftState.connectAPitrigBoardTo'
   | 'device.draftState.noLocalConfiguration'
   | 'device.draftState.theBoardFirmwareReadsSchema'
   | 'device.draftState.theBoardIsInSafe'
+  | 'device.draftState.theBoardLacksImages'
   | 'device.draftState.theBoardLacksJoinSaving'
   | 'device.draftState.theDraftIsNotValid'
   | 'device.draftState.theDraftTargetsBoardThe'
@@ -531,43 +481,21 @@ export type UiStringKey =
   | 'device.health.phase.configuration'
   | 'device.health.phase.display'
   | 'device.health.phase.link'
-  | 'device.infoPage.application'
-  | 'device.infoPage.available'
-  | 'device.infoPage.baudRate'
   | 'device.infoPage.board'
-  | 'device.infoPage.connectAPitrigBoardTo'
-  | 'device.infoPage.connection'
   | 'device.infoPage.display'
   | 'device.infoPage.displaySize'
   | 'device.infoPage.firmware'
   | 'device.infoPage.firmwareSlots'
   | 'device.infoPage.firmwareSlotsValue'
-  | 'device.infoPage.idConfig'
   | 'device.infoPage.info'
   | 'device.infoPage.lastBoot'
   | 'device.infoPage.name'
-  | 'device.infoPage.noBoardConnected'
-  | 'device.infoPage.noDisplay'
-  | 'device.infoPage.normalMode'
-  | 'device.infoPage.notConnected'
-  | 'device.infoPage.path'
-  | 'device.infoPage.persistentStorage'
-  | 'device.infoPage.pickAPortAtThe'
-  | 'device.infoPage.platform'
   | 'device.infoPage.port'
   | 'device.infoPage.recentFailures'
-  | 'device.infoPage.reportedByTheFirmwareItself'
-  | 'device.infoPage.safeMode'
-  | 'device.infoPage.schemaVersion'
   | 'device.infoPage.singlePartition'
   | 'device.infoPage.speed'
-  | 'device.infoPage.startup'
-  | 'device.infoPage.status'
-  | 'device.infoPage.theConnectedBoardTheLink'
-  | 'device.infoPage.theSerialLinkThisWindow'
-  | 'device.infoPage.thisBuildOfTheConfigurator'
-  | 'device.infoPage.unavailable'
   | 'device.infoPage.version'
+  | 'device.infoPage.versionsUpdatesAndWhat'
   | 'device.lineExchange.theRequestWasCancelled'
   | 'device.liveApplyIndicator.applyingToTheBoard'
   | 'device.liveApplyIndicator.livePreviewFailedError'
@@ -584,7 +512,10 @@ export type UiStringKey =
   | 'device.safeModeBanner.boardIsInSafeMode'
   | 'device.safeModeBanner.explanation'
   | 'device.safeModeBanner.theLastOnePhase'
+  | 'device.saveToBoardStore.fontsAndImagesInstalled'
   | 'device.saveToBoardStore.fontsInstalledAndConfigurationSaved'
+  | 'device.saveToBoardStore.imagesInstalled'
+  | 'device.saveToBoardStore.keptBoardImages'
   | 'device.saveToBoardStore.savedButTheBoardDid'
   | 'device.saveToBoardStore.savedTheBoardIsRunning'
   | 'device.saveToBoardStore.savedTheBoardKeepsShowing'
@@ -603,15 +534,35 @@ export type UiStringKey =
   | 'device.status.disconnecting'
   | 'device.status.error'
   | 'device.status.scanning'
+  | 'device.supportDetails.board'
+  | 'device.supportDetails.boardValue'
+  | 'device.supportDetails.copied'
+  | 'device.supportDetails.copy'
+  | 'device.supportDetails.detailsForSupport'
+  | 'device.supportDetails.documentState'
+  | 'device.supportDetails.documentStored'
+  | 'device.supportDetails.link'
+  | 'device.supportDetails.linkValue'
+  | 'device.supportDetails.noDisplay'
+  | 'device.supportDetails.noStorage'
+  | 'device.supportDetails.notConnected'
+  | 'device.supportDetails.schema'
+  | 'device.supportDetails.schemaValue'
+  | 'device.supportDetails.setupOnBoard'
+  | 'device.supportDetails.state.absent'
+  | 'device.supportDetails.state.corrupt_payload'
+  | 'device.supportDetails.state.malformed_record'
+  | 'device.supportDetails.state.rejected'
+  | 'device.supportDetails.state.unsupported_schema'
+  | 'device.supportDetails.state.valid'
+  | 'device.supportDetails.storageAvailable'
+  | 'device.supportDetails.system'
   | 'documents.label.dashboard'
   | 'documents.label.modules'
   | 'documents.label.protocol'
   | 'documents.labelLower.dashboard'
   | 'documents.labelLower.modules'
   | 'documents.labelLower.protocol'
-  | 'documents.summary.dashboard'
-  | 'documents.summary.modules'
-  | 'documents.summary.protocol'
   | 'firmware.boardUpdate.alreadyRunning'
   | 'firmware.boardUpdate.backupFailed'
   | 'firmware.boardUpdate.backupName'
@@ -635,32 +586,35 @@ export type UiStringKey =
   | 'firmware.boardUpdate.updatedNothingStored'
   | 'firmware.boardUpdate.updatedUnchanged'
   | 'firmware.dialog.filter'
+  | 'firmware.factoryReset.eraseTheSetupOnThe'
+  | 'firmware.factoryReset.factoryReset'
+  | 'firmware.factoryReset.resetToFactory'
+  | 'firmware.fileInstall.aPitrigFirmwareFile'
+  | 'firmware.fileInstall.install'
+  | 'firmware.fileInstall.installFromAFile'
+  | 'firmware.fileInstall.selectFile'
+  | 'firmware.fileInstall.sizeBytes'
   | 'firmware.firmwarePackage.theFirmwareImageIsBytelength'
   | 'firmware.firmwarePackage.theFirmwareImageIsEmpty'
   | 'firmware.firmwarePackage.unsupportedPitrigBoardBoard'
-  | 'firmware.firmwarePage.aPackagedPitrigFirmwareImage'
-  | 'firmware.firmwarePage.anImageIsWaiting'
-  | 'firmware.firmwarePage.connectABoardWithTwo'
+  | 'firmware.firmwarePage.connectABoardToSee'
   | 'firmware.firmwarePage.image'
-  | 'firmware.firmwarePage.installAFirmwareImageInto'
-  | 'firmware.firmwarePage.installsInto'
-  | 'firmware.firmwarePage.noImageSelected'
-  | 'firmware.firmwarePage.noSecondSlot'
-  | 'firmware.firmwarePage.notAvailable'
+  | 'firmware.firmwarePage.keepTheBoardsFirmware'
   | 'firmware.firmwarePage.percent'
   | 'firmware.firmwarePage.restartBoard'
-  | 'firmware.firmwarePage.restartIntoTheInstalledImage'
-  | 'firmware.firmwarePage.running'
-  | 'firmware.firmwarePage.selectImage'
-  | 'firmware.firmwarePage.sizeBytes'
   | 'firmware.firmwarePage.slots'
-  | 'firmware.firmwarePage.theConnectedFirmwarePredatesThe'
-  | 'firmware.firmwarePage.theImageTakesOverAt'
-  | 'firmware.firmwarePage.thisImageHasNotBeen'
-  | 'firmware.firmwarePage.updateBoard'
-  | 'firmware.firmwarePage.updateKeepsTheConfiguration'
-  | 'firmware.firmwarePage.updating'
-  | 'firmware.firmwarePage.whatThisBoardCanDo'
+  | 'firmware.firmwareStatus.boardRuns'
+  | 'firmware.firmwareStatus.cannotUpdateItself'
+  | 'firmware.firmwareStatus.firmwareVersion'
+  | 'firmware.firmwareStatus.notConfirmedYet'
+  | 'firmware.firmwareStatus.openWebFlasher'
+  | 'firmware.firmwareStatus.restartToFinish'
+  | 'firmware.firmwareStatus.restartWaiting'
+  | 'firmware.firmwareStatus.setupStays'
+  | 'firmware.firmwareStatus.upToDate'
+  | 'firmware.firmwareStatus.updateTo'
+  | 'firmware.firmwareStatus.versionAvailable'
+  | 'firmware.firmwareStatus.whatChanges'
   | 'firmware.firmwareUpdateService.aFirmwareUploadIsAlready'
   | 'firmware.firmwareUpdateService.cannotReadName'
   | 'firmware.firmwareUpdateService.firmwareInstalledIntoTargetRestart'
@@ -803,6 +757,11 @@ export type UiStringKey =
   | 'images.imageAssetService.theConnectedDeviceChangedDuring'
   | 'images.imageAssetService.theConnectedFirmwareDoesNot'
   | 'images.imageAssetService.theDeviceStoresAtMost'
+  | 'images.imageLibrary.damaged'
+  | 'images.imageLibrary.notAdded'
+  | 'images.imageLibrary.notOnThisPc'
+  | 'images.imageLibrary.notRemoved'
+  | 'images.imageLibrary.tooLarge'
   | 'images.imagePackage.anImagePackageNeedsAt'
   | 'images.imagePackage.nameCouldNotBeResized'
   | 'images.imagePackage.nameDecodedToAnUnexpected'
@@ -824,29 +783,40 @@ export type UiStringKey =
   | 'images.imagePageParts.unavailable'
   | 'images.imagePageParts.usedOfLimit'
   | 'images.imagesPage.aNameUsesLowerCase'
-  | 'images.imagesPage.addAPngOrJpeg'
   | 'images.imagesPage.addImage'
   | 'images.imagesPage.addingAnImageConvertsIt'
   | 'images.imagesPage.boardImagePackageErasedRestart'
   | 'images.imagesPage.connectABoardWhoseFirmware'
-  | 'images.imagesPage.convertedHereAndStoredOn'
+  | 'images.imagesPage.description'
   | 'images.imagesPage.eraseEveryImageInstalledOn'
   | 'images.imagesPage.frameCountFrames'
   | 'images.imagesPage.images'
   | 'images.imagesPage.installed'
   | 'images.imagesPage.noImageSupport'
   | 'images.imagesPage.noImagesInstalled'
-  | 'images.imagesPage.nothingStaged'
   | 'images.imagesPage.onTheBoard'
-  | 'images.imagesPage.readyToInstall'
-  | 'images.imagesPage.restartTheBoardBeforeUploading'
-  | 'images.imagesPage.theConnectedFirmwareDoesNot'
-  | 'images.imagesPage.theWholePackageIsReplaced'
-  | 'images.imagesPage.thisSelection'
+  | 'images.imagesPage.restartTheBoardToUse'
+  | 'images.imagesPage.saveInstallsThem'
   | 'images.imagesPage.twoImagesShareAName'
-  | 'images.imagesPage.uploading'
   | 'images.imagesPage.whatTheInstalledPackageHolds'
   | 'images.imagesPage.widthHeightFormat'
+  | 'images.library.board.absent'
+  | 'images.library.board.differs'
+  | 'images.library.board.same'
+  | 'images.library.dashboardDraws'
+  | 'images.library.description'
+  | 'images.library.empty'
+  | 'images.library.emptyHint'
+  | 'images.library.inDashboard'
+  | 'images.library.notOnThisPc'
+  | 'images.library.remove'
+  | 'images.library.removeUsed'
+  | 'images.library.title'
+  | 'images.library.unreadable'
+  | 'images.staged.add'
+  | 'images.staged.added'
+  | 'images.staged.replace'
+  | 'images.staged.title'
   | 'images.stagedImageCard.addFrameLength'
   | 'images.stagedImageCard.format'
   | 'images.stagedImageCard.height'
@@ -891,6 +861,7 @@ export type UiStringKey =
   | 'inspector.conditionsEditor.stopNumber'
   | 'inspector.conditionsEditor.stopNumberColour'
   | 'inspector.conditionsEditor.thresholdInUnit'
+  | 'inspector.conditionsEditor.title'
   | 'inspector.conditionsEditor.value'
   | 'inspector.conditionsEditor.watch'
   | 'inspector.conditionsEditor.when'
@@ -993,6 +964,10 @@ export type UiStringKey =
   | 'inspector.hints.ring.thickness'
   | 'inspector.hints.screen.background'
   | 'inspector.hints.screen.name'
+  | 'inspector.hints.screenChanges.group'
+  | 'inspector.hints.screenChanges.homeAfter'
+  | 'inspector.hints.screenChanges.homeScreen'
+  | 'inspector.hints.screenChanges.watch'
   | 'inspector.hints.shape.kind'
   | 'inspector.hints.slot.dismiss'
   | 'inspector.hints.slot.duration'
@@ -1009,6 +984,7 @@ export type UiStringKey =
   | 'inspector.hints.text.affix'
   | 'inspector.hints.text.alignment'
   | 'inspector.hints.text.fallback'
+  | 'inspector.hints.text.fallbackColour'
   | 'inspector.hints.text.scale'
   | 'inspector.hints.text.sources'
   | 'inspector.hints.text.transform'
@@ -1062,6 +1038,19 @@ export type UiStringKey =
   | 'inspector.ringEditor.thickness'
   | 'inspector.ringEditor.xOffset'
   | 'inspector.ringEditor.yOffset'
+  | 'inspector.screenChanges.addRule'
+  | 'inspector.screenChanges.automaticScreenChanges'
+  | 'inspector.screenChanges.homeScreen'
+  | 'inspector.screenChanges.moreConditions'
+  | 'inspector.screenChanges.removeRuleNumber'
+  | 'inspector.screenChanges.returnHomeAfter'
+  | 'inspector.screenChanges.ruleCount'
+  | 'inspector.screenChanges.screen'
+  | 'inspector.screenChanges.seconds'
+  | 'inspector.screenChanges.show'
+  | 'inspector.screenChanges.theFirstScreen'
+  | 'inspector.screenChanges.value'
+  | 'inspector.screenChanges.while'
   | 'inspector.sectionEditors.clipContents'
   | 'inspector.sectionEditors.container'
   | 'inspector.sectionEditors.countWidgetS'
@@ -1129,14 +1118,18 @@ export type UiStringKey =
   | 'inspector.telemetryBindingField.unknownTelemetryBinding'
   | 'inspector.valueColorList.positionColour'
   | 'inspector.valueColorList.removeNounPosition'
+  | 'inspector.widgetEditors.addImagesFirst'
   | 'inspector.widgetEditors.addSource'
   | 'inspector.widgetEditors.alignment'
   | 'inspector.widgetEditors.bitmap'
   | 'inspector.widgetEditors.fallback'
+  | 'inspector.widgetEditors.fallbackColour'
   | 'inspector.widgetEditors.frameFrom'
   | 'inspector.widgetEditors.holdsHeldWidgetSPlaced'
   | 'inspector.widgetEditors.imageHasASingleFrame'
-  | 'inspector.widgetEditors.imageIsNotInstalledOn'
+  | 'inspector.widgetEditors.imageIsNowhere'
+  | 'inspector.widgetEditors.imageNotOnBoardYet'
+  | 'inspector.widgetEditors.imageOnlyOnBoard'
   | 'inspector.widgetEditors.kind'
   | 'inspector.widgetEditors.lengthSources'
   | 'inspector.widgetEditors.recolor'
@@ -1145,7 +1138,6 @@ export type UiStringKey =
   | 'inspector.widgetEditors.thisShapeHoldsNoWidgets'
   | 'inspector.widgetEditors.unassigned'
   | 'inspector.widgetEditors.unbound'
-  | 'inspector.widgetEditors.uploadImagesToTheBoard'
   | 'inspector.widgetInspector.selectAnExistingWidgetOn'
   | 'inspector.widgetInspector.widgetName'
   | 'ipc.registerAssetHandlers.familyCouldNotBeDownloaded'
@@ -1156,6 +1148,7 @@ export type UiStringKey =
   | 'ipc.registerIpcHandlers.invalidSerialConnectionRequest'
   | 'ipc.registerLibraryHandlers.invalidConfigurationFileRequest'
   | 'ipc.registerLibraryHandlers.invalidConfigurationLibraryRequest'
+  | 'ipc.registerLibraryHandlers.invalidDashboardFileRequest'
   | 'ipc.registerLibraryHandlers.invalidTemplateRequest'
   | 'ipc.requestGuards.invalidDeviceConfigurationRequest'
   | 'layers.layerList.fold'
@@ -1169,12 +1162,12 @@ export type UiStringKey =
   | 'layers.slotPages.drawThisPageOnThe'
   | 'layers.slotPages.pageNumberNotInLoop'
   | 'misc.valueTransform.rpmThousands'
-  | 'misc.workspaceRail.buttonsEncodersAndLeds'
   | 'misc.workspaceRail.drawTheDashboardAndThe'
-  | 'misc.workspaceRail.filesSavedConfigurationsAndJson'
   | 'misc.workspaceRail.installAFirmwareImageOver'
+  | 'misc.workspaceRail.ledsAndMatricesWiredTo'
   | 'misc.workspaceRail.telemetryLinkAndSimhub'
   | 'misc.workspaceRail.whatTheConnectedBoardIs'
+  | 'misc.workspaceRail.whatYourWheelAndButtons'
   | 'modules.devicePreview.lampNumber'
   | 'modules.effectColors.addColourRule'
   | 'modules.effectColors.background'
@@ -1307,7 +1300,6 @@ export type UiStringKey =
   | 'modules.modulesPage.animationsThisStripPlays'
   | 'modules.modulesPage.artworkThisPanelDrawsDrawn'
   | 'modules.modulesPage.boardPublishesNoFreePins'
-  | 'modules.modulesPage.buttons'
   | 'modules.modulesPage.deviceView'
   | 'modules.modulesPage.eachNounOwnsOneData'
   | 'modules.modulesPage.lEDs'
@@ -1521,6 +1513,7 @@ export type UiStringKey =
   | 'protocol.bridgeSection.simhubHost'
   | 'protocol.bridgeSection.simhubHostHint'
   | 'protocol.bridgeSection.simhubPort'
+  | 'protocol.bridgeSection.summary'
   | 'protocol.bridgeSection.suspended'
   | 'protocol.bridgeSection.title'
   | 'protocol.bridgeSection.waiting'
@@ -1571,6 +1564,17 @@ export type UiStringKey =
   | 'protocol.transportSection.uARTPins'
   | 'protocol.transportSection.whateverThisBoardWasBuilt'
   | 'protocol.transportSection.whichLinkCarriesTelemetryAnd'
+  | 'save.fontDelivery.building'
+  | 'save.fontDelivery.noFaceCalled'
+  | 'save.fontDelivery.noFaceForSome'
+  | 'save.imageDelivery.boardOnly'
+  | 'save.imageDelivery.building'
+  | 'save.imageDelivery.failed'
+  | 'save.imageDelivery.fontsWithoutImages'
+  | 'save.imageDelivery.noStorage'
+  | 'save.imageDelivery.tooLarge'
+  | 'save.imageDelivery.tooMany'
+  | 'save.imageDelivery.unavailable'
   | 'save.saveToBoardService.checkingTheFontsThisDashboard'
   | 'save.saveToBoardService.noPitrigBoardIsConnected'
   | 'save.saveToBoardService.nothingToSaveTheBoard'
@@ -1586,6 +1590,36 @@ export type UiStringKey =
   | 'save.stage.reconnecting'
   | 'save.stage.saving'
   | 'save.stage.uploading'
+  | 'share.button.label'
+  | 'share.button.title'
+  | 'share.dialog.defaultName'
+  | 'share.dialog.filter'
+  | 'share.dialog.intro'
+  | 'share.dialog.saveButton'
+  | 'share.dialog.saveFile'
+  | 'share.dialog.saveTitle'
+  | 'share.dialog.saved'
+  | 'share.dialog.savedWithout'
+  | 'share.dialog.saving'
+  | 'share.errors.description'
+  | 'share.errors.name'
+  | 'share.errors.notSaved'
+  | 'share.file.damaged'
+  | 'share.file.newer'
+  | 'share.file.newerVersion'
+  | 'share.file.tooLarge'
+  | 'share.open.added'
+  | 'share.open.fontsMissing'
+  | 'share.open.imagesMissing'
+  | 'share.open.next'
+  | 'share.open.opened'
+  | 'share.open.renamed'
+  | 'share.open.scaled'
+  | 'share.summary.fonts'
+  | 'share.summary.images'
+  | 'share.summary.missingFonts'
+  | 'share.summary.missingImages'
+  | 'share.summary.size'
   | 'shortcuts.cmdCtrl'
   | 'shortcuts.cmdCtrlA'
   | 'shortcuts.cmdCtrlC'
@@ -1606,6 +1640,8 @@ export type UiStringKey =
   | 'templates.dashboardListControls.showOnlyTheDashboardsDrawn'
   | 'templates.dashboardListControls.smallestDisplayFirstOrBy'
   | 'templates.dashboardSection.addScreensFromThisTemplate'
+  | 'templates.dashboardSection.creditBy'
+  | 'templates.dashboardSection.creditOpen'
   | 'templates.dashboardSection.dashboards'
   | 'templates.dashboardSection.dismiss'
   | 'templates.dashboardSection.emptyAfter'
@@ -1643,11 +1679,11 @@ export type UiStringKey =
   | 'templates.insertScreenDialog.thisDashboardAlreadyHoldsMaximum'
   | 'templates.saveToTemplates.aNameNeedsAtLeast'
   | 'templates.saveToTemplates.descriptionOptional'
-  | 'templates.saveToTemplates.enduranceLayout'
   | 'templates.saveToTemplates.fuelAndTyresForLong'
   | 'templates.saveToTemplates.greenBelow6000RedAbove'
   | 'templates.saveToTemplates.keepThisDashboardOrThe'
   | 'templates.saveToTemplates.rPMGauge'
+  | 'templates.saveToTemplates.raceLayout'
   | 'templates.saveToTemplates.replaceTheSavedKindId'
   | 'templates.saveToTemplates.theSelectedWidgetAndEverything'
   | 'templates.saveToTemplates.theSelectedWidgetGoesTo'
@@ -1690,14 +1726,7 @@ export type UiStringKey =
   | 'templates.widgetSection.partsOfADashboardKept'
   | 'templates.widgetSection.placeThisOnTheCanvas'
   | 'templates.widgetSection.widgets'
-  | 'updates.app.available'
-  | 'updates.app.checking'
-  | 'updates.app.current'
-  | 'updates.app.downloading'
-  | 'updates.app.failed'
   | 'updates.app.noWindowsUpdate'
-  | 'updates.app.notChecked'
-  | 'updates.app.ready'
   | 'updates.banner.addPlugin'
   | 'updates.banner.appAvailable'
   | 'updates.banner.appReady'
@@ -1712,27 +1741,39 @@ export type UiStringKey =
   | 'updates.banner.simhubOld'
   | 'updates.banner.updatePlugin'
   | 'updates.firmware.alreadyDownloading'
-  | 'updates.firmware.behind'
-  | 'updates.firmware.current'
-  | 'updates.firmware.downloadAndUpdate'
+  | 'updates.firmware.changesRelease'
+  | 'updates.firmware.changesUnreleased'
   | 'updates.firmware.downloading'
+  | 'updates.firmware.kind.added'
+  | 'updates.firmware.kind.changed'
+  | 'updates.firmware.kind.fixed'
+  | 'updates.firmware.kind.removed'
   | 'updates.firmware.notInRelease'
   | 'updates.firmware.nothingNewer'
-  | 'updates.firmware.offer'
-  | 'updates.firmware.released'
+  | 'updates.firmware.schemaNote'
   | 'updates.releaseFeed.downloadDamaged'
   | 'updates.releaseFeed.downloadFailed'
   | 'updates.releaseFeed.githubAnswered'
+  | 'updates.section.available'
   | 'updates.section.boardFirmware'
+  | 'updates.section.boardNameFirmware'
+  | 'updates.section.checkFailed'
   | 'updates.section.checkNow'
   | 'updates.section.checking'
-  | 'updates.section.configurator'
-  | 'updates.section.description'
-  | 'updates.section.disabled'
+  | 'updates.section.connectABoard'
+  | 'updates.section.downloading'
+  | 'updates.section.justNow'
   | 'updates.section.lastChecked'
+  | 'updates.section.notChecked'
+  | 'updates.section.ok'
+  | 'updates.section.olderThan'
+  | 'updates.section.openFirmware'
+  | 'updates.section.pitrig'
   | 'updates.section.plugin'
+  | 'updates.section.ready'
   | 'updates.section.simhub'
-  | 'updates.section.title'
+  | 'updates.section.upToDate'
+  | 'updates.section.versions'
   | 'updates.simhub.closeToReplace'
   | 'updates.simhub.copyFailed'
   | 'updates.simhub.copyFailedPlain'
@@ -1740,19 +1781,14 @@ export type UiStringKey =
   | 'updates.simhub.noBundledPlugin'
   | 'updates.simhub.noSimHubFound'
   | 'updates.simhub.pluginInstalled'
-  | 'updates.simhub.pluginMissing'
-  | 'updates.simhub.pluginStale'
   | 'updates.simhub.stillRunning'
-  | 'updates.simhub.unknownVersion'
-  | 'updates.simhub.versionTooOld'
   | 'usage.section.description'
   | 'usage.section.developmentBuild'
   | 'usage.section.disabled'
   | 'usage.section.enabled'
-  | 'usage.section.state'
+  | 'usage.section.noNamesFilesOrDashboards'
   | 'usage.section.title'
-  | 'usage.section.turnOff'
-  | 'usage.section.turnOn'
+  | 'usage.section.whatIsSent'
   | 'validation.configuration.configurationMustBeAJson'
   | 'validation.configuration.configurationMustTargetASupported'
   | 'validation.configuration.theConfigurationCouldNotBe'
@@ -1941,36 +1977,27 @@ export interface UiStringParameters {
   'common.pageNumber': { number: string | number }
   'common.screenNumber': { number: string | number }
   'common.traceNumber': { number: string | number }
-  'configs.advancedJsonSection.activeConfigurationJson': { active: string | number }
-  'configs.boardDocumentsSection.bytesBytes': { bytes: string | number }
-  'configs.boardDocumentsSection.generationGeneration': { generation: string | number }
-  'configs.changesSection.beforeAfter': { after: string | number, before: string | number }
-  'configs.changesSection.furtherChanges': { count: number }
   'configs.configLibraryService.aConfigurationFileMustNot': { maximum: string | number }
   'configs.configLibraryService.aConfigurationNameIs1': { mAXIMUM_CONFIGURATION_NAME: string | number }
   'configs.configLibraryService.idIsNotAValid': { id: string | number }
   'configs.configLibraryService.noSavedConfigurationNamedId': { id: string | number }
   'configs.configLibraryService.theLibraryHoldsAtMost': { mAXIMUM_SAVED_CONFIGURATIONS: string | number }
-  'configs.configsPage.bytesOfLimit': { bytes: string | number, limit: string | number }
   'configs.configurationFileService.configurationFileMustNotExceed': { mAXIMUM_CONFIGURATION_TEXT_SIZE: string | number }
   'configs.librarySection.deleteName': { name: string | number }
-  'configs.librarySection.deleteTheSavedConfigurationId': { id: string | number }
-  'configs.librarySection.forgetFilename': { fileName: string | number }
-  'configs.librarySection.replaceTheSavedConfigurationId': { id: string | number }
-  'configs.librarySection.savedAsName': { name: string | number }
   'configs.librarySection.screenCount': { count: number }
-  'configs.librarySection.unreadableFiles': { count: number }
   'configs.librarySection.widgetCount': { count: number }
-  'controls.bindingList.pageNumber': { number: string | number }
-  'controls.bindingList.removeActionNumber': { number: string | number }
-  'controls.buttonsView.lastInput': { input: string | number, state: string | number }
+  'configs.recentList.deleteName': { name: string | number }
+  'configs.recentList.deleteTheSavedCopyName': { name: string | number }
+  'configs.recentList.forgetFilename': { fileName: string | number }
+  'configs.recentList.unreadableCopies': { count: number }
+  'controls.actionLine.pageNumber': { number: string | number }
+  'controls.actionLine.removeAction': { action: string | number }
+  'controls.buttonList.allButtonsUsed': { count: number }
+  'controls.buttonList.fourInputsAtMost': { count: number }
+  'controls.buttonList.removeName': { name: string | number }
+  'controls.controlsPage.lastInput': { input: string | number, state: string | number }
   'controls.document.buttonNumber': { number: string | number }
-  'controls.inputButtonList.allButtonsUsed': { count: number }
-  'controls.inputButtonList.clearButtonNumber': { number: string | number }
-  'controls.inputButtonList.fourInputsAtMost': { count: number }
   'controls.inputParts.removeInput': { input: string | number }
-  'controls.ruleList.moreConditions': { count: number }
-  'controls.ruleList.removeRuleNumber': { number: string | number }
   'controls.switchSection.morePositionsThanPages': { pages: string | number, positions: string | number }
   'controls.switchSection.removePositionNumber': { number: string | number }
   'dashboard.boardLabels.boardNodisplay': { board: string | number, noDisplay: string | number }
@@ -1978,16 +2005,17 @@ export interface UiStringParameters {
   'dashboard.boardLabels.eachAxisIsScaledOn': { height: string | number, width: string | number }
   'dashboard.boardLabels.oneFactorForBothAxes': { height: string | number, height2: string | number, width: string | number, width2: string | number }
   'dashboard.configsPage.convertDraftToConverttarget': { convertTarget: string | number }
+  'dashboard.configsPage.documentNearlyFull': { label: string | number, percent: string | number }
+  'dashboard.configsPage.documentTooBig': { label: string | number, percent: string | number }
+  'dashboard.configsPage.setupForAnotherBoard': { board: string | number, draftBoard: string | number }
+  'dashboard.configsPage.thisSetupHasAnError': { error: string | number }
   'dashboard.configurationActions.convertTheDraftFromFrom': { from: string | number, outcome: string | number, to: string | number }
   'dashboard.configurationActions.convertedToTarget': { target: string | number }
   'dashboard.configurationActions.discardTheCurrentLocalDraft3': { id: string | number }
-  'dashboard.configurationActions.eraseTheSavedLabelConfiguration': { label: string | number }
   'dashboard.configurationActions.fileNameLoaded': { fileName: string | number }
   'dashboard.configurationActions.fileNameOpened': { fileName: string | number }
-  'dashboard.configurationActions.loadedTheDocumentConfigurationFrom': { document: string | number }
   'dashboard.configurationActions.nameOpened': { name: string | number }
   'dashboard.configurationActions.newBoardConfigurationCreatedLocally': { board: string | number }
-  'dashboard.configurationActions.savedLabelConfigurationErasedRestart': { label: string | number }
   'dashboard.configurationActions.theConvertedLayoutWouldNot': { error: string | number }
   'dashboard.transfer.arcEntry': { from: string | number, label: string | number, to: string | number }
   'dashboard.transfer.arcsThinned': { count: number, list: string | number }
@@ -2012,18 +2040,22 @@ export interface UiStringParameters {
   'device.assetUpload.theDeviceReturnedAnInvalid2': { label: string | number }
   'device.assetUpload.uploadedReceivedOfBytelengthBytes': { byteLength: string | number, received: string | number }
   'device.assetUpload.validatingAndCommittingTheLabel': { label: string | number }
+  'device.boardHealth.crashed': { count: number }
+  'device.boardHealth.crashedWhile': { count: number, phase: string | number }
+  'device.boardHealth.earlierCrashes': { count: number }
+  'device.boardHealth.recovered': { lastBoot: string | number }
   'device.boardSyncDialog.documentDiffers': { label: string | number }
   'device.boardSyncDialog.explanation': { board: string | number, reason: string | number }
   'device.boardSyncDialog.onBoardid': { boardId: string | number }
   'device.configurationJson.configurationBoardMustRemainBoard': { board: string | number }
   'device.connection.connectedAt': { baudRate: string | number, displayName: string | number }
   'device.connection.scanningAt': { baudRate: string | number, displayName: string | number }
-  'device.documentState.withGeneration': { generation: string | number, label: string | number }
   'device.documentStatus.inSync': { label: string | number }
   'device.documentStatus.notOnBoard': { label: string | number }
   'device.documentStatus.refused': { label: string | number }
   'device.documentStatus.shownNotSaved': { label: string | number }
   'device.draftState.theBoardFirmwareReadsSchema': { expected: string | number, schema: string | number }
+  'device.draftState.theBoardLacksImages': { images: string | number }
   'device.draftState.theBoardLacksJoinSaving': { join: string | number }
   'device.draftState.theDraftIsNotValid': { error: string | number }
   'device.draftState.theDraftTargetsBoardThe': { board: string | number, boardId: string | number }
@@ -2037,10 +2069,8 @@ export interface UiStringParameters {
   'device.error.validationDetail': { location: string | number, message: string | number, property: string | number }
   'device.health.crashCount': { count: number }
   'device.health.lastBoot': { cause: string | number, phase: string | number }
-  'device.infoPage.baudRate': { baudRate: string | number }
   'device.infoPage.displaySize': { height: string | number, width: string | number }
   'device.infoPage.firmwareSlotsValue': { running: string | number, target: string | number }
-  'device.infoPage.idConfig': { id: string | number }
   'device.liveApplyIndicator.livePreviewFailedError': { error: string | number }
   'device.liveApplyIndicator.theBoardIsNotFollowing': { liveApplyBlockedReason: string | number }
   'device.protocolParsers.theDeviceReturnedMalformedFieldname': { fieldName: string | number }
@@ -2048,9 +2078,15 @@ export interface UiStringParameters {
   'device.protocolParsers.unsupportedConfigurationSchemaSchema': { schema: string | number }
   'device.safeModeBanner.explanation': { failures: string | number, phase: string | number }
   'device.safeModeBanner.theLastOnePhase': { phase: string | number }
+  'device.saveToBoardStore.keptBoardImages': { images: string | number }
   'device.saveToBoardStore.savedTheBoardKeepsShowing': { applyFailed: string | number }
   'device.schemaBanner.explanation': { expected: string | number, schema: string | number }
   'device.serialRequest.theDeviceDidNotAnswer': { trim: string | number }
+  'device.supportDetails.boardValue': { board: string | number, display: string | number }
+  'device.supportDetails.documentState': { document: string | number, state: string | number }
+  'device.supportDetails.documentStored': { document: string | number, generation: string | number }
+  'device.supportDetails.linkValue': { baudRate: string | number, path: string | number }
+  'device.supportDetails.schemaValue': { schema: string | number, storage: string | number }
   'firmware.boardUpdate.backupFailed': { reason: string | number }
   'firmware.boardUpdate.backupName': { date: string | number, version: string | number }
   'firmware.boardUpdate.didNotComeBack': { backup: string | number }
@@ -2062,10 +2098,15 @@ export interface UiStringParameters {
   'firmware.boardUpdate.updatedAndRestored': { backup: string | number, version: string | number }
   'firmware.boardUpdate.updatedNothingStored': { version: string | number }
   'firmware.boardUpdate.updatedUnchanged': { backup: string | number, version: string | number }
+  'firmware.fileInstall.sizeBytes': { size: string | number }
   'firmware.firmwarePackage.theFirmwareImageIsBytelength': { byteLength: string | number }
   'firmware.firmwarePackage.unsupportedPitrigBoardBoard': { board: string | number }
   'firmware.firmwarePage.percent': { percent: string | number }
-  'firmware.firmwarePage.sizeBytes': { size: string | number }
+  'firmware.firmwareStatus.boardRuns': { board: string | number }
+  'firmware.firmwareStatus.firmwareVersion': { version: string | number }
+  'firmware.firmwareStatus.updateTo': { version: string | number }
+  'firmware.firmwareStatus.versionAvailable': { version: string | number }
+  'firmware.firmwareStatus.whatChanges': { count: number }
   'firmware.firmwareUpdateService.cannotReadName': { name: string | number }
   'firmware.firmwareUpdateService.firmwareInstalledIntoTargetRestart': { target: string | number }
   'firmware.firmwareUpdateService.nameIsSizeBytesWhich': { name: string | number, size: string | number }
@@ -2106,6 +2147,9 @@ export interface UiStringParameters {
   'images.imageAssetService.nameIsNotAValid': { name: string | number }
   'images.imageAssetService.pathCouldNotBeRead': { path: string | number }
   'images.imageAssetService.theDeviceStoresAtMost': { mAXIMUM_IMAGES: string | number }
+  'images.imageLibrary.damaged': { id: string | number }
+  'images.imageLibrary.notOnThisPc': { id: string | number }
+  'images.imageLibrary.tooLarge': { id: string | number, limit: string | number, size: string | number }
   'images.imagePackage.nameCouldNotBeResized': { height: string | number, name: string | number, width: string | number }
   'images.imagePackage.nameDecodedToAnUnexpected': { name: string | number }
   'images.imagePackage.nameHasFramecountFramesThe': { frameCount: string | number, mAXIMUM_SPRITE_FRAMES: string | number, name: string | number }
@@ -2124,6 +2168,15 @@ export interface UiStringParameters {
   'images.imagePageParts.usedOfLimit': { limit: string | number, rest: string | number, used: string | number }
   'images.imagesPage.frameCountFrames': { frameCount: string | number }
   'images.imagesPage.widthHeightFormat': { format: string | number, height: string | number, width: string | number }
+  'images.library.dashboardDraws': { count: number }
+  'images.library.description': { size: string | number }
+  'images.library.notOnThisPc': { images: string | number }
+  'images.library.remove': { id: string | number }
+  'images.library.removeUsed': { id: string | number }
+  'images.library.unreadable': { count: number }
+  'images.staged.add': { count: number }
+  'images.staged.added': { count: number }
+  'images.staged.replace': { images: string | number }
   'images.stagedImageCard.addFrameLength': { length: string | number }
   'images.stagedImageCard.removeFrameIndex': { index: string | number }
   'inspector.actionEditor.goToScreen': { screen: string | number }
@@ -2162,6 +2215,9 @@ export interface UiStringParameters {
   'inspector.propertyRow.labelIsSetInThis': { label: string | number }
   'inspector.ringEditor.followingTheBoxFittedPx': { fitted: string | number }
   'inspector.ringEditor.followingTheBoxFittedPxLength': { fitted: string | number }
+  'inspector.screenChanges.moreConditions': { count: number }
+  'inspector.screenChanges.removeRuleNumber': { number: string | number }
+  'inspector.screenChanges.ruleCount': { count: number }
   'inspector.sectionEditors.countWidgetS': { count: number }
   'inspector.sectionEditors.maximumUnit': { unit: string | number }
   'inspector.sectionEditors.minimumUnit': { unit: string | number }
@@ -2175,7 +2231,9 @@ export interface UiStringParameters {
   'inspector.valueColorList.removeNounPosition': { noun: string | number, position: string | number }
   'inspector.widgetEditors.holdsHeldWidgetSPlaced': { held: string | number }
   'inspector.widgetEditors.imageHasASingleFrame': { image: string | number }
-  'inspector.widgetEditors.imageIsNotInstalledOn': { image: string | number }
+  'inspector.widgetEditors.imageIsNowhere': { image: string | number }
+  'inspector.widgetEditors.imageNotOnBoardYet': { image: string | number }
+  'inspector.widgetEditors.imageOnlyOnBoard': { image: string | number }
   'inspector.widgetEditors.lengthSources': { length: string | number }
   'ipc.registerAssetHandlers.familyCouldNotBeDownloaded': { family: string | number }
   'layers.layerList.typeDoubleClickToRename': { type: string | number }
@@ -2257,9 +2315,34 @@ export interface UiStringParameters {
   'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
   'protocol.bridgeService.portTaken': { port: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
+  'save.fontDelivery.noFaceCalled': { family: string | number }
+  'save.fontDelivery.noFaceForSome': { count: number }
+  'save.imageDelivery.boardOnly': { images: string | number, pending: string | number }
+  'save.imageDelivery.fontsWithoutImages': { error: string | number }
+  'save.imageDelivery.tooLarge': { limit: string | number, size: string | number }
+  'save.imageDelivery.tooMany': { count: number, maximum: string | number }
+  'save.imageDelivery.unavailable': { images: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
+  'share.dialog.saved': { fileName: string | number, size: string | number }
+  'share.dialog.savedWithout': { names: string | number }
+  'share.errors.description': { maximum: string | number }
+  'share.errors.name': { maximum: string | number }
+  'share.file.newerVersion': { version: string | number }
+  'share.file.tooLarge': { limit: string | number }
+  'share.open.added': { names: string | number }
+  'share.open.fontsMissing': { fonts: string | number }
+  'share.open.imagesMissing': { images: string | number }
+  'share.open.opened': { name: string | number }
+  'share.open.renamed': { names: string | number }
+  'share.summary.fonts': { builtin: string | number, embedded: string | number, google: string | number }
+  'share.summary.images': { count: number }
+  'share.summary.missingFonts': { fonts: string | number }
+  'share.summary.missingImages': { images: string | number }
+  'share.summary.size': { size: string | number }
   'telemetry.gameMarks.sentBy': { games: string | number }
   'templates.dashboardListControls.allSizesLength': { length: string | number }
+  'templates.dashboardSection.creditBy': { name: string | number }
+  'templates.dashboardSection.creditOpen': { name: string | number }
   'templates.dashboardSection.nameIsNowTheLocal': { name: string | number }
   'templates.dashboardSection.nameWouldNotBeAccepted': { error: string | number, name: string | number }
   'templates.dashboardSection.replaceEverythingYouHaveOpen2': { name: string | number }
@@ -2286,31 +2369,24 @@ export interface UiStringParameters {
   'templates.templatesPage.deleteTheSavedKindName': { kind: string | number, name: string | number }
   'templates.templatesPage.nameDeleted': { name: string | number }
   'templates.templatesPage.unreadableFiles': { count: number }
-  'updates.app.available': { current: string | number, latest: string | number }
-  'updates.app.checking': { current: string | number }
-  'updates.app.current': { current: string | number }
-  'updates.app.downloading': { current: string | number, latest: string | number, progress: string | number }
-  'updates.app.failed': { current: string | number, error: string | number }
-  'updates.app.notChecked': { current: string | number }
-  'updates.app.ready': { current: string | number, latest: string | number }
   'updates.banner.appAvailable': { version: string | number }
   'updates.banner.appReady': { version: string | number }
   'updates.banner.firmwareAvailable': { running: string | number, version: string | number }
   'updates.banner.pluginStale': { bundled: string | number, installed: string | number }
   'updates.banner.simhubOld': { minimum: string | number, version: string | number }
-  'updates.firmware.behind': { running: string | number, version: string | number }
-  'updates.firmware.current': { running: string | number }
+  'updates.firmware.changesRelease': { version: string | number }
   'updates.firmware.downloading': { progress: string | number }
   'updates.firmware.notInRelease': { name: string | number, version: string | number }
-  'updates.firmware.offer': { version: string | number }
-  'updates.firmware.released': { version: string | number }
   'updates.releaseFeed.downloadDamaged': { name: string | number }
   'updates.releaseFeed.downloadFailed': { name: string | number, status: string | number }
   'updates.releaseFeed.githubAnswered': { status: string | number }
+  'updates.section.available': { version: string | number }
+  'updates.section.boardNameFirmware': { board: string | number }
+  'updates.section.downloading': { progress: string | number }
   'updates.section.lastChecked': { time: string | number }
+  'updates.section.olderThan': { minimum: string | number }
+  'updates.section.ready': { version: string | number }
   'updates.simhub.copyFailed': { directory: string | number }
-  'updates.simhub.pluginStale': { bundled: string | number, installed: string | number }
-  'updates.simhub.versionTooOld': { minimum: string | number, version: string | number }
   'validation.configuration.theConfigurationCouldNotBe': { detail: string | number }
   'validation.controls.actionNumber': { number: string | number }
   'validation.controls.ownerHasNoComparison': { owner: string | number }

@@ -24,37 +24,40 @@ paths:
   `InfoHint` beside a name; the texts are the `inspector.hints.*` keys in
   `i18n/en.json`, never prose between fields. Colours use `ColorPicker`, not
   `<input type="color">`, so the dashboard's existing colours are reachable
-  inside the picker.
+  inside the picker. With nothing selected it shows the dashboard's settings and
+  `ScreenChangesSection`: the screen rules and the idle return home of
+  `dashboard.controls`.
 - `editor/` is the document layer: view state and the active tool in
   `store.ts`, panel sizes and group folds in `panel-store.ts`, snapping
   preferences in `snap-store.ts`, access and mutation in `document.ts`, and one
-  module per command family (`widgets`, `screens`, `slots`, `clipboard`,
-  `naming`, `palette`, and the arrange family: `alignment`,
+  module per command family (`widgets`, `screens`, `slots`, `controls`,
+  `clipboard`, `naming`, `palette`, and the arrange family: `alignment`,
   `geometry-commands`, `grouping`, `placement`, `reparent`, `stacking`).
   `dashboard-editor.ts` re-exports the commands as one surface; the stores and
   the geometry helpers are not in it, so `panel-store`, `snap-store`,
   `placement`, `geometry-commands` and `insert-template` are imported from their
   own modules.
 - `layers/` holds the layer list's parts under `LayersPanel.tsx`; `configs/`
-  holds the Configs page's sections under `ConfigsPage.tsx` — the three
-  documents on the board with Load/Save/Reset each, the saved-configuration
-  library, the per-document diff, the raw JSON per document and the feedback
-  note. The board and file section stays inline in the page.
+  holds the Configs page's parts under `ConfigsPage.tsx` — the recent list
+  (files and the library's copies in one list), the board line with `Load from
+  board`, the size notes and the feedback note. The setup card (board, file
+  actions, converting to the connected board) stays inline in the page; the
+  factory reset is on Firmware, and per-document tools and raw JSON are the
+  debugger's.
 
 At the feature root stay `DashboardWorkspace.tsx` (the four dashboard pages and
 the toolbar over them), `ConfigsPage.tsx`, `LayersPanel.tsx`,
-`configuration-actions.ts` (the commands that replace the whole document, plus
-per-document load and reset, as plain functions so a keystroke reaches one
+`configuration-actions.ts` (the commands that replace the whole document, the
+board's factory reset and restart, as plain functions so a keystroke reaches one
 without a panel mounted — a template's `Use` is the exception and replaces the
 draft in `features/templates/DashboardSection.tsx`), `board-labels.ts`,
 `config-library-store.ts`, `transfer-report.ts` and the `dashboard-editor.ts`
 barrel.
 
-The editor mutates one sparse draft document: canvas drag and resize, the
-inspector and the advanced JSON editor all write the same document — there is
-no editor-only layout model. Editor state (selection, the opened container,
-locks, hiding, grid, zoom) never reaches the document, which the device rejects
-for unknown properties. Widget geometry is absolute logical pixels, relative to
+The editor mutates one sparse draft document: canvas drag and resize and the
+inspector write the same document — there is no editor-only layout model.
+Editor state (selection, the opened container, locks, hiding, grid, zoom) never
+reaches the document, which the device rejects for unknown properties. Widget geometry is absolute logical pixels, relative to
 the container inside one. `pendingInsert` is the placement mode for a template
 fragment, and every `insertWidget` — a drawn widget, a paste, a duplicate, a
 placed fragment — re-ids what it inserts through `freshWidgetIds`, as an

@@ -2,6 +2,7 @@ import {
   Cable,
   Cpu,
   Files,
+  Gamepad2,
   Info,
   LayoutDashboard,
   type LucideIcon,
@@ -13,6 +14,8 @@ import { useEffect } from 'react'
 
 import { cn } from '@/lib/utils'
 import { useDeviceStore } from '@/features/device/device-store'
+import { canonicalJson } from '@shared/configuration-access'
+import type { DeviceConfiguration } from '@shared/device'
 import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import { useDraftState } from '@/features/device/draft-state'
 import { useWorkspaceStore, WORKSPACE_TABS, type WorkspaceTab } from './workspace-store'
@@ -33,9 +36,10 @@ const ENTRIES: Record<WorkspaceTab, RailEntry> = {
     icon: LayoutDashboard,
     hint: t('misc.workspaceRail.drawTheDashboardAndThe')
   },
-  modules: { label: t('documents.label.modules'), icon: Puzzle, hint: t('misc.workspaceRail.buttonsEncodersAndLeds') },
+  modules: { label: t('documents.label.modules'), icon: Puzzle, hint: t('misc.workspaceRail.ledsAndMatricesWiredTo') },
+  controls: { label: t('controls.controlsPage.controls'), icon: Gamepad2, hint: t('misc.workspaceRail.whatYourWheelAndButtons') },
   protocol: { label: t('documents.label.protocol'), icon: Cable, hint: t('misc.workspaceRail.telemetryLinkAndSimhub') },
-  configs: { label: t('dashboard.configsPage.configs'), icon: Files, hint: t('misc.workspaceRail.filesSavedConfigurationsAndJson') },
+  configs: { label: t('dashboard.configsPage.configs'), icon: Files, hint: t('dashboard.configsPage.yourSetupFiles') },
   firmware: { label: t('device.infoPage.firmware'), icon: Cpu, hint: t('misc.workspaceRail.installAFirmwareImageOver') },
   info: { label: t('device.infoPage.info'), icon: Info, hint: t('misc.workspaceRail.whatTheConnectedBoardIs') }
 }
@@ -46,13 +50,20 @@ const OWNED_DOCUMENT: Partial<Record<WorkspaceTab, ConfigurationDocumentId>> = {
   protocol: 'protocol'
 }
 
+function controlsOf(configuration: DeviceConfiguration | undefined): string {
+  return canonicalJson([configuration?.inputs ?? null, configuration?.dashboard?.controls ?? null])
+}
+
 export function WorkspaceRail(): React.JSX.Element {
   const tab = useWorkspaceStore((state) => state.tab)
   const setTab = useWorkspaceStore((state) => state.setTab)
   const expanded = useWorkspaceStore((state) => state.railExpanded)
   const toggleRail = useWorkspaceStore((state) => state.toggleRail)
   const session = useDeviceStore((state) => state.session)
+  const draft = useDeviceStore((state) => state.draft)
+  const board = useDeviceStore((state) => state.activeConfiguration)
   const { dirty, dirtyDocuments } = useDraftState()
+  const controlsDiffer = controlsOf(draft) !== controlsOf(session ? board : undefined)
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -70,6 +81,7 @@ export function WorkspaceRail(): React.JSX.Element {
   const dotFor = (candidate: WorkspaceTab): string | undefined => {
     if (candidate === 'firmware' && firmwarePending) return 'bg-amber-400'
     if (candidate === 'configs' && dirty) return 'bg-sky-400'
+    if (candidate === 'controls' && controlsDiffer) return 'bg-sky-400'
     const owned = OWNED_DOCUMENT[candidate]
     if (owned && dirtyDocuments.includes(owned)) return 'bg-sky-400'
     return undefined

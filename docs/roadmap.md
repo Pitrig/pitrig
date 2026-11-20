@@ -64,6 +64,16 @@ Editor gaps against SimHub are in
 - [ ] On-screen button and slider
 - [ ] Gamepad report mapping
 - [ ] Images kept in their original format
+- [ ] Image gauge — two images, empty and full; a value reveals the full one left to
+  right, bottom to top or around a centre. A clip rather than a mask, so the P4
+  keeps its accelerated draw; replaces the cut-out background over a bar
+- [ ] Image masks for any widget — an image's alpha decides where a widget shows
+  (LVGL `bitmap_mask_src`). Drawn through a layer, so measure the P4 cost first
+- [ ] Polygon and path shapes — chevrons, trapezoids and slanted panels drawn from
+  points in the editor. Filled in software, so large ones bound to telemetry cost
+  frames
+- [ ] Containers clipped to an ellipse or a mask — for round displays (GC9A01) and
+  shaped panels; the container form of image masks
 - [ ] Table widget
 - [ ] Track map widget
 
@@ -87,7 +97,7 @@ Editor gaps against SimHub are in
 - [*] Live values in the preview
 - [ ] Setting a telemetry value by hand in the preview
 - [ ] Named styles
-- [ ] Image delivery on save
+- [*] Image delivery on save
 - [ ] Reflow on layout transfer
 - [ ] Single screen export
 - [ ] Keyboard navigation and layer search
@@ -101,6 +111,7 @@ Editor gaps against SimHub are in
 - [ ] Safe mode shown on screen
 - [ ] Firmware version awareness
 - [ ] Firmware downloaded from the latest release and installed in the app
+- [ ] First install from the app on a board still running its factory firmware
 
 # Phase 7 — Telemetry
 
@@ -120,7 +131,8 @@ Editor gaps against SimHub are in
 # Phase 8 — Distribution
 
 - [ ] Dashboard bundle
-- [ ] Sharing a dashboard as a file
+- [*] Sharing a dashboard as one file with its images, opened on another PC as it was
+- [ ] Templates that carry their images
 - [ ] In-app gallery
 - [ ] CI on pull requests
 - [*] Compatibility policy and changelog

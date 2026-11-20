@@ -76,6 +76,17 @@ export class FontCatalogService {
     return bytes ? { bytes, category: family.category } : undefined
   }
 
+  async findById(id: string): Promise<{ family: string; variant: FontVariant } | undefined> {
+    for (const family of await this.load()) {
+      for (const entry of family.variants) {
+        if (fontFamilyId(family.name, entry.variant) === id) {
+          return { family: family.name, variant: entry.variant }
+        }
+      }
+    }
+    return undefined
+  }
+
   private async face(id: string, url: string): Promise<Uint8Array | undefined> {
     const cached = await this.readCached(id)
     if (cached) return cached

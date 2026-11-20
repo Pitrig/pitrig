@@ -48,6 +48,14 @@ namespace Pitrig.SimHub
                     return ConditionComputations.DamageGrade(state, 3);
                 case FieldComputation.DamageRepairTime:
                     return ConditionComputations.RepairTime(state);
+                case FieldComputation.DamageRepairFront:
+                    return ConditionComputations.ZoneRepairTime(state, 0);
+                case FieldComputation.DamageRepairRear:
+                    return ConditionComputations.ZoneRepairTime(state, 1);
+                case FieldComputation.DamageRepairLeft:
+                    return ConditionComputations.ZoneRepairTime(state, 2);
+                case FieldComputation.DamageRepairRight:
+                    return ConditionComputations.ZoneRepairTime(state, 3);
                 case FieldComputation.TrackCondition:
                     return ConditionComputations.TrackCondition(state);
                 case FieldComputation.GearNumber:
@@ -71,11 +79,11 @@ namespace Pitrig.SimHub
                 case FieldComputation.SessionBestDelta:
                     return TimingComputations.SessionBestDelta(state);
                 case FieldComputation.LastLapDeltaBest:
-                    return TimingComputations.LastLapDeltaBest(status);
+                    return TimingComputations.LastLapDeltaBest(state);
                 case FieldComputation.DeltaStatus:
                     return TimingComputations.DeltaStatus(state);
                 case FieldComputation.LastLapStatus:
-                    return TimingComputations.LastLapStatus(status);
+                    return TimingComputations.LastLapStatus(state);
                 case FieldComputation.SectorStatus1:
                     return SectorComputations.Status(state, 1);
                 case FieldComputation.SectorStatus2:
@@ -120,6 +128,8 @@ namespace Pitrig.SimHub
                     return RaceComputations.LeaderGap(state);
                 case FieldComputation.StartingPosition:
                     return RaceComputations.StartingPosition(state);
+                case FieldComputation.PositionsGained:
+                    return RaceComputations.PositionsGained(state);
                 case FieldComputation.FuelRequired:
                     return FuelComputations.Required(state);
                 case FieldComputation.FuelToAdd:

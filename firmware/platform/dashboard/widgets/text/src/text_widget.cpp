@@ -101,11 +101,12 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
 
   state.font = value_font;
   state.color = config.value.color;
+  state.unavailable_color = config.value.unavailable_color;
   state.alignment = config.value.alignment;
   state.value_height = value_height;
   state.text_width = 0;
   state.offset_y = has_title ? title_height / 4 : 0;
-#if PITRIG_DISPLAY_RENDER_FULL || PITRIG_DISPLAY_RENDER_FULL_STRIPS
+#if PITRIG_DISPLAY_RENDER_FULL_STRIPS
   state.full_width = true;
 #endif
   lv_obj_add_event_cb(state.container, &drawing::draw_value, LV_EVENT_DRAW_MAIN_END, &state);
@@ -152,16 +153,18 @@ void Collection::render_state(State& state) {
     }
   }
   state.initialized = true;
-  if (!any_available && started) {
+  const bool unavailable = !any_available && started;
+  if (unavailable) {
     next = state.unavailable_text;
   }
-  if (!first_render && state.displayed_text == next) {
+  if (!first_render && state.displayed_text == next && state.showing_unavailable == unavailable) {
     return;
   }
   lv_area_t content{};
   lv_obj_get_content_coords(state.container, &content);
   const lv_area_t previous = drawing::value_area(state, content);
   state.displayed_text = next;
+  state.showing_unavailable = unavailable;
   state.text_width =
       state.full_width ? 0 : drawing::text_width_of(state.font, state.displayed_text.data());
   drawing::invalidate_value(state, first_render ? nullptr : &previous);

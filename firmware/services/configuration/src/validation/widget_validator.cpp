@@ -70,7 +70,8 @@ bool Validator::conditions(const WidgetFrame& config) {
     const WidgetCondition& rule = config.conditions[index];
     if (rule.op < ConditionOperator::above || rule.op > ConditionOperator::bit_set ||
         !std::isfinite(rule.value) || !valid_optional_color(rule.color) ||
-        !valid_optional_color(rule.background_color) || !valid_optional_color(rule.border_color)) {
+        !valid_optional_color(rule.background_color) || !valid_optional_color(rule.border_color) ||
+        !valid_optional_color(rule.title_color)) {
       return reject(failure_, ValidationError::invalid_widget, "conditions");
     }
     if (const std::string_view out_of_range = schema::range_error(rule); !out_of_range.empty()) {

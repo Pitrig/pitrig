@@ -7,11 +7,18 @@ import { Select } from '@/components/ui/select'
 import { PageSection, PageShell } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useDraftState } from '@/features/device/draft-state'
-import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
+import {
+  SaveFeedbackNote,
+  SaveProgressBar,
+  SaveToBoardButton
+} from '@/features/device/save-to-board-ui'
 import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import { transferReportLines } from '@/features/configuration/transfer-report'
+import { ShareDashboardButton } from '@/features/dashboard-files/ShareDashboardDialog'
 import { useEditorPanelStore } from './editor/panel-store'
-import { BOARD_NAMES, boardLabel, fitOutcome } from './board-labels'
+import { BoardPicker } from './preview/BoardPicker'
+import { BOARD_NAMES, boardName, fitOutcome } from './board-labels'
+import { useConfigurationLibrary } from './config-library-store'
 import {
   convertDraftToBoard,
   createConfiguration,
@@ -19,34 +26,27 @@ import {
   saveConfigurationFile,
   type ActionFeedback
 } from './configuration-actions'
-import { BoardDocumentsSection } from './configs/BoardDocumentsSection'
-import { ChangesSection } from './configs/ChangesSection'
-import { AdvancedJsonSection } from './configs/AdvancedJsonSection'
-import { LibrarySection } from './configs/LibrarySection'
+import { BoardSection } from './configs/BoardSection'
+import { DocumentSizeNotes } from './configs/DocumentSizeNotes'
 import { FeedbackNote } from './configs/FeedbackNote'
-import { BOARD_PROFILES, PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
-import { CONFIGURATION_DOCUMENTS, CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
-import {
-  documentPayloadBytes
-} from '@shared/configuration-documents'
+import { RecentList } from './configs/RecentList'
+import { BOARD_PROFILES, type PitrigBoardId } from '@shared/device'
 import type { LayoutFit, LayoutTransferResult } from '@shared/layout-transfer'
 
 export function ConfigsPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
+  const draft = useDeviceStore((state) => state.draft)
   const draftFileName = useDeviceStore((state) => state.draftFileName)
   const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
   const rebootRequired = useDeviceStore((state) => state.rebootRequired)
-  const saving = useSaveToBoardStore((state) => state.running)
-  const { parsed, dirty, connected } = useDraftState()
-
   const offlineBoard = useDeviceStore((state) => state.offlineBoard)
-  const setOfflineBoard = useDeviceStore((state) => state.setOfflineBoard)
-  const fit = useEditorPanelStore((state) => state.transferFit)
-  const setFit = useEditorPanelStore((state) => state.setTransferFit)
+  const saving = useSaveToBoardStore((state) => state.running)
+  const { parsed, dirty, boardMismatch } = useDraftState()
+  const { library, error, loading, refresh } = useConfigurationLibrary()
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState<ActionFeedback>()
   const [report, setReport] = useState<LayoutTransferResult>()
-  const targetBoard = session?.info.boardId ?? offlineBoard ?? ''
+  const targetBoard = session?.info.boardId ?? offlineBoard ?? draft?.board
   const working = busy || saving
 
   const act = async (action: () => Promise<ActionFeedback | undefined>): Promise<void> => {
@@ -57,26 +57,14 @@ export function ConfigsPage(): React.JSX.Element {
       setFeedback(await action())
     } finally {
       setBusy(false)
+      refresh()
     }
-  }
-
-  const convertTarget =
-    parsed.ok && targetBoard && parsed.configuration.board !== targetBoard
-      ? targetBoard
-      : undefined
-
-  const convert = async (target: PitrigBoardId): Promise<void> => {
-    setFeedback(undefined)
-    setReport(undefined)
-    const result = await convertDraftToBoard(target, fit, session?.info.display)
-    if (result.report) setReport(result.report)
-    if (result.feedback) setFeedback(result.feedback)
   }
 
   return (
     <PageShell
       title={t('dashboard.configsPage.configs')}
-      description={t('dashboard.configsPage.theDashboardDocumentFilesSaved')}
+      description={t('dashboard.configsPage.yourSetupFiles')}
       actions={
         <>
           {rebootRequired ? (
@@ -90,38 +78,35 @@ export function ConfigsPage(): React.JSX.Element {
         </>
       }
     >
+      <SaveProgressBar />
+      <SaveFeedbackNote />
+
       <PageSection
-        title={t('dashboard.configsPage.document')}
-        description={
+        title={
           draftFileName ??
           (hasLocalDraft
-            ? t('dashboard.configsPage.unsavedLocalDraft')
-            : t('dashboard.configsPage.noLocalConfiguration'))
+            ? t('dashboard.configsPage.untitledSetup')
+            : t('dashboard.configsPage.nothingOpen'))
         }
+        description={
+          draftFileName
+            ? undefined
+            : hasLocalDraft
+              ? t('dashboard.configsPage.notSavedToAFile')
+              : t('dashboard.configsPage.startANewSetupOr')
+        }
+        actions={<BoardPicker />}
       >
         <div className="space-y-3">
-          <label className="block space-y-1 text-[11px] text-muted-foreground">
-            <span>{t('device.infoPage.board')}</span>
-            <Select<PitrigBoardId | ''>
-              className="w-full"
-              disabled={working || connected}
-              value={targetBoard ?? ''}
-              options={[
-                { value: '', label: t('dashboard.configsPage.selectBoard') },
-                ...PITRIG_BOARD_IDS.map((id) => ({ value: id, label: boardLabel(id) }))
-              ]}
-              onChange={(next) => setOfflineBoard(next || undefined)}
-            />
-            {connected ? (
-              <span className="block">{t('dashboard.configsPage.theConnectedBoardDecidesThis')}</span>
-            ) : null}
-          </label>
-
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               disabled={working || !targetBoard}
-              onClick={() => void createConfiguration(targetBoard as PitrigBoardId).then(setFeedback)}
+              title={targetBoard ? undefined : t('dashboard.configsPage.pickABoardFirst')}
+              onClick={() => {
+                if (!targetBoard) return
+                void act(() => createConfiguration(targetBoard as PitrigBoardId))
+              }}
             >
               {t('dashboard.configsPage.new')}</Button>
             <Button variant="outline" disabled={working} onClick={() => void act(openConfigurationFile)}>
@@ -132,94 +117,122 @@ export function ConfigsPage(): React.JSX.Element {
               title={t('dashboard.configsPage.saveTheConfigurationToA')}
               onClick={() => void act(saveConfigurationFile)}
             >
-              {t('dashboard.configsPage.saveAs')}</Button>
+              {t('dashboard.configsPage.save')}</Button>
+            <ShareDashboardButton />
           </div>
 
-          {parsed.ok ? (
-            <div className="space-y-0.5 text-[11px] text-muted-foreground">
-              {CONFIGURATION_DOCUMENT_IDS.map((id) => {
-                const bytes = documentPayloadBytes(parsed.configuration, id)
-                const limit = CONFIGURATION_DOCUMENTS[id].maxPayload
-                return (
-                  <div key={id} className="flex items-center justify-between">
-                    <span>{t(`documents.label.${id}`)}</span>
-                    <span className={bytes > limit ? 'text-red-400' : undefined}>
-                      {t('configs.configsPage.bytesOfLimit', { bytes: bytes, limit: limit })}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-[11px] text-muted-foreground">{t('dashboard.configsPage.invalidJson')}</p>
-          )}
-          {parsed.ok ? null : <p className="text-[11px] text-red-400">{parsed.error}</p>}
+          {hasLocalDraft && !parsed.ok ? (
+            <p className="text-[11px] text-red-400">
+              {t('dashboard.configsPage.thisSetupHasAnError', { error: parsed.error })}
+            </p>
+          ) : null}
+          {parsed.ok ? <DocumentSizeNotes configuration={parsed.configuration} /> : null}
 
-          {convertTarget ? (
-            <div className="space-y-2 rounded-md border border-dashed p-2">
-              <label className="block space-y-1 text-[11px] text-muted-foreground">
-                <span>{t('dashboard.configsPage.fitToTheNewDisplay')}</span>
-                <Select<LayoutFit>
-                  className="w-full"
-                  disabled={working}
-                  value={fit}
-                  options={[
-                    { value: 'contain', label: t('dashboard.configsPage.keepProportionsCentre') },
-                    { value: 'stretch', label: t('dashboard.configsPage.stretchToFillTheDisplay') }
-                  ]}
-                  onChange={setFit}
-                />
-              </label>
-              <p className="text-[11px] text-muted-foreground">
-                {parsed.ok
-                  ? fitOutcome(
-                      BOARD_PROFILES[parsed.configuration.board].display ?? { width: 0, height: 0 },
-                      session?.info.display ??
-                        BOARD_PROFILES[convertTarget].display ?? { width: 0, height: 0 },
-                      fit
-                    )
-                  : null}
-              </p>
-              <Button
-                className="w-full"
-                variant="outline"
-                disabled={working}
-                onClick={() => void convert(convertTarget)}
-              >
-                {t('dashboard.configsPage.convertDraftToConverttarget', { convertTarget: BOARD_NAMES[convertTarget] })}
-              </Button>
-            </div>
+          {boardMismatch && parsed.ok && session ? (
+            <ConvertToBoard
+              from={parsed.configuration.board}
+              to={session.info.boardId}
+              display={session.info.display}
+              working={working}
+              onDone={(result) => {
+                setReport(result.report)
+                setFeedback(result.feedback)
+              }}
+            />
           ) : null}
 
-          {report ? (
-            <div className="space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-medium">{t('templates.dashboardSection.layoutTransfer')}</span>
-                <button
-                  className="text-sky-300/70 hover:text-sky-200"
-                  type="button"
-                  onClick={() => setReport(undefined)}
-                >
-                  {t('templates.dashboardSection.dismiss')}</button>
-              </div>
-              <ul className="list-disc space-y-0.5 pl-4">
-                {transferReportLines(report).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
+          {report ? <TransferReport report={report} onDismiss={() => setReport(undefined)} /> : null}
           <FeedbackNote feedback={feedback} />
         </div>
+
+        <RecentList
+          library={library}
+          error={error}
+          loading={loading}
+          working={working}
+          onRefresh={refresh}
+          onFeedback={setFeedback}
+        />
       </PageSection>
 
-      <BoardDocumentsSection working={working} onAct={act} />
-
-      <ChangesSection />
-      <LibrarySection working={working} onFeedback={setFeedback} />
-
-      <AdvancedJsonSection working={working} onEdit={() => setFeedback(undefined)} />
+      <BoardSection working={working} onAct={act} />
     </PageShell>
+  )
+}
+
+function ConvertToBoard({
+  from,
+  to,
+  display,
+  working,
+  onDone
+}: {
+  from: PitrigBoardId
+  to: PitrigBoardId
+  display?: { width: number; height: number }
+  working: boolean
+  onDone: (result: { feedback?: ActionFeedback; report?: LayoutTransferResult }) => void
+}): React.JSX.Element {
+  const fit = useEditorPanelStore((state) => state.transferFit)
+  const setFit = useEditorPanelStore((state) => state.setTransferFit)
+  const none = { width: 0, height: 0 }
+  return (
+    <div className="space-y-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+      <p>
+        {t('dashboard.configsPage.setupForAnotherBoard', { draftBoard: boardName(from), board: boardName(to) })}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select<LayoutFit>
+          aria-label={t('dashboard.configsPage.fitToTheNewDisplay')}
+          className="w-56"
+          disabled={working}
+          value={fit}
+          options={[
+            { value: 'contain', label: t('dashboard.configsPage.keepProportionsCentre') },
+            { value: 'stretch', label: t('dashboard.configsPage.stretchToFillTheDisplay') }
+          ]}
+          onChange={setFit}
+        />
+        <Button
+          variant="outline"
+          disabled={working}
+          onClick={() => void convertDraftToBoard(to, fit, display).then(onDone)}
+        >
+          {t('dashboard.configsPage.convertDraftToConverttarget', { convertTarget: BOARD_NAMES[to] })}
+        </Button>
+      </div>
+      <p className="text-amber-200/70">
+        {fitOutcome(
+          BOARD_PROFILES[from].display ?? none,
+          display ?? BOARD_PROFILES[to].display ?? none,
+          fit
+        )}
+      </p>
+    </div>
+  )
+}
+
+function TransferReport({
+  report,
+  onDismiss
+}: {
+  report: LayoutTransferResult
+  onDismiss: () => void
+}): React.JSX.Element | null {
+  const lines = transferReportLines(report)
+  if (lines.length === 0) return null
+  return (
+    <div className="space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-medium">{t('templates.dashboardSection.layoutTransfer')}</span>
+        <button className="text-sky-300/70 hover:text-sky-200" type="button" onClick={onDismiss}>
+          {t('templates.dashboardSection.dismiss')}</button>
+      </div>
+      <ul className="list-disc space-y-0.5 pl-4">
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    </div>
   )
 }

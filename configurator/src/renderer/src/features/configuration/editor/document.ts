@@ -168,11 +168,3 @@ export function mutateSelectedWidget(
     return true
   })
 }
-
-export {
-  absolutePlacement,
-  absolutePlacements,
-  completePlacement,
-  parentOffset,
-  writePlacement
-} from './document-geometry'

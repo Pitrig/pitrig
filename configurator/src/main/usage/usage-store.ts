@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { lstat, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 
 import { writeFileAtomic } from '../write-file-atomic'
 
@@ -10,6 +10,16 @@ export interface UsageState {
 }
 
 const install = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const EARLIER_USE_MS = 10 * 60 * 1000
+
+async function bornAt(path: string): Promise<number | undefined> {
+  try {
+    const { birthtimeMs } = await lstat(path)
+    return birthtimeMs > 0 ? birthtimeMs : undefined
+  } catch {
+    return undefined
+  }
+}
 
 function parse(text: string): UsageState | undefined {
   try {
@@ -44,6 +54,19 @@ export class UsageStore {
       })
       return this.creating
     }
+  }
+
+  async existedBefore(): Promise<boolean | undefined> {
+    const created = await bornAt(this.path)
+    if (created === undefined) return undefined
+    const folder = dirname(this.path)
+    const own = basename(this.path)
+    const entries = await readdir(folder).catch((): string[] => [])
+    const others = entries.filter((entry) => !entry.startsWith(own)).map((entry) => join(folder, entry))
+    const births = (await Promise.all([folder, ...others].map(bornAt))).filter(
+      (birth): birth is number => birth !== undefined
+    )
+    return births.length ? Math.min(...births) < created - EARLIER_USE_MS : undefined
   }
 
   async setEnabled(enabled: boolean): Promise<UsageState | undefined> {

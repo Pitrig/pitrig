@@ -20,10 +20,11 @@ import {
   broadcastDeviceState,
   broadcastBoardUpdateProgress,
   broadcastFirmwareUploadProgress,
-  broadcastImageUploadProgress,
-  broadcastSaveProgress,
-  registerIpcHandlers
-} from '@main/ipc/register-ipc-handlers'
+  broadcastFontLibraryChanged,
+  broadcastImageLibraryChanged,
+  broadcastSaveProgress
+} from '@main/ipc/broadcast'
+import { registerIpcHandlers } from '@main/ipc/register-ipc-handlers'
 
 if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)
@@ -35,7 +36,8 @@ const services: AppServices = createAppServices({
   onDeviceState: broadcastDeviceState,
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onBoardUpdateProgress: broadcastBoardUpdateProgress,
-  onImageUploadProgress: broadcastImageUploadProgress,
+  onFontLibraryChanged: broadcastFontLibraryChanged,
+  onImageLibraryChanged: broadcastImageLibraryChanged,
   onSaveProgress: broadcastSaveProgress,
   onSerialTraffic: serialTraffic.push
 })

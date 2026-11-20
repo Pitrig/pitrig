@@ -47,7 +47,7 @@ the configuration document; configurations travel to widget creation as a
 parallel span instead.
 
 Let the composition root recompose from the promoted document by tearing the
-dashboard down and composing it again — `recompose()` in the core, over the
+dashboard down and composing it again — `apply_dashboard_document()` in the core, over the
 dashboard composition's existing `destroy` and `create` rather than a second
 composition route. Beside it, the dashboard composition offers
 `apply_incremental()`, which keeps every widget whose bytes did not change and

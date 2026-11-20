@@ -1,0 +1,725 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/priv_include/esp_lvgl_port_priv.h b/firmware/managed_components/espressif__esp_lvgl_port/priv_include/esp_lvgl_port_priv.h
+--- a/firmware/managed_components/espressif__esp_lvgl_port/priv_include/esp_lvgl_port_priv.h
++++ b/firmware/managed_components/espressif__esp_lvgl_port/priv_include/esp_lvgl_port_priv.h
+@@ -43,6 +43,8 @@ typedef struct {
+  */
+ bool lvgl_port_task_notify(uint32_t value);
+ 
++void lvgl_port_disp_hold(void);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c
+@@ -223,6 +223,7 @@ static void lvgl_port_task(void *arg)
+         /* Wait for queue or timeout (sleep task) */
+         TickType_t wait = (pdMS_TO_TICKS(task_delay_ms) >= 1 ? pdMS_TO_TICKS(task_delay_ms) : 1);
+         events = xEventGroupWaitBits(lvgl_port_ctx.lvgl_events, 0xFF, pdTRUE, pdFALSE, wait);
++        lvgl_port_disp_hold();
+ 
+         if (lv_display_get_default() && lvgl_port_lock(0)) {
+ 
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -28,6 +28,63 @@
+ 
+ #if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+ #include "esp_lcd_panel_rgb.h"
++#include "display/lv_display_private.h"
++#define LVGL_PORT_RGB_RECTS 32
++#define LVGL_PORT_RGB_PIECES (3 * LVGL_PORT_RGB_RECTS + 4)
++#define LVGL_PORT_RGB_QUIET_US 600U
++
++typedef struct {
++    uint16_t history[2][LVGL_PORT_RGB_RECTS][4];
++    uint16_t drawn[LVGL_PORT_RGB_RECTS][4];
++    uint16_t areas[2][LVGL_PORT_RGB_RECTS][4];
++    uint16_t frame_areas[LVGL_PORT_RGB_RECTS][4];
++    uint16_t pieces[LVGL_PORT_RGB_PIECES][5];
++    uint32_t area_px[2];
++    uint32_t frame_area_px;
++    uint32_t drawn_px;
++    uint32_t queued_seen;
++    uint8_t area_count[2];
++    uint8_t history_count[2];
++    uint8_t drawn_count;
++    uint8_t slot;
++    uint8_t open;
++    uint8_t trust;
++    uint8_t buffers;
++    uint8_t newest;
++    uint8_t target;
++    uint8_t queued;
++    uint8_t area_exact[2];
++    uint8_t frame_area_count;
++    uint8_t recon_pending;
++    uint8_t recon_frame;
++    uint8_t recon_stale;
++    uint8_t recon_depth;
++    volatile uint8_t heal;
++    volatile uint32_t submitted;
++    volatile uint32_t queued_frames;
++    volatile uint32_t taken;
++    volatile uint32_t period_us;
++    volatile uint32_t cost_peak_us;
++    volatile uint32_t cost_least_us;
++    volatile uint32_t wrap_lo32;
++    uint32_t resumed_lo32;
++    uint32_t margin_us;
++    uint32_t hits;
++    uint32_t calm;
++    volatile uint32_t submit_lo32;
++    uint32_t serviced_lo32;
++    volatile uint8_t light;
++    volatile uint8_t pacing;
++    volatile uint32_t target_lo32;
++    int64_t started_us;
++    int64_t wait_from_us;
++    int64_t wait_to_us;
++    esp_timer_handle_t alarm;
++    SemaphoreHandle_t done;
++    SemaphoreHandle_t wake;
++} lvgl_port_rgb_strips_t;
++
++
+ #endif
+ 
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+@@ -133,6 +190,9 @@ typedef struct {
+     uint32_t                  strip_rows;
+     uint32_t                  strip_px;
+     uint8_t                   strip_target;
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++    lvgl_port_rgb_strips_t    *rgb;
++#endif
+     lvgl_port_rounder_cb_t    rounder_cb;     /* Rounder callback for display area */
+ #if LVGL_PORT_PPA
+     lvgl_port_ppa_handle_t    ppa_handle;
+@@ -144,6 +204,7 @@ typedef struct {
+         unsigned int direct_mode: 1;    /* Use screen-sized buffers and draw to absolute coordinates */
+         unsigned int rgb_redirect: 1;
+         unsigned int full_strips: 1;
++        unsigned int rgb_strips: 1;
+         unsigned int sw_rotate: 1;    /* Use software rotation (slower) or PPA if available */
+     } flags;
+ } lvgl_port_display_ctx_t;
+@@ -162,6 +223,8 @@ typedef struct {
+     uint8_t target;
+     uint8_t reconcile;
+     uint8_t source;
++    uint8_t rgb;
++    int64_t started_us;
+ } lvgl_port_flush_job_t;
+ 
+ static QueueHandle_t s_flush_queue = NULL;
+@@ -375,6 +438,9 @@ volatile uint32_t lvgl_port_sched_burst_armed = 0;
+ volatile uint32_t lvgl_port_sched_blocked = 0;
+ volatile uint32_t lvgl_port_pkt_lines = 0;
+ static uint32_t s_pkt_last_line_lo32 = 0;
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++static lvgl_port_display_ctx_t *s_rgb_ctx;
++#endif
+ 
+ static void lvgl_port_disp_jit_wait(void)
+ {
+@@ -538,6 +604,12 @@ void lvgl_port_disp_note_feed_line(void)
+     const uint32_t gap = now - s_pkt_last_line_lo32;
+     const bool first = s_pkt_last_line_lo32 == 0U;
+     s_pkt_last_line_lo32 = now;
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++    lvgl_port_display_ctx_t *rgb_ctx = s_rgb_ctx;
++    if (rgb_ctx != NULL && rgb_ctx->rgb->pacing) {
++        xSemaphoreGive(rgb_ctx->rgb->wake);
++    }
++#endif
+     lvgl_port_pkt_lines++;
+     if (first || gap >= 3000U) {
+         lvgl_port_disp_note_feed_burst(now_us);
+@@ -617,14 +689,434 @@ static void lvgl_port_flush_wait_cb(lv_display_t *disp)
+     }
+ }
+ 
++
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++static void lvgl_port_rgb_note(uint16_t (*rects)[4], uint8_t *count, const uint16_t *rect)
++{
++    if (*count > 0U) {
++        uint16_t *last = rects[*count - 1U];
++        if (last[0] == rect[0] && last[2] == rect[2] && last[3] == rect[1]) {
++            last[3] = rect[3];
++            return;
++        }
++    }
++    if (*count < LVGL_PORT_RGB_RECTS) {
++        memcpy(rects[*count], rect, sizeof(rects[0]));
++        *count = (uint8_t)(*count + 1U);
++        return;
++    }
++    uint16_t *box = rects[LVGL_PORT_RGB_RECTS - 1U];
++    box[0] = LV_MIN(box[0], rect[0]);
++    box[1] = LV_MIN(box[1], rect[1]);
++    box[2] = LV_MAX(box[2], rect[2]);
++    box[3] = LV_MAX(box[3], rect[3]);
++}
++
++static void lvgl_port_rgb_copy(uint8_t *dst_fb, const uint8_t *src, uint32_t src_stride,
++                               uint32_t stride, uint32_t px_size, const uint16_t *rect)
++{
++    const uint32_t row_bytes = (uint32_t)(rect[2] - rect[0]) * px_size;
++    uint8_t *dst = dst_fb + (uint32_t)rect[1] * stride + (uint32_t)rect[0] * px_size;
++    if (row_bytes == stride && src_stride == stride) {
++        memcpy(dst, src, (size_t)row_bytes * (uint32_t)(rect[3] - rect[1]));
++        return;
++    }
++    for (uint16_t y = rect[1]; y < rect[3]; y++) {
++        memcpy(dst, src, row_bytes);
++        dst += stride;
++        src += src_stride;
++    }
++}
++
++static bool lvgl_port_rgb_recon_step(lvgl_port_display_ctx_t *ctx, uint32_t stride, uint32_t px_size,
++                                     uint32_t budget_rows)
++{
++    lvgl_port_rgb_strips_t *rgb = ctx->rgb;
++    uint8_t *target_fb = (uint8_t *)ctx->panel_fbs[rgb->target];
++    const uint8_t *source_fb = (const uint8_t *)ctx->panel_fbs[rgb->newest];
++    const uint8_t areas = rgb->trust ? rgb->frame_area_count : 0U;
++    while (rgb->recon_pending) {
++        if (rgb->recon_depth == 0U) {
++            while (rgb->recon_frame + 1U < rgb->buffers
++                    && rgb->recon_stale >= rgb->history_count[rgb->recon_frame]) {
++                rgb->recon_frame++;
++                rgb->recon_stale = 0;
++            }
++            if (rgb->recon_frame + 1U >= rgb->buffers) {
++                rgb->recon_pending = 0;
++                return false;
++            }
++            memcpy(rgb->pieces[0], rgb->history[rgb->recon_frame][rgb->recon_stale], sizeof(rgb->history[0][0]));
++            rgb->pieces[0][4] = 0;
++            rgb->recon_depth = 1;
++            rgb->recon_stale++;
++        }
++        rgb->recon_depth--;
++        uint16_t *piece = rgb->pieces[rgb->recon_depth];
++        const uint16_t x1 = piece[0];
++        const uint16_t y1 = piece[1];
++        const uint16_t x2 = piece[2];
++        const uint16_t y2 = piece[3];
++        uint8_t next = (uint8_t)piece[4];
++        while (next < areas) {
++            const uint16_t *area = rgb->frame_areas[next];
++            if (x1 < area[2] && area[0] < x2 && y1 < area[3] && area[1] < y2) {
++                break;
++            }
++            next++;
++        }
++        if (next >= areas) {
++            const uint16_t rows = (uint16_t)LV_MIN((uint32_t)(y2 - y1), budget_rows);
++            const uint16_t rect[4] = {x1, y1, x2, (uint16_t)(y1 + rows)};
++            lvgl_port_rgb_copy(target_fb, source_fb + (uint32_t)y1 * stride + (uint32_t)x1 * px_size,
++                               stride, stride, px_size, rect);
++            if (rect[3] < y2) {
++                piece[1] = rect[3];
++                piece[4] = areas;
++                rgb->recon_depth++;
++            }
++            if (budget_rows <= rows) {
++                return rgb->recon_pending;
++            }
++            budget_rows -= rows;
++            continue;
++        }
++        const uint16_t *area = rgb->frame_areas[next];
++        const uint16_t band_y1 = LV_MAX(y1, area[1]);
++        const uint16_t band_y2 = LV_MIN(y2, area[3]);
++        const uint16_t parts[4][4] = {
++            {x1, y1, x2, band_y1},
++            {x1, band_y2, x2, y2},
++            {x1, band_y1, LV_MAX(x1, area[0]), band_y2},
++            {LV_MIN(x2, area[2]), band_y1, x2, band_y2},
++        };
++        for (uint8_t part = 0; part < 4U; part++) {
++            const uint16_t *rect = parts[part];
++            if (rect[0] >= rect[2] || rect[1] >= rect[3]) {
++                continue;
++            }
++            if (rgb->recon_depth < LVGL_PORT_RGB_PIECES) {
++                memcpy(rgb->pieces[rgb->recon_depth], rect, sizeof(parts[0]));
++                rgb->pieces[rgb->recon_depth][4] = (uint16_t)(next + 1U);
++                rgb->recon_depth++;
++            } else {
++                rgb->heal = 1;
++            }
++        }
++    }
++    return false;
++}
++
++static bool lvgl_port_rgb_latched(lvgl_port_display_ctx_t *ctx)
++{
++    lvgl_port_rgb_strips_t *rgb = ctx->rgb;
++    if (rgb->queued < rgb->buffers && ctx->refresh_count != rgb->queued_seen) {
++        ctx->active_fb = rgb->queued;
++        rgb->queued = UINT8_MAX;
++    }
++    return rgb->queued >= rgb->buffers;
++}
++
++static void lvgl_port_rgb_wait_latch(lvgl_port_display_ctx_t *ctx)
++{
++    for (uint32_t waits = 0; !lvgl_port_rgb_latched(ctx) && waits < 8U; waits++) {
++        xSemaphoreTake(ctx->vsync_sem, pdMS_TO_TICKS(50));
++    }
++    if (ctx->rgb->queued < ctx->rgb->buffers) {
++        ctx->active_fb = ctx->rgb->queued;
++        ctx->rgb->queued = UINT8_MAX;
++    }
++}
++
++static void lvgl_port_rgb_rate(lvgl_port_rgb_strips_t *rgb, const lvgl_port_flush_job_t *job,
++                               int64_t wait_from, int64_t wait_to)
++{
++    int64_t paced = wait_to - wait_from;
++    const int64_t earlier_from = LV_MAX(rgb->wait_from_us, job->started_us);
++    if (rgb->wait_to_us > earlier_from) {
++        paced += rgb->wait_to_us - earlier_from;
++    }
++    rgb->wait_from_us = wait_from;
++    rgb->wait_to_us = wait_to;
++    const int64_t done_us = esp_timer_get_time();
++    const int64_t span = done_us - job->started_us - paced;
++    const uint32_t cost = span > 0 ? (uint32_t)LV_MIN(span, (int64_t)1000000) : 0U;
++    const uint32_t target = rgb->target_lo32;
++    if (target != 0U) {
++        if ((int32_t)((uint32_t)done_us + 100U - target) >= 0) {
++            rgb->margin_us = LV_MIN(rgb->margin_us + 500U, 5000U);
++            rgb->hits = 0;
++        } else if (++rgb->hits >= 64U) {
++            rgb->margin_us = LV_MAX(rgb->margin_us - 250U, 1000U);
++            rgb->hits = 0;
++        }
++        rgb->target_lo32 = 0U;
++    }
++    const uint32_t peak = rgb->cost_peak_us - (rgb->cost_peak_us >> 5);
++    rgb->cost_peak_us = LV_MAX(cost, peak);
++    const uint32_t period = rgb->period_us;
++    const uint32_t needed = rgb->cost_peak_us + rgb->margin_us;
++    if (period == 0U || needed + 1500U >= period) {
++        rgb->light = 0;
++        rgb->calm = 0;
++    } else if (needed + 3000U >= period) {
++        rgb->calm = 0;
++    } else if (++rgb->calm >= 60U) {
++        rgb->calm = 60U;
++        rgb->light = 1;
++    }
++    const uint32_t least = rgb->cost_least_us;
++    rgb->cost_least_us = least == 0U || cost < least ? cost : least + ((cost - least) >> 4);
++}
++
++static void lvgl_port_rgb_strip(const lvgl_port_flush_job_t *job)
++{
++    lvgl_port_display_ctx_t *ctx = job->ctx;
++    lvgl_port_rgb_strips_t *rgb = ctx->rgb;
++    const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(job->drv));
++    const uint32_t hres = (uint32_t)lv_disp_get_hor_res(job->drv);
++    const uint32_t stride = hres * px_size;
++    if (!rgb->open) {
++        rgb->target = (uint8_t)((rgb->newest + 1U) % rgb->buffers);
++        if (rgb->target == ctx->active_fb) {
++            lvgl_port_rgb_wait_latch(ctx);
++        } else {
++            (void)lvgl_port_rgb_latched(ctx);
++        }
++        rgb->frame_area_count = rgb->area_exact[job->source] ? rgb->area_count[job->source] : 0U;
++        rgb->frame_area_px = rgb->area_px[job->source];
++        memcpy(rgb->frame_areas, rgb->areas[job->source], sizeof(rgb->frame_areas[0]) * rgb->frame_area_count);
++        rgb->recon_frame = 0;
++        rgb->recon_stale = 0;
++        rgb->recon_depth = 0;
++        rgb->recon_pending = 1;
++        if (!rgb->trust || rgb->frame_area_count == 0U) {
++            (void)lvgl_port_rgb_recon_step(ctx, stride, px_size, UINT32_MAX);
++        }
++        rgb->open = 1;
++        rgb->drawn_count = 0;
++        rgb->drawn_px = 0;
++    }
++    const uint16_t rect[4] = {(uint16_t)job->x1, (uint16_t)job->y1, (uint16_t)job->x2, (uint16_t)job->y2};
++    lvgl_port_rgb_copy((uint8_t *)ctx->panel_fbs[rgb->target], job->color_map,
++                       (uint32_t)(job->x2 - job->x1) * px_size, stride, px_size, rect);
++    lvgl_port_rgb_note(rgb->drawn, &rgb->drawn_count, rect);
++    rgb->drawn_px += (uint32_t)(job->x2 - job->x1) * (uint32_t)(job->y2 - job->y1);
++    lv_disp_flush_ready(job->drv);
++    if (!job->swap) {
++        return;
++    }
++    (void)lvgl_port_rgb_recon_step(ctx, stride, px_size, UINT32_MAX);
++    if (rgb->trust && rgb->drawn_px != rgb->frame_area_px) {
++        rgb->trust = 0;
++        rgb->heal = 1;
++    }
++    memcpy(rgb->history[1], rgb->history[0], sizeof(rgb->history[0][0]) * rgb->history_count[0]);
++    rgb->history_count[1] = rgb->history_count[0];
++    memcpy(rgb->history[0], rgb->drawn, sizeof(rgb->drawn[0]) * rgb->drawn_count);
++    rgb->history_count[0] = rgb->drawn_count;
++    const int64_t wait_from = esp_timer_get_time();
++    lvgl_port_rgb_wait_latch(ctx);
++    const int64_t wait_to = esp_timer_get_time();
++    esp_lcd_panel_draw_bitmap(ctx->panel_handle, 0, 0, (int)hres, lv_disp_get_ver_res(job->drv),
++                              ctx->panel_fbs[rgb->target]);
++    rgb->queued_seen = ctx->refresh_count;
++    __atomic_store_n(&rgb->queued_frames, rgb->queued_frames + 1U, __ATOMIC_SEQ_CST);
++    lvgl_port_rgb_rate(rgb, job, wait_from, wait_to);
++    rgb->queued = rgb->target;
++    rgb->newest = rgb->target;
++    rgb->open = 0;
++    lvgl_port_acc_swaps++;
++}
++
++static void lvgl_port_rgb_flush_wait_cb(lv_display_t *disp)
++{
++    lvgl_port_display_ctx_t *ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
++    for (uint32_t waits = 0; __atomic_load_n(&s_flush_pending, __ATOMIC_SEQ_CST) > 0 && waits < 20U; waits++) {
++        xSemaphoreTake(ctx->rgb->done, pdMS_TO_TICKS(10));
++    }
++}
++
++static void lvgl_port_rgb_sleep_until(lvgl_port_rgb_strips_t *rgb, int64_t until, bool on_line)
++{
++    const uint32_t line = s_pkt_last_line_lo32;
++    rgb->pacing = on_line ? 1U : 0U;
++    for (uint32_t naps = 0; naps < 4U; naps++) {
++        const int64_t left = until - esp_timer_get_time();
++        if (left < 100 || (on_line && s_pkt_last_line_lo32 != line)) {
++            break;
++        }
++        esp_timer_stop(rgb->alarm);
++        if (esp_timer_start_once(rgb->alarm, (uint64_t)left) != ESP_OK) {
++            break;
++        }
++        xSemaphoreTake(rgb->wake, pdMS_TO_TICKS(40));
++    }
++    rgb->pacing = 0U;
++}
++
++static int64_t lvgl_port_rgb_next_wrap(const lvgl_port_rgb_strips_t *rgb, int64_t now, uint32_t period)
++{
++    uint32_t ahead = rgb->wrap_lo32 + period - (uint32_t)now;
++    while ((int32_t)ahead <= 0) {
++        ahead += period;
++    }
++    return now + (int64_t)ahead;
++}
++
++static void lvgl_port_rgb_pace(lvgl_port_rgb_strips_t *rgb, int64_t now, uint32_t period)
++{
++    if ((int32_t)(s_pkt_last_line_lo32 - rgb->resumed_lo32) > 0) {
++        return;
++    }
++    const uint32_t lead = rgb->light ? rgb->cost_peak_us + rgb->margin_us : period - 200U;
++    if (rgb->serviced_lo32 != 0U) {
++        const int64_t start = now + (int32_t)(rgb->serviced_lo32 + period - lead - (uint32_t)now);
++        if (start > now + 500) {
++            lvgl_port_rgb_sleep_until(rgb, start, true);
++        }
++    }
++    const int64_t after = esp_timer_get_time();
++    const int64_t next = lvgl_port_rgb_next_wrap(rgb, after, period);
++    rgb->serviced_lo32 = (uint32_t)(next - (int64_t)lead <= after ? next : next - (int64_t)period) | 1U;
++}
++
++static void lvgl_port_rgb_hold(lvgl_port_display_ctx_t *ctx)
++{
++    lvgl_port_rgb_strips_t *rgb = ctx->rgb;
++    const bool idle = (uint32_t)esp_timer_get_time() - rgb->submit_lo32 > 250000U;
++    if (!rgb->light && !idle) {
++        return;
++    }
++    for (uint32_t naps = 0; naps < 4U; naps++) {
++        const uint32_t since = (uint32_t)esp_timer_get_time() - s_pkt_last_line_lo32;
++        if (s_pkt_last_line_lo32 == 0U || since >= LVGL_PORT_RGB_QUIET_US) {
++            break;
++        }
++        lvgl_port_rgb_sleep_until(rgb, esp_timer_get_time() + (int64_t)(LVGL_PORT_RGB_QUIET_US - since), false);
++    }
++    const uint32_t period = rgb->period_us;
++    if (period == 0U) {
++        return;
++    }
++    for (uint32_t naps = 0; naps < 4U && rgb->submitted - __atomic_load_n(&rgb->taken, __ATOMIC_SEQ_CST) > 1U; naps++) {
++        lvgl_port_rgb_sleep_until(rgb, lvgl_port_rgb_next_wrap(rgb, esp_timer_get_time(), period) + 200, false);
++    }
++    const int64_t now = esp_timer_get_time();
++    const uint32_t pending = rgb->submitted - __atomic_load_n(&rgb->taken, __ATOMIC_SEQ_CST);
++    if (pending == 0U) {
++        lvgl_port_rgb_pace(rgb, now, period);
++        rgb->resumed_lo32 = (uint32_t)esp_timer_get_time();
++        return;
++    }
++    rgb->resumed_lo32 = (uint32_t)now;
++    if (pending != 1U || !rgb->light) {
++        return;
++    }
++    int64_t latch = lvgl_port_rgb_next_wrap(rgb, now, period);
++    if (rgb->queued_frames == rgb->taken && latch - now < 1000) {
++        latch += (int64_t)period;
++    }
++    if (now + (int64_t)rgb->cost_least_us >= latch) {
++        return;
++    }
++    const int64_t start = latch + (int64_t)period - (int64_t)rgb->cost_peak_us - (int64_t)rgb->margin_us;
++    rgb->target_lo32 = (uint32_t)(latch + (int64_t)period) | 1U;
++    lvgl_port_rgb_sleep_until(rgb, start, false);
++    rgb->resumed_lo32 = (uint32_t)esp_timer_get_time();
++}
++
++static void lvgl_port_rgb_alarm(void *arg)
++{
++    xSemaphoreGive(((lvgl_port_rgb_strips_t *)arg)->wake);
++}
++
++static void lvgl_port_rgb_render_start_callback(lv_event_t *e)
++{
++    lvgl_port_display_ctx_t *ctx = (lvgl_port_display_ctx_t *)lv_event_get_user_data(e);
++    lvgl_port_rgb_strips_t *rgb = ctx->rgb;
++    const lv_display_t *disp = ctx->disp_drv;
++    const uint8_t slot = (uint8_t)(rgb->slot ^ 1U);
++    uint8_t count = 0;
++    uint32_t pixels = 0;
++    for (uint32_t i = 0; i < disp->inv_p; i++) {
++        if (disp->inv_area_joined[i]) {
++            continue;
++        }
++        const lv_area_t *area = &disp->inv_areas[i];
++        pixels += lv_area_get_size(area);
++        if (count < LVGL_PORT_RGB_RECTS) {
++            rgb->areas[slot][count][0] = (uint16_t)area->x1;
++            rgb->areas[slot][count][1] = (uint16_t)area->y1;
++            rgb->areas[slot][count][2] = (uint16_t)(area->x2 + 1);
++            rgb->areas[slot][count][3] = (uint16_t)(area->y2 + 1);
++            count++;
++        }
++    }
++    rgb->area_count[slot] = count;
++    rgb->area_exact[slot] = count < LVGL_PORT_RGB_RECTS || (uint32_t)count >= disp->inv_p ? 1U : 0U;
++    rgb->area_px[slot] = pixels;
++    rgb->slot = slot;
++}
++
++static void lvgl_port_rgb_refr_start_callback(lv_event_t *e)
++{
++    lvgl_port_display_ctx_t *ctx = (lvgl_port_display_ctx_t *)lv_event_get_user_data(e);
++    const int64_t started = esp_timer_get_time();
++    const uint32_t resumed_ago = (uint32_t)started - ctx->rgb->resumed_lo32;
++    ctx->rgb->started_us = resumed_ago < 5000U ? started - (int64_t)resumed_ago : started;
++    if (ctx->rgb->heal) {
++        ctx->rgb->heal = 0;
++        lv_obj_t *screen = lv_display_get_screen_active(ctx->disp_drv);
++        if (screen != NULL) {
++            lv_obj_invalidate(screen);
++        }
++    }
++}
++#endif
++
++static lvgl_port_display_ctx_t *s_rgb_ctx = NULL;
++
++void lvgl_port_disp_hold(void)
++{
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++    lvgl_port_display_ctx_t *ctx = s_rgb_ctx;
++    if (ctx != NULL) {
++        lvgl_port_rgb_hold(ctx);
++    }
++#endif
++}
++
+ static void lvgl_port_flush_worker(void *arg)
+ {
+     lvgl_port_flush_job_t job;
+     (void)arg;
+     for (;;) {
+-        if (xQueueReceive(s_flush_queue, &job, portMAX_DELAY) != pdTRUE) {
++        TickType_t wait = portMAX_DELAY;
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++        lvgl_port_display_ctx_t *rgb_ctx = s_rgb_ctx;
++        if (rgb_ctx != NULL && rgb_ctx->rgb->recon_pending) {
++            wait = 1;
++        }
++#endif
++        if (xQueueReceive(s_flush_queue, &job, wait) != pdTRUE) {
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++            if (rgb_ctx != NULL && rgb_ctx->rgb->recon_pending) {
++                const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(rgb_ctx->disp_drv));
++                const uint32_t stride = (uint32_t)lv_disp_get_hor_res(rgb_ctx->disp_drv) * px_size;
++                (void)lvgl_port_rgb_recon_step(rgb_ctx, stride, px_size, 32U);
++            }
++#endif
++            continue;
++        }
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++        if (job.rgb) {
++            lvgl_port_rgb_strip(&job);
++            __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++            xSemaphoreGive(job.ctx->rgb->done);
+             continue;
+         }
++#endif
+         if (job.reconcile) {
+             lvgl_port_display_ctx_t *ctx = job.ctx;
+             const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(job.drv));
+@@ -994,6 +1486,9 @@ esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free)
+                         || disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI,
+                         ESP_ERR_NOT_SUPPORTED, TAG, "Only RGB and DSI panels can switch");
+     ESP_RETURN_ON_FALSE(disp_ctx->vsync_sem != NULL, ESP_ERR_INVALID_STATE, TAG, "No vsync semaphore");
++    if (disp_ctx->flags.rgb_strips) {
++        return ESP_ERR_NOT_SUPPORTED;
++    }
+     lvgl_port_async_flush_drain();
+     if ((disp_ctx->flags.direct_mode != 0 || disp_ctx->flags.full_refresh != 0
+             || disp_ctx->flags.rgb_redirect != 0) == tear_free) {
+@@ -1057,6 +1552,19 @@ esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
+     lvgl_port_lock(0);
+     lv_disp_remove(disp);
+     lvgl_port_unlock();
++    lvgl_port_async_flush_drain();
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++    if (disp_ctx->rgb) {
++        if (s_rgb_ctx == disp_ctx) {
++            s_rgb_ctx = NULL;
++        }
++        esp_timer_stop(disp_ctx->rgb->alarm);
++        esp_timer_delete(disp_ctx->rgb->alarm);
++        vSemaphoreDelete(disp_ctx->rgb->done);
++        vSemaphoreDelete(disp_ctx->rgb->wake);
++        free(disp_ctx->rgb);
++    }
++#endif
+ 
+     if (disp_ctx->draw_buffs[0]) {
+         free(disp_ctx->draw_buffs[0]);
+@@ -1363,6 +1871,63 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+     }
+ #endif
+ 
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++    if (disp_cfg->flags.full_strips && priv_cfg && priv_cfg->disp_type == LVGL_PORT_DISP_TYPE_RGB) {
++        void *fb0 = NULL;
++        void *fb1 = NULL;
++        void *fb2 = NULL;
++        uint8_t buffers = 3;
++        disp_ctx->rgb = heap_caps_calloc(1, sizeof(lvgl_port_rgb_strips_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
++        if (esp_lcd_rgb_panel_get_frame_buffer(disp_cfg->panel_handle, 3, &fb0, &fb1, &fb2) != ESP_OK) {
++            buffers = 2;
++            fb2 = NULL;
++            if (esp_lcd_rgb_panel_get_frame_buffer(disp_cfg->panel_handle, 2, &fb0, &fb1) != ESP_OK) {
++                fb1 = NULL;
++            }
++        }
++        if (disp_ctx->rgb != NULL) {
++            disp_ctx->rgb->done = xSemaphoreCreateBinary();
++            disp_ctx->rgb->wake = xSemaphoreCreateBinary();
++            const esp_timer_create_args_t alarm_args = {
++                .callback = lvgl_port_rgb_alarm,
++                .arg = disp_ctx->rgb,
++                .name = "lvglHold",
++            };
++            if (esp_timer_create(&alarm_args, &disp_ctx->rgb->alarm) != ESP_OK) {
++                disp_ctx->rgb->alarm = NULL;
++            }
++        }
++        if (disp_ctx->rgb != NULL && disp_ctx->rgb->done != NULL && disp_ctx->rgb->wake != NULL
++                && disp_ctx->rgb->alarm != NULL && fb1 != NULL) {
++            disp_ctx->panel_fbs[0] = fb0;
++            disp_ctx->panel_fbs[1] = fb1;
++            disp_ctx->panel_fbs[2] = fb2;
++            disp_ctx->rgb->buffers = buffers;
++            disp_ctx->rgb->queued = UINT8_MAX;
++            disp_ctx->rgb->trust = 1;
++            disp_ctx->rgb->margin_us = 2000;
++            disp_ctx->flags.rgb_strips = 1;
++            s_rgb_ctx = disp_ctx;
++            lv_display_add_event_cb(disp, lvgl_port_rgb_refr_start_callback, LV_EVENT_REFR_START, disp_ctx);
++            lv_display_add_event_cb(disp, lvgl_port_rgb_render_start_callback, LV_EVENT_RENDER_START, disp_ctx);
++            lv_display_set_flush_wait_cb(disp, lvgl_port_rgb_flush_wait_cb);
++        } else {
++            if (disp_ctx->rgb != NULL && disp_ctx->rgb->done != NULL) {
++                vSemaphoreDelete(disp_ctx->rgb->done);
++            }
++            if (disp_ctx->rgb != NULL && disp_ctx->rgb->wake != NULL) {
++                vSemaphoreDelete(disp_ctx->rgb->wake);
++            }
++            if (disp_ctx->rgb != NULL && disp_ctx->rgb->alarm != NULL) {
++                esp_timer_delete(disp_ctx->rgb->alarm);
++            }
++            free(disp_ctx->rgb);
++            disp_ctx->rgb = NULL;
++            ESP_LOGW(TAG, "Panel does not expose two frame buffers; tear-free strips stay off");
++        }
++    }
++#endif
++
+     /* Use SW rotation */
+     if (disp_cfg->flags.sw_rotate) {
+ #if LVGL_PORT_PPA
+@@ -1495,6 +2060,21 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_rgb_vsync_ready_callback(esp_lcd_pane
+         return false;
+     }
+ 
++    disp_ctx->refresh_count = disp_ctx->refresh_count + 1;
++    lvgl_port_acc_vsyncs++;
++    lvgl_port_rgb_strips_t *rgb = disp_ctx->rgb;
++    if (rgb != NULL) {
++        const int64_t now = esp_timer_get_time();
++        const uint32_t gap = (uint32_t)now - rgb->wrap_lo32;
++        if (rgb->wrap_lo32 != 0U && gap < 100000U) {
++            rgb->period_us = rgb->period_us == 0U ? gap : rgb->period_us - (rgb->period_us >> 3) + (gap >> 3);
++        }
++        rgb->wrap_lo32 = (uint32_t)now;
++        const uint32_t queued_frames = rgb->queued_frames;
++        if (queued_frames != rgb->taken) {
++            rgb->taken = queued_frames;
++        }
++    }
+     if (disp_ctx->vsync_sem) {
+         xSemaphoreGiveFromISR(disp_ctx->vsync_sem, &need_yield);
+     }
+@@ -1684,6 +2264,32 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+         _lvgl_port_transform_monochrome(drv, area, &color_map);
+     }
+ 
++    if (disp_ctx->flags.rgb_strips && lvgl_port_async_flush_start()) {
++        lvgl_port_flush_job_t job = {
++            .drv = drv,
++            .ctx = disp_ctx,
++            .color_map = color_map,
++            .x1 = offsetx1,
++            .y1 = offsety1,
++            .x2 = offsetx2 + 1,
++            .y2 = offsety2 + 1,
++            .swap = lv_disp_flush_is_last(drv) ? 1U : 0U,
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++            .source = disp_ctx->rgb->slot,
++            .started_us = disp_ctx->rgb->started_us,
++#endif
++            .rgb = 1,
++        };
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++        if (job.swap) {
++            disp_ctx->rgb->submitted++;
++            disp_ctx->rgb->submit_lo32 = (uint32_t)esp_timer_get_time();
++        }
++#endif
++        __atomic_add_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++        xQueueSend(s_flush_queue, &job, portMAX_DELAY);
++        return;
++    }
+     if (disp_ctx->flags.full_strips && disp_ctx->panel_fbs[2] != NULL
+             && lvgl_port_async_flush_start()) {
+         if (disp_ctx->strip_rows == 0) {

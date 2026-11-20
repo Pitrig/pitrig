@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { t } from '@shared/ui-text'
-import { inputLabel, type InputTarget } from './controls-document'
+import { inputLabel, type InputTarget } from './inputs-document'
 import { armCapture, sameTarget, useInputTester } from './input-tester'
 
 export function Lamp({ lit }: { lit: boolean }): React.JSX.Element {

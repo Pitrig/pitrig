@@ -79,7 +79,7 @@ profile.
 The configurator can create, load, save, and edit this JSON without a connected
 device. The root `board` selects the local immutable board profile used for
 display dimensions and preview. A local draft remains available after a
-disconnect and is not replaced when another device connects. **Load config from
+disconnect and is not replaced when another device connects. **Load from
 board** is the explicit operation that discards the local draft in favor of the
 connected device configuration. **Save to board** requires the draft and
 connected device to have the same board identifier.
@@ -111,12 +111,13 @@ Presence rules:
 - The Guition ESP32-4848S040 is the exception, and it is expressed in documents
   rather than in the default: its telemetry runs over the board's CH340 bridge,
   which does not hold `921600`, so the configurator fills
-  `telemetry_transport.uart.baud_rate` with `460800` when it creates, converts
-  or applies a template onto a document for that board and the document names no
-  rate of its own. An explicit `921600` survives the conversion and has to be
-  changed by hand. The board's factory payload names the same rate, and a sparse
-  document is never expanded through a board profile, so the property has to be
-  present to have an effect.
+  `telemetry_transport.uart.baud_rate` with `460800` when it creates, opens,
+  converts or applies a template onto a document for that board, and when it
+  saves one to the board, if the document names no rate of its own; resetting
+  the speed on the Protocol page returns it to `460800` too. An explicit `921600`
+  survives all of these and has to be changed by hand. The board's factory
+  payload names the same rate, and a sparse document is never expanded through a
+  board profile, so the property has to be present to have an effect.
 - Unknown properties are rejected.
 - Loading a preset inserts only the properties explicitly present in that
   preset.
@@ -134,15 +135,21 @@ conditional styling and colour ramps are in
 
 ## Authoring in the configurator
 
-The window is a rail of six workspaces — **Dashboard**, **Modules**,
-**Protocol**, **Configs**, **Firmware**, **Info** — reachable with `Cmd`/`Ctrl`
-and a digit, over one page at a time. Dashboard has pages of its own (Canvas,
-Templates, Fonts, Images); `Save to board` sits above them and applies to the
-document rather than to the page. Each destructive device action lives beside
-what it affects: erasing the font package on Fonts, the images on Images,
-resetting the configuration on Configs. Restarting the board is not destructive
-and sits wherever a restart is the next step — the dashboard toolbar, Configs
-and Firmware.
+The window is a rail of seven workspaces — **Dashboard**, **Modules**,
+**Controls**, **Protocol**, **Configs**, **Firmware**, **Info** — reachable with
+`Cmd`/`Ctrl` and a digit, over one page at a time. Dashboard has pages of its
+own (Canvas, Templates, Fonts, Images); `Save to board` sits above them and
+applies to the document rather than to the page. Each destructive device action
+lives beside what it affects: erasing the font package on Fonts, the images on
+Images, and resetting the board's configuration to factory on Firmware, with the
+other board actions. Restarting the board is not destructive and sits wherever a
+restart is the next step — the dashboard toolbar and Firmware.
+
+Configs holds files: the open setup with `New`, `Open…`, `Save…` and `Share…`,
+and one recent list of the files opened or saved and of the copies Pitrig keeps
+itself, such as the backup `Update board` takes. While a board is connected, one
+line says whether it holds this setup, beside `Load from board`. Loading, saving
+or erasing one document alone, and editing its JSON, are in the Pitrig Debugger.
 
 The **Transport** section is last on the Protocol page and folded closed. It is
 the only setting that decides whether the configurator can reach the board at
@@ -164,21 +171,29 @@ confirmed in the numbers the new display produces, with the same
 `Fit`/`Stretch` preference the Configs page uses
 ([ADR 0023](adr/0023-dashboard-templates-and-layout-transfer.md)).
 
+`Share…` saves the open dashboard as one `.pitrigdash` file with its images and
+the fonts another PC may lack, and `Open…` accepts it beside a configuration
+file ([ADR 0041](adr/0041-dashboard-files.md)). Opening one replaces only the
+dashboard, scaled to the board in hand like a template, and keeps the LED and
+connection settings; its images and fonts join this PC's libraries, renamed
+where this PC already uses the name for something else, and the next
+`Save to board` installs them.
+
 Supported bindings are listed in the generated
 [telemetry catalog](telemetry-catalog.md); the binding input shows the field's
 category, type, unit, recommended update rate and wire ID.
 
-The canvas, the inspector and the advanced JSON editor all edit the same
-draft. Dragging and resizing write absolute logical `x`, `y`, `width` and
-`height` and keep the widget within the display bounds; selecting empty canvas
-exposes the screen's `background_color`. Every widget may define `z_index`
-from `-32768` through `32767`: larger values render above smaller, missing
-values default to zero, and equal values use stable configuration order so the
-preview and the device agree. A drawn widget arrives with more than its box: a
-text widget carries the draft's commonest font and an empty source, a bar, an
-arc, an indicator and a graph each carry a starting binding and their colours,
-an indicator six segments and a slot two pages, and a new image widget starts on
-the first installed image, because without one it has nothing to draw.
+The canvas and the inspector edit the same draft. Dragging and resizing write
+absolute logical `x`, `y`, `width` and `height` and keep the widget within the
+display bounds; selecting empty canvas exposes the screen's `background_color`.
+Every widget may define `z_index` from `-32768` through `32767`: larger values
+render above smaller, missing values default to zero, and equal values use
+stable configuration order so the preview and the device agree. A drawn widget
+arrives with more than its box: a text widget carries the draft's commonest font
+and an empty source, a bar, an arc, an indicator and a graph each carry a
+starting binding and their colours, an indicator six segments and a slot two
+pages, and a new image widget starts on the first image in this PC's library,
+because without one it has nothing to draw.
 
 The canvas draws live telemetry whenever the [SimHub plugin](simhub-plugin.md)
 answers the bridge the Protocol page shows, with the widget's `unavailable_text`
@@ -231,15 +246,19 @@ list picks several layers to edit together, and `Cmd`/`Ctrl` with `Z`,
 `Shift+Z` and `D`, `Delete` and `Escape` undo, redo, duplicate, remove and
 deselect there.
 
-The Modules workspace's **Buttons** page names up to 16 logical buttons and
-the positions of one multi-position switch, and lists what they do on the open
-dashboard: the actions, the slot the switch turns, the screen rules and the
-idle return home. **Assign** takes the next input SimHub reports — the page asks
-the plugin for every input change while it is open and lights each button and
-input as it is held. The wiring goes into the modules document's `inputs` and
-the actions into `dashboard.controls`; while the configurator holds a board,
-the plugin uses the draft's wiring for it, so a new assignment works before it
-is saved ([ADR 0038](adr/0038-pc-buttons-drive-the-board.md)).
+The **Controls** workspace lists the PC's buttons — on the rim, a button box, a
+gamepad or the keyboard — one row each: its name, the inputs SimHub reports for
+it and what it does on the open dashboard. **Assign** takes the next input
+SimHub reports; the page asks the plugin for every input change while it is open
+and lights each button and input as it is held. A row is logical button N of
+[ADR 0038](adr/0038-pc-buttons-drive-the-board.md): the wiring goes into the
+modules document's `inputs` and the actions into `dashboard.controls`, so a
+template's action for a button this board has not wired shows as not assigned
+yet. On a board with a display the page also lists the positions of one rotary
+switch and the slot it turns. The screen rules and the idle return home need no
+button and sit in the canvas inspector with nothing selected, under **Automatic
+screen changes**. While the configurator holds a board, the plugin uses the
+draft's wiring for it, so a new assignment works before it is saved.
 
 ### Keeping the draft and the board together
 
@@ -277,17 +296,18 @@ rather than what is composed.
 
 `Save to board` is one sequence in the main process: work out which documents
 differ from what the board is holding, resolve the families the dashboard names
-against the font library, build the package, send it only when the board does
-not already hold those exact bytes, and `@PR:SET` each differing document —
+against the font library and its images against the image library, build a
+package of each, send a package only when the board does not already hold it,
+and `@PR:SET` each differing document —
 protocol first, dashboard last, so a partial failure leaves the cheap writes
 done and the expensive one untouched. A document that matches the board is not
 written at all, which is why changing a baud rate no longer costs sixty
 kilobytes of dashboard.
 
-How it ends depends on what it did. A face the board did not have becomes
-usable only after a restart, so installing one ends in `@PR:REBOOT` and a
-reconnect — as does saving onto a board that already owes a restart for a font
-or image package it has accepted, as does writing the protocol document, and as
+How it ends depends on what it did. A face or an image the board did not have
+becomes usable only after a restart, so installing either ends in `@PR:REBOOT`
+and a reconnect — as does saving onto a board that already owes a restart for a
+font or image package it has accepted, as does writing the protocol document, and as
 does writing anything at all onto a board in safe mode, which is how it leaves
 safe mode.
 That last one is the whole reason the document is separate: the link is selected
@@ -295,19 +315,12 @@ once at startup, so a transport written without a restart would be a setting
 that is stored and not in force, and the firmware says so by answering
 `reboot_required=1` for that document alone. A changed speed also means the
 board comes back at the new one, which is the case the reconnect can fail on.
+A protocol that names no speed is compared and written with the board's own, as
+under [Sparse authoring format](#sparse-authoring-format), so it costs no write
+and no restart on a board already at that speed.
 Otherwise the save ends in `@PR:APPLY` for each document it wrote, which
 rebuilds the running composition from what was just written to NVS. That is why
 an ordinary save costs no dark screen.
-
-The Configs page lists the three documents with what each is doing on the board
-— in sync, modified, factory, or a stored record the firmware refused — and can
-load, save or erase any one of them on its own. Below that it states the
-difference between the draft and the configuration the board holds, per document
-and property by property, before any of this happens.
-Widgets and screens are matched by `id` within the array they sit in, so a
-reordered widget reads as a move; one dragged into a container reads as a
-removal from the screen and an addition inside the container, because those are
-two different arrays.
 
 ## Fonts
 
@@ -355,11 +368,14 @@ that library, builds a package holding exactly those, and installs it only when
 the device does not already report the same `crc` and `entries`; what the save
 does next is under [Saving to the board](#saving-to-the-board). A family the
 library cannot resolve stops the save before anything is written and asks for a
-file. Images are not checked that way — they are uploaded by hand, and the
-editor reads the installed list only to offer a widget an image and to draw one
-— so a document naming an image the board does not hold is caught by firmware,
-which checks fonts and images alike before it lets a configuration replace the
-running dashboard.
+file, after it has tried Google Fonts for a family the catalog knows. An image
+identifier is the id of an entry in the image library the same way
+([ADR 0018](adr/0018-uploaded-image-assets.md#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs)):
+the save installs exactly the images the dashboard draws, keeps the board's own
+copy of one this PC lacks, and stops before writing when an image is on neither
+or when installing would remove a picture only the board holds.
+Firmware checks fonts and images alike before it lets a configuration replace
+the running dashboard.
 
 ## Control protocol
 

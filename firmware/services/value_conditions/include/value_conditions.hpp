@@ -13,6 +13,7 @@ struct ResolvedStyle {
   std::uint32_t color{};
   std::uint32_t background_color{};
   std::uint32_t border_color{};
+  std::uint32_t title_color{};
   std::uint16_t blink_ms{};
   bool hidden{};
 

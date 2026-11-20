@@ -10,6 +10,9 @@ files:
   - package.json
 asarUnpack:
   - '**/*.node'
+extraResources:
+  - from: src/main/font-library/bundled/OFL.txt
+    to: licenses/fonts.txt
 publish:
   provider: github
   owner: Pitrig

@@ -150,6 +150,22 @@ Avoid hidden side effects.
 
 ---
 
+## Dependencies
+
+Every dependency is pinned to one exact version: npm packages and pnpm
+`overrides`, every ESP-IDF registry component (the ones another component pulls
+in too), GitHub Actions by full commit SHA, container images by digest, and the
+tool versions in the workflow. No ranges, no tags, no update bots.
+`tools/check_pinned_dependencies.py` fails CI on anything else.
+
+A version changes only after review (ADR 0042): it is at least seven days old,
+it passes pnpm's `trustPolicy: no-downgrade`, and its release notes, publisher,
+install scripts and new dependencies have been read. An exception names the
+reviewed versions only, in `minimumReleaseAgeExclude` or `trustPolicyExclude`,
+and the commit that adds it says why.
+
+---
+
 ## Before Writing Code
 
 Always:
@@ -171,6 +187,11 @@ Implement the smallest complete solution.
 Avoid unrelated refactoring.
 
 Keep commits focused.
+
+Before every commit, bring `CHANGELOG.md` up to date. Anything a user or a
+contributor would notice gets one short line under `Unreleased`, in the format
+the file's introduction and CONTRIBUTING.md give; refactoring, docs and other
+internal changes get none.
 
 Never commit, branch, merge or push unless asked for it in that message. Finish
 the work and leave it uncommitted; when a git operation needs a clean tree, ask

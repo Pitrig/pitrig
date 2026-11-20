@@ -5,6 +5,7 @@ const STORAGE_KEY = 'pitrig.workspace'
 export const WORKSPACE_TABS = [
   'dashboard',
   'modules',
+  'controls',
   'protocol',
   'configs',
   'firmware',
@@ -17,7 +18,7 @@ const DASHBOARD_VIEWS = ['canvas', 'templates', 'fonts', 'images'] as const
 
 export type DashboardView = (typeof DASHBOARD_VIEWS)[number]
 
-const MODULES_VIEWS = ['leds', 'matrix', 'buttons'] as const
+const MODULES_VIEWS = ['leds', 'matrix'] as const
 
 export type ModulesView = (typeof MODULES_VIEWS)[number]
 

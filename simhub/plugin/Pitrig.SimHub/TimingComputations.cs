@@ -21,12 +21,13 @@ namespace Pitrig.SimHub
 
         public static double? AllTimeLiveDelta(TelemetryState state)
         {
+            if (Computed.Seconds(state.Status?.AllTimeBest) == null) return null;
             return Computed.Number(state.Manager.GetPropertyValue(AllTimeBestLiveDelta)) * 1000;
         }
 
         public static double? LiveDeltaSeconds(TelemetryState state)
         {
-            return LapEstimates.SessionDeltaSeconds(state);
+            return LapEstimates.DeltaSeconds(state);
         }
 
         public static double? EstimatedLapTime(TelemetryState state)
@@ -42,31 +43,45 @@ namespace Pitrig.SimHub
 
         public static double? SessionBestDelta(TelemetryState state)
         {
-            return (EstimatedSeconds(state) - Computed.Seconds(SessionBestLap(state.Status))) * 1000;
+            return (LapEstimates.Seconds(state) - Computed.Seconds(SessionBestLap(state.Status))) * 1000;
         }
 
-        public static double? LastLapDeltaBest(StatusDataBase status)
+        public static double? LastLapDeltaBest(TelemetryState state)
         {
+            var status = state.Status;
             if (status == null) return null;
-            return (Computed.Seconds(status.LastLapTime) - BestSeconds(status)) * 1000;
+            var last = Computed.Seconds(status.LastLapTime);
+            var best = BestSeconds(status);
+            if (last == null || best == null) return null;
+            if (Thousandths(last) != Thousandths(best)) return (last - best) * 1000;
+            return (last - state.PreviousBestSeconds) * 1000;
         }
 
         public static int? DeltaStatus(TelemetryState state)
         {
             var status = state.Status;
             if (status == null) return null;
-            if (LapValidity.ShowsNoTiming(state.GameName)) return StatusNone;
-            if (state.Validity.Invalid(state) == true) return StatusInvalid;
-            return Grade(LapEstimates.OwnDifference(state),
-                LapEstimates.OverallDifference(state, OverallBestSeconds(status)));
+            return Grade(LapEstimates.Seconds(state), BestSeconds(status), OverallBestSeconds(status),
+                state.Validity.Invalid(state));
         }
 
-        public static int? LastLapStatus(StatusDataBase status)
+        public static int? LastLapStatus(TelemetryState state)
         {
+            var status = state.Status;
             if (status == null) return null;
-            var last = Computed.Seconds(status.LastLapTime);
-            if (last == null) return StatusNone;
-            return Grade(last - (BestSeconds(status) ?? 0), last - OverallBestSeconds(status));
+            return Grade(Computed.Seconds(status.LastLapTime), BestSeconds(status), OverallBestSeconds(status),
+                state.Validity.LastLapInvalid);
+        }
+
+        public static int? Grade(double? seconds, double? ownBest, double? overallBest, bool? invalid)
+        {
+            if (invalid == true) return StatusInvalid;
+            var time = Thousandths(seconds);
+            if (time == null) return null;
+            if (time <= Thousandths(overallBest)) return StatusSessionBest;
+            var own = Thousandths(ownBest);
+            if (own == null) return null;
+            return time <= own ? StatusPersonalBest : StatusSlower;
         }
 
         public static double? LapsRemaining(TelemetryState state)
@@ -78,7 +93,8 @@ namespace Pitrig.SimHub
             if (lap == null) return null;
             var left = status.SessionTimeLeft.TotalSeconds;
             if (left <= 0) return 1;
-            var toLine = Math.Max(lap.Value - status.CurrentLapTime.TotalSeconds, 0);
+            var driven = state.LapTimerStale ? 0 : status.CurrentLapTime.TotalSeconds;
+            var toLine = Math.Max(lap.Value - driven, 0);
             return 1 + Math.Ceiling(Math.Max(left - toLine, 0) / lap.Value);
         }
 
@@ -98,24 +114,14 @@ namespace Pitrig.SimHub
             return Computed.Seconds(status?.BestLapTime);
         }
 
-        private static double? EstimatedSeconds(TelemetryState state)
+        private static double? OverallBestSeconds(StatusDataBase status)
         {
-            return BestSeconds(state.Status) + LiveDeltaSeconds(state);
+            return Computed.Seconds(SessionBestLap(status));
         }
 
-        private static int Grade(double? own, double? overall)
+        private static double? Thousandths(double? seconds)
         {
-            if (own == null && overall == null) return StatusNone;
-            if (own > 0) return StatusSlower;
-            return overall > 0 ? StatusPersonalBest : StatusSessionBest;
-        }
-
-        private static double OverallBestSeconds(StatusDataBase status)
-        {
-            var opponents = status.Opponents;
-            var index = status.BestLapOpponentPosition;
-            if (opponents == null || index < 0 || index >= opponents.Count) return 0;
-            return opponents[index].BestLapTime.TotalSeconds;
+            return seconds == null ? (double?)null : Math.Round(seconds.Value * 1000);
         }
     }
 }

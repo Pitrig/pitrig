@@ -16,6 +16,7 @@ export interface AuthoredStyle {
   color?: RgbColor
   backgroundColor?: RgbColor
   borderColor?: RgbColor
+  titleColor?: RgbColor
 }
 
 export interface ResolvedStyle extends AuthoredStyle {
@@ -43,6 +44,7 @@ export function resolveWidgetStyle(
     if (rule.color) style.color = rule.color
     if (rule.background_color) style.backgroundColor = rule.background_color
     if (rule.border_color) style.borderColor = rule.border_color
+    if (rule.title_color) style.titleColor = rule.title_color
     style.hidden = rule.hidden ?? false
     style.blinkMs = rule.blink_ms ?? 0
   }

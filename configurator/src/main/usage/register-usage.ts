@@ -63,6 +63,7 @@ export function registerUsage(): UsageTracker {
       if (progress.stage === 'completed') void reporter.report('save')
     },
     start(bridge) {
+      if (reporter.active) void store.read()
       const tick = (): void => {
         const status = bridge.getStatus()
         if (status.receiving) void reporter.report('bridge', undefined, status.plugin?.version)

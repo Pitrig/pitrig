@@ -1,107 +1,35 @@
-import { Image as ImageIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { PageShell } from '@/app/workspace/PageShell'
 import { Button } from '@/components/ui/button'
-import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
-import { useDeviceStore } from '@/features/device/device-store'
-import {
-  IMAGE_ID_PATTERN,
-  MAXIMUM_IMAGES,
-  MAXIMUM_IMAGE_DIMENSION,
-  MAXIMUM_IMAGE_PACKAGE_SIZE,
-  imagePackageSize
-} from '@shared/image-assets'
-import { usePreviewAssetStore } from '@/features/configuration/preview/preview-assets'
-import { useImageAssetsStore, useImageUploadStore } from './image-assets-store'
-import { StagedImageCard } from './StagedImageCard'
-import { StorageBar, Thumbnail } from './image-page-parts'
-import { t } from '@shared/ui-text'
 import { confirmAction } from '@/components/ui/confirm-store'
+import { usePreviewAssetStore } from '@/features/configuration/preview/preview-assets'
+import { useDeviceStore } from '@/features/device/device-store'
+import { t } from '@shared/ui-text'
+import { BoardImagesSection } from './BoardImagesSection'
+import { useImageAssetsStore } from './image-assets-store'
+import { LibraryImagesSection, type PageMessage } from './LibraryImagesSection'
+import { StagedImagesSection } from './StagedImagesSection'
 
 export function ImagesPage(): React.JSX.Element {
-  const session = useDeviceStore((state) => state.session)
-  const entries = useImageAssetsStore((state) => state.entries)
-  const progress = useImageUploadStore((state) => state.progress)
-  const error = useImageUploadStore((state) => state.error)
-  const running = useImageUploadStore((state) => state.running)
-  const store = useImageAssetsStore
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState<string>()
-  const installedPreviews = usePreviewAssetStore((state) => state.images)
+  const images = useDeviceStore((state) => state.session?.imageAssets)
   const refreshPreviews = usePreviewAssetStore((state) => state.refresh)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<PageMessage>()
 
   useEffect(() => {
     void refreshPreviews()
   }, [refreshPreviews])
 
-  const images = session?.imageAssets
-  const installed = images?.images ?? []
-  const invalid = entries.filter((entry) => !IMAGE_ID_PATTERN.test(entry.name))
-  const duplicated = entries.some(
-    (entry, index) => entries.findIndex(({ name }) => name === entry.name) !== index
-  )
-  const staged = imagePackageSize(
-    entries.flatMap((entry) =>
-      entry.sources.map(() => ({ width: entry.width, height: entry.height, format: entry.format }))
-    )
-  )
-  const oversized = entries.filter(
-    (entry) =>
-      entry.width < 1 ||
-      entry.height < 1 ||
-      entry.width > MAXIMUM_IMAGE_DIMENSION ||
-      entry.height > MAXIMUM_IMAGE_DIMENSION
-  )
-  const uploadable =
-    entries.length > 0 &&
-    entries.length <= MAXIMUM_IMAGES &&
-    invalid.length === 0 &&
-    !duplicated &&
-    oversized.length === 0 &&
-    Boolean(images?.storageAvailable) &&
-    !images?.rebootRequired &&
-    !running &&
-    !busy
-
-  const addFrame = async (id: string): Promise<void> => {
-    setBusy(true)
-    useImageUploadStore.getState().setError(undefined)
-    try {
-      const result = await window.pitrig.selectImageSource()
-      if (!result.ok) useImageUploadStore.getState().setError(result.error.message)
-      else if (result.value) store.getState().addFrame(id, result.value)
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const addSource = async (): Promise<void> => {
     setBusy(true)
-    useImageUploadStore.getState().setError(undefined)
+    setMessage(undefined)
     try {
       const result = await window.pitrig.selectImageSource()
-      if (!result.ok) useImageUploadStore.getState().setError(result.error.message)
-      else if (result.value) store.getState().addEntry(result.value)
+      if (!result.ok) setMessage({ kind: 'error', text: result.error.message })
+      else if (result.value) useImageAssetsStore.getState().addEntry(result.value)
     } finally {
       setBusy(false)
-    }
-  }
-
-  const upload = async (): Promise<void> => {
-    if (!useImageUploadStore.getState().begin()) return
-    try {
-      const result = await window.pitrig.uploadImageAssets({
-        assets: entries.map((entry) => ({
-          sourceIds: entry.sources.map((source) => source.id),
-          name: entry.name,
-          format: entry.format,
-          width: entry.width,
-          height: entry.height
-        }))
-      })
-      if (!result.ok) useImageUploadStore.getState().setError(result.error.message)
-    } finally {
-      useImageUploadStore.getState().end()
     }
   }
 
@@ -111,154 +39,48 @@ export function ImagesPage(): React.JSX.Element {
     setMessage(undefined)
     const result = await window.pitrig.clearImageAssets().catch(() => undefined)
     setBusy(false)
-    if (!result) return setMessage(t('fonts.fontsPage.theBoardCouldNotBe'))
+    if (!result) return setMessage({ kind: 'error', text: t('fonts.fontsPage.theBoardCouldNotBe') })
     setMessage(
       result.ok
-        ? t('images.imagesPage.boardImagePackageErasedRestart')
-        : result.error.message
+        ? { kind: 'success', text: t('images.imagesPage.boardImagePackageErasedRestart') }
+        : { kind: 'error', text: result.error.message }
     )
   }
 
   return (
     <PageShell
       title={t('images.imagesPage.images')}
-      description={
-        images
-          ? t('images.imagesPage.convertedHereAndStoredOn')
-          : t('images.imagesPage.theConnectedFirmwareDoesNot')
-      }
+      description={t('images.imagesPage.description')}
       actions={
         <>
-          <Button
-            variant="outline"
-            disabled={busy || !images || entries.length >= MAXIMUM_IMAGES}
-            onClick={() => void addSource()}
-          >
-            {t('images.imagesPage.addImage')}</Button>
+          <Button variant="outline" disabled={busy} onClick={() => void addSource()}>
+            {t('images.imagesPage.addImage')}
+          </Button>
           <Button
             className="text-red-400 hover:text-red-300"
             variant="outline"
             disabled={busy || !images?.storageAvailable || !images?.packageAvailable}
             onClick={() => void clearBoard()}
           >
-            {t('fonts.fontsPage.eraseOnBoard')}</Button>
+            {t('fonts.fontsPage.eraseOnBoard')}
+          </Button>
         </>
       }
     >
       {message ? (
-        <p className="rounded-md border bg-muted/20 p-2 text-xs text-muted-foreground">{message}</p>
+        <p
+          className={
+            message.kind === 'error'
+              ? 'rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300'
+              : 'rounded-md border bg-muted/20 p-2 text-xs text-muted-foreground'
+          }
+        >
+          {message.text}
+        </p>
       ) : null}
-
-      <PageSection
-        title={t('images.imagesPage.onTheBoard')}
-        description={t('images.imagesPage.whatTheInstalledPackageHolds')}
-      >
-        <StorageBar
-          className="mb-3"
-          label={t('images.imagesPage.installed')}
-          used={images?.packageSize ?? 0}
-          limit={MAXIMUM_IMAGE_PACKAGE_SIZE}
-          available={Boolean(images)}
-        />
-        {installed.length > 0 ? (
-          <ul className="grid gap-1 sm:grid-cols-2">
-            {installed.map((image) => (
-              <li
-                key={image.name}
-                className="flex items-center gap-2.5 rounded-md border p-2"
-              >
-                <Thumbnail
-                  dataUrl={installedPreviews[image.name]?.dataUrl}
-                  alt={image.name}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono">{image.name}</span>
-                  <span className="block text-[11px] text-muted-foreground">
-                    {t('images.imagesPage.widthHeightFormat', { width: image.width, height: image.height, format: image.format })}
-                    {image.frameCount > 1 ? t('images.imagesPage.frameCountFrames', { frameCount: image.frameCount }) : ''}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            icon={<ImageIcon aria-hidden="true" className="size-6" />}
-            title={images ? t('images.imagesPage.noImagesInstalled') : t('images.imagesPage.noImageSupport')}
-          >
-            {images
-              ? t('images.imagesPage.addAPngOrJpeg')
-              : t('images.imagesPage.connectABoardWhoseFirmware')}
-          </EmptyState>
-        )}
-        {images?.rebootRequired ? (
-          <p className="mt-3 text-amber-400">{t('images.imagesPage.restartTheBoardBeforeUploading')}</p>
-        ) : null}
-      </PageSection>
-
-      <PageSection
-        title={t('images.imagesPage.readyToInstall')}
-        description={t('images.imagesPage.theWholePackageIsReplaced')}
-        actions={
-          <>
-            <Button disabled={!uploadable} onClick={() => void upload()}>
-              {running ? t('images.imagesPage.uploading') : `Install ${entries.length || ''}`.trim()}
-            </Button>
-            {running ? (
-              <Button variant="outline" onClick={() => void window.pitrig.cancelImageUpload()}>
-                {t('common.cancel')}</Button>
-            ) : null}
-          </>
-        }
-      >
-        {entries.length > 0 ? (
-          <StorageBar
-            className="mb-3"
-            label={t('images.imagesPage.thisSelection')}
-            used={staged}
-            limit={MAXIMUM_IMAGE_PACKAGE_SIZE}
-            available
-            over={staged > MAXIMUM_IMAGE_PACKAGE_SIZE}
-          />
-        ) : null}
-        {entries.length === 0 ? (
-          <EmptyState title={t('images.imagesPage.nothingStaged')}>
-            {t('images.imagesPage.addingAnImageConvertsIt')}</EmptyState>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {entries.map((entry) => (
-              <StagedImageCard
-                key={entry.id}
-                entry={entry}
-                busy={busy}
-                onAddFrame={(id) => void addFrame(id)}
-              />
-            ))}
-          </div>
-        )}
-
-        {invalid.length > 0 ? (
-          <p className="mt-3 text-amber-400">
-            {t('images.imagesPage.aNameUsesLowerCase')}</p>
-        ) : null}
-        {duplicated ? <p className="mt-2 text-amber-400">{t('images.imagesPage.twoImagesShareAName')}</p> : null}
-        {oversized.map((entry) => (
-          <p key={entry.id} className="mt-2 text-amber-400">
-            {t('images.imagePackage.nameIsWidthHeightThe', {
-              name: entry.name,
-              width: entry.width,
-              height: entry.height,
-              mAXIMUM_IMAGE_DIMENSION: MAXIMUM_IMAGE_DIMENSION
-            })}
-          </p>
-        ))}
-        {progress ? (
-          <p className="mt-3 text-muted-foreground">
-            {`${progress.message}${progress.total > 0 ? ` (${Math.round((progress.completed / progress.total) * 100)}%)` : ''}`}
-          </p>
-        ) : null}
-        {error ? <p className="mt-2 text-red-400">{error}</p> : null}
-      </PageSection>
+      <StagedImagesSection busy={busy} setBusy={setBusy} onMessage={setMessage} />
+      <LibraryImagesSection busy={busy} onMessage={setMessage} />
+      <BoardImagesSection />
     </PageShell>
   )
 }

@@ -49,7 +49,7 @@ export interface UpdateStatus {
   simhub?: SimHubStatus
 }
 
-export type UpdatePage = 'release' | 'simhub'
+export type UpdatePage = 'release' | 'simhub' | 'flasher'
 
 export interface OpenUpdatePageRequest {
   page: UpdatePage

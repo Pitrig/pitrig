@@ -4,11 +4,9 @@ import {
   CONFIG_LIBRARY_DELETE_CHANNEL,
   CONFIG_LIBRARY_LIST_CHANNEL,
   CONFIG_LIBRARY_READ_CHANNEL,
-  CONFIG_LIBRARY_SAVE_CHANNEL,
   CONFIG_RECENT_FORGET_CHANNEL,
   CONFIG_RECENT_READ_CHANNEL
 } from '../shared/config-library'
-import type { AssetUploadProgress } from '../shared/asset-upload'
 import {
   UPDATES_CHECK_CHANNEL,
   UPDATES_GET_STATUS_CHANNEL,
@@ -24,9 +22,15 @@ import {
   IMAGE_CANCEL_UPLOAD_CHANNEL,
   IMAGE_CLEAR_CHANNEL,
   IMAGE_SELECT_SOURCE_CHANNEL,
-  IMAGE_UPLOAD_CHANNEL,
-  IMAGE_UPLOAD_PROGRESS_CHANNEL
 } from '../shared/image-assets'
+import {
+  IMAGE_LIBRARY_ADD_CHANNEL,
+  IMAGE_LIBRARY_CHANGED_CHANNEL,
+  IMAGE_LIBRARY_LIST_CHANNEL,
+  IMAGE_LIBRARY_REMOVE_CHANNEL,
+  type ImageLibrarySnapshot
+} from '../shared/image-library'
+import { DASHBOARD_FILE_INSPECT_CHANNEL, DASHBOARD_FILE_SAVE_CHANNEL } from '../shared/dashboard-files'
 import {
   CONFIGURATION_FILE_LOAD_CHANNEL,
   CONFIGURATION_FILE_SAVE_CHANNEL
@@ -95,8 +99,10 @@ import {
 } from '../shared/save-to-board'
 import { PREVIEW_ASSETS_READ_CHANNEL } from '../shared/preview-assets'
 import {
+  TEMPLATE_ADOPT_CHANNEL,
   TEMPLATE_DELETE_CHANNEL,
   TEMPLATE_LIST_CHANNEL,
+  TEMPLATE_OPEN_CREDIT_CHANNEL,
   TEMPLATE_READ_CHANNEL,
   TEMPLATE_SAVE_CHANNEL
 } from '../shared/templates'
@@ -132,14 +138,14 @@ export const productApi: PitrigApi = {
     ipcRenderer.invoke(CONFIGURATION_FILE_SAVE_CHANNEL, request),
   listConfigurations: () => ipcRenderer.invoke(CONFIG_LIBRARY_LIST_CHANNEL),
   readSavedConfiguration: (request) => ipcRenderer.invoke(CONFIG_LIBRARY_READ_CHANNEL, request),
-  saveConfigurationToLibrary: (request) =>
-    ipcRenderer.invoke(CONFIG_LIBRARY_SAVE_CHANNEL, request),
   deleteSavedConfiguration: (request) => ipcRenderer.invoke(CONFIG_LIBRARY_DELETE_CHANNEL, request),
   readRecentConfiguration: (request) => ipcRenderer.invoke(CONFIG_RECENT_READ_CHANNEL, request),
   forgetRecentConfiguration: (request) =>
     ipcRenderer.invoke(CONFIG_RECENT_FORGET_CHANNEL, request),
   listTemplates: () => ipcRenderer.invoke(TEMPLATE_LIST_CHANNEL),
   readTemplate: (request) => ipcRenderer.invoke(TEMPLATE_READ_CHANNEL, request),
+  adoptTemplate: (request) => ipcRenderer.invoke(TEMPLATE_ADOPT_CHANNEL, request),
+  openTemplateCredit: (request) => ipcRenderer.invoke(TEMPLATE_OPEN_CREDIT_CHANNEL, request),
   saveTemplate: (request) => ipcRenderer.invoke(TEMPLATE_SAVE_CHANNEL, request),
   deleteTemplate: (request) => ipcRenderer.invoke(TEMPLATE_DELETE_CHANNEL, request),
   listSerialPorts: () => ipcRenderer.invoke(DEVICE_LIST_PORTS_CHANNEL),
@@ -184,10 +190,20 @@ export const productApi: PitrigApi = {
   getUsageSettings: () => ipcRenderer.invoke(USAGE_GET_CHANNEL),
   setUsageSettings: (request) => ipcRenderer.invoke(USAGE_SET_CHANNEL, request),
   selectImageSource: () => ipcRenderer.invoke(IMAGE_SELECT_SOURCE_CHANNEL),
-  uploadImageAssets: (request) => ipcRenderer.invoke(IMAGE_UPLOAD_CHANNEL, request),
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
   clearImageAssets: () => ipcRenderer.invoke(IMAGE_CLEAR_CHANNEL),
   readPreviewAssets: () => ipcRenderer.invoke(PREVIEW_ASSETS_READ_CHANNEL),
+  listImageLibrary: () => ipcRenderer.invoke(IMAGE_LIBRARY_LIST_CHANNEL),
+  addImagesToLibrary: (request) => ipcRenderer.invoke(IMAGE_LIBRARY_ADD_CHANNEL, request),
+  removeLibraryImage: (request) => ipcRenderer.invoke(IMAGE_LIBRARY_REMOVE_CHANNEL, request),
+  onImageLibraryChanged: (listener) => {
+    const handler = (_event: IpcRendererEvent, snapshot: ImageLibrarySnapshot): void =>
+      listener(snapshot)
+    ipcRenderer.on(IMAGE_LIBRARY_CHANGED_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(IMAGE_LIBRARY_CHANGED_CHANNEL, handler)
+  },
+  inspectDashboardShare: (request) => ipcRenderer.invoke(DASHBOARD_FILE_INSPECT_CHANNEL, request),
+  saveDashboardShare: (request) => ipcRenderer.invoke(DASHBOARD_FILE_SAVE_CHANNEL, request),
   onFirmwareUploadProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: FirmwareUploadProgress): void =>
       listener(progress)
@@ -199,12 +215,6 @@ export const productApi: PitrigApi = {
       listener(progress)
     ipcRenderer.on(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
-  },
-  onImageUploadProgress: (listener) => {
-    const handler = (_event: IpcRendererEvent, progress: AssetUploadProgress): void =>
-      listener(progress)
-    ipcRenderer.on(IMAGE_UPLOAD_PROGRESS_CHANNEL, handler)
-    return () => ipcRenderer.removeListener(IMAGE_UPLOAD_PROGRESS_CHANNEL, handler)
   },
   onSaveProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: SaveProgress): void => listener(progress)

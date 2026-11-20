@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdint>
 
+#include "esp_attr.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -40,7 +41,7 @@ bool started;
 StaticTask_t task_buffer;
 StackType_t task_stack[kTaskStackDepth];
 
-std::array<Sample, kWindowSamples> window;
+EXT_RAM_BSS_ATTR std::array<Sample, kWindowSamples> window;
 std::size_t oldest_sample;
 std::size_t heap_refresh_countdown;
 std::size_t fragmentation_refresh_countdown;

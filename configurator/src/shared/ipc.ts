@@ -1,6 +1,19 @@
-import type { AssetResult, AssetUploadProgress } from './asset-upload'
+import type { AssetResult } from './asset-upload'
 import type { UsageSetRequest, UsageSettings } from './usage'
-import type { ImageSourceSelection, ImageUploadRequest } from './image-assets'
+import type { ImageSourceSelection } from './image-assets'
+import type {
+  ImageLibraryAddRequest,
+  ImageLibraryEntry,
+  ImageLibraryIdRequest,
+  ImageLibrarySnapshot
+} from './image-library'
+import type {
+  DashboardFileResult,
+  DashboardShareRequest,
+  DashboardShareSaveValue,
+  DashboardShareSummary,
+  OpenedDashboard
+} from './dashboard-files'
 import type {
   ConnectDeviceRequest,
   DeviceConfigurationApplyResult,
@@ -59,10 +72,8 @@ import type {
   ConfigurationIdRequest,
   ConfigurationLibrary,
   ConfigurationPathRequest,
-  ConfigurationSaveRequest,
   RecentConfigurationValue,
-  SavedConfigurationDocument,
-  SavedConfigurationSummary
+  SavedConfigurationDocument
 } from './config-library'
 import type {
   PluginInput,
@@ -73,9 +84,9 @@ import type {
   TelemetrySnapshot
 } from './telemetry-bridge'
 import type {
-  TemplateDocument,
   TemplateIdRequest,
   TemplateLibrary,
+  TemplateReadValue,
   TemplateResult,
   TemplateSaveRequest,
   TemplateSummary
@@ -99,9 +110,6 @@ export interface PitrigApi {
   readSavedConfiguration: (
     request: ConfigurationIdRequest
   ) => Promise<ConfigLibraryResult<SavedConfigurationDocument>>
-  saveConfigurationToLibrary: (
-    request: ConfigurationSaveRequest
-  ) => Promise<ConfigLibraryResult<SavedConfigurationSummary>>
   deleteSavedConfiguration: (request: ConfigurationIdRequest) => Promise<ConfigLibraryResult<void>>
   readRecentConfiguration: (
     request: ConfigurationPathRequest
@@ -110,7 +118,9 @@ export interface PitrigApi {
     request: ConfigurationPathRequest
   ) => Promise<ConfigLibraryResult<void>>
   listTemplates: () => Promise<TemplateResult<TemplateLibrary>>
-  readTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<TemplateDocument>>
+  readTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<TemplateReadValue>>
+  adoptTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<OpenedDashboard>>
+  openTemplateCredit: (request: TemplateIdRequest) => Promise<boolean>
   saveTemplate: (request: TemplateSaveRequest) => Promise<TemplateResult<TemplateSummary>>
   deleteTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<void>>
   listSerialPorts: () => Promise<DeviceResult<SerialPortSummary[]>>
@@ -162,11 +172,21 @@ export interface PitrigApi {
   getUsageSettings: () => Promise<UsageSettings>
   setUsageSettings: (request: UsageSetRequest) => Promise<UsageSettings>
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
-  uploadImageAssets: (request: ImageUploadRequest) => Promise<AssetResult<void>>
   cancelImageUpload: () => Promise<AssetResult<void>>
   clearImageAssets: () => Promise<DeviceResult<DeviceState>>
   readPreviewAssets: () => Promise<PreviewAssets>
-  onImageUploadProgress: (listener: (progress: AssetUploadProgress) => void) => () => void
+  listImageLibrary: () => Promise<ImageLibrarySnapshot>
+  addImagesToLibrary: (
+    request: ImageLibraryAddRequest
+  ) => Promise<AssetResult<ImageLibraryEntry[]>>
+  removeLibraryImage: (request: ImageLibraryIdRequest) => Promise<AssetResult<boolean>>
+  onImageLibraryChanged: (listener: (snapshot: ImageLibrarySnapshot) => void) => () => void
+  inspectDashboardShare: (request: {
+    json: string
+  }) => Promise<DashboardFileResult<DashboardShareSummary>>
+  saveDashboardShare: (
+    request: DashboardShareRequest
+  ) => Promise<DashboardFileResult<DashboardShareSaveValue>>
   onFirmwareUploadProgress: (
     listener: (progress: FirmwareUploadProgress) => void
   ) => () => void

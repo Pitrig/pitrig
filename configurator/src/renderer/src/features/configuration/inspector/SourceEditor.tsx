@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import { type TextSourceConfiguration, VALUE_AFFIX_CAPACITY, type ValueTransform } from '@shared/configuration-schema'
+import { type TextSourceConfiguration, type TimeTransform, VALUE_AFFIX_CAPACITY, type ValueTransform } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
 import { applyUnit, defaultUnit, MAXIMUM_TRANSFORM_DECIMALS, selectedUnit, unitPresetsFor } from '@shared/value-transform'
 import { DEFAULT_TEXT_BINDING } from '@shared/validate/values'
@@ -61,7 +61,7 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
         const transform = next.transform ?? {}
         clearTransformType(transform)
         if (value === 'number') transform.type = 'number'
-        else if (value !== 'source_text') { transform.type = 'time'; transform.format = value as 'duration_ms' | 'signed_duration_ms' | 'clock_ms' }
+        else if (value !== 'source_text') { transform.type = 'time'; transform.format = value as NonNullable<TimeTransform['format']> }
         next.transform = transform
         pruneTransform(next)
       })} />
@@ -117,8 +117,8 @@ function transformOptions(binding: TelemetryCatalogEntry | undefined): readonly 
   if (!binding) return ['source_text']
   const options = ['source_text']
   if (binding.type !== 'boolean') options.push('number')
-  if (binding.unit === 'millisecond' && binding.type === 'uint32') options.push('duration_ms', 'clock_ms')
-  if (binding.unit === 'millisecond' && binding.type === 'int32') options.push('signed_duration_ms')
+  if (binding.unit === 'millisecond' && binding.type === 'uint32') options.push('duration_ms', 'compact_duration_ms', 'split_ms', 'clock_ms', 'compact_clock_ms')
+  if (binding.unit === 'millisecond' && binding.type === 'int32') options.push('signed_duration_ms', 'signed_digits_ms')
   return options
 }
 

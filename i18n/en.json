@@ -65,42 +65,20 @@
     },
     "infoPage": {
       "info": "Info",
-      "theConnectedBoardTheLink": "The connected board, the link, and this application.",
       "board": "Board",
       "display": "Display",
       "firmware": "Firmware",
-      "schemaVersion": "Schema version",
-      "persistentStorage": "Persistent storage",
       "firmwareSlots": "Firmware slots",
-      "startup": "Startup",
       "lastBoot": "Last boot",
       "recentFailures": "Recent failures",
-      "pickAPortAtThe": "Pick a port at the top of the window, or leave it on Auto and press Connect — the configurator walks the speeds a Pitrig board answers on.",
-      "noBoardConnected": "No board connected",
-      "connection": "Connection",
-      "theSerialLinkThisWindow": "The serial link this window is using.",
-      "status": "Status",
       "port": "Port",
-      "path": "Path",
       "speed": "Speed",
-      "application": "Application",
-      "thisBuildOfTheConfigurator": "This build of the configurator.",
       "name": "Name",
       "version": "Version",
-      "platform": "Platform",
-      "reportedByTheFirmwareItself": "Read from the board; the display size comes from this application’s board profile. Nothing here is editable.",
-      "connectAPitrigBoardTo": "Connect a Pitrig board to read its information.",
-      "idConfig": "{id} config",
       "displaySize": "{width} × {height}",
-      "noDisplay": "None — this board drives peripherals only",
       "singlePartition": "Single application partition",
-      "safeMode": "Safe mode — serial link only",
-      "normalMode": "Normal — everything composed",
-      "baudRate": "{baudRate} baud",
       "firmwareSlotsValue": "{running} running · installs into {target}",
-      "available": "Available",
-      "unavailable": "Unavailable",
-      "notConnected": "Not connected"
+      "versionsUpdatesAndWhat": "Versions, updates, and what to send when you ask for help."
     },
     "liveApplyIndicator": {
       "theBoardRunsItsOwn": "The board runs its own configuration.",
@@ -269,7 +247,7 @@
       "theDraftTargetsBoardThe": "The draft targets {board}, the board is {boardId}.",
       "theBoardLacksJoinSaving": "The board lacks {join}. Saving installs the fonts.",
       "noLocalConfiguration": "No local configuration.",
-      "configurationIsNotValidJson": "Configuration is not valid JSON."
+      "theBoardLacksImages": "The board does not hold {images} yet. Saving installs the images."
     },
     "documentStatus": {
       "refused": "{label} config refused",
@@ -281,16 +259,10 @@
       "savedButTheBoardDid": "Saved, but the board did not come back on its port. Reconnect it by hand.",
       "savedTheBoardKeepsShowing": "Saved. The board keeps showing the previous dashboard until it restarts: {applyFailed}",
       "fontsInstalledAndConfigurationSaved": "Fonts installed and configuration saved. The board restarted and is running the new dashboard.",
-      "savedTheBoardIsRunning": "Saved. The board is running the new configuration — no restart needed."
-    },
-    "documentState": {
-      "absent": "Factory defaults",
-      "malformed_record": "Stored record is malformed; ignored",
-      "unsupported_schema": "Stored for another schema version; ignored",
-      "corrupt_payload": "Stored record failed its checksum; ignored",
-      "rejected": "Stored record was refused; ignored",
-      "valid": "Stored",
-      "withGeneration": "{label} · generation {generation}"
+      "savedTheBoardIsRunning": "Saved. The board is running the new configuration — no restart needed.",
+      "fontsAndImagesInstalled": "Fonts and images installed and configuration saved. The board restarted and is running the new dashboard.",
+      "imagesInstalled": "Images installed and configuration saved. The board restarted and is running the new dashboard.",
+      "keptBoardImages": "The board kept its own copy of {images}, because this PC has none."
     },
     "configurationJson": {
       "configurationJsonIsMalformed": "Configuration JSON is malformed.",
@@ -314,6 +286,60 @@
       "theElectronBridgeIsOutdated": "The Electron bridge is outdated. Fully restart Pitrig Configurator.",
       "theConfigurationOperationFailed": "The configuration operation failed.",
       "theConfigurationFileOperationFailed": "The configuration file operation failed."
+    },
+    "boardHealth": {
+      "boardHealth": "Board health:",
+      "startedNormally": "started normally. No crashes since power-on.",
+      "safeMode": "Safe mode",
+      "crashedWhile": {
+        "$plural": {
+          "one": "The board crashed once {phase}.",
+          "other": "The board crashed {count} times {phase}."
+        }
+      },
+      "crashed": {
+        "$plural": {
+          "one": "The board crashed once.",
+          "other": "The board crashed {count} times."
+        }
+      },
+      "startedInSafeMode": "The board started in safe mode.",
+      "loadAnotherSetup": "Load another setup or reset it on Firmware.",
+      "crashedTitle": "Crashed",
+      "recovered": "{lastBoot}, then started again.",
+      "earlierCrashes": {
+        "$plural": {
+          "one": "{count} earlier start ended in a crash.",
+          "other": "{count} earlier starts ended in a crash."
+        }
+      }
+    },
+    "supportDetails": {
+      "detailsForSupport": "Details for support",
+      "copy": "Copy",
+      "copied": "Copied",
+      "board": "Board",
+      "boardValue": "{board} · {display}",
+      "noDisplay": "no display",
+      "setupOnBoard": "Setup on board",
+      "documentStored": "{document} stored ({generation})",
+      "documentState": "{document} {state}",
+      "state": {
+        "absent": "factory",
+        "valid": "stored",
+        "malformed_record": "malformed",
+        "unsupported_schema": "other schema",
+        "corrupt_payload": "corrupt",
+        "rejected": "refused"
+      },
+      "schema": "Schema",
+      "schemaValue": "{schema} · {storage}",
+      "storageAvailable": "storage available",
+      "noStorage": "no storage",
+      "link": "Link",
+      "linkValue": "{path} · {baudRate} baud",
+      "notConnected": "not connected",
+      "system": "System"
     }
   },
   "fonts": {
@@ -481,7 +507,8 @@
         "scale": "Applied before the offset: the drawn number is value × scale + offset, rounded to the decimals set beside it.",
         "affix": "Literal text drawn immediately before and after this source. With several sources this is the only separator between them.",
         "alignment": "Where the text sits inside the widget box, after the padding is taken off.",
-        "fallback": "Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value’s zero is drawn instead."
+        "fallback": "Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value’s zero is drawn instead.",
+        "fallbackColour": "Paints what the widget draws while the game reports none of its fields — the fallback text, or the zero when there is none — whatever a rule says. Unset keeps the value colour."
       },
       "title": {
         "fallback": "A second installed family to try for glyphs the first does not have — an icon family beside a text one, which is how a value carries an icon and its number in one widget. It is built at the same size, so it costs one more font.",
@@ -556,7 +583,7 @@
         "width": "Thickness of every trace. Half of it is kept clear inside the plot on each side — plus whatever a rounded frame needs for the corners to clear the curve — so a value at the top or the bottom of its range is drawn whole rather than cut by the frame."
       },
       "image": {
-        "image": "Images are uploaded to the board and converted in the configurator to the size they are drawn at. The device neither scales nor rotates, so match the widget box to the bitmap.",
+        "image": "Images live in this PC's image library, converted to the size they are drawn at, and Save to board installs the ones the dashboard draws. The device neither scales nor rotates, so match the widget box to the bitmap.",
         "frame": "Which picture of a sprite sheet to draw. A sheet is several images uploaded as one, so switching between them costs nothing on the board and spends one of its 32 entries rather than one per picture.",
         "frameSource": "Chooses the picture from telemetry instead: the value is rounded to a whole number and clamped to the frames the sheet holds, so 0 is the first and anything past the last stays on the last. This is what draws a gear, a flag or a lamp set from one widget rather than a stack of them.",
         "recolor": "Tints the bitmap towards this colour, which is how one white icon serves every state. An alpha8 image is the colour rather than tinted by it: it carries only coverage, and is drawn white until this says otherwise.",
@@ -585,6 +612,12 @@
       },
       "widget": {
         "id": "The name this widget is known by in the layer list, in the JSON, and to anything that refers to it. The device stores it and never draws it."
+      },
+      "screenChanges": {
+        "group": "Bring a screen forward while a value holds, such as the pit screen in the pit lane. The dashboard goes back when it stops, unless a button moved it meanwhile.",
+        "watch": "The telemetry value the rule watches.",
+        "homeScreen": "The screen the home action and the idle return show.",
+        "homeAfter": "How long without a screen change before the dashboard returns home. 0 never does."
       }
     },
     "actionEditor": {
@@ -609,6 +642,7 @@
       "when": "When",
       "value": "Value",
       "border": "Border",
+      "title": "Title",
       "hide": "Hide",
       "blinkPeriodInMilliseconds0": "Blink period in milliseconds, 0 is steady",
       "holdInMillisecondsAfterThe": "Hold in milliseconds after the rule stops holding",
@@ -807,7 +841,6 @@
     },
     "widgetEditors": {
       "bitmap": "Bitmap",
-      "uploadImagesToTheBoard": "Upload images to the board to choose one here.",
       "frameFrom": "Frame from",
       "recolor": "Recolour",
       "strength": "Strength",
@@ -816,13 +849,17 @@
       "addSource": "Add source",
       "alignment": "Alignment",
       "fallback": "Fallback",
-      "imageIsNotInstalledOn": "\"{image}\" is not installed on the connected board, so the device will refuse this configuration.",
+      "fallbackColour": "Fallback colour",
       "imageHasASingleFrame": "\"{image}\" has a single frame, so the device will refuse a frame or a frame source on it.",
       "thisShapeHoldsNoWidgets": "This shape holds no widgets. Drag widgets onto it to make it a container; an empty one with an action is an invisible tap zone.",
       "holdsHeldWidgetSPlaced": "Holds {held} widget(s), placed relative to this box.",
       "lengthSources": "{length} sources",
       "unassigned": "Unassigned",
-      "unbound": "Unbound"
+      "unbound": "Unbound",
+      "addImagesFirst": "Add images on the Images page to choose one here.",
+      "imageIsNowhere": "\"{image}\" is neither on this PC nor on the board, so the board will refuse this dashboard. Add it on the Images page.",
+      "imageNotOnBoardYet": "\"{image}\" is not on the board yet. Save to board installs it.",
+      "imageOnlyOnBoard": "Only the board holds \"{image}\". This PC has no copy, so a shared dashboard file goes without it."
     },
     "infoHint": {
       "aboutLabel": "About {label}",
@@ -840,6 +877,31 @@
       "firstPageAfter": "First page after",
       "dismissedUntil": "Dismissed until",
       "dismissedFor": "Dismissed for"
+    },
+    "screenChanges": {
+      "automaticScreenChanges": "Automatic screen changes",
+      "show": "Show",
+      "screen": "Screen",
+      "while": "While",
+      "value": "Value",
+      "removeRuleNumber": "Remove rule {number}",
+      "moreConditions": {
+        "$plural": {
+          "one": "and {count} more condition, kept as written",
+          "other": "and {count} more conditions, kept as written"
+        }
+      },
+      "addRule": "Add rule",
+      "homeScreen": "Home screen",
+      "theFirstScreen": "The first screen",
+      "returnHomeAfter": "Return home after",
+      "seconds": "s",
+      "ruleCount": {
+        "$plural": {
+          "one": "{count} rule",
+          "other": "{count} rules"
+        }
+      }
     }
   },
   "modules": {
@@ -1006,8 +1068,7 @@
       "noMatrices": "No matrices",
       "noStrips": "No strips",
       "pinNumber": "pin {pin}",
-      "removeDeviceNumber": "Remove device {number}",
-      "buttons": "Buttons"
+      "removeDeviceNumber": "Remove device {number}"
     },
     "noConfiguration": {
       "peripheralsLiveInTheSame": "Peripherals live in the same draft the dashboard uses, so this needs no board plugged in.",
@@ -1237,11 +1298,6 @@
       "dashboard": "dashboard",
       "modules": "modules",
       "protocol": "protocol"
-    },
-    "summary": {
-      "dashboard": "Screens and the widgets on them.",
-      "modules": "Peripherals beyond the display.",
-      "protocol": "The link that carries telemetry."
     }
   },
   "boards": {
@@ -1257,27 +1313,21 @@
       "images": "Images",
       "addImage": "Add image…",
       "onTheBoard": "On the board",
-      "whatTheInstalledPackageHolds": "What the installed package holds. A widget refers to one of these names.",
+      "whatTheInstalledPackageHolds": "What the board holds now. Save to board replaces it with the images the dashboard draws.",
       "installed": "Installed",
-      "restartTheBoardBeforeUploading": "Restart the board before uploading again.",
-      "readyToInstall": "Ready to install",
-      "theWholePackageIsReplaced": "The whole package is replaced at once, so this list is what the board will hold.",
-      "thisSelection": "This selection",
       "addingAnImageConvertsIt": "Adding an image converts it here, at the size the board will draw it — the device neither scales nor rotates.",
-      "nothingStaged": "Nothing staged",
       "aNameUsesLowerCase": "A name uses lower case letters, digits, dash and underscore, up to 31 characters.",
       "twoImagesShareAName": "Two images share a name.",
       "widthHeightFormat": "{width}×{height} · {format}",
       "frameCountFrames": " · {frameCount} frames",
-      "addAPngOrJpeg": "Add a PNG, JPEG or BMP with Add image…, give it the name a widget will refer to, and install.",
       "connectABoardWhoseFirmware": "Connect a board whose firmware carries an image partition.",
-      "uploading": "Uploading…",
-      "convertedHereAndStoredOn": "Converted here and stored on the board as one package. Installing replaces every image and needs a restart.",
-      "theConnectedFirmwareDoesNot": "The connected firmware does not support uploaded images.",
       "noImagesInstalled": "No images installed",
       "noImageSupport": "No image support",
       "eraseEveryImageInstalledOn": "Erase every image installed on the board?",
-      "boardImagePackageErasedRestart": "Board image package erased. Restart the board, then install again."
+      "boardImagePackageErasedRestart": "Board image package erased. Restart the board; the next Save to board installs the dashboard's images again.",
+      "description": "Images are converted here and kept on this PC. Save to board installs the ones the dashboard draws, as one package, and restarts the board when they changed.",
+      "saveInstallsThem": "Save to board installs the images the dashboard draws.",
+      "restartTheBoardToUse": "The board restarts to use the new images."
     },
     "stagedImageCard": {
       "nameAWidgetRefersTo": "Name a widget refers to",
@@ -1336,13 +1386,58 @@
     },
     "dialog": {
       "filter": "Images"
+    },
+    "imageLibrary": {
+      "notOnThisPc": "Image \"{id}\" is not on this PC. Add it on the Images page.",
+      "damaged": "The copy of image \"{id}\" on this PC is damaged. Add the image again on the Images page.",
+      "tooLarge": "Image \"{id}\" needs {size} KB on a board, and a board holds {limit} KB of images.",
+      "notAdded": "The image could not be added.",
+      "notRemoved": "The image could not be removed."
+    },
+    "library": {
+      "title": "On this PC",
+      "description": "Every image installed from this PC or opened with a dashboard file, {size} in all. Save to board installs the ones the open dashboard draws.",
+      "dashboardDraws": {
+        "$plural": {
+          "one": "The open dashboard draws {count} image.",
+          "other": "The open dashboard draws {count} images."
+        }
+      },
+      "notOnThisPc": "Not on this PC: {images}. Add them here, or the board's own copies are kept.",
+      "empty": "No images on this PC yet",
+      "emptyHint": "Add a PNG, JPEG or BMP with Add image…, or open a dashboard file that carries images.",
+      "inDashboard": "In the dashboard",
+      "board": {
+        "same": "On the board",
+        "differs": "Board copy differs",
+        "absent": "Not on the board"
+      },
+      "remove": "Remove \"{id}\" from this PC? The board keeps its copy until the next save that replaces it.",
+      "removeUsed": "The open dashboard draws \"{id}\". Remove it from this PC anyway? The board keeps its copy, but this PC can no longer install or share it.",
+      "unreadable": {
+        "$plural": {
+          "one": "{count} stored image could not be read and is left out.",
+          "other": "{count} stored images could not be read and are left out."
+        }
+      }
+    },
+    "staged": {
+      "title": "Ready to add",
+      "add": "Add {count} to this PC",
+      "added": {
+        "$plural": {
+          "one": "Added {count} image to this PC.",
+          "other": "Added {count} images to this PC."
+        }
+      },
+      "replace": "This PC already holds {images}. Replace them? Dashboards that draw them show the new pictures, and the next Save to board installs them."
     }
   },
   "save": {
     "stage": {
-      "preparing": "Checking fonts",
-      "building": "Building the font package",
-      "uploading": "Installing fonts",
+      "preparing": "Checking fonts and images",
+      "building": "Preparing fonts and images",
+      "uploading": "Installing on the board",
       "saving": "Saving the configuration",
       "applying": "Applying to the board",
       "rebooting": "Restarting the board",
@@ -1352,20 +1447,33 @@
     "saveToBoardService": {
       "noPitrigBoardIsConnected": "No Pitrig board is connected.",
       "theConfigurationIsNotValid": "The configuration is not valid.",
-      "checkingTheFontsThisDashboard": "Checking the fonts this dashboard needs",
+      "checkingTheFontsThisDashboard": "Checking the fonts and images this dashboard needs",
       "savingTheAndConfiguration": "Saving the {and} configuration",
       "savedTheBoardIsRestarting": "Saved. The board is restarting out of safe mode.",
       "savedTheBoardIsRunning": "Saved. The board is running the new dashboard.",
       "nothingToSaveTheBoard": "Nothing to save — the board already holds this configuration."
+    },
+    "fontDelivery": {
+      "building": "Building the font package",
+      "noFaceCalled": "The font library has no face called \"{family}\".",
+      "noFaceForSome": "The font library has no face for {count} of this dashboard's families."
+    },
+    "imageDelivery": {
+      "building": "Building the image package",
+      "failed": "The images could not be installed.",
+      "noStorage": "This dashboard draws images, but the board has no image storage.",
+      "unavailable": "This dashboard draws images that are neither on this PC nor on the board: {images}. Add them on the Images page.",
+      "tooMany": "This dashboard draws {count} images, and a board holds at most {maximum}.",
+      "tooLarge": "This dashboard's images need {size} KB, and a board holds {limit} KB of images.",
+      "boardOnly": "Only the board holds {images}, and this PC has no copy, so it cannot install {pending} without removing them. Add {images} on the Images page first.",
+      "fontsWithoutImages": "The fonts were installed but the images were not: {error} Save to board again before the board restarts, or it starts without its images."
     }
   },
   "common": {
     "cancel": "Cancel",
     "ok": "OK",
     "close": "Close",
-    "load": "Load",
     "save": "Save",
-    "reset": "Reset",
     "open": "Open",
     "delete": "Delete",
     "none": "None",
@@ -1378,36 +1486,45 @@
   },
   "firmware": {
     "firmwarePage": {
-      "installAFirmwareImageInto": "Install a firmware image into the slot the board is not running from.",
+      "keepTheBoardsFirmware": "Keep the board's firmware up to date.",
+      "connectABoardToSee": "Connect a board to see its firmware.",
       "restartBoard": "Restart board",
-      "slots": "Slots",
-      "theImageTakesOverAt": "The image takes over at the next restart; a startup that never finishes returns the board to the slot it came from.",
-      "running": "Running",
-      "installsInto": "Installs into",
-      "thisImageHasNotBeen": "This image has not been confirmed yet. A restart now returns the board to the previous firmware.",
+      "percent": " · {percent}%",
       "image": "Image",
-      "aPackagedPitrigFirmwareImage": "A packaged Pitrig firmware image, named for the board it was built for.",
-      "noImageSelected": "No image selected.",
-      "selectImage": "Select image…",
-      "notAvailable": "Not available",
-      "whatThisBoardCanDo": "What this board can do over serial.",
-      "noSecondSlot": "No second slot",
+      "slots": "Slots"
+    },
+    "firmwareStatus": {
+      "boardRuns": "{board} runs",
+      "firmwareVersion": "Firmware {version}",
+      "versionAvailable": "{version} available",
+      "upToDate": "Up to date",
+      "updateTo": "Update to {version}",
+      "setupStays": "Your setup stays: Pitrig keeps a copy in Configs and puts it back.",
+      "restartWaiting": "An update is installed. Restart the board to finish it; the setup stays.",
+      "restartToFinish": "Restart to finish",
+      "notConfirmedYet": "This firmware is not confirmed yet. A restart now returns the board to the previous one.",
+      "cannotUpdateItself": "This firmware cannot update itself. Update it once by USB cable in the web flasher. It erases the board's setup, so save it to a file first.",
+      "openWebFlasher": "Open web flasher",
+      "whatChanges": "What changes · {count}"
+    },
+    "fileInstall": {
+      "installFromAFile": "Install from a file",
+      "aPitrigFirmwareFile": "A Pitrig firmware file built for this board.",
       "sizeBytes": "{size} bytes",
-      "percent": " ({percent}%)",
-      "theConnectedFirmwarePredatesThe": "The connected firmware predates the two-slot partition layout, so it cannot replace itself over serial. Flash it once over USB with idf.py, and every update after that can come this way.",
-      "connectABoardWithTwo": "Connect a board with two firmware slots.",
-      "anImageIsWaiting": "An image is installed and waits for a restart. Restarting into it keeps the board's configuration the same way an update does.",
-      "updateBoard": "Update board",
-      "updating": "Updating…",
-      "restartIntoTheInstalledImage": "Restart into the installed image",
-      "updateKeepsTheConfiguration": "The update keeps a copy of the board's configuration in the library, installs the image, restarts the board and puts the configuration back. A draft you have not saved stays a draft."
+      "selectFile": "Select file…",
+      "install": "Install"
+    },
+    "factoryReset": {
+      "factoryReset": "Factory reset",
+      "eraseTheSetupOnThe": "Erase the setup on the board. Files on this PC stay.",
+      "resetToFactory": "Reset to factory"
     },
     "boardUpdate": {
       "alreadyRunning": "A board update is already running.",
       "readingTheBoard": "Reading what the board holds…",
-      "keepingACopy": "Keeping a copy of the board's configuration in the library…",
+      "keepingACopy": "Keeping a copy of the board's configuration in Configs…",
       "backupName": "Before update · {date} · firmware {version}",
-      "backupFailed": "The board was not touched: its configuration could not be copied to the library. {reason}",
+      "backupFailed": "The board was not touched: its configuration could not be copied to Configs. {reason}",
       "restarting": "Restarting the board…",
       "didNotComeBack": "The board did not come back after restarting. Reconnect it, then open “{backup}” under Configs → Saved configurations and save it to the board.",
       "rolledBack": "The new firmware did not start, so the board went back to {version}. Its configuration is untouched.",
@@ -1415,11 +1532,11 @@
       "checking": "Checking what the board holds…",
       "cancelled": "Update cancelled. The board was not changed.",
       "updatedNothingStored": "The board runs {version}. It held no saved configuration, so there was nothing to put back.",
-      "updatedAndRestored": "The board runs {version} with its configuration put back. A copy stays in the library as “{backup}”.",
-      "updatedUnchanged": "The board runs {version} and kept its configuration. A copy stays in the library as “{backup}”.",
+      "updatedAndRestored": "The board runs {version} with its configuration put back. A copy stays in Configs as “{backup}”.",
+      "updatedUnchanged": "The board runs {version} and kept its configuration. A copy stays in Configs as “{backup}”.",
       "restoreFailed": "The board runs {version}, but its configuration could not be put back: {reason} Open “{backup}” under Configs → Saved configurations and save it to the board.",
       "notVerified": "The board runs {version}, but what it holds differs from the copy. Open “{backup}” under Configs → Saved configurations and save it to the board.",
-      "restoredNotShown": "The board runs {version} and holds its configuration again, but shows it only after the next restart. A copy stays in the library as “{backup}”.",
+      "restoredNotShown": "The board runs {version} and holds its configuration again, but shows it only after the next restart. A copy stays in Configs as “{backup}”.",
       "step": {
         "backup": "Copy",
         "install": "Install",
@@ -1479,37 +1596,44 @@
       "later": "Later"
     },
     "section": {
-      "title": "Updates",
-      "description": "Checked when the configurator starts and once a day against the published Pitrig releases on GitHub.",
-      "disabled": "This is a development build, so it does not check for updates.",
       "checking": "Checking…",
       "checkNow": "Check now",
-      "configurator": "Configurator",
       "boardFirmware": "Board firmware",
       "simhub": "SimHub",
       "plugin": "Pitrig plugin in SimHub",
-      "lastChecked": "Last checked {time}."
+      "lastChecked": "Last checked {time}.",
+      "versions": "Versions",
+      "justNow": "just now",
+      "pitrig": "Pitrig",
+      "boardNameFirmware": "{board} firmware",
+      "connectABoard": "Connect a board",
+      "upToDate": "Up to date",
+      "available": "{version} available",
+      "ready": "{version} ready",
+      "downloading": "Downloading {progress}%",
+      "notChecked": "Not checked yet",
+      "checkFailed": "Check failed",
+      "ok": "OK",
+      "olderThan": "Older than {minimum}",
+      "openFirmware": "Open Firmware"
     },
     "app": {
-      "notChecked": "{current}, not checked yet",
-      "checking": "{current}, checking…",
-      "current": "{current}, up to date",
-      "available": "{current}; {latest} is available",
-      "downloading": "{current}; downloading {latest} ({progress}%)",
-      "ready": "{current}; {latest} installs on restart",
-      "failed": "{current}; the check failed: {error}",
       "noWindowsUpdate": "the newest release carries no Windows update yet"
     },
     "firmware": {
       "notInRelease": "The Pitrig {version} release has no {name}.",
       "nothingNewer": "This board already runs the firmware that comes with this version of Pitrig.",
       "alreadyDownloading": "The firmware is already downloading.",
-      "released": "This version of Pitrig brings firmware {version}",
-      "behind": "The board runs {running}; {version} is available",
-      "current": "The board runs {running}, up to date",
       "downloading": "Downloading the firmware… {progress}%",
-      "offer": "Firmware {version} for this board comes with this version of Pitrig.",
-      "downloadAndUpdate": "Download and update"
+      "changesRelease": "Firmware {version}",
+      "changesUnreleased": "Not released yet",
+      "schemaNote": "This firmware reads a newer configuration format. Update board keeps a copy of the board's configuration and puts it back.",
+      "kind": {
+        "added": "Added",
+        "changed": "Changed",
+        "fixed": "Fixed",
+        "removed": "Removed"
+      }
     },
     "simhub": {
       "noSimHubFound": "SimHub was not found on this PC.",
@@ -1519,10 +1643,6 @@
       "invalidRequest": "Invalid plugin request.",
       "closeToReplace": "SimHub is running. Close it now so the Pitrig plugin can be replaced? SimHub starts again afterwards.",
       "pluginInstalled": "The Pitrig plugin in SimHub is up to date.",
-      "unknownVersion": "Version unknown",
-      "versionTooOld": "{version}, older than {minimum}",
-      "pluginMissing": "Not installed",
-      "pluginStale": "{installed}; {bundled} is ready to install",
       "noBundledPlugin": "This build of the configurator carries no SimHub plugin."
     }
   },
@@ -1555,6 +1675,7 @@
     "bridgeSection": {
       "title": "SimHub plugin",
       "description": "The Pitrig plugin in SimHub feeds the board by itself. While this configurator is connected to a board the plugin hands it over and its telemetry passes through here on the way, so the dashboard, the lamps and the catalog below show it as it arrives.",
+      "summary": "The Pitrig plugin in SimHub sends telemetry to the board.",
       "pluginVersion": "Plugin {version}",
       "pluginMissing": "No plugin",
       "pluginHint": "No Pitrig plugin answers on this PC. The Windows installer of this configurator adds it to SimHub; restart SimHub afterwards and enable Pitrig telemetry when it asks.",
@@ -1596,10 +1717,10 @@
     },
     "transportSection": {
       "transport": "Transport",
-      "theLinkTheBoardTalks": "The link the board talks over.",
+      "theLinkTheBoardTalks": "How the board connects to this PC — over USB or the serial pins — and how fast.",
       "createOrOpenAConfiguration": "Create or open a configuration on the Configs page first — the transport is the draft’s protocol document rather than a setting kept on the board.",
       "noConfigurationOpen": "No configuration open",
-      "theLinkTheBoardTalks2": "The link the board talks over. Its own stored configuration, saved and restarted on its own — and changing it can cut the board off.",
+      "theLinkTheBoardTalks2": "How the board connects to this PC — over USB or the serial pins — and how fast. Keep the board default unless the board is wired another way.",
       "changingThisCanCutThe": "Changing this can cut the board off",
       "aSavedChangeRestartsThe": "A saved change restarts the board, and the board comes back on the new link — at the new speed, if that is what changed. This window reconnects at the old one and will report that the board did not come back.",
       "notEverySpeedSurvivesEvery": "Not every speed survives every board. A USB-serial bridge is what limits it, not the firmware, and a rate the bridge cannot hold leaves a board that answers nothing.",
@@ -1651,7 +1772,9 @@
       "nameWouldNotBeAccepted": "\"{name}\" would not be accepted on this board, so the draft was left alone. {error}",
       "failedToApplyTheTemplate": "Failed to apply the template.",
       "nameIsNowTheLocal": "\"{name}\" is now the local draft.",
-      "wholeLayoutsScaledToSize": "Whole layouts, scaled to {size} on the way in. Add takes screens from one; Use replaces what you have open."
+      "wholeLayoutsScaledToSize": "Whole layouts, scaled to {size} on the way in. Add takes screens from one; Use replaces what you have open.",
+      "creditBy": "by {name}",
+      "creditOpen": "Open the page of {name} in the browser"
     },
     "dashboardThumbnail": {
       "noPreview": "No preview",
@@ -1675,7 +1798,7 @@
       "aNameNeedsAtLeast": "A name needs at least one letter or digit.",
       "theWholeDashboardGoesTo": "The whole dashboard goes to the dashboard library — {draft}.",
       "rPMGauge": "RPM gauge",
-      "enduranceLayout": "Endurance layout",
+      "raceLayout": "Race layout",
       "greenBelow6000RedAbove": "Green below 6000, red above",
       "fuelAndTyresForLong": "Fuel and tyres for long runs",
       "replaceTheSavedKindId": "Replace the saved {kind} \"{id}\"?",
@@ -1769,23 +1892,26 @@
   "dashboard": {
     "configsPage": {
       "configs": "Configs",
-      "theDashboardDocumentFilesSaved": "The three configuration documents: files, saved copies, and what the board is holding.",
+      "yourSetupFiles": "Your setup files.",
       "restartRequired": "Restart required",
       "modified": "Modified",
-      "document": "Document",
-      "selectBoard": "Select board",
-      "theConnectedBoardDecidesThis": "The connected board decides this while it is plugged in.",
+      "notSavedToAFile": "Not saved to a file yet.",
+      "untitledSetup": "Untitled setup",
+      "nothingOpen": "Nothing open",
+      "startANewSetupOr": "Start a new setup or open a file.",
+      "pickABoardFirst": "Pick a board first.",
       "new": "New",
       "open": "Open…",
-      "saveAs": "Save as…",
+      "save": "Save…",
       "saveTheConfigurationToA": "Save the configuration to a file (Cmd/Ctrl+S)",
-      "invalidJson": "Invalid JSON",
+      "thisSetupHasAnError": "This setup has an error: {error}",
+      "documentNearlyFull": "{label} is {percent}% full.",
+      "documentTooBig": "{label} is too big for the board: {percent}% of its space. Remove something before you save.",
+      "setupForAnotherBoard": "This setup is for {draftBoard}, but the connected board is {board}. Convert it to use it here.",
       "fitToTheNewDisplay": "Fit to the new display",
       "keepProportionsCentre": "Keep proportions, centre",
       "stretchToFillTheDisplay": "Stretch to fill the display",
-      "convertDraftToConverttarget": "Convert draft to {convertTarget}…",
-      "unsavedLocalDraft": "Unsaved local draft",
-      "noLocalConfiguration": "No local configuration"
+      "convertDraftToConverttarget": "Convert to {convertTarget}…"
     },
     "dashboardWorkspace": {
       "dashboardPages": "Dashboard pages",
@@ -1808,23 +1934,19 @@
       "thereIsNoConfigurationTo": "There is no configuration to save.",
       "thereIsNoDraftTo": "There is no draft to convert.",
       "theDraftNamesAnUnknown": "The draft names an unknown board.",
-      "theBoardHasNotReported": "The board has not reported a configuration yet.",
       "newBoardConfigurationCreatedLocally": "New {board} configuration created locally.",
       "fileNameLoaded": "{fileName} loaded.",
       "nameOpened": "{name} opened.",
       "fileNameOpened": "{fileName} opened.",
       "theConvertedLayoutWouldNot": "The converted layout would not be accepted, so the draft was left alone. {error}",
       "convertedToTarget": "Converted to {target}.",
-      "loadedTheDocumentConfigurationFrom": "Loaded the {document} configuration from the board.",
       "discardTheCurrentLocalDraft": "Discard the current local draft and create a new configuration?",
-      "discardTheCurrentLocalDraft2": "Discard the current local draft and open a JSON file?",
+      "discardTheCurrentLocalDraft2": "Open a file in place of what you have open? A dashboard file replaces only the dashboard; a configuration file replaces everything.",
       "discardTheCurrentLocalDraft3": "Discard the current local draft and open \"{id}\"?",
       "discardTheCurrentLocalDraft4": "Discard the current local draft and open this file?",
       "activeConfigurationReadFromThe": "Active configuration read from the board.",
       "resetTheSavedConfigurationTo": "Reset the saved configuration to the board-only factory configuration?",
       "factoryConfigurationSavedRestartThe": "Saved configuration erased. Restart the board to run the factory one.",
-      "eraseTheSavedLabelConfiguration": "Erase the saved {label} configuration from the board?",
-      "savedLabelConfigurationErasedRestart": "Saved {label} configuration erased. Restart the board to activate the factory one.",
       "restartTheConnectedPitrigBoard": "Restart the connected Pitrig board now?",
       "convertTheDraftFromFrom": "Convert the draft from {from} to {to}? {outcome}"
     },
@@ -1891,63 +2013,30 @@
     }
   },
   "configs": {
-    "advancedJsonSection": {
-      "advancedJson": "Advanced JSON",
-      "eachDocumentExactlyAsThe": "Each document exactly as the board receives it.",
-      "configurationDocuments": "Configuration documents",
-      "thisIsNotValidJson": "This is not valid JSON. The board keeps the last valid version until it is.",
-      "createOpenOrConnectA": "Create or open a configuration, or connect a board, to begin editing.",
-      "activeConfigurationJson": "{active} configuration JSON"
+    "boardSection": {
+      "boardHoldsThisSetup": "The board holds this setup.",
+      "boardHoldsAnotherSetup": "The board holds a different setup.",
+      "loadFromBoard": "Load from board",
+      "loadFromBoardHint": "Replace the setup in front of you with the one the board holds"
     },
-    "boardDocumentsSection": {
-      "configsOnTheBoard": "Configs on the board",
-      "threeDocumentsStoredAndWritten": "Three documents, stored and written independently.",
-      "savingWritesOnlyTheDocuments": "Saving writes only the documents that differ. The board restarts when a font or image package had to be installed, when the protocol config changed — the link is chosen once at startup, so that one cannot take effect any other way — or when it already owed a restart.",
-      "takeThisDocumentBackFrom": "Take this document back from the board, leaving the rest of the draft alone",
-      "writeOnlyThisDocumentTo": "Write only this document to the board",
-      "eraseThisDocumentFromThe": "Erase this document from the board’s storage",
-      "loadAllFromBoard": "Load all from board",
-      "resetToFactoryConfiguration": "Reset to factory configuration",
-      "refused": "Refused",
-      "factory": "Factory",
-      "inSync": "In sync",
-      "bytesBytes": " · {bytes} bytes",
-      "generationGeneration": " · generation {generation}"
-    },
-    "changesSection": {
-      "changesComparedWithTheBoard": "Changes compared with the board",
-      "theDraftIsComparedAgainst": "The draft is compared against the configuration the connected board has stored.",
-      "nothingToCompare": "Nothing to compare",
-      "theDraftMatchesTheBoard": "The draft matches the board exactly.",
-      "beforeAfter": "{before} → {after}",
-      "whatASaveWouldWrite": "What a save would write, per document. Widgets are matched by id, so a move reads as a move.",
-      "connectABoardToCompare": "Connect a board to compare the draft against what it is holding.",
-      "furtherChanges": {
+    "recentList": {
+      "recent": "Recent",
+      "reading": "Reading…",
+      "nothingYet": "Files you open or save appear here.",
+      "savedInPitrig": "saved in Pitrig",
+      "fileMovedOrDeleted": "file moved or deleted",
+      "deleteName": "Delete the saved copy {name}",
+      "forgetFilename": "Remove {fileName} from this list",
+      "deleteTheSavedCopyName": "Delete the saved copy \"{name}\"? This cannot be undone.",
+      "unreadableCopies": {
         "$plural": {
-          "one": "{count} further change not listed.",
-          "other": "{count} further changes not listed."
+          "one": "{count} saved copy could not be read.",
+          "other": "{count} saved copies could not be read."
         }
       }
     },
     "librarySection": {
-      "savedConfigurations": "Saved configurations",
-      "keptInTheApplicationS": "Kept in the application’s own folder, so the list is always accurate.",
-      "readingTheFolder": "Reading the folder…",
-      "saveTheCurrentDashboardBelow": "Save the current dashboard below to keep a copy that does not depend on where a file happens to live.",
-      "nothingSavedYet": "Nothing saved yet",
-      "saveTheCurrentDraftAs": "Save the current draft as",
-      "endurance": "endurance",
-      "saveToLibrary": "Save to library",
-      "recentFiles": "Recent files",
-      "filesOpenedOrSavedThrough": "Files opened or saved through the system dialogs, wherever they live.",
-      "openingOrSavingAJson": "Opening or saving a JSON file through the dialogs lists it here.",
-      "noRecentFiles": "No recent files",
-      "savedAsName": "Saved as \"{name}\".",
-      "noLongerAtThisPath": "No longer at this path",
       "deleteName": "Delete {name}",
-      "forgetFilename": "Forget {fileName}",
-      "replaceTheSavedConfigurationId": "Replace the saved configuration \"{id}\"?",
-      "deleteTheSavedConfigurationId": "Delete the saved configuration \"{id}\"?",
       "screenCount": {
         "$plural": {
           "one": "{count} screen",
@@ -1958,12 +2047,6 @@
         "$plural": {
           "one": "{count} widget",
           "other": "{count} widgets"
-        }
-      },
-      "unreadableFiles": {
-        "$plural": {
-          "one": "{count} file in the folder could not be read.",
-          "other": "{count} files in the folder could not be read."
         }
       }
     },
@@ -1980,8 +2063,8 @@
       "noSavedConfigurationNamedId": "No saved configuration named \"{id}\".",
       "theSavedConfigurationIsUnreadable": "The saved configuration is unreadable.",
       "aConfigurationNameIs1": "A configuration name is 1 to {mAXIMUM_CONFIGURATION_NAME} characters.",
-      "theDraftCannotBeSaved": "The draft cannot be saved to the library.",
-      "theLibraryHoldsAtMost": "The library holds at most {mAXIMUM_SAVED_CONFIGURATIONS} configurations.",
+      "theDraftCannotBeSaved": "The configuration cannot be saved as a copy.",
+      "theLibraryHoldsAtMost": "Configs holds at most {mAXIMUM_SAVED_CONFIGURATIONS} saved copies. Delete one there.",
       "failedToWriteTheConfiguration": "Failed to write the configuration.",
       "failedToDeleteTheConfiguration": "Failed to delete the configuration.",
       "thatFileIsNotIn": "That file is not in the recent list any more.",
@@ -1991,13 +2074,11 @@
       "aConfigurationFileMustNot": "A configuration file must not exceed {maximum} bytes.",
       "idIsNotAValid": "\"{id}\" is not a valid configuration identifier."
     },
-    "configsPage": {
-      "bytesOfLimit": "{bytes} / {limit} bytes"
-    },
     "dialog": {
       "loadTitle": "Load Pitrig configuration",
       "saveTitle": "Save Pitrig configuration",
-      "filter": "Pitrig configuration"
+      "filter": "Pitrig configuration",
+      "anyFilter": "Pitrig files"
     }
   },
   "layers": {
@@ -2178,7 +2259,8 @@
     "registerLibraryHandlers": {
       "invalidConfigurationFileRequest": "Invalid configuration file request.",
       "invalidConfigurationLibraryRequest": "Invalid configuration library request.",
-      "invalidTemplateRequest": "Invalid template request."
+      "invalidTemplateRequest": "Invalid template request.",
+      "invalidDashboardFileRequest": "Invalid dashboard file request."
     },
     "requestGuards": {
       "invalidDeviceConfigurationRequest": "Invalid device configuration request."
@@ -2280,7 +2362,7 @@
       "twoScreensShareTheId": "Two screens share the id {id}; a tap target names a screen by its id."
     },
     "transforms": {
-      "whatOfLabelIsA": "{what} of {label} is a time transform with no format; the device needs \"duration_ms\", \"clock_ms\" or \"signed_duration_ms\".",
+      "whatOfLabelIsA": "{what} of {label} is a time transform with no format; the device needs one of \"duration_ms\", \"compact_duration_ms\", \"clock_ms\", \"compact_clock_ms\", \"split_ms\", \"signed_duration_ms\" or \"signed_digits_ms\".",
       "whatOfLabelTimesBinding": "{what} of {label} times \"{binding}\", which the device carries as {type}; a {_ms} is {counted} whole number of milliseconds.",
       "whatOfLabelPutsA": "{what} of {label} puts a number transform on \"{binding}\", which is true or false and has nothing to scale.",
       "whatOfLabelAsksFor": "{what} of {label} asks for {decimals} decimals; the device writes at most {mAXIMUM_TRANSFORM_DECIMALS}.",
@@ -2378,9 +2460,9 @@
   "misc": {
     "workspaceRail": {
       "drawTheDashboardAndThe": "Draw the dashboard, and the fonts, images and templates it is made of",
-      "buttonsEncodersAndLeds": "Buttons, LED strips and matrices",
+      "ledsAndMatricesWiredTo": "LEDs and matrices wired to the board",
+      "whatYourWheelAndButtons": "What your wheel and button box do on the board",
       "telemetryLinkAndSimhub": "Telemetry link and SimHub",
-      "filesSavedConfigurationsAndJson": "Files, saved configurations and JSON",
       "installAFirmwareImageOver": "Install a firmware image over serial",
       "whatTheConnectedBoardIs": "What the connected board is"
     },
@@ -2420,14 +2502,17 @@
       "pressAButton": "Press a button…",
       "removeInput": "Remove {input}"
     },
-    "inputButtonList": {
-      "noButtonsYet": "No buttons yet. Add one, then press the button on your wheel or button box.",
+    "buttonList": {
+      "noButtonsYet": "No buttons yet. Press Add button, then the button on your wheel or button box.",
       "addButton": "Add button",
       "allButtonsUsed": "All {count} buttons are in use.",
-      "clearButtonNumber": "Clear button {number}",
       "startSimhubToAssign": "Start SimHub with the Pitrig plugin to assign buttons.",
       "fourInputsAtMost": "A button takes {count} inputs at most.",
-      "pressAssignThenTheButton": "Press Assign, then the button on your wheel, button box, gamepad or keyboard."
+      "pressAssignThenTheButton": "Press Assign, then the button on your wheel, button box, gamepad or keyboard.",
+      "notAssignedYet": "Not assigned yet",
+      "chooseWhatItDoes": "Choose what it does…",
+      "alsoDoSomethingElse": "+ Also do something else",
+      "removeName": "Remove {name}"
     },
     "switchSection": {
       "addPosition": "Add position",
@@ -2438,10 +2523,7 @@
       "noSlot": "No slot",
       "morePositionsThanPages": "The switch has {positions} positions but the slot only {pages} pages; the extra positions do nothing."
     },
-    "bindingList": {
-      "noActionsYet": "No actions yet. A button does nothing on the board until it has one.",
-      "addAction": "Add action",
-      "button": "Button",
+    "actionLine": {
       "action": "Action",
       "screen": "Screen",
       "slot": "Slot",
@@ -2449,41 +2531,17 @@
       "pageNumber": "Page {number}",
       "wrap": "Wrap around",
       "repeatWhileHeld": "Repeat while held",
-      "removeActionNumber": "Remove action {number}"
+      "removeAction": "Remove {action}"
     },
-    "ruleList": {
-      "noRulesYet": "No rules. A rule brings a screen forward while a value holds, such as the pit screen in the pit lane.",
-      "addRule": "Add rule",
-      "show": "Show",
-      "while": "while",
-      "screen": "Screen",
-      "value": "Value",
-      "watch": "Watch",
-      "removeRuleNumber": "Remove rule {number}",
-      "moreConditions": {
-        "$plural": {
-          "one": "and {count} more condition, kept as written",
-          "other": "and {count} more conditions, kept as written"
-        }
-      }
-    },
-    "homeSection": {
-      "homeScreen": "Home screen",
-      "theFirstScreen": "The first screen",
-      "returnAfter": "Return home after",
-      "seconds": "s"
-    },
-    "buttonsView": {
+    "controlsPage": {
+      "controls": "Controls",
+      "whatTheButtonsOnYour": "What the buttons on your wheel, button box and keyboard do on the board.",
       "buttons": "Buttons",
-      "buttonsDescription": "Up to 16 buttons on the PC, each with a name and up to four inputs. The wiring is kept with this board and works in every game.",
-      "multiPositionSwitch": "Multi-position switch",
-      "switchDescription": "One input per position. Turning the switch shows the page of the slot below with the same number.",
-      "whatTheButtonsDo": "What the buttons do",
-      "whatTheButtonsDoDescription": "Actions belong to the dashboard, so another dashboard brings its own. One button can do several things.",
-      "screenRules": "Screen rules",
-      "screenRulesDescription": "Bring a screen forward while a value holds. The dashboard goes back when it stops, unless a button moved it meanwhile.",
-      "home": "Home",
-      "homeDescription": "Where the home action and the idle return go, and after how long without a screen change.",
+      "pressAddButtonThen": "Press Add button, press the button on your wheel, then choose what it does.",
+      "rotarySwitch": "Rotary switch",
+      "eachPositionShowsOne": "Each position shows one page of a slot.",
+      "alsoInSimhub": "You can also map PitrigPlugin.Button1 to Button16 in SimHub under Controls and events.",
+      "startANewSetupOn": "Start a new setup or open a file on the Configs tab.",
       "startSimhubWithThePlugin": "SimHub is not answering. Start SimHub with the Pitrig plugin to read your buttons.",
       "pressTheButtonToAssign": "Press the button to assign, or Esc to cancel.",
       "pressAnyButton": "Press any button to see it here.",
@@ -2492,10 +2550,7 @@
       "up": "released"
     },
     "hints": {
-      "switchSlot": "The slot whose pages the switch turns: position 1 shows its first page.",
-      "ruleSource": "The telemetry value the rule watches.",
-      "homeScreen": "The screen the home action and the idle return show.",
-      "homeAfter": "How long without a screen change before the dashboard returns home. 0 never does."
+      "switchSlot": "The slot whose pages the switch turns: position 1 shows its first page."
     }
   },
   "telemetry": {
@@ -2507,13 +2562,56 @@
   "usage": {
     "section": {
       "title": "Anonymous usage statistics",
-      "description": "Helps decide what to build next. The configurator and the Pitrig plugin in SimHub send a random install number, their versions, the system, the board model and firmware, the games that run in SimHub, and when a save finishes or the app crashes. No names, files, dashboards or addresses are sent. This switch covers the SimHub plugin on this computer too.",
+      "description": "Helps decide what to build next. The configurator and the Pitrig plugin in SimHub send a random install number, whether Pitrig was used on this computer before, their versions, the system, the board model and firmware, the games that run in SimHub, and when a save finishes or the app crashes. No names, files, dashboards or addresses are sent. This switch covers the SimHub plugin on this computer too.",
       "enabled": "On",
       "disabled": "Off",
-      "developmentBuild": "This is a development build, so it sends nothing.",
-      "state": "Sending",
-      "turnOff": "Turn off",
-      "turnOn": "Turn on"
+      "developmentBuild": "Development build: no update checks and no statistics.",
+      "noNamesFilesOrDashboards": "No names, files or dashboards.",
+      "whatIsSent": "What is sent"
+    }
+  },
+  "share": {
+    "button": {
+      "label": "Share…",
+      "title": "Save this dashboard with its images and fonts as one file that opens on another PC as it is"
+    },
+    "dialog": {
+      "saveTitle": "Share dashboard",
+      "saveButton": "Save",
+      "saveFile": "Save file…",
+      "saving": "Saving…",
+      "filter": "Pitrig dashboard",
+      "defaultName": "My dashboard",
+      "intro": "One file with the dashboard, its images and the fonts another PC may not have. Opening it replaces the dashboard there; LED and connection settings stay as they are.",
+      "saved": "Saved {fileName}, {size}.",
+      "savedWithout": "It goes without {names}, which this PC does not have."
+    },
+    "summary": {
+      "images": "Images in the file: {count}.",
+      "fonts": "Fonts: {embedded} in the file, {google} downloaded from Google Fonts on the other PC, {builtin} built into Pitrig.",
+      "size": "About {size}.",
+      "missingImages": "Not on this PC, so not in the file: {images}. They show as named boxes on the other PC.",
+      "missingFonts": "Not in this PC's font library, so not in the file: {fonts}."
+    },
+    "file": {
+      "damaged": "This dashboard file is damaged or incomplete.",
+      "newer": "This dashboard file was made with a newer Pitrig. Update Pitrig to open it.",
+      "newerVersion": "This dashboard file was made with Pitrig {version}. Update Pitrig to open it.",
+      "tooLarge": "The dashboard file would be larger than {limit} MB."
+    },
+    "errors": {
+      "name": "A dashboard name is 1 to {maximum} characters.",
+      "description": "A description is at most {maximum} characters.",
+      "notSaved": "The dashboard file was not saved."
+    },
+    "open": {
+      "opened": "Opened {name}.",
+      "added": "Added to this PC: {names}.",
+      "renamed": "Renamed to keep this PC's own copies: {names}.",
+      "imagesMissing": "Images not in the file and not on this PC: {images}.",
+      "fontsMissing": "Fonts not found: {fonts}. Connect to the internet for Google fonts, or add them on the Fonts page.",
+      "scaled": "It was made for another screen size, so it was scaled; images keep their size.",
+      "next": "Save to board installs everything it needs."
     }
   }
 }

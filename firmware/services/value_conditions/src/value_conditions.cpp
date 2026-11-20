@@ -109,6 +109,9 @@ Resolution resolve(const std::span<const configuration::WidgetCondition> rules,
     if (rule.border_color != configuration::kTransparentColor) {
       style.border_color = rule.border_color;
     }
+    if (rule.title_color != configuration::kTransparentColor) {
+      style.title_color = rule.title_color;
+    }
     style.hidden = rule.hidden;
     style.blink_ms = rule.blink_ms;
     return {.style = style, .hold_ms = rule.hold_ms, .matched = true};

@@ -5,15 +5,18 @@ import { SlotHomeField } from './slot-controls'
 import { pagesOf, widgetsOf } from '@shared/configuration-access'
 import { type ImageWidgetConfiguration, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { DEFAULT_WIDGET_FONT_SIZE_PX, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
-import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
+import { SourceEditor } from './SourceEditor'
+import { TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Group } from './Group'
 import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
-import { ColorField, FontEditor, Hint, NumberField, OptionalColorField, SelectField, TextField } from './fields'
+import { ColorField, Hint, NumberField, OptionalColorField, SelectField, TextField } from './fields'
+import { FontEditor } from './font-fields'
 import { ContainerEditor } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
+import { useImageLibraryStore } from '@/features/image-assets/image-library-store'
 
 export function AddButton({ label, onClick }: { label: string; onClick: () => void }): React.JSX.Element {
   return (
@@ -34,19 +37,26 @@ export function RemoveButton({ label, disabled, onClick }: { label: string; disa
 
 export function ImageEditor({ selection, widget }: { selection: WidgetSelection; widget: ImageWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: ImageWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ImageWidgetConfiguration))
-  const installed = useDeviceStore((state) => state.session?.imageAssets?.images) ?? []
-  const known = installed.find(({ name }) => name === widget.image)
+  const session = useDeviceStore((state) => state.session)
+  const library = useImageLibraryStore((state) => state.snapshot.entries)
+  const installed = session?.imageAssets?.images ?? []
+  const inLibrary = library.find(({ id }) => id === widget.image)
+  const onBoard = installed.find(({ name }) => name === widget.image)
+  const known = inLibrary ?? onBoard
   const frames = known?.frameCount ?? 1
   const sheet = frames > 1
   const frameBinding = widget.sprite_frame_source?.binding ?? ''
-  const names = installed.map(({ name }) => name)
+  const names = [...new Set([...library.map(({ id }) => id), ...installed.map(({ name }) => name)])].sort()
   const choices = widget.image && !names.includes(widget.image) ? [widget.image, ...names] : names
+  const image = widget.image ?? ''
   return (
     <>
       <Group id="Image" title={t('firmware.firmwarePage.image')} icon={GROUP_ICONS.image} summary={widget.image || t('inspector.widgetEditors.unassigned')}>
         <SelectField label={t('inspector.widgetEditors.bitmap')} hint={t('inspector.hints.image.image')} block value={widget.image ?? ''} options={choices} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
-        {installed.length === 0 ? <Hint>{t('inspector.widgetEditors.uploadImagesToTheBoard')}</Hint> : null}
-        {widget.image && !known && installed.length > 0 ? <Hint>{t('inspector.widgetEditors.imageIsNotInstalledOn', { image: widget.image ?? '' })}</Hint> : null}
+        {names.length === 0 ? <Hint>{t('inspector.widgetEditors.addImagesFirst')}</Hint> : null}
+        {widget.image && !inLibrary && !onBoard ? <Hint>{t('inspector.widgetEditors.imageIsNowhere', { image })}</Hint> : null}
+        {widget.image && inLibrary && !onBoard && session ? <Hint>{t('inspector.widgetEditors.imageNotOnBoardYet', { image })}</Hint> : null}
+        {widget.image && !inLibrary && onBoard ? <Hint>{t('inspector.widgetEditors.imageOnlyOnBoard', { image })}</Hint> : null}
         {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}${sheet ? ` · ${frames} frames` : ''}`}</p> : null}
         {sheet ? (
           <>
@@ -160,6 +170,12 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
         <ColorField label={t('inspector.stylingEditors.color')} value={widget.value?.color ?? '#E8E8E8'} modified={authored(widget.value?.color, '#E8E8E8')} onReset={() => update((next) => { if (next.value) delete next.value.color })} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
         <SelectField label={t('inspector.widgetEditors.alignment')} hint={t('inspector.hints.text.alignment')} value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(widget.value?.alignment, 'center')} onReset={() => update((next) => { if (next.value) delete next.value.alignment })} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value } })} />
         <TextField label={t('inspector.widgetEditors.fallback')} hint={t('inspector.hints.text.fallback')} value={widget.value?.unavailable_text ?? ''} modified={authored(widget.value?.unavailable_text, '')} onReset={() => update((next) => { if (next.value) delete next.value.unavailable_text })} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
+        <OptionalColorField label={t('inspector.widgetEditors.fallbackColour')} hint={t('inspector.hints.text.fallbackColour')} value={widget.value?.unavailable_color} onChange={(value) => update((next) => {
+          const style = { ...next.value }
+          if (value) style.unavailable_color = value
+          else delete style.unavailable_color
+          next.value = style
+        })} />
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
@@ -167,6 +183,3 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
     </>
   )
 }
-
-export { ArcEditor, BarEditor, GraphEditor } from './gauge-editors'
-export { IndicatorEditor } from './indicator-editor'

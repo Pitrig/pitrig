@@ -1,10 +1,13 @@
 # Changelog
 
-Notable changes to Pitrig, newest first. Entries group what changed under
-**Added**, **Changed**, **Fixed** and **Removed**, and call out anything that
-costs a board its stored configuration.
+Changes to Pitrig, newest first.
 
-Three version numbers move independently:
+Each entry is one short line: what changes for the user, without the details.
+It opens with a bold label: `Configurator`, `SimHub plugin`, `Development`,
+`All boards`, `Display boards`, or a board's name, several joined by commas. A
+released heading names its firmware, as in `## 0.3.1 — 2026-11-02 — firmware 0.3.1`.
+The configurator shows a board the entries for it, and its build fails on an
+entry without a known label.
 
 | Number | Source | Governs |
 | --- | --- | --- |
@@ -12,379 +15,234 @@ Three version numbers move independently:
 | Firmware | `firmware/version.txt` | The board image, reported by `@PR:INFO` |
 | Configuration schema | `configuration/configuration_schema.json` | The documents a board accepts |
 
-Until 1.0.0 a minor bump may break compatibility. Two kinds of change cost more
-than a download, and every entry below says when one applies:
+A firmware accepts one configuration schema. After a schema change the board
+shows its built-in dashboard until its configuration is saved again; **Update
+board** does that for you, and nothing is erased. A partition table change needs
+a cable flash and erases the configuration, fonts and images. The first line of
+a release says when either applies.
 
-A firmware image accepts **one** configuration schema version, exactly. Install
-an image built against a newer schema and every stored document reads back as
-`unsupported_schema`; the board draws its built-in dashboard until the
-configurator saves the documents again. Nothing is erased.
+## 0.4.0 — 2026-11-20 — firmware 0.4.0
 
-A change to the **partition table** cannot travel over serial. It needs a cable
-and a full erase, and it takes the stored configuration, the font package and
-the image package with it.
-
-## 0.3.2 — 2026-11-16
-
-**Configuration schema 27, firmware 0.3.1 and the same partition table:** a
-board needs no update, and the release carries the same firmware images. This
-version is about the computer: what the apps report, and which installers exist.
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new options need firmware 0.4.0.
 
 **Added**
 
-- The configurator and the SimHub plugin report anonymous usage to pitrig.com:
-  a random install number, their versions and system, the board model and
-  firmware, the games SimHub runs, and when a save finishes or the app crashes.
-  One switch on the configurator's Info page turns both off (ADR 0040).
+- **Configurator.** **Share…** saves a dashboard with its images and fonts as one `.pitrigdash` file; **Open…** opens it.
+- **Configurator.** `Save to board` installs the images a dashboard uses.
+- **Configurator.** `Save to board` downloads missing Google fonts by itself.
+- **Configurator.** New starter dashboard: GF Rally Mode, 480×480.
+- **Configurator.** New starter dashboard: Endurance, 1024×600.
+- **Configurator.** **Update board** lists what changes on that board.
+- **Configurator.** Firmware that cannot update itself gets a link to the web flasher.
+- **Configurator, Display boards.** Times without leading zeros, and a delta that always shows four digits.
+- **Configurator, Display boards.** A sector over a minute shows as 1:38.4 and over ten as 10:06, so it keeps its width.
+- **Configurator, Display boards.** A styling rule can recolour the widget's caption.
+- **Configurator, Display boards.** A text widget can draw a missing value in its own colour.
+- **SimHub plugin.** New field: places gained or lost since the start.
+- **SimHub plugin.** New field: the working tyre temperature, the core where a game sends no inner, middle and outer, as ACC.
+- **SimHub plugin.** ACC damage gives an approximate repair time for each zone and the whole car.
+
+**Changed**
+
+- **Guition ESP32-4848S040.** No more tearing; the screen refreshes at 60 Hz.
+- **Guition ESP32-4848S040.** Values reach the screen faster: 17 ms instead of 54.
+- **Guition ESP32-4848S040.** Busy screens draw faster.
+- **Display boards.** Ring arcs that change colour redraw faster.
+- **Display boards.** Circles, rings and arcs draw faster.
+- **Display boards.** The boot animation is smoother and lighter.
+- **Configurator.** Images stay in the PC image library until `Save to board`.
+- **Configurator.** The Round dial 480 template has a new design.
+- **Configurator.** The SimHub plugin panel shows only the plugin, its boards and what to do next.
+- **Configurator.** The Transport section says what it is for.
+- **Configurator.** The Configs page holds only files and one recent list; **Reset to factory** moved to Firmware.
+- **Configurator.** Buttons have their own **Controls** tab: each button and what it does on one row.
+- **Configurator.** Screen rules and the return home moved to the canvas, under **Automatic screen changes**.
+- **Configurator.** The Firmware page shows the board's version and one update button.
+- **Configurator.** The Info page shows versions with next steps, board health and details to copy.
+- **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
+- **SimHub plugin.** The engine map and the session type show what the game reports; damage reads in percent.
+- **SimHub plugin.** Lap and delta colours compare with your class's best lap; sectors with the session's best.
+- **SimHub plugin.** A finished lap's sectors stay on screen for five seconds.
+- **SimHub plugin.** On a lap that sets your best, the delta to the best shows the gain over the previous one.
+- **SimHub plugin.** Tyre pressure and wear, brake temperature and fuel read as missing while the game sends 0.
+- **SimHub plugin.** The pit call stays off when the fuel lasts to the finish.
+- **SimHub plugin.** Fuel level, use and laps show three significant figures.
+- **SimHub plugin.** Repair time comes only from iRacing, which reports it.
+- **Configurator, SimHub plugin.** Usage reports tell a new install from an update; only official builds send them.
+- **Development.** Every dependency is pinned to one exact version; updates wait seven days and a review.
+- **Development.** Lint rejects import cycles in the configurator.
+
+**Fixed**
+
+- **Configurator.** Images with soft edges look the same on the board as on the canvas.
+- **Configurator.** `Save to board` puts back fonts and images the board lost.
+- **Configurator.** A configuration without a link speed no longer cuts off the Guition ESP32-4848S040.
+- **Guition JC1060P470C.** After a dashboard change the board keeps the faster drawing mode.
+- **Guition ESP32-4848S040.** Saving to the board or updating it no longer garbles the screen.
+- **SimHub plugin.** Usage reports name the right SimHub version.
+- **SimHub plugin.** At a rolling start the laps remaining no longer jump before the line.
+- **Configurator.** The installers include the licence of the bundled fonts.
+- **Development.** The Guition ESP32-4848S040 debug image starts with a display again.
+- **Development.** Build tools no longer use a vulnerable `minimatch`.
 
 **Removed**
 
-- The configurator is no longer built for Intel Macs or for Linux: a release
-  carries the Windows installer and the disk image for Macs with Apple silicon.
-  An Intel or Linux configurator that is already installed still reports a new
-  release, but the release has no package for it.
+- **Development.** The Guition JC1060P470C full-screen render mode.
+- **Configurator.** Per-part tools, raw JSON and the change list on Configs; the Pitrig Debugger still has the first two.
+- **Configurator.** Saving a named copy inside Pitrig; **Save…** writes a file, and old copies stay in the recent list.
+- **Configurator.** The Race DDU starter dashboard.
 
-## 0.3.1 — 2026-11-02
+## 0.3.2 — 2026-11-16 — firmware 0.3.1
 
-**Configuration schema 27 and the same partition table:** updating a board keeps
-its configuration. The telemetry catalog grows from 256 to 263 fields without
-moving an identifier. The Pitrig plugin is now the only way data reaches a board:
-if a Custom Serial device in SimHub still uses the board's port, switch it off,
-because whichever opens the port first keeps it.
+Same firmware and schema: boards need no update.
 
 **Added**
 
-- The Pitrig plugin's page in SimHub has four tabs built from SimHub's own
-  controls. **Status** holds the on/off switch, a row for each board (one the
-  configurator holds shows as held rather than missing), the configurator with a
-  button that opens or downloads it, and the current car's shift-light source.
-  **Settings** holds the fuel margin, the averages and the listen port.
-  **Buttons** shows the sixteen buttons and the switch position live, under the
-  names the modules document gives them. **About** has the version, how updates
-  arrive, the links and the licence.
-- The plugin works out more values on its own: position and class position from
-  SimHub's leaderboard row, fuel time and laps left, lap validity by each game's
-  rule, the estimate and the delta, their colours and the last lap's, sector times
-  and colours, fuel to finish and to add with a fuel margin, the pit call, hybrid
-  modes by name, the LMU engine map, iRacing's brake bias and DRS, the session type
-  in capitals, averages sampled every three seconds outside the pits, and LMU's
-  tyre temperature blend.
-- Seven new fields: the bodywork damage grades `vehicle.damage.front_grade`,
-  `rear_grade`, `left_grade` and `right_grade`, the estimated repair time
-  `vehicle.damage.repair_time`, the track condition `track.condition` and the
-  30-minute rain forecast `environment.forecast_30`.
-- The inspector's **Units** choice converts speed, temperature, pressure, fuel and
-  revs, with each unit's decimals and caption.
-
-**Changed**
-
-- The catalog's limit goes from 256 to 350 fields.
-- The bundled dashboards show tyre pressure in psi.
-- A change in the plugin's settings applies at once and no longer resets the
-  session state.
-
-**Fixed**
-
-- On the Guition JC1060P470C a value wider than its widget left digits behind
-  beside the box when it changed, such as next to the brake temperatures.
-- Tyre and oil pressure no longer depend on the display unit set in SimHub: the
-  plugin converts what SimHub hands over back to kPa.
+- **Configurator, SimHub plugin.** Anonymous usage reports; one switch on the Info page turns them off.
 
 **Removed**
 
-- The Custom Serial Device profile and its export page on the Protocol page. A
-  computed field now lives once, in the plugin.
+- **Configurator.** No more builds for Intel Macs and Linux.
 
-## 0.3.0 — 2026-10-27
+## 0.3.1 — 2026-11-02 — firmware 0.3.1
 
-**Configuration schema 27.** A board updated to this firmware refuses its stored
-documents and draws its built-in dashboard until the configurator saves them
-again; nothing is erased. The configurator converts its own files and a board's
-documents on the way in, and connects to a board still on 0.2.0 to read its
-configuration and update its firmware, but writes nothing to it before that:
-connect, select the image on the Firmware page and press **Update board**, which
-keeps a copy of the board's configuration and puts it back after the restart.
-The partition table is the same. The telemetry catalog grows from 251 to 256
-fields without moving an identifier.
+Same schema: a board update keeps the configuration. In SimHub, switch off any
+Custom Serial device on the board's port.
 
 **Added**
 
-- **Update board** on the Firmware page does the whole update in one go: it keeps
-  a copy of what the board stores in the configurations library, installs the
-  image, restarts the board, puts its configuration back and checks it. A draft
-  you have not saved stays a draft, and a board whose new firmware does not start
-  goes back to the old one with nothing lost. It replaces the separate Install
-  and Restart board buttons.
-- The configurator looks for updates when it starts and once a day, in the
-  published Pitrig releases on GitHub. On Windows it downloads the next version
-  in the background and installs it with **Restart and update** or when it
-  closes; on macOS and Linux it links to the release. A notice under the header
-  and a new Updates section on the Info page also say when the board's firmware,
-  the Pitrig plugin in SimHub or SimHub itself is behind.
-- **Download and update** on the Firmware page fetches the firmware that comes
-  with this version of the configurator, checks it against the release and runs
-  Update board with it. The notice about a board on an older schema opens that
-  page.
-- **Update plugin** replaces an older Pitrig plugin in SimHub with the one the
-  configurator carries, closing SimHub and starting it again when it runs.
-- Buttons on the PC drive the board: up to 16 named buttons and one
-  multi-position switch switch screens and slot pages (one step per press, a
-  repeat while held, or only while held), dismiss a page an alert raised (until
-  its next event, for a while, or for the session), dim the display in tenths and
-  remember it across restarts, and dim or switch off every LED. Screens can also
-  come forward on a game event, such as the pit lane, and the dashboard and each
-  slot can go back home after a while without a press. The display's backlight is
-  now dimmable on all three display boards. The buttons reach the board as the new
-  `input.buttons` and `input.switch` fields (254 of 256), which the Pitrig plugin
-  sets from SimHub: map a button to its `ButtonN` or `SwitchPositionN` action
-  under Controls and events, or name the PC input in the board's wiring. A quick
-  tap is never lost, and an action SimHub fires from an event counts as a tap.
-- A **Buttons** page under Modules: name up to 16 buttons, press **Assign** and
-  then the button on the wheel, button box, gamepad or keyboard, and watch every
-  button and input light up while it is held. The same page sets what the
-  buttons do on the open dashboard, the switch positions and the slot they turn,
-  screen rules such as the pit screen in the pit lane, and the return home after
-  a while. While the configurator is connected a new assignment works at once,
-  before it is saved.
-- A slot can go back to its first page after a while without a tap or a button,
-  and a raised page says how long a button dismisses it for, both in the slot's
-  inspector.
-- Conditions can follow one button: `bit_set` with the button's number holds
-  while that button is down, for styling rules, slot pages, LED layers and
-  screen rules.
-- The Pitrig plugin for SimHub feeds the board by itself: it finds the board on
-  USB, sends only the fields its dashboard and modules use, and needs no profile
-  to import and no port to pick. The Windows installer adds it to SimHub.
-  After a restart of SimHub or of the board it resumes at once with the fields it
-  sent before, and a board slow to take data for a moment misses updates rather
-  than receiving them late.
-- A development build of the plugin, built without `-c Release`, writes a trace
-  to SimHub's `Logs\Pitrig-trace.log` and shows each board's state, the longest
-  pauses and the repeated busy answers in its panel. The released plugin carries
-  none of it.
-- The configurator connects while SimHub runs: it takes the board over from the
-  plugin and passes the telemetry on, and gives the board back when it
-  disconnects. A Guition ESP32-4848S040 is learned the first time the
-  configurator connects to it.
-- Live values in the dashboard and lamp previews and in the telemetry catalog
-  whenever SimHub runs.
-- `engine.shift_progress`, a shift-light bar from the car's first light to its
-  full bar in the current gear.
-- An LED layer on a strip covers any set of lamps, written like `3-6, 27-30` or
-  clicked on the map, instead of one run, and each part can run the other way:
-  one layer now flashes the flags at both ends of a wheel. **Spread** joins the
-  parts into one line for a fill, or paints the effect in each part on its own.
-  The layer list offers to merge layers that differ only in their lamps. The
-  lamps of a new layer are picked on the map the same way, and on a matrix the
-  map paints the selected layer's pixels.
-- Strips play animations drawn by hand, frame by frame on a frames-by-lamps grid
-  in the Pictures tab, looping or with the frame chosen by a value mapped
-  through the layer's range — a shift-light picture per step of the revs.
-- Five more animations: comet, theater chase, sparkle, strobe and bounce, with
-  **Span** setting the tail, the gap or the block.
-- **Switch-off margin** on a layer's gate: on at 94, off only below 92, so revs
-  hovering on a threshold cannot flicker a layer.
-- The Modules page draws every lamp large, numbered and where it is mounted, and
-  lights it the way the board does: from SimHub while a game or a replay sends
-  values, otherwise from a simulator with a switch for every flag and warning
-  the layers watch and a slider for every value they read. **Show on the
-  board** sends the simulator's values to the connected board instead of
-  SimHub's, so the real lamps can be tried without a game.
-- The layer list groups layers by what they watch and shows the lamps each one
-  covers. Several layers can be picked and edited, duplicated or removed
-  together, and a layer is marked when it covers no lamp, repeats another, is
-  never seen, or lets the layers under it show between flashes. Undo, redo,
-  duplicate and delete work from the keyboard on that page.
-
-- Game data for ACC, AC, iRacing and LMU: damage, rain, track wetness and grip,
-  wind, cloud, the time of day and ACC's rain forecast, the car's electronics
-  (TC, TC2, ABS, engine map, brake bias, lights, wipers), hybrid and LMU's
-  virtual energy, penalties, safety car and red flag, read from each game's own
-  data where SimHub has no common value. The field picker and the Protocol
-  page show which of the four games send each field; the others keep the
-  placeholder. New fields `vehicle.aids.traction_control_cut` and
-  `vehicle.energy.virtual` (256 of 256).
+- **SimHub plugin.** New plugin page with Status, Settings, Buttons and About tabs.
+- **SimHub plugin.** The plugin works out more values: positions, fuel, deltas, sectors, pit call.
+- **All boards, SimHub plugin.** Seven new fields: damage grades, repair time, track condition, rain forecast.
+- **Configurator.** **Units** in the inspector: speed, temperature, pressure, fuel and revs.
 
 **Changed**
 
-- With the plugin, `engine.shift_rpm`, `engine.shift_percent` and
-  `engine.redline_reached` follow the car's own shift points — from iRacing, F1
-  and RaceRoom where the game reports them, otherwise from SimHub's car
-  settings, which the profile keeps using.
-- The shift-lights preset steps across `engine.shift_progress` and flashes on
-  `engine.redline_reached`, and the gear text colours by the same bar.
-- A dashboard-only SimHub profile now includes `vehicle.speed` for a text source
-  left on its default, and the lap time for any modifier.
-- The lamp preview shows colours at full strength rather than scaled by the
-  strip's brightness, so a dimmed strip still reads on screen.
-- A strip layer's `from` and `count` became `parts`; documents and files are
-  converted when they are opened.
-- The timers of the Race DDU template show a zero time in their own format, such
-  as `00:00.000`, until a value exists, instead of `N/A`.
+- **All boards.** Room for 350 telemetry fields instead of 256.
+- **Configurator.** Bundled dashboards show tyre pressure in psi.
+- **SimHub plugin.** Settings apply at once and keep the session.
 
 **Fixed**
 
-- Forty-three fields named SimHub properties that never existed — damage,
-  weather, penalties, steering, wheel loads and slips, suspension travel among
-  them — and so stayed empty in every game. They now carry the game's own value
-  where one of the four games sends it, and the placeholder otherwise.
-- The notice about a board in safe mode no longer stretches over the window and
-  squeezes the page under it into a thin strip.
-- The configurator sends a command again when the board answers that it is busy.
-  A board still finishing one reply refuses the next command for a few
-  milliseconds, which could fail a connection or a read of its configuration.
-- A flashing LED layer can hide the layers under it between flashes. Its
-  background now stays lit through the dark half of a blink, and the layer
-  editor offers it beside Blink as **Covers**. The shift-lights limiter, ABS,
-  traction control and the flashing flags of the presets use a black one, so
-  the limiter no longer uncovers the whole shift bar under it. A layer added
-  before needs the setting switched on, and the board needs the new firmware.
-- In a race of one class `session.class_position` is the game's own position, the
-  same as `session.position`, also when SimHub reports several classes while
-  every car is in the player's. In ACC, SimHub's leaderboard put the player one
-  place behind it, so a dashboard showed class 23 beside position 22.
-- `session.time_remaining` reads as missing before a race run over laps starts.
-  SimHub reports the longest time it can hold there, which the board could not
-  show, so it kept the old value.
-- `vehicle.fuel.current_consumption` reads as missing instead of −1 until SimHub
-  has measured it, and `vehicle.fuel.laps_remaining` and
-  `vehicle.fuel.time_remaining` instead of 0, so a fuel warning built on them no
-  longer fires on the grid.
-- A lap or a sector with no personal best before it counts as a personal best
-  rather than as slower, so the sectors of the first lap no longer read yellow.
-- Export the SimHub profile again to get these telemetry fixes there too.
-- Dependencies updated for published vulnerabilities: Electron 44.9.3, Vite
-  7.3.7, and the transitive `undici`, `fast-uri`, `zod`, `source-map-js` and
-  `http-cache-semantics` the build tools pull in.
-- A property name too long for its column wraps onto a second line instead of
-  being cut off, as **Switch-off margin** was.
+- **Guition JC1060P470C.** Wide values no longer leave digits beside their widget.
+- **SimHub plugin.** Tyre and oil pressure no longer depend on SimHub's display units.
 
-## 0.2.0 — 2026-10-18
+**Removed**
 
-Configuration schema 26, unchanged, and the partition table is the same: the
-firmware installs over serial from the Firmware page and every stored document,
-font and image survives. The telemetry catalog grows from 228 to 251 fields
-without moving an identifier, so an older board ignores the new fields and reads
-every other one as before. Export the SimHub profile again and import it into
-SimHub to get the new fields and the fixes below.
+- **Configurator.** The Custom Serial Device profile and its export.
+
+## 0.3.0 — 2026-10-27 — firmware 0.3.0
+
+New schema 27: after the update the board shows its built-in dashboard until
+its configuration is saved again. **Update board** does this for you.
 
 **Added**
 
-- Shift lights per gear: `engine.shift_percent` is the revs against the current
-  gear's shift point from SimHub's car settings, and `engine.redline_reached`
-  says the shift point is reached.
-- Pace statuses for the current lap, the last lap and the three sectors —
-  1 slower than the personal best, 2 personal best, 3 best in class this
-  session, 4 invalid lap — so a dashboard colours yellow, green and purple with
-  plain rules. `session.lap.delta_session_best` is the estimated lap against the
-  fastest lap in the class, and the all-time best lap and its live delta are
-  fields of their own.
-- `vehicle.fuel.at_finish`, the fuel left at the flag or missing for it, and
-  `vehicle.fuel.pit_now`, raised on the last lap the car can still pit to reach
-  the finish.
-- Tyre pressure, tyre temperature and brake temperature averaged over the last
-  laps on track, restarted on leaving the pits and in a new session.
-- The SimHub profile export takes the fuel reserve in laps and the laps the
-  averages cover.
+- **Configurator.** **Update board** backs up, installs, restarts and restores the configuration in one step.
+- **Configurator.** Checks for updates daily and installs itself on Windows.
+- **Configurator.** **Download and update** gets the firmware for the connected board.
+- **Configurator.** **Update plugin** replaces an old Pitrig plugin in SimHub.
+- **All boards, SimHub plugin.** PC buttons and a switch change screens and pages, dim the display and LEDs.
+- **All boards, SimHub plugin.** Screens can come forward on a game event, such as the pit lane.
+- **Configurator.** **Buttons** page: name, assign and test up to 16 buttons.
+- **All boards, Configurator.** A slot can go back to its first page after a while.
+- **All boards.** Conditions can follow one button with `bit_set`.
+- **SimHub plugin.** The plugin finds the board and feeds it; the Windows installer adds it to SimHub.
+- **Configurator.** The configurator works while SimHub runs.
+- **Configurator.** Live values in the previews and the telemetry catalog.
+- **All boards, SimHub plugin.** New field `engine.shift_progress` for shift-light bars.
+- **All boards, Configurator.** An LED layer covers any set of lamps, in several parts.
+- **All boards, Configurator.** LED animations drawn frame by frame.
+- **All boards.** Five more LED animations: comet, theater chase, sparkle, strobe and bounce.
+- **All boards.** **Switch-off margin** stops LED layers flickering at a threshold.
+- **Configurator.** A large lamp preview with a simulator; **Show on the board** tries it on the real LEDs.
+- **Configurator.** The layer list groups layers and marks problems.
+- **All boards, SimHub plugin.** Game data for ACC, AC, iRacing and LMU: damage, weather, electronics, hybrid, penalties.
+- **Development.** A development build of the plugin writes a trace log.
 
 **Changed**
 
-- The shift-lights LED preset follows the current gear's shift point instead of
-  the maximum revs, and the gear text colours by it.
-- `session.lap.last_delta_best` compares the last lap with the best that stood
-  before it, so a new best reads negative; the first lap of a session reads
-  empty.
-- The gaps ahead, behind and to the leader, the class position and the starting
-  position come from SimHub's leaderboard; the class position now works in a
-  multi-class session.
-- The profile's sector delta is the live time gained or lost in the current
-  sector, as the plugin already sent.
-- `vehicle.fuel.to_add` keeps the reserve and never asks for more than the tank
-  holds; fuel and laps estimates fall back to the last lap before a best lap
-  exists.
-- Computed fields send nothing while no game runs. Several of their formulas
-  failed in SimHub then and were suspended for 30 seconds.
-- Fields with no generic SimHub source are labelled `game_specific`.
+- **SimHub plugin.** Shift points follow the car's own values where the game reports them.
+- **Configurator.** The shift-lights preset uses `engine.shift_progress`.
+- **Configurator.** The lamp preview shows colours at full strength.
+- **All boards, Configurator.** Strip layers use `parts` instead of `from` and `count`; files convert on open.
+- **Configurator.** Race DDU timers show `00:00.000` instead of `N/A` before data.
+- **Configurator.** The dashboard-only SimHub profile includes speed and lap time when needed.
 
 **Fixed**
 
-- The black-and-orange mechanical flag never reached the board: its mapping
-  named a SimHub property that does not exist. It reads `Flag_Orange`, which
-  ACC, AC, AC EVO and AC Rally set.
-- Eleven more fields named properties SimHub does not have and never carried a
-  value: fuel used this lap, energy level and percentage, in the pit box,
-  session best lap, current sector time, sector three, timed session, the
-  chequered flag shown, starting position and, in the profile, the gap to the
-  leader.
-- Zero sector and best times read as missing instead of `00:00.000`.
-- The plugin ran its 60 Hz fields on about every other tick, folded the
-  start-finish reset into the sector delta, and repeated an empty value only
-  once, so a lost datagram could leave a stale value on the board.
+- **SimHub plugin.** 43 fields that were always empty now carry game data.
+- **All boards, Configurator.** A blinking LED layer can cover the layers under it (**Covers**).
+- **SimHub plugin.** Class position matches position in a single-class race.
+- **SimHub plugin.** Fuel fields stay empty until measured, so fuel warnings do not fire on the grid.
+- **SimHub plugin.** `session.time_remaining` is empty before a lap race starts.
+- **SimHub plugin.** A first lap or sector counts as a personal best.
+- **Configurator.** Commands are sent again when the board is busy.
+- **Configurator.** The safe-mode notice no longer squeezes the page.
+- **Configurator.** Long property names wrap instead of being cut.
+- **Configurator.** Dependencies updated for published vulnerabilities.
 
-## 0.1.1 — 2026-10-04
+## 0.2.0 — 2026-10-18 — firmware 0.2.0
 
-Configuration schema 26, unchanged, and the partition table is the same: the
-firmware installs over serial from the Firmware page and every stored document,
-font and image survives.
+Same schema: a board update keeps everything. Export the SimHub profile again
+for the new fields.
+
+**Added**
+
+- **All boards, Configurator.** Shift lights per gear: `engine.shift_percent` and `engine.redline_reached`.
+- **All boards, Configurator.** Pace status for the lap and sectors: yellow, green, purple.
+- **All boards, Configurator.** Fuel left at the finish and a pit-now flag.
+- **All boards, Configurator.** Tyre and brake averages over the last laps.
+- **Configurator.** The profile export sets the fuel reserve and the laps to average.
 
 **Changed**
 
-- The configurator draws its own confirmation dialogs and drop-down lists
-  instead of the operating system's, and styles checkboxes, radio buttons,
-  sliders, number fields and scrollbars to match. Destructive confirmations —
-  delete, erase, reset — show a red button and focus Cancel.
-- LED fades are smoother.
-- The Windows installer is named `Pitrig-Setup-<version>.exe`.
+- **Configurator.** The shift-lights preset follows the current gear's shift point.
+- **Configurator.** `session.lap.last_delta_best` compares with the best before the last lap.
+- **Configurator.** Gaps and positions come from SimHub's leaderboard; class position works in multi-class.
+- **Configurator.** The sector delta is live.
+- **Configurator.** Fuel to add keeps the reserve and fits the tank.
+- **Configurator.** Computed fields send nothing while no game runs.
 
 **Fixed**
 
-- On Windows, every drop-down list stopped opening after a confirmation dialog,
-  for example after applying a dashboard template with a draft open.
-- Dependencies updated, including the transitive `fast-uri` 3.1.8 for a
-  published vulnerability.
+- **Configurator.** The black-and-orange mechanical flag reaches the board.
+- **Configurator.** Eleven fields that were always empty now carry values.
+- **Configurator.** Zero sector and best times read as empty.
+- **SimHub plugin.** 60 Hz fields update on every tick and never stay stale.
+
+## 0.1.1 — 2026-10-04 — firmware 0.1.1
+
+Same schema: a board update keeps everything.
+
+**Changed**
+
+- **Configurator.** Own dialogs and drop-down lists; destructive actions show a red button.
+- **All boards.** Smoother LED fades.
+- **Configurator.** The Windows installer is named `Pitrig-Setup-<version>.exe`.
+
+**Fixed**
+
+- **Configurator.** Drop-down lists on Windows open after a dialog.
+- **Configurator.** Dependencies updated for a published vulnerability.
 
 ## 0.1.0 — 2026-09-14
 
-First release. Configuration schema 26.
-
-Turns an off-the-shelf ESP32 board into a sim racing dashboard: flash it from
-the browser, lay the screen out by dragging widgets, and feed it live telemetry
-from SimHub over the same USB cable.
+First release, schema 26: an ESP32 board becomes a sim racing dashboard.
 
 **Added**
 
-- Four boards: LilyGO T-Display-S3, Guition ESP32-4848S040, Guition
-  JC1060P470C and the Espressif ESP32-S3-DevKitC-1. The DevKitC-1 has no
-  display and drives LED strips and matrices.
-- Dashboard editor with text, shape, bar, arc, indicator, graph and image
-  widgets, containers and slots, conditional styling, colour ramps and
-  gradients, undo and redo, multi-select, alignment and snapping, and a live
-  preview.
-- Multiple screens with swipe navigation, and touch input where the board has
-  it.
-- A bundled dashboard library, widget templates, and layout transfer between
-  boards of different sizes.
-- Font library with delivery to the board on save.
-- 228 telemetry fields, fed by a SimHub Custom Serial Device profile the
-  configurator exports.
-- Addressable RGB strips and matrices.
-- Composite USB: one cable carries the telemetry and configuration link and
-  enumerates a gamepad beside it.
-- Firmware updates over the same serial link, into a second slot with rollback
-  if the new image cannot be talked to.
-- Configuration split into three documents — `dashboard`, `modules` and
-  `protocol` — transferred, stored and applied on their own, with the dashboard
-  applied to the running composition without a restart.
+- Four boards: LilyGO T-Display-S3, Guition ESP32-4848S040, Guition JC1060P470C, ESP32-S3-DevKitC-1 (LEDs only).
+- A dashboard editor with widgets, conditional styles, screens and a live preview.
+- A template library and layout transfer between boards.
+- A font library, sent to the board on save.
+- 228 telemetry fields from a SimHub Custom Serial profile.
+- RGB LED strips and matrices.
+- One USB cable for telemetry, configuration and a gamepad.
+- Firmware updates over USB, with rollback.
 
 **Known limits**
 
-- Buttons, switches and encoders are not implemented, so the gamepad the board
-  enumerates reports nothing yet. The free GPIOs are listed per board in the
-  README, but nothing reads them.
-- Packages are not signed. macOS needs `xattr -dr com.apple.quarantine` on the
-  application once after installing.
-- The SimHub plugin is not part of this release. Telemetry reaches the board
-  through the exported Custom Serial profile; `session.gap_leader` has no
-  generic SimHub property behind it and stays empty.
-- One serial port admits one process: close the configurator before starting
-  the game.
+- No buttons or encoders yet.
+- Nothing is signed: on macOS run `xattr -dr com.apple.quarantine` once.
+- One serial port, one program: close the configurator before the game.

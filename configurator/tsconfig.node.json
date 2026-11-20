@@ -31,6 +31,7 @@
     "electron.vite.config.ts",
     "electron.vite.debug.config.ts",
     "electron.vite.shared.ts",
+    "electron.vite.changelog.ts",
     "src/main/**/*.ts",
     "src/main/**/*.json",
     "src/preload/**/*.ts",

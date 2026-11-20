@@ -31,7 +31,7 @@ export function SlotHomeField({
     <NumberField
       label={t('inspector.slotControls.firstPageAfter')}
       hint={t('inspector.hints.slot.homeAfter')}
-      suffix={t('controls.homeSection.seconds')}
+      suffix={t('inspector.screenChanges.seconds')}
       value={seconds(widget.home_after_ms)}
       min={0}
       max={MAXIMUM_IDLE_RETURN_MS / SECOND_MS}
@@ -83,7 +83,7 @@ export function DismissFields({
       {dismiss === 'timed' ? (
         <NumberField
           label={t('inspector.slotControls.dismissedFor')}
-          suffix={t('controls.homeSection.seconds')}
+          suffix={t('inspector.screenChanges.seconds')}
           value={seconds(page.dismiss_ms)}
           min={1}
           max={MAXIMUM_DISMISS_MS / SECOND_MS}

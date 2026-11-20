@@ -104,23 +104,44 @@ both chips.
 
 ## Vendored patches
 
-The `esp_lvgl_port` patches are a **stack**: nine files under
+The `esp_lvgl_port` patches are a **stack**: ten files under
 `firmware/patches/`, one concern each, applied in the order
 `cmake/apply_esp_lvgl_port_dsi_patch.cmake` lists them. Three further patches
 there, `lvgl-9.5.0-ppa-*`, patch LVGL itself and are applied by
 `cmake/apply_lvgl_ppa_patch.cmake` for `esp32p4` only, which also refuses any
-LVGL but 9.5.0. `cmake/apply_patch_stack.cmake`
-checks the whole stack — forward, else reverse — in a temporary git index, and
+LVGL but 9.5.0. A fourth, `lvgl-9.5.0-sw-round-shapes.patch`, is applied for
+every target by `cmake/apply_lvgl_sw_patch.cmake`: on RGB565 it draws circle
+and ring rows straight into the buffer, narrows a ring arc to its own angles
+and skips masks an area cannot need, every pixel the same as before — ADR 0026
+names the two LVGL habits an edit must keep. It touches
+only the renderer's fill, border, arc and mask files, so it and the PPA stack
+are checked independently on the one LVGL tree all boards share; on the
+size-optimised S3 builds the same file compiles ten hot renderer sources with
+`-O2` (ADR 0026). `cmake/apply_patch_stack.cmake` checks the whole stack —
+forward, else reverse — in a temporary git index, and
 a vendored tree matching neither end fails configure. `managed_components/` is
 gitignored, so an edit to the vendored source is written back into the layer it
 belongs to, with no comments, before the next configure. A clean checkout needs
 `reconfigure` twice before `build`, because the first configure records the
 unpatched port's requirements and the P4 build then fails on `esp_cache.h`.
+The temporary index needs a git repository: a tree exported without `.git`
+fails the check as "matching neither", so a scratch copy runs `git init` first.
+Every registry component, the ones another component pulls in included, is
+pinned exactly in the `idf_component.yml` that needs it, because re-solving a
+lock after any manifest edit otherwise moves them to their newest revision
+(ADR 0042).
 The stack is applied for **every** target, not only the P4, because the
 `dsi-full-strips` patch is what declares `full_strips`, and `components/display`
 sets that flag on every board. Keep S3 and P4 builds sequential: an S3
 configure re-resolves `managed_components` and removes the P4-only components
 from under a running P4 configure.
+
+## Measuring a change
+
+A change that can move frame cost is run on the bench of
+`docs/performance-baselines.md` and compared with the board's newest entry
+there; a slower document is explained before the change lands, and a faster
+board gets a new entry.
 
 ## Conventions
 

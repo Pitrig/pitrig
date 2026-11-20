@@ -25,11 +25,6 @@ namespace Pitrig.SimHub
             return Resolve(trimmed.Split(','), ByWireId);
         }
 
-        public static string WireIds(int[] indices)
-        {
-            return string.Join(",", indices.Select(index => TelemetryCatalog.Fields[index].WireId));
-        }
-
         private static int[] Resolve(IEnumerable<string> keys, Dictionary<string, int> map)
         {
             var indices = new SortedSet<int>();

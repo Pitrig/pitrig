@@ -6,15 +6,8 @@ import { useDeviceStore } from '@/features/device/device-store'
 import { CONTROL } from '@/features/configuration/inspector/fields'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
-import {
-  boardHasDisplay,
-  controlsOf,
-  removeInput,
-  removePosition,
-  setSwitchSlot,
-  slotChoicesOf,
-  switchPositionsOf
-} from './controls-document'
+import { controlsOf, setSwitchSlot, slotChoicesOf } from '@/features/configuration/dashboard-editor'
+import { removeInput, removePosition, switchPositionsOf } from './inputs-document'
 import { CaptureButton, InputChip, Lamp } from './input-parts'
 import { inputLit, selectedPosition, useInputTester } from './input-tester'
 
@@ -26,7 +19,7 @@ export function SwitchSection({ listening }: { listening: boolean }): React.JSX.
   const slot = controlsOf(draft).switch?.slot ?? ''
   const slots = slotChoicesOf(draft)
   const pages = slots.find((choice) => choice.id === slot)?.pages
-  const unassigned = listening ? undefined : t('controls.inputButtonList.startSimhubToAssign')
+  const unassigned = listening ? undefined : t('controls.buttonList.startSimhubToAssign')
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -69,21 +62,19 @@ export function SwitchSection({ listening }: { listening: boolean }): React.JSX.
       {positions.length === 0 ? (
         <p className="text-muted-foreground">{t('controls.switchSection.noPositionsYet')}</p>
       ) : null}
-      {boardHasDisplay(draft) ? (
-        <div className="max-w-md">
-          <PropertyRow label={t('controls.switchSection.turnsThePagesOf')} hint={t('controls.hints.switchSlot')}>
-            <Select
-              className={CONTROL}
-              value={slot}
-              options={[
-                { value: '', label: t('controls.switchSection.noSlot') },
-                ...slots.map((choice) => ({ value: choice.id, label: choice.id }))
-              ]}
-              onChange={setSwitchSlot}
-            />
-          </PropertyRow>
-        </div>
-      ) : null}
+      <div className="max-w-md">
+        <PropertyRow label={t('controls.switchSection.turnsThePagesOf')} hint={t('controls.hints.switchSlot')}>
+          <Select
+            className={CONTROL}
+            value={slot}
+            options={[
+              { value: '', label: t('controls.switchSection.noSlot') },
+              ...slots.map((choice) => ({ value: choice.id, label: choice.id }))
+            ]}
+            onChange={setSwitchSlot}
+          />
+        </PropertyRow>
+      </div>
       {pages !== undefined && positions.length > pages ? (
         <p className="text-amber-400/80">
           {t('controls.switchSection.morePositionsThanPages', { positions: positions.length, pages })}

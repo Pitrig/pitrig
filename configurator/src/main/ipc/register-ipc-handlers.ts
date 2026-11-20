@@ -1,6 +1,5 @@
 import { app, ipcMain } from 'electron'
 
-import { broadcastToWindows } from './broadcast'
 import { registerAssetHandlers } from './register-asset-handlers'
 import { registerLibraryHandlers } from './register-library-handlers'
 import {
@@ -21,26 +20,11 @@ import {
   DEVICE_GET_STATE_CHANNEL,
   DEVICE_LIST_PORTS_CHANNEL,
   DEVICE_REBOOT_CHANNEL,
-  DEVICE_STATE_CHANGED_CHANNEL,
   type DeviceResult,
   type DeviceState
 } from '../../shared/device'
-import {
-  BOARD_UPDATE_PROGRESS_CHANNEL,
-  FIRMWARE_UPLOAD_PROGRESS_CHANNEL,
-  type BoardUpdateProgress,
-  type FirmwareUploadProgress
-} from '../../shared/firmware-update'
-import { FONT_LIBRARY_CHANGED_CHANNEL, type FontLibrarySnapshot } from '../../shared/font-library'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
-import {
-  SAVE_PROGRESS_CHANNEL,
-  SAVE_TO_BOARD_CHANNEL,
-  type SaveProgress,
-  type SaveToBoardResult
-} from '../../shared/save-to-board'
-import type { AssetUploadProgress } from '../../shared/asset-upload'
-import { IMAGE_UPLOAD_PROGRESS_CHANNEL } from '../../shared/image-assets'
+import { SAVE_TO_BOARD_CHANNEL, type SaveToBoardResult } from '../../shared/save-to-board'
 import type { AppServices } from '../app-services'
 import { t } from '@shared/ui-text'
 
@@ -51,7 +35,8 @@ export function registerIpcHandlers({
   firmwareUpdateService,
   boardUpdateService,
   configurationFileService,
-  previewAssetCache,
+  dashboardFileService,
+  imageLibraryService,
   templateService,
   fontLibraryService,
   fontCatalogService,
@@ -63,14 +48,19 @@ export function registerIpcHandlers({
     version: app.getVersion(),
     platform: process.platform
   }))
-  registerLibraryHandlers(configurationFileService, configLibraryService, templateService)
+  registerLibraryHandlers(
+    configurationFileService,
+    configLibraryService,
+    templateService,
+    dashboardFileService
+  )
   registerAssetHandlers(
     deviceService,
     fontAssetService,
     imageAssetService,
     firmwareUpdateService,
     boardUpdateService,
-    previewAssetCache,
+    imageLibraryService,
     fontLibraryService,
     fontCatalogService
   )
@@ -119,28 +109,4 @@ export function registerIpcHandlers({
     }
     return deviceService.connect(request.portId, request.baudRate)
   })
-}
-
-export function broadcastFontLibraryChanged(snapshot: FontLibrarySnapshot): void {
-  broadcastToWindows(FONT_LIBRARY_CHANGED_CHANNEL, snapshot)
-}
-
-export function broadcastImageUploadProgress(progress: AssetUploadProgress): void {
-  broadcastToWindows(IMAGE_UPLOAD_PROGRESS_CHANNEL, progress)
-}
-
-export function broadcastFirmwareUploadProgress(progress: FirmwareUploadProgress): void {
-  broadcastToWindows(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, progress)
-}
-
-export function broadcastBoardUpdateProgress(progress: BoardUpdateProgress): void {
-  broadcastToWindows(BOARD_UPDATE_PROGRESS_CHANNEL, progress)
-}
-
-export function broadcastSaveProgress(progress: SaveProgress): void {
-  broadcastToWindows(SAVE_PROGRESS_CHANNEL, progress)
-}
-
-export function broadcastDeviceState(state: DeviceState): void {
-  broadcastToWindows(DEVICE_STATE_CHANGED_CHANNEL, state)
 }

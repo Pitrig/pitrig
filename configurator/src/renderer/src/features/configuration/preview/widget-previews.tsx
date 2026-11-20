@@ -56,7 +56,7 @@ export function CaptionPreview({
       <text
         x={geometry.x}
         y={geometry.y + metrics.ascent}
-        fill={configuration.title?.color ?? DEFAULT_TEXT_COLOR}
+        fill={style.titleColor ?? configuration.title?.color ?? DEFAULT_TEXT_COLOR}
         fontFamily={font.family}
         fontSize={font.sizePx}
         fontWeight={font.weight}

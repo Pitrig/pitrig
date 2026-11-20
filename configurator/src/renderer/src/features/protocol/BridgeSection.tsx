@@ -29,20 +29,26 @@ export function BridgeSection(): React.JSX.Element {
   return (
     <PageSection
       title={t('protocol.bridgeSection.title')}
-      description={t('protocol.bridgeSection.description')}
+      description={
+        import.meta.env.DEV
+          ? t('protocol.bridgeSection.description')
+          : t('protocol.bridgeSection.summary')
+      }
     >
       <div className="space-y-3">
         <StateChips status={status} />
         <PluginBoards plugin={status.plugin} />
-        <PluginSource
-          busy={busy}
-          port={request.port}
-          simhubHost={request.simhubHost}
-          simhubPort={request.simhubPort}
-          status={status}
-          onApply={() => void apply()}
-        />
-        {status.running ? <Measured status={status} /> : null}
+        {import.meta.env.DEV ? (
+          <PluginSource
+            busy={busy}
+            port={request.port}
+            simhubHost={request.simhubHost}
+            simhubPort={request.simhubPort}
+            status={status}
+            onApply={() => void apply()}
+          />
+        ) : null}
+        {import.meta.env.DEV && status.running ? <Measured status={status} /> : null}
         {error ?? status.error ? (
           <p className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-2 text-red-200">
             {error ?? status.error}
@@ -66,14 +72,14 @@ function StateChips({ status }: { status: TelemetryBridgeStatus }): React.JSX.El
           ? t('protocol.bridgeSection.pluginVersion', { version: status.plugin.version })
           : t('protocol.bridgeSection.pluginMissing')}
       </Badge>
-      {status.running ? (
+      {status.running && (import.meta.env.DEV || status.plugin) ? (
         <Badge variant="outline">
           {status.receiving
             ? t('protocol.bridgeSection.receiving')
             : t('protocol.bridgeSection.waiting')}
         </Badge>
       ) : null}
-      {status.running ? <Badge variant="outline">{relay}</Badge> : null}
+      {import.meta.env.DEV && status.running ? <Badge variant="outline">{relay}</Badge> : null}
     </div>
   )
 }

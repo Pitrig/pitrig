@@ -98,7 +98,7 @@ def generate_typescript(document: dict[str, Any]) -> str:
         lines.extend(
             [
                 "export interface TimeTransform {",
-                "  format?: 'duration_ms' | 'signed_duration_ms' | 'clock_ms'",
+                "  format?: 'duration_ms' | 'signed_duration_ms' | 'clock_ms' | 'compact_duration_ms' | 'compact_clock_ms' | 'signed_digits_ms' | 'split_ms'",
                 "}",
                 "",
             ]

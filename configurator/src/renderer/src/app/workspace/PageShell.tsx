@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -62,7 +63,15 @@ export function PageSection({
   const header = (
     <>
       <div className="min-w-0">
-        <h3 className="text-sm font-semibold leading-none tracking-tight">{title}</h3>
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold leading-none tracking-tight">
+          {collapsible ? (
+            <ChevronRight
+              aria-hidden="true"
+              className="size-3.5 flex-none text-muted-foreground transition-transform group-open/section:rotate-90"
+            />
+          ) : null}
+          {title}
+        </h3>
         {description ? (
           <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>
         ) : null}
@@ -81,7 +90,7 @@ export function PageSection({
 
   if (collapsible) {
     return (
-      <details className={frame}>
+      <details className={cn(frame, 'group/section')}>
         <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-4 pt-4 pb-3">
           {header}
         </summary>

@@ -26,6 +26,9 @@ new section, and a new document needs a reason. Who owns what:
 - `docs/runtime-performance.md` — counter definitions, the cost model and the
   authoring rules. Measurement history and rejected experiments belong to the
   ADR that owns the decision (0026, 0027, 0032).
+- `docs/performance-baselines.md` — each board's dated figures on the fixed
+  bench, the reference a change is compared against. A faster run adds an
+  entry on top; an old entry is never edited.
 - `docs/adr/` — one decision each, Context / Decision / Consequences. Amend in
   place and state the current rule in the Decision rather than appending a
   reversal.

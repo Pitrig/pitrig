@@ -13,7 +13,6 @@ import {
 } from './snap-lines'
 
 export type { SnapEdge } from './snap-lines'
-export { MINIMUM_SIZE_PX, resolveResize, type ResizeOptions } from './snap-resize'
 
 export interface SnapField {
   siblings: readonly { id: string; box: Placement }[]

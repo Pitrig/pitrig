@@ -7,6 +7,7 @@ import {
   developmentCspPlugin,
   releaseDefine,
   rendererAlias,
+  rendererDefine,
   sharedAlias
 } from './electron.vite.shared'
 
@@ -41,6 +42,7 @@ export default defineConfig(({ command }) => ({
   },
   renderer: {
     plugins: [developmentCspPlugin(command === 'serve'), react(), tailwindcss()],
+    define: rendererDefine,
     resolve: { alias: rendererAlias }
   }
 }))

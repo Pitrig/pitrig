@@ -1,6 +1,7 @@
 import { CircleArrowDown, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { useWorkspaceStore } from '@/app/workspace/workspace-store'
 import { useDeviceStore } from '@/features/device/device-store'
 import { updateItems } from './update-items'
 import { useUpdateStore } from './update-store'
@@ -11,8 +12,11 @@ export function UpdateBanner(): React.JSX.Element | null {
   const dismissed = useUpdateStore((state) => state.dismissed)
   const feedback = useUpdateStore((state) => state.feedback)
   const session = useDeviceStore((state) => state.session)
+  const onFirmwarePage = useWorkspaceStore((state) => state.tab === 'firmware')
   const items = status
-    ? updateItems(status, session).filter((item) => !dismissed.includes(item.key))
+    ? updateItems(status, session).filter(
+        (item) => !dismissed.includes(item.key) && !(onFirmwarePage && item.key.startsWith('firmware-'))
+      )
     : []
   if (items.length === 0 && !feedback) return null
 

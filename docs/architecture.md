@@ -146,6 +146,7 @@ platform composition ----> services
 board registry -----------> drivers
 transport composition ----> transport drivers
 modules ------------------> services and components
+modules ------------------> interfaces   (rgb_leds: the LED chip type only)
 components ---------------> interfaces <--------------- drivers
 components / drivers -----> services   (diagnostics instrumentation only)
 services -----------------> interfaces (transport-facing control services)
@@ -410,8 +411,7 @@ device holds no decoder. See [Image asset storage](image-assets.md) and
 [ADR 0018](adr/0018-uploaded-image-assets.md).
 
 The desktop configurator edits dashboard widgets in the logical display
-coordinate space: the canvas, the inspector and the advanced JSON editor all
-mutate one sparse draft, editor state such as the screen being edited is not a
+coordinate space: the canvas and the inspector both mutate one sparse draft, editor state such as the screen being edited is not a
 document property, and the draft owns its target board identity, so it resolves
 the board profile while no device is connected. See
 [Authoring in the configurator](device-configuration.md#authoring-in-the-configurator).
@@ -428,15 +428,17 @@ shutdown handler before a software reset. Keeping the ESP32-P4 MIPI-DSI display
 interrupts cache-safe during flash writes is a build measure rather than driver
 code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus the first of the
 version-pinned `esp_lvgl_port` patches under `firmware/patches/` — a stack of
-nine, one concern each, that `firmware/cmake/` applies in order — so the port's
+ten, one concern each, that `firmware/cmake/` applies in order — so the port's
 flush callback honours it. Three further pinned patches fix
 LVGL 9.5.0's experimental PPA backend: it passes the draw buffer's unaligned
 `data_size` to `esp_cache_msync()`, which breaks the cache-line contract, it
 synchronizes the whole buffer per operation rather than the rows it touched —
 multiple megabytes twice over when LVGL renders straight into a full-screen
 frame buffer — and it hands the accelerator fills too small to outrun the
-processor. The board's own defaults keep its High-Speed USB port in
-slave/IRQ mode rather than DMA: ESP32-P4 rev 1.x can hand the TinyUSB DWC2
+processor. A fourth, applied on every board, makes the software renderer draw
+circles, rings and arcs faster without changing a pixel (ADR 0026). The board's
+own defaults keep its High-Speed USB port in slave/IRQ mode rather than DMA:
+ESP32-P4 rev 1.x can hand the TinyUSB DWC2
 driver an invalid EP0 setup-packet DMA address, and enumeration fails.
 
 What exists:
@@ -509,11 +511,12 @@ only pre-bound handles; periodic paths perform no name lookup.
 # Device Configuration
 
 The desktop configurator is the authoring and device-management tool. Its
-window is a rail of six workspaces — Dashboard, Modules, Protocol, Configs,
-Firmware, Info — over one page at a time; Dashboard, Modules and Protocol each
-own one of the three configuration documents, which is why each can say on its
-own whether its settings are saved, and Modules authors the addressable LED
-outputs, a strip and a matrix each on its own pin (ADR 0030). Debug tooling is
+window is a rail of seven workspaces — Dashboard, Modules, Controls, Protocol,
+Configs, Firmware, Info — over one page at a time; Dashboard, Modules and
+Protocol each own one of the three configuration documents, which is why each
+can say on its own whether its settings are saved, Modules authors the
+addressable LED outputs, a strip and a matrix each on its own pin (ADR 0030),
+and Controls what the PC's buttons do on the board (ADR 0038). Debug tooling is
 a second Electron application built from the same package, and the product
 bundle carries no debug code (ADR 0028).
 

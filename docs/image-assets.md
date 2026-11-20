@@ -226,9 +226,13 @@ The configurator converts each selected PNG, JPEG or BMP to the chosen colour
 format at the chosen width and height, deflates the result, and that is what the
 device stores; what it draws is those bytes inflated back. A widget resized in
 the editor does not resize the artwork, and nothing re-converts it on its own:
-the picture changes size only when it is converted and uploaded again from the
-Images page. This is what keeps the ESP32-P4 accelerator engaged, which refuses
-any transform, and what makes runtime rotation unnecessary to support.
+the picture changes size only when it is converted again on the Images page and
+the next `Save to board` installs it. This is what keeps the ESP32-P4
+accelerator engaged, which refuses any transform, and what makes runtime
+rotation unnecessary to support.
+
+Colours are stored straight, not premultiplied by alpha: LVGL blends `rgb565a8`
+as colour plus mask, so a premultiplied colour would darken every soft edge.
 
 Deflate is skipped for an image that does not get smaller — artwork that is
 already noise can compress to more than it started as, and there is no reason to

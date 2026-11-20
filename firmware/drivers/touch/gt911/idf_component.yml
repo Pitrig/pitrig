@@ -1,2 +1,2 @@
 dependencies:
-  espressif/esp_lcd_touch_gt911: "^1.1.0"
+  espressif/esp_lcd_touch_gt911: "1.2.1"

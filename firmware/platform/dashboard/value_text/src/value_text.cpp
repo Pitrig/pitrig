@@ -125,7 +125,7 @@ namespace {
     case configuration::ValueTransformType::none:
       return false;
     case configuration::ValueTransformType::time:
-      return transform.time.format == transformers::time_transform::Format::signed_duration_ms
+      return transformers::time_transform::is_signed(transform.time.format)
                  ? transformers::time_transform::apply(transform.time, std::int32_t{0}, output)
                  : transformers::time_transform::apply(transform.time, std::uint32_t{0}, output);
     case configuration::ValueTransformType::number:

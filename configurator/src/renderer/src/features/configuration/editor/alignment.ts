@@ -1,6 +1,7 @@
 import { type DeviceConfiguration } from '@shared/device'
 import type { WidgetConfiguration, WidgetPlacement } from '@shared/configuration-schema'
-import { absolutePlacement, ancestorsOf, findWidget, mutateDraftConfiguration, parentOffset, writePlacement } from './document'
+import { ancestorsOf, findWidget, mutateDraftConfiguration } from './document'
+import { absolutePlacement, parentOffset, writePlacement } from './document-geometry'
 import { useDashboardEditorStore } from './store'
 
 export type AlignmentEdge = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'
