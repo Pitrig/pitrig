@@ -75,7 +75,7 @@ namespace Pitrig.SimHub
                 case FieldComputation.DeltaStatus:
                     return TimingComputations.DeltaStatus(state);
                 case FieldComputation.LastLapStatus:
-                    return TimingComputations.LastLapStatus(status);
+                    return TimingComputations.LastLapStatus(state);
                 case FieldComputation.SectorStatus1:
                     return SectorComputations.Status(state, 1);
                 case FieldComputation.SectorStatus2:

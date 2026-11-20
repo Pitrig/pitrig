@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Globalization;
+using System;
 
 namespace Pitrig.SimHub
 {
@@ -7,51 +6,43 @@ namespace Pitrig.SimHub
     {
         private const string Iracing = "IRacing";
         private const string Acc = "AssettoCorsaCompetizione";
-        private const string RaceSession = "Race";
+        private const string F1Prefix = "F1";
+        private const string IracingRace = "Race";
+        private const int IracingOffTrack = 0;
+        private const string IracingTrackSurface = "DataCorePlugin.GameRawData.Telemetry.PlayerTrackSurface";
         private const string AccValidLap = "DataCorePlugin.GameRawData.Graphics.isValidLap";
         private const string F1LapInvalid = "DataCorePlugin.GameRawData.PlayerLapData.m_currentLapInvalid";
-        private const string IracingTrackSurface = "DataCorePlugin.GameRawData.Telemetry.PlayerTrackSurface";
-        private const double LapStart = 0.01;
 
-        private static readonly HashSet<string> F1Games = new HashSet<string>
+        private int? lap;
+        private bool leftTrack;
+        private bool? current;
+
+        public bool? LastLapInvalid { get; private set; }
+
+        public void Reset()
         {
-            "F12020", "F12021", "F12022", "F12023", "F12024", "F12025", "F12026"
-        };
-
-        private static readonly HashSet<string> UntimedGames = new HashSet<string>
-        {
-            "EAWRC23", "RBR", "CodemastersDirtRally2", "FM7", "FM8"
-        };
-
-        private static readonly HashSet<string> NeverInvalidGames = new HashSet<string>
-        {
-            "RFactor2", "LMU", "AssettoCorsa", "ProjectMotorRacing"
-        };
-
-        private int offTrack;
-
-        public static bool ShowsNoTiming(string game)
-        {
-            return game != null && UntimedGames.Contains(game);
+            lap = null;
+            leftTrack = false;
+            current = null;
+            LastLapInvalid = null;
         }
 
         public void Update(TelemetryState state)
         {
-            if (state.GameName != Iracing || state.Status == null) return;
-            if (LooselyZero(state.Manager.GetPropertyValue(IracingTrackSurface))) offTrack++;
-            if (state.Status.TrackPositionPercent < LapStart) offTrack = 0;
+            var status = state.Status;
+            if (status == null) return;
+            if (status.CompletedLaps != lap)
+            {
+                LastLapInvalid = lap == null ? null : current;
+                lap = status.CompletedLaps;
+                leftTrack = false;
+            }
+            current = state.GameName == Iracing ? IracingVerdict(state) : GameVerdict(state);
         }
 
         public bool? Invalid(TelemetryState state)
         {
-            var status = state.Status;
-            if (status == null) return null;
-            var game = state.GameName ?? string.Empty;
-            if (game == Iracing) return offTrack > 0 && status.SessionTypeName != RaceSession;
-            if (game == Acc) return Whole(state, AccValidLap) is int valid ? valid != 1 : (bool?)null;
-            if (F1Games.Contains(game)) return Whole(state, F1LapInvalid) is int invalid ? invalid != 0 : (bool?)null;
-            if (NeverInvalidGames.Contains(game) || UntimedGames.Contains(game)) return false;
-            return status.LapInvalidated;
+            return state.Status == null ? null : current;
         }
 
         public bool? Valid(TelemetryState state)
@@ -60,17 +51,29 @@ namespace Pitrig.SimHub
             return invalid == null ? null : (bool?)!invalid.Value;
         }
 
-        private static int? Whole(TelemetryState state, string property)
+        private bool? IracingVerdict(TelemetryState state)
         {
-            var value = state.Manager.GetPropertyValue(property);
-            return value == null ? (int?)null : Computed.Integer(value);
+            if (string.Equals(state.Status.SessionTypeName, IracingRace, StringComparison.OrdinalIgnoreCase)) return false;
+            var surface = Raw(state, IracingTrackSurface);
+            leftTrack |= surface == IracingOffTrack;
+            if (leftTrack) return true;
+            return surface == null ? (bool?)null : false;
         }
 
-        private static bool LooselyZero(object value)
+        private static bool? GameVerdict(TelemetryState state)
         {
-            var text = value?.ToString().Trim() ?? string.Empty;
-            return text.Length == 0 ||
-                   double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && number == 0;
+            var game = state.GameName ?? string.Empty;
+            if (game == Acc && Raw(state, AccValidLap) is double valid) return valid != 1;
+            if (game.StartsWith(F1Prefix, StringComparison.Ordinal) && Raw(state, F1LapInvalid) is double invalid)
+            {
+                return invalid != 0;
+            }
+            return state.Status.LapInvalidated ? true : (bool?)null;
+        }
+
+        private static double? Raw(TelemetryState state, string property)
+        {
+            return Computed.Number(state.Manager.GetPropertyValue(property));
         }
     }
 }

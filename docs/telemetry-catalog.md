@@ -39,7 +39,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `engine.turbo_level` | `0g` | `float32` | `percent` | `fast` | `optional` | any | Normalized turbocharger boost level. |
 | `engine.torque` | `0h` | `float32` | `newton_meter` | `fast` | `game_specific` | any | Current engine torque. |
 | `engine.power` | `0i` | `float32` | `kilowatt` | `fast` | `game_specific` | none | Current engine power. |
-| `engine.map` | `0j` | `text` | `source` | `changes` | `optional` | ACC, LMU | Selected engine map; in LMU R, SC, OFF or the hypercar power step by car class. |
+| `engine.map` | `0j` | `text` | `source` | `changes` | `optional` | ACC, LMU | Selected engine map as the game numbers it, empty when the game reports none. |
 | `engine.damage` | `0k` | `float32` | `percent` | `slow` | `game_specific` | none | Engine damage level. |
 ## Transmission
 
@@ -61,34 +61,34 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.lap.best_time` | `B` | `uint32` | `millisecond` | `changes` | `common` | any | Personal best lap time. |
 | `session.lap.session_best_time` | `0s` | `uint32` | `millisecond` | `changes` | `computed` | any | Fastest lap of the session in the player's class. |
 | `session.lap.all_time_best_time` | `60` | `uint32` | `millisecond` | `changes` | `optional` | any | All-time personal best lap SimHub has recorded for this car and track. |
-| `session.lap.estimated_time` | `P` | `uint32` | `millisecond` | `normal` | `computed` | any | Estimated current lap time. |
-| `session.lap.delta` | `D` | `int32` | `millisecond` | `normal` | `computed` | any | Current signed lap-time delta. |
-| `session.lap.delta_best` | `0t` | `int32` | `millisecond` | `normal` | `computed` | any | Signed delta to the personal best lap. |
+| `session.lap.estimated_time` | `P` | `uint32` | `millisecond` | `normal` | `computed` | any | Estimated current lap time from SimHub's session-best tracker, empty while it has none. |
+| `session.lap.delta` | `D` | `int32` | `millisecond` | `normal` | `computed` | any | Current signed lap-time delta: the estimated lap less the personal best, empty without either. |
+| `session.lap.delta_best` | `0t` | `int32` | `millisecond` | `normal` | `computed` | any | Signed delta of the estimated lap to the personal best lap, empty without either. |
 | `session.lap.delta_session_best` | `0u` | `int32` | `millisecond` | `normal` | `computed` | any | Signed estimated delta of the current lap to the fastest lap of the session in the player's class. |
-| `session.lap.delta_all_time_best` | `61` | `int32` | `millisecond` | `normal` | `computed` | any | Signed live delta to the all-time personal best lap. |
+| `session.lap.delta_all_time_best` | `61` | `int32` | `millisecond` | `normal` | `computed` | any | Signed live delta to the all-time personal best lap, empty without one. |
 | `session.lap.last_delta_best` | `LD` | `int32` | `millisecond` | `changes` | `computed` | any | Signed delta of the last lap to the personal best, 0 when the last lap set it. |
-| `session.lap.delta_status` | `62` | `uint32` | `status` | `normal` | `computed` | any | Pace of the current lap from its estimate: 0 none, 1 slower than the personal best, 2 personal best, 3 at or under the session's fastest lap, 4 invalid lap. |
-| `session.lap.last_status` | `63` | `uint32` | `status` | `changes` | `computed` | any | The last lap against the personal best and the session's fastest lap, coded like session.lap.delta_status and never invalid. |
-| `session.lap.invalid` | `0v` | `boolean` | `boolean` | `normal` | `optional` | any | Whether the current lap counts as invalid, by each game's rule. |
-| `session.lap.valid` | `0w` | `boolean` | `boolean` | `normal` | `optional` | any | Whether the current lap counts as valid, by each game's rule. |
+| `session.lap.delta_status` | `62` | `uint32` | `status` | `normal` | `computed` | any | The current lap's estimate to the millisecond against the personal best and the fastest lap in the player's class: 0 none, 1 slower than the personal best, 2 at or under it, 3 at or under the fastest lap, 4 invalid lap; empty with nothing to compare. |
+| `session.lap.last_status` | `63` | `uint32` | `status` | `changes` | `computed` | any | The last lap against the personal best and the fastest lap in the player's class, coded like session.lap.delta_status, 4 when it was invalid. |
+| `session.lap.invalid` | `0v` | `boolean` | `boolean` | `normal` | `optional` | any | Whether the current lap is invalid: ACC's and F1's own flags, in iRacing an off-track outside a race until the next lap, else SimHub's flag when it says invalid; empty when nothing tells. |
+| `session.lap.valid` | `0w` | `boolean` | `boolean` | `normal` | `optional` | any | The opposite of session.lap.invalid, empty when that is. |
 | `session.sector.current` | `0x` | `uint32` | `count` | `normal` | `common` | any | Current sector number. |
 | `session.sector.current_time` | `0y` | `uint32` | `millisecond` | `normal` | `computed` | any | Elapsed time in the current sector. |
-| `session.sector.1_time` | `0z` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector one: running in sector one, else this lap's, and the last lap's for five seconds after the line. |
-| `session.sector.2_time` | `10` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector two: the last lap's in sector one, running in sector two, else this lap's, and the last lap's for five seconds after the line. |
-| `session.sector.3_time` | `11` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector three: the last lap's until sector three, running there, and the last lap's for five seconds after the line. |
+| `session.sector.1_time` | `0z` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector one: this lap's once done, running while in it, else the last lap's; the finished lap's for three seconds after the line. |
+| `session.sector.2_time` | `10` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector two: this lap's once done, running while in it, else the last lap's; the finished lap's for three seconds after the line. |
+| `session.sector.3_time` | `11` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector three: this lap's once done, running while in it, else the last lap's; the finished lap's for three seconds after the line. |
 | `session.sector.1_best` | `12` | `uint32` | `millisecond` | `changes` | `computed` | any | Best sector one time. |
 | `session.sector.2_best` | `13` | `uint32` | `millisecond` | `changes` | `computed` | any | Best sector two time. |
 | `session.sector.3_best` | `14` | `uint32` | `millisecond` | `changes` | `computed` | any | Best sector three time. |
-| `session.sector.1_status` | `64` | `uint32` | `status` | `normal` | `computed` | any | Sector one against the personal best and the session's best split, coded like session.lap.delta_status and never invalid; the last lap for five seconds after the line. |
-| `session.sector.2_status` | `65` | `uint32` | `status` | `normal` | `computed` | any | Sector two against the personal best and the session's best split, coded like session.lap.delta_status and never invalid; the last lap for five seconds after the line. |
-| `session.sector.3_status` | `66` | `uint32` | `status` | `changes` | `computed` | any | Sector three of the last lap against the personal best and the session's best split for five seconds after the line, else 0, coded like session.lap.delta_status and never invalid. |
+| `session.sector.1_status` | `64` | `uint32` | `status` | `normal` | `computed` | any | Sector one against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for three seconds after the line. |
+| `session.sector.2_status` | `65` | `uint32` | `status` | `normal` | `computed` | any | Sector two against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for three seconds after the line. |
+| `session.sector.3_status` | `66` | `uint32` | `status` | `changes` | `computed` | any | Sector three against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for three seconds after the line. |
 | `session.sector.delta` | `15` | `int32` | `millisecond` | `normal` | `computed` | any | Signed time gained or lost so far in the current sector against the best lap. |
 | `track.position_percent` | `16` | `float32` | `normalized` | `fast` | `common` | any | Vehicle position around the lap, from 0 to 1. |
 ## Session and position
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
 |---|---:|---|---|---|---|---|---|
-| `session.type` | `17` | `text` | `source` | `changes` | `common` | any | Session type in capitals, such as PRACTICE, QUALIFY or RACE, and -- when the game names none. |
+| `session.type` | `17` | `text` | `source` | `changes` | `common` | any | SimHub's session type in capitals with underscores as spaces and a first word of the game's initials, such as AC_, dropped: RACE or TIME ATTACK; empty when the game names none. |
 | `session.name` | `18` | `text` | `source` | `changes` | `game_specific` | none | Session name. |
 | `session.phase` | `19` | `text` | `source` | `changes` | `game_specific` | none | Current session phase. |
 | `session.position` | `1a` | `uint32` | `count` | `normal` | `common` | any | Position in SimHub's leaderboard. |
@@ -98,7 +98,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.time_elapsed` | `1e` | `uint32` | `millisecond` | `normal` | `common` | any | Elapsed session time. |
 | `session.time_remaining` | `1f` | `uint32` | `millisecond` | `normal` | `common` | any | Remaining session time. |
 | `session.laps_remaining` | `1g` | `uint32` | `count` | `normal` | `computed` | any | Laps left: SimHub's count in a race over laps; in a timed session estimated from the best lap, else the last lap clear of the pit lane, else the all-time best. |
-| `session.is_timed` | `1h` | `boolean` | `boolean` | `changes` | `computed` | any | Whether the session runs on time: iRacing's own flag, no lap count in LMU, rF2 and AMS2, else a time left under a day. |
+| `session.is_timed` | `1h` | `boolean` | `boolean` | `changes` | `computed` | any | Whether the session runs on time: iRacing's own time-limit flag, elsewhere true with time left and no lap limit and false with a lap limit; empty with neither. |
 | `session.finished` | `1i` | `boolean` | `boolean` | `changes` | `game_specific` | LMU | Whether the player has finished. |
 | `session.checkered` | `1j` | `boolean` | `boolean` | `changes` | `computed` | any | Whether the checkered flag has been shown in this session. |
 | `session.starting_grid_position` | `1k` | `uint32` | `count` | `changes` | `computed` | any | Starting grid position. |
@@ -109,17 +109,17 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
 |---|---:|---|---|---|---|---|---|
-| `vehicle.fuel.level` | `F` | `text` | `source` | `slow` | `common` | any | Fuel level with one decimal under 10 and whole units above. |
+| `vehicle.fuel.level` | `F` | `text` | `source` | `slow` | `common` | any | Fuel level to three significant figures and at most two decimals, such as 2.37, 12.4 or 123. |
 | `vehicle.fuel.percent` | `1o` | `float32` | `percent` | `slow` | `computed` | any | Fuel tank level percentage. |
 | `vehicle.fuel.capacity` | `1p` | `float32` | `liter` | `changes` | `optional` | any | Fuel tank capacity. |
-| `vehicle.fuel.average_consumption` | `FC` | `text` | `source` | `slow` | `computed` | any | Average fuel per lap with two decimals under 10, one under 100 and whole units above. |
+| `vehicle.fuel.average_consumption` | `FC` | `text` | `source` | `slow` | `computed` | any | Average fuel per lap to three significant figures and at most two decimals, such as 2.37, 12.4 or 123. |
 | `vehicle.fuel.current_consumption` | `1q` | `float32` | `liter` | `slow` | `computed` | any | Fuel used on the current lap. |
-| `vehicle.fuel.laps_remaining` | `FL` | `text` | `source` | `slow` | `computed` | any | Estimated fuel laps remaining with one decimal up to 10 and whole laps above. |
+| `vehicle.fuel.laps_remaining` | `FL` | `text` | `source` | `slow` | `computed` | any | Estimated fuel laps remaining to three significant figures and at most two decimals, such as 2.37, 12.4 or 123. |
 | `vehicle.fuel.time_remaining` | `1r` | `uint32` | `millisecond` | `slow` | `computed` | any | Driving time left on the fuel, as SimHub's fuel calculator gives it. |
-| `vehicle.fuel.required_to_finish` | `1s` | `float32` | `liter` | `slow` | `computed` | any | Fuel to finish: the laps left, in a timed session the time left over the best lap or else the last one, times the fuel per lap. |
-| `vehicle.fuel.to_add` | `1t` | `float32` | `liter` | `slow` | `computed` | any | Fuel to add: what finishing needs plus the fuel margin minus the fuel aboard, a full tank when that is more, 0 when nothing is needed. |
+| `vehicle.fuel.required_to_finish` | `1s` | `float32` | `liter` | `slow` | `computed` | any | Fuel to finish: the laps left, in a timed session the time left over the last lap clear of the pit lane or else the best lap, times the fuel per lap. |
+| `vehicle.fuel.to_add` | `1t` | `float32` | `liter` | `slow` | `computed` | any | Fuel to add: what finishing needs plus the fuel margin minus the fuel aboard, at most what the tank still takes, 0 when nothing is needed. |
 | `vehicle.fuel.at_finish` | `67` | `float32` | `liter` | `slow` | `computed` | any | Fuel left over at the finish, 0 when it will not last. |
-| `vehicle.fuel.pit_now` | `68` | `boolean` | `boolean` | `normal` | `computed` | any | Whether to pit now: past 80 % of the lap with at most 1.1 laps of fuel, out of the pits, after the first lap. |
+| `vehicle.fuel.pit_now` | `68` | `boolean` | `boolean` | `normal` | `computed` | any | Whether to pit at the end of this lap: the fuel left at the line, less the fuel margin, does not cover one more lap; false in the pit lane or when the fuel already covers the rest of the race, empty without a fuel-per-lap figure. |
 | `vehicle.fuel.last_lap_consumption` | `1u` | `float32` | `liter` | `changes` | `computed` | any | Fuel used on the previous lap. |
 | `vehicle.energy.level` | `1v` | `float32` | `source` | `normal` | `optional` | AC | Remaining electrical energy. |
 | `vehicle.energy.percent` | `1w` | `float32` | `percent` | `normal` | `optional` | AC, iRacing, LMU | Battery charge as a whole percentage, empty for a car without hybrid energy. |
@@ -150,11 +150,11 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.horn` | `2d` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether the horn is active. |
 | `vehicle.speed_limiter` | `2e` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether a non-pit speed limiter is active. |
 | `vehicle.damage.aero` | `2f` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC, LMU | Aerodynamic damage level. |
-| `vehicle.damage.front_grade` | `DF` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Front bodywork damage as OK, LIT, MED or HVY. |
-| `vehicle.damage.rear_grade` | `DB` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Rear bodywork damage as OK, LIT, MED or HVY. |
-| `vehicle.damage.left_grade` | `DL` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Left bodywork damage as OK, LIT, MED or HVY. |
-| `vehicle.damage.right_grade` | `DR` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Right bodywork damage as OK, LIT, MED or HVY. |
-| `vehicle.damage.repair_time` | `RT` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC, AC | Estimated pit time to repair the bodywork. |
+| `vehicle.damage.front_grade` | `DF` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Front bodywork damage in whole percent, as SimHub reports the zone. |
+| `vehicle.damage.rear_grade` | `DB` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Rear bodywork damage in whole percent, as SimHub reports the zone. |
+| `vehicle.damage.left_grade` | `DL` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Left bodywork damage in whole percent, as SimHub reports the zone. |
+| `vehicle.damage.right_grade` | `DR` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Right bodywork damage in whole percent, as SimHub reports the zone. |
+| `vehicle.damage.repair_time` | `RT` | `uint32` | `millisecond` | `slow` | `game_specific` | iRacing | Pit time for repairs as the game reports it: iRacing's mandatory and optional repairs together; empty where the game reports none. |
 | `vehicle.damage.suspension` | `2g` | `float32` | `percent` | `slow` | `game_specific` | none | Overall suspension damage level. |
 | `vehicle.damage.transmission` | `2h` | `float32` | `percent` | `slow` | `game_specific` | none | Overall transmission damage level. |
 ## Flags and messages

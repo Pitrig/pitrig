@@ -7,44 +7,28 @@ namespace Pitrig.SimHub
     {
         private const string Lmu = "LMU";
         private const string Scoring = "DataCorePlugin.GameRawData.PlayerNativeScoring.";
-        private const double ReviewMilliseconds = 5000;
-        private const int ReviewAfterLaps = 1;
+        private const double FinishedLapHoldMs = 3000;
         private const int LastSector = 3;
 
         public static double? Running(TelemetryState state)
         {
             var status = state.Status;
             if (status == null) return null;
-            var lap = status.CurrentLapTime.TotalSeconds;
-            switch (status.CurrentSectorIndex)
-            {
-                case 1:
-                    return Milliseconds(lap);
-                case 2:
-                    return Milliseconds(lap - (Current(state, 1) ?? 0));
-                case 3:
-                    return Milliseconds(lap - (Current(state, 1) ?? 0) - (Current(state, 2) ?? 0));
-                default:
-                    return null;
-            }
+            var current = status.CurrentSectorIndex;
+            if (current < 1 || current > LastSector) return null;
+            double? elapsed = status.CurrentLapTime.TotalSeconds;
+            for (var sector = 1; sector < current; sector += 1) elapsed -= Current(state, sector);
+            return Milliseconds(elapsed);
         }
 
         public static double? Box(TelemetryState state, int sector)
         {
             var status = state.Status;
             if (status == null) return null;
-            if (Reviewing(status)) return Milliseconds(Last(state, sector));
+            if (HoldingFinishedLap(state)) return Milliseconds(Last(state, sector));
             var current = status.CurrentSectorIndex;
-            switch (sector)
-            {
-                case 1:
-                    return current == 1 ? Running(state) : Milliseconds(Current(state, 1));
-                case 2:
-                    if (current == 1) return Milliseconds(Last(state, 2));
-                    return current == 2 ? Running(state) : Milliseconds(Current(state, 2));
-                default:
-                    return current < LastSector ? Milliseconds(Last(state, LastSector)) : Running(state);
-            }
+            if (sector < current) return Milliseconds(Current(state, sector));
+            return sector == current ? Running(state) : Milliseconds(Last(state, sector));
         }
 
         public static double? BestTime(TelemetryState state, int sector)
@@ -56,30 +40,24 @@ namespace Pitrig.SimHub
         {
             var status = state.Status;
             if (status == null) return null;
-            var current = status.CurrentSectorIndex;
-            if (current <= 0) return TimingComputations.StatusNone;
-            var best = Best(state, sector) ?? 0;
-            var split = OverallSplit(status, sector);
-            if (Reviewing(status))
-            {
-                var last = Last(state, sector) ?? 0;
-                if (last - split == 0) return TimingComputations.StatusSessionBest;
-                return last - best <= 0 ? TimingComputations.StatusPersonalBest : TimingComputations.StatusSlower;
-            }
-            if (sector >= current) return TimingComputations.StatusNone;
-            var time = Current(state, sector) ?? 0;
-            if (time - split <= 0) return TimingComputations.StatusSessionBest;
-            return time - best <= 0 ? TimingComputations.StatusPersonalBest : TimingComputations.StatusSlower;
+            if (HoldingFinishedLap(state)) return Grade(state, sector, Last(state, sector), state.Validity.LastLapInvalid);
+            if (sector >= status.CurrentSectorIndex) return TimingComputations.StatusNone;
+            return Grade(state, sector, Current(state, sector), state.Validity.Invalid(state));
         }
 
-        private static bool Reviewing(StatusDataBase status)
+        private static bool HoldingFinishedLap(TelemetryState state)
         {
-            var lap = status.CurrentLapTime.TotalMilliseconds;
-            return status.CompletedLaps > ReviewAfterLaps && lap < ReviewMilliseconds && lap != 0;
+            return state.Now - state.LapCompletedAt < FinishedLapHoldMs;
+        }
+
+        private static int? Grade(TelemetryState state, int sector, double? seconds, bool? invalid)
+        {
+            return TimingComputations.Grade(seconds, Best(state, sector), OverallSplit(state.Status, sector), invalid);
         }
 
         private static double? Current(TelemetryState state, int sector)
         {
+            if (sector >= LastSector) return null;
             if (state.GameName == Lmu)
             {
                 return sector == 1
@@ -141,10 +119,10 @@ namespace Pitrig.SimHub
             }
         }
 
-        private static double OverallSplit(StatusDataBase status, int sector)
+        private static double? OverallSplit(StatusDataBase status, int sector)
         {
             var split = status.BestSessionSplits?.FirstOrDefault(entry => entry.SectorIndex == sector);
-            return split == null ? 0 : split.SplitTime.TotalSeconds;
+            return split == null ? null : Computed.Seconds(split.SplitTime);
         }
 
         private static double? Scored(TelemetryState state, string name)

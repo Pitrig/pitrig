@@ -97,29 +97,32 @@ race gaps mean nothing in practice.
 
 The position comes from SimHub's leaderboard, the fuel time is SimHub's
 `Fuel_RemainingTime`, and the laps left in a race over laps SimHub's
-`RemainingLaps` (iRacing's own count there). A lap is invalid by each game's rule:
-ACC's and F1's own flags, in iRacing any moment off the track outside a race until
-the next lap starts, never in AC, LMU, rF2, Project Motor Racing or a game with no
-timing, and SimHub's flag elsewhere. A session runs on time by iRacing's own flag,
-by no lap count in LMU, rF2 and AMS2, by time left in RaceRoom, and elsewhere while
-the time left is under a day. The estimated lap time and the live delta are the
-tracker's session-best estimate, else its all-time-best one, else the game's own
-delta, else the running lap, shown as they come, including the nonsense in the pit
-lane; their colour grades them against the personal best and the session's fastest
-lap, and the last lap's colour does the same without ever reading invalid. The
-sector times show the running sector live, the sectors still to come from the last
-lap and the whole last lap for five seconds after the line, purple at or under the
-session's best split, with LMU's sectors from its own scoring. The plugin works out
-the fuel to finish, the fuel to add with the fuel margin on top, and the pit call,
-and the fuel level, consumption and fuel laps keep fewer decimals as they grow.
-Brake bias adds iRacing's fine adjustment, the LMU engine map reads R, SC, OFF or
-the hypercar power step, the hybrid modes read as names, DRS in iRacing comes from
-its own status, and the session type is shown in capitals. The plugin's tyre,
+`RemainingLaps` (iRacing's own count there). A lap is invalid by ACC's and F1's
+own flags, in iRacing from any moment off the track outside a race until the lap
+count changes, and elsewhere only when SimHub's flag says so; with no flag it is
+unknown. A session runs on time by iRacing's own flag, elsewhere when time is left
+and there is no lap limit. The estimated lap time is the tracker's session-best
+estimate and the live delta that estimate less the personal best, both empty
+without them; their colour grades a time to the millisecond against the personal
+best and the fastest lap of the player's class, and the last lap's colour reads
+invalid when that lap was. The sector times show this lap's finished sectors, the
+running sector live and the sectors still to come from the last lap, and hold the
+finished lap for three seconds after the line, graded the same way against the
+session's best splits, with LMU's sectors from its own scoring. The plugin works
+out the fuel to finish, the fuel to add with the fuel margin on top and at most
+what the tank still takes, and the pit call: the fuel left at the line, less the
+margin, covers neither another lap nor the rest of the race. The fuel level,
+consumption and fuel laps show three significant figures. Brake bias adds
+iRacing's fine adjustment, the engine map is the game's own number, the hybrid
+modes read as names, DRS in iRacing comes from its own status, and the session
+type is SimHub's name in capitals without the game's initials. Damage zones read
+in whole percent and the repair time is iRacing's own. The plugin's tyre,
 pressure and brake averages take a sample every three seconds outside the pits,
 keep as many as the chosen laps hold at the best lap over three seconds, and last
 until SimHub restarts; LMU's tyre temperature blends the carcass and inner layers.
 The laps left in a timed session run on the best lap, else the last lap clear of
-the pit lane, else the all-time best. The Settings tab's fuel margin and averages start
+the pit lane, else the all-time best; the fuel figures run on the last lap clear
+of the pit lane, else the best lap. The Settings tab's fuel margin and averages start
 from the defaults the mapping's `parameters` name.
 
 ## Buttons

@@ -1,15 +1,16 @@
 using System;
+using System.Globalization;
 using GameReaderCommon;
 
 namespace Pitrig.SimHub
 {
     internal static class ConditionComputations
     {
-        private const string RaceRoom = "RRRE";
         private const string AccGrip = "DataCorePlugin.GameRawData.Graphics.trackGripStatus";
         private const string IracingWetness = "DataCorePlugin.GameRawData.Telemetry.TrackWetness";
         private const string LmuWetness = "DataCorePlugin.GameRawData.Data.mAvgPathWetness";
-        private const double RepairShare = 3.54168;
+        private const string IracingRepair = "DataCorePlugin.GameRawData.Telemetry.PitRepairLeft";
+        private const string IracingOptionalRepair = "DataCorePlugin.GameRawData.Telemetry.PitOptRepairLeft";
 
         private static readonly string[] AccConditions = { "GRN", "FST", "OPT", "GRS", "DMP", "WET", "FLD" };
         private static readonly string[] IracingConditions = { "DRY", "GRS", "DMP", "LIT", "MOD", "VER", "EXT" };
@@ -19,16 +20,15 @@ namespace Pitrig.SimHub
             var status = state.Status;
             if (status == null) return null;
             var damage = Zone(status, zone);
-            if (state.GameName == RaceRoom) damage *= 100;
-            if (damage >= 50) return "HVY";
-            if (damage >= 20) return "MED";
-            return damage >= 5 ? "LIT" : "OK";
+            return damage >= 0
+                ? Math.Round(damage, MidpointRounding.AwayFromZero).ToString(CultureInfo.InvariantCulture)
+                : null;
         }
 
         public static double? RepairTime(TelemetryState state)
         {
-            var status = state.Status;
-            return status == null ? (double?)null : status.CarDamage5 / RepairShare * 1000;
+            if (state.Status == null) return null;
+            return (Raw(state, IracingRepair) + (Raw(state, IracingOptionalRepair) ?? 0)) * 1000;
         }
 
         public static string TrackCondition(TelemetryState state)

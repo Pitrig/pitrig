@@ -14,6 +14,10 @@ namespace Pitrig.SimHub
 
         public PluginManager Manager { get; private set; }
 
+        public double Now { get; private set; }
+
+        public double? LapCompletedAt { get; private set; }
+
         public string GameName { get; private set; }
 
         public StatusDataBase Status { get; private set; }
@@ -48,6 +52,7 @@ namespace Pitrig.SimHub
         public void Update(PluginManager manager, GameData data, PluginSettings settings, double now)
         {
             Manager = manager;
+            Now = now;
             GameName = data?.GameName;
             Status = data?.GameRunning == true ? data.NewData : null;
             Player = Status?.Opponents?.FirstOrDefault(opponent => opponent.IsPlayer);
@@ -55,13 +60,20 @@ namespace Pitrig.SimHub
             Shifts.Update(manager, Status, data?.GameName);
             Averages.Sample(this, data, now, settings.AverageLaps);
             if (Status == null) return;
+            var lapCompleted = Status.CompletedLaps > completedLaps;
             if (NewSession())
             {
                 CheckeredShown = false;
                 CleanLapSeconds = null;
+                LapCompletedAt = null;
                 lastLap = Status.LastLapTime;
                 lapTouchedPit = true;
                 Sectors.Reset();
+                Validity.Reset();
+            }
+            else if (lapCompleted)
+            {
+                LapCompletedAt = now;
             }
             if (Status.Flag_Checkered > 0) CheckeredShown = true;
             Validity.Update(this);

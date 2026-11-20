@@ -8,14 +8,12 @@ namespace Pitrig.SimHub
     {
         private const string Iracing = "IRacing";
         private const string Ac = "AssettoCorsa";
-        private const string Lmu = "LMU";
         private const string Ams2 = "Automobilista2";
         private const string F1Prefix = "F120";
         private const string IracingBrakeBias = "DataCorePlugin.GameRawData.Telemetry.dcBrakeBias";
         private const string IracingBrakeBiasFine = "DataCorePlugin.GameRawData.Telemetry.dcBrakeBiasFine";
         private const string IracingDeployMode = "DataCorePlugin.GameRawData.Telemetry.dcMGUKDeployMode";
-        private const string IracingBattery = "DataCorePlugin.GameRawData.Telemetry.EnergyERSBattery";
-        private const string IracingBatteryPercent = "DataCorePlugin.GameRawData.Telemetry.EnergyERSBatteryPct";
+        private const string IracingBatteryShare = "DataCorePlugin.GameRawData.Telemetry.EnergyERSBatteryPct";
         private const string IracingDrs = "DataCorePlugin.GameRawData.Telemetry.DRS_Status";
         private const string F1DeployMode = "DataCorePlugin.GameRawData.PlayerCarStatusData.m_ersDeployMode";
         private const string Ams2DeployMode = "DataCorePlugin.GameRawData.mErsDeploymentMode";
@@ -25,9 +23,9 @@ namespace Pitrig.SimHub
         private const string AcHasErs = "DataCorePlugin.GameRawData.StaticInfo.HasERS";
         private const string AcDrsAvailable = "DataCorePlugin.GameRawData.Physics.DrsAvailable";
         private const string AcDrsEnabled = "DataCorePlugin.GameRawData.Physics.DrsEnabled";
-        private const string LmuMotorMapMaximum = "DataCorePlugin.GameRawData.PlayerNativeTelemetry.mMotorMapMax";
         private const int IracingDrsAvailable = 2;
         private const int IracingDrsOpen = 3;
+        private const double Hundred = 100;
 
         private static readonly string[] F1DeployNames = { "NONE", "MEDIUM", "HOTLAP", "OVERTAKE" };
 
@@ -53,27 +51,13 @@ namespace Pitrig.SimHub
 
         public static string EngineMap(TelemetryState state)
         {
-            var status = state.Status;
-            if (status == null) return null;
-            var map = status.EngineMap;
-            if (state.GameName != Lmu) return map < 0 ? null : Text(map);
-            switch (status.CarClass)
-            {
-                case "LMP3":
-                    return "R";
-                case "Hyper":
-                    var maximum = Whole(state, LmuMotorMapMaximum);
-                    if (maximum >= 10) return map > 0 ? Text(map * 20) : "OFF";
-                    if (maximum >= 5) return map > 0 ? Text(map * 10) : "OFF";
-                    return Text(map);
-                default:
-                    return map == 0 ? "SC" : "R";
-            }
+            var map = state.Status?.EngineMap;
+            return map >= 0 ? Text(map.Value) : null;
         }
 
         public static string ErsDeployMode(TelemetryState state)
         {
-            if (state.Status == null || !ShowsErs(state)) return null;
+            if (state.Status == null || !HasHybrid(state)) return null;
             var game = state.GameName ?? string.Empty;
             var reported = Raw(state, DeployProperty(game));
             if (reported == null) return null;
@@ -92,17 +76,8 @@ namespace Pitrig.SimHub
 
         public static double? ErsPercent(TelemetryState state)
         {
-            var status = state.Status;
-            if (status == null || !ShowsErs(state)) return null;
-            switch (state.GameName)
-            {
-                case Iracing:
-                    return Math.Floor((Raw(state, IracingBatteryPercent) ?? 0) * 100);
-                case Ac:
-                    return Math.Floor((Raw(state, KersCharge) ?? 0) * 100);
-                default:
-                    return status.ERSPercent > 0 ? Math.Round(status.ERSPercent, MidpointRounding.AwayFromZero) : (double?)null;
-            }
+            if (state.Status == null || !HasHybrid(state)) return null;
+            return Math.Round(BatteryPercent(state) ?? 0, MidpointRounding.AwayFromZero);
         }
 
         public static bool? DrsAvailable(TelemetryState state)
@@ -135,13 +110,22 @@ namespace Pitrig.SimHub
             }
         }
 
-        private static bool ShowsErs(TelemetryState state)
+        private static bool HasHybrid(TelemetryState state)
         {
-            var game = state.GameName;
-            var battery = game == Iracing ? Raw(state, IracingBattery) : null;
-            var available = game == Ac && Whole(state, AcHasErs) != 0;
-            var percent = game == Iracing ? Raw(state, IracingBatteryPercent) : state.Status.ERSPercent;
-            return battery > 0 || available || percent > 0;
+            return state.GameName == Ac ? Raw(state, AcHasErs) > 0 : BatteryPercent(state) > 0;
+        }
+
+        private static double? BatteryPercent(TelemetryState state)
+        {
+            switch (state.GameName)
+            {
+                case Iracing:
+                    return Raw(state, IracingBatteryShare) * Hundred;
+                case Ac:
+                    return Raw(state, KersCharge) * Hundred;
+                default:
+                    return state.Status.ERSPercent;
+            }
         }
 
         private static string DeployProperty(string game)

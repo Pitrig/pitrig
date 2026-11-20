@@ -50,6 +50,12 @@ a release says when either applies.
 - **Configurator.** The Firmware page shows the board's version and one update button.
 - **Configurator.** The Info page shows versions with next steps, board health and details to copy.
 - **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
+- **SimHub plugin.** The engine map and the session type show what the game reports; damage reads in percent.
+- **SimHub plugin.** Lap and delta colours compare with your class's best lap; sectors with the session's best.
+- **SimHub plugin.** A finished lap's sectors stay on screen for three seconds.
+- **SimHub plugin.** The pit call stays off when the fuel lasts to the finish.
+- **SimHub plugin.** Fuel level, use and laps show three significant figures.
+- **SimHub plugin.** Repair time comes only from iRacing, which reports it.
 - **Configurator, SimHub plugin.** Usage reports tell a new install from an update; only official builds send them.
 - **Development.** Every dependency is pinned to one exact version; updates wait seven days and a review.
 - **Development.** Lint rejects import cycles in the configurator.
