@@ -29,6 +29,7 @@ a release says when either applies.
 - **Configurator.** `Save to board` installs the images a dashboard uses.
 - **Configurator.** `Save to board` downloads missing Google fonts by itself.
 - **Configurator.** New starter dashboard: GF Rally Mode, 480×480.
+- **Configurator.** New starter dashboard: Endurance, 1024×600.
 - **Configurator.** **Update board** lists what changes on that board.
 - **Configurator.** Firmware that cannot update itself gets a link to the web flasher.
 - **Configurator, Display boards.** Times without leading zeros, and a delta that always shows four digits.
