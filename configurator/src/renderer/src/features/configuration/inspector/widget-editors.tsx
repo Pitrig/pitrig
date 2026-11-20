@@ -170,6 +170,12 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
         <ColorField label={t('inspector.stylingEditors.color')} value={widget.value?.color ?? '#E8E8E8'} modified={authored(widget.value?.color, '#E8E8E8')} onReset={() => update((next) => { if (next.value) delete next.value.color })} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
         <SelectField label={t('inspector.widgetEditors.alignment')} hint={t('inspector.hints.text.alignment')} value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(widget.value?.alignment, 'center')} onReset={() => update((next) => { if (next.value) delete next.value.alignment })} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value } })} />
         <TextField label={t('inspector.widgetEditors.fallback')} hint={t('inspector.hints.text.fallback')} value={widget.value?.unavailable_text ?? ''} modified={authored(widget.value?.unavailable_text, '')} onReset={() => update((next) => { if (next.value) delete next.value.unavailable_text })} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
+        <OptionalColorField label={t('inspector.widgetEditors.fallbackColour')} hint={t('inspector.hints.text.fallbackColour')} value={widget.value?.unavailable_color} onChange={(value) => update((next) => {
+          const style = { ...next.value }
+          if (value) style.unavailable_color = value
+          else delete style.unavailable_color
+          next.value = style
+        })} />
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />

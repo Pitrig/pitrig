@@ -290,6 +290,7 @@ Space held clear inside the widget's box, outside whatever it draws. The padding
 | `color` | string `#RRGGBB` | `#E8E8E8` |
 | `alignment` | `TextAlignment` | `center` |
 | `unavailable_text` | string, max 15 bytes | empty |
+| `unavailable_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 
 ### ValueTransform
 
@@ -374,6 +375,7 @@ One styling rule. The first rule whose comparison holds describes the widget; wh
 | `color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `border_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `title_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `hidden` | boolean | `false` |
 | `blink_ms` | integer, 0 or 100..5000 | `0` |
 | `hold_ms` | integer, 0..10000 | `0` |

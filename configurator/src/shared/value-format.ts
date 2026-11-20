@@ -4,6 +4,7 @@ import { MAXIMUM_TRANSFORM_DECIMALS } from './value-transform'
 import { deviceFloat } from './contract-number'
 
 const MAXIMUM_UNITS = 9.0e15
+const SPLIT_TENTHS_BELOW_MINUTES = 10
 
 function formatDuration(milliseconds: number): string {
   const total = Math.trunc(milliseconds / 1000)
@@ -21,6 +22,74 @@ function formatClock(milliseconds: number): string {
 function formatSignedDuration(milliseconds: number): string {
   const magnitude = Math.abs(Math.trunc(milliseconds))
   return `${milliseconds < 0 ? '-' : '+'}${Math.trunc(magnitude / 1000)}.${pad(magnitude % 1000, 3)}`
+}
+
+function formatCompactDuration(milliseconds: number): string {
+  const total = Math.trunc(milliseconds / 1000)
+  const minutes = Math.trunc(total / 60)
+  const remainder = pad(Math.trunc(milliseconds % 1000), 3)
+  return minutes === 0 ? `${total}.${remainder}` : `${minutes}:${pad(total % 60, 2)}.${remainder}`
+}
+
+function formatSplit(milliseconds: number): string {
+  const total = Math.trunc(milliseconds / 1000)
+  const minutes = Math.trunc(total / 60)
+  if (minutes === 0) return `${total}.${pad(Math.trunc(milliseconds % 1000), 3)}`
+  const clock = `${minutes}:${pad(total % 60, 2)}`
+  return minutes < SPLIT_TENTHS_BELOW_MINUTES ? `${clock}.${Math.trunc((milliseconds % 1000) / 100)}` : clock
+}
+
+function formatCompactClock(milliseconds: number): string {
+  const total = Math.trunc(milliseconds / 1000)
+  const hours = Math.trunc(total / 3600)
+  if (hours === 0) return `${Math.trunc(total / 60)}:${pad(total % 60, 2)}`
+  return `${hours}:${pad(Math.trunc(total / 60) % 60, 2)}:${pad(total % 60, 2)}`
+}
+
+const DIGIT_LIMIT = 10_000
+const DIGIT_STEPS: readonly { unitMs: number; decimals: number }[] = [
+  { unitMs: 1, decimals: 3 },
+  { unitMs: 10, decimals: 2 },
+  { unitMs: 100, decimals: 1 },
+  { unitMs: 1000, decimals: 0 }
+]
+
+function formatSignedDigits(milliseconds: number): string {
+  const magnitude = Math.abs(Math.trunc(milliseconds))
+  const sign = milliseconds < 0 ? '-' : '+'
+  for (const { unitMs, decimals } of DIGIT_STEPS) {
+    const units = Math.trunc((magnitude + Math.trunc(unitMs / 2)) / unitMs)
+    if (units >= DIGIT_LIMIT) continue
+    if (decimals === 0) return `${sign}${units}`
+    const divisor = 10 ** decimals
+    return `${sign}${Math.trunc(units / divisor)}.${pad(units % divisor, decimals)}`
+  }
+  return `${sign}${DIGIT_LIMIT - 1}`
+}
+
+const SIGNED_TIME_FORMATS: ReadonlySet<string> = new Set(['signed_duration_ms', 'signed_digits_ms'])
+
+export function isSignedTimeFormat(format: string | undefined): boolean {
+  return format !== undefined && SIGNED_TIME_FORMATS.has(format)
+}
+
+function formatTime(format: string | undefined, milliseconds: number): string {
+  switch (format) {
+    case 'signed_duration_ms':
+      return formatSignedDuration(milliseconds)
+    case 'signed_digits_ms':
+      return formatSignedDigits(milliseconds)
+    case 'clock_ms':
+      return formatClock(milliseconds)
+    case 'compact_duration_ms':
+      return formatCompactDuration(milliseconds)
+    case 'compact_clock_ms':
+      return formatCompactClock(milliseconds)
+    case 'split_ms':
+      return formatSplit(milliseconds)
+    default:
+      return formatDuration(milliseconds)
+  }
 }
 
 function formatNumber(transform: ValueTransform, value: number): string | undefined {
@@ -47,15 +116,9 @@ export function transformedBody(
 ): string | undefined {
   if (!value.available) return undefined
   if (transform?.type === 'time') {
-    if (transform.format === 'signed_duration_ms') {
-      return value.type === 'int32' && value.number !== undefined
-        ? formatSignedDuration(value.number)
-        : undefined
-    }
-    if (value.type !== 'uint32' || value.number === undefined) return undefined
-    return transform.format === 'clock_ms'
-      ? formatClock(value.number)
-      : formatDuration(value.number)
+    const expected = isSignedTimeFormat(transform.format) ? 'int32' : 'uint32'
+    if (value.type !== expected || value.number === undefined) return undefined
+    return formatTime(transform.format, value.number)
   }
   if (transform?.type === 'number') {
     const numeric = numberFor(value)
@@ -65,10 +128,7 @@ export function transformedBody(
 }
 
 export function placeholderBody(transform: ValueTransform | undefined): string {
-  if (transform?.type === 'time') {
-    if (transform.format === 'signed_duration_ms') return formatSignedDuration(0)
-    return transform.format === 'clock_ms' ? formatClock(0) : formatDuration(0)
-  }
+  if (transform?.type === 'time') return formatTime(transform.format, 0)
   if (transform?.type === 'number') {
     return formatNumber(transform, 0) ?? '0'
   }

@@ -523,6 +523,7 @@ struct WidgetValueStyle {
   std::uint32_t color{0xE8E8E8};
   TextAlignment alignment{TextAlignment::center};
   std::array<char, kUnavailableTextCapacity> unavailable_text{};
+  std::uint32_t unavailable_color{kTransparentColor};
 };
 
 struct ValueTransform {
@@ -562,6 +563,7 @@ struct WidgetCondition {
   std::uint32_t color{kTransparentColor};
   std::uint32_t background_color{kTransparentColor};
   std::uint32_t border_color{kTransparentColor};
+  std::uint32_t title_color{kTransparentColor};
   bool hidden{false};
   std::uint16_t blink_ms{};
   std::uint16_t hold_ms{};

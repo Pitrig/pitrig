@@ -254,6 +254,7 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
   }
   if (!valid_font(config.value.font) || !valid_color(config.value.color) ||
       !terminated(config.value.unavailable_text) ||
+      !valid_optional_color(config.value.unavailable_color) ||
       config.value.alignment < TextAlignment::top_left ||
       config.value.alignment > TextAlignment::bottom_right) {
     return reject(failure_, ValidationError::invalid_widget, "value");

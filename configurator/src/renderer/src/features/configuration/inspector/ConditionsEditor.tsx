@@ -114,6 +114,7 @@ export function ConditionsEditor({ widget, update }: {
               <OptionalColorField label={t('inspector.conditionsEditor.value')} value={rule.color} onChange={(value) => changeRule(index, (next) => { if (value) next.color = value; else delete next.color })} />
               <OptionalColorField label={t('modules.effectColors.background')} value={rule.background_color} onChange={(value) => changeRule(index, (next) => { if (value) next.background_color = value; else delete next.background_color })} />
               <OptionalColorField label={t('inspector.conditionsEditor.border')} value={rule.border_color} onChange={(value) => changeRule(index, (next) => { if (value) next.border_color = value; else delete next.border_color })} />
+              {widget.title?.text ? <OptionalColorField label={t('inspector.conditionsEditor.title')} value={rule.title_color} onChange={(value) => changeRule(index, (next) => { if (value) next.title_color = value; else delete next.title_color })} /> : null}
               <CheckboxField label={t('inspector.conditionsEditor.hide')} checked={rule.hidden ?? false} modified={authored(rule.hidden, false)} onReset={() => changeRule(index, (next) => { delete next.hidden })} onChange={(checked) => changeRule(index, (next) => { if (checked) next.hidden = true; else delete next.hidden })} />
               <PropertyRow
                 label={t('modules.effectColors.timing')}

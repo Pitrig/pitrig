@@ -44,6 +44,7 @@ namespace {
                read_color(rule, "color", parsed.color, kName, failure) &&
                read_color(rule, "background_color", parsed.background_color, kName, failure) &&
                read_color(rule, "border_color", parsed.border_color, kName, failure) &&
+               read_color(rule, "title_color", parsed.title_color, kName, failure) &&
                read_boolean(rule, "hidden", parsed.hidden, kName, failure) &&
                read_integer(rule, "blink_ms", parsed.blink_ms, kName, failure) &&
                read_integer(rule, "hold_ms", parsed.hold_ms, kName, failure);
@@ -80,6 +81,14 @@ namespace {
     transform.time.format = transformers::time_transform::Format::clock_ms;
   } else if (value == "signed_duration_ms") {
     transform.time.format = transformers::time_transform::Format::signed_duration_ms;
+  } else if (value == "compact_duration_ms") {
+    transform.time.format = transformers::time_transform::Format::compact_duration_ms;
+  } else if (value == "compact_clock_ms") {
+    transform.time.format = transformers::time_transform::Format::compact_clock_ms;
+  } else if (value == "signed_digits_ms") {
+    transform.time.format = transformers::time_transform::Format::signed_digits_ms;
+  } else if (value == "split_ms") {
+    transform.time.format = transformers::time_transform::Format::split_ms;
   } else {
     return reject(failure, ValidationError::unknown_value, kName, "format");
   }

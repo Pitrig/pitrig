@@ -31,6 +31,10 @@ a release says when either applies.
 - **Configurator.** New starter dashboard: GF Rally Mode, 480×480.
 - **Configurator.** **Update board** lists what changes on that board.
 - **Configurator.** Firmware that cannot update itself gets a link to the web flasher.
+- **Configurator, Display boards.** Times without leading zeros, and a delta that always shows four digits.
+- **Configurator, Display boards.** A sector over a minute shows as 1:38.4 and over ten as 10:06, so it keeps its width.
+- **Configurator, Display boards.** A styling rule can recolour the widget's caption.
+- **Configurator, Display boards.** A text widget can draw a missing value in its own colour.
 
 **Changed**
 

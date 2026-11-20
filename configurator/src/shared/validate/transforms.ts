@@ -1,4 +1,4 @@
-import type { ValueTransform } from '../configuration-schema'
+import type { TimeTransform, ValueTransform } from '../configuration-schema'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from '../telemetry-catalog'
 import { MAXIMUM_TRANSFORM_DECIMALS } from '../value-transform'
 import { t } from '../ui-text'
@@ -7,10 +7,14 @@ const FIELD_TYPES: ReadonlyMap<string, TelemetryValueType> = new Map(
   TELEMETRY_CATALOG.map(({ name, type }) => [name, type])
 )
 
-const READS: Record<'duration_ms' | 'signed_duration_ms' | 'clock_ms', TelemetryValueType> = {
+const READS: Record<NonNullable<TimeTransform['format']>, TelemetryValueType> = {
   duration_ms: 'uint32',
   clock_ms: 'uint32',
-  signed_duration_ms: 'int32'
+  signed_duration_ms: 'int32',
+  compact_duration_ms: 'uint32',
+  compact_clock_ms: 'uint32',
+  signed_digits_ms: 'int32',
+  split_ms: 'uint32'
 }
 
 export function transformError(
@@ -30,7 +34,7 @@ export function transformError(
       return t('validation.transforms.whatOfLabelIsA', { what: what, label: label })
     }
     if (type === READS[format]) return undefined
-    const counted = format === 'signed_duration_ms' ? t('validation.transforms.aSigned') : t('validation.transforms.anUnsigned')
+    const counted = READS[format] === 'int32' ? t('validation.transforms.aSigned') : t('validation.transforms.anUnsigned')
     return t('validation.transforms.whatOfLabelTimesBinding', { what: what, label: label, binding: binding, type: type, _ms: format.replace('_ms', ''), counted: counted })
   }
 

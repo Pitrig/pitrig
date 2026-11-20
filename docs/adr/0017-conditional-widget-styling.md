@@ -40,7 +40,9 @@ rule.
 **The first rule whose comparison holds describes the widget; whatever it does
 not name stays as the widget was authored.** Rules do not accumulate, so one
 pass decides the appearance. A rule may set the value colour, the background
-colour, the border colour, visibility, and a blink period. Because the
+colour, the border colour, the caption colour, visibility, and a blink period.
+The caption colour came later, as an optional field a stored document does not
+carry, so the schema version did not move. Because the
 transparent sentinel already means "unset" for a colour, a rule can change a
 background but not clear one; a widget that needs that starts transparent and
 lets a rule paint it.

@@ -216,11 +216,12 @@ inline constexpr std::array<std::string_view, 3> kWidgetBorderKeys{{
     "radius_px",
 }};
 
-inline constexpr std::array<std::string_view, 4> kWidgetValueStyleKeys{{
+inline constexpr std::array<std::string_view, 5> kWidgetValueStyleKeys{{
     "font",
     "color",
     "alignment",
     "unavailable_text",
+    "unavailable_color",
 }};
 
 inline constexpr std::array<std::string_view, 7> kValueTransformKeys{{
@@ -269,12 +270,13 @@ inline constexpr std::array<std::string_view, 2> kWidgetActionKeys{{
     "screen",
 }};
 
-inline constexpr std::array<std::string_view, 8> kWidgetConditionKeys{{
+inline constexpr std::array<std::string_view, 9> kWidgetConditionKeys{{
     "op",
     "value",
     "color",
     "background_color",
     "border_color",
+    "title_color",
     "hidden",
     "blink_ms",
     "hold_ms",

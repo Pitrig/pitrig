@@ -196,7 +196,7 @@ export interface FontSpec {
 }
 
 export interface TimeTransform {
-  format?: 'duration_ms' | 'signed_duration_ms' | 'clock_ms'
+  format?: 'duration_ms' | 'signed_duration_ms' | 'clock_ms' | 'compact_duration_ms' | 'compact_clock_ms' | 'signed_digits_ms' | 'split_ms'
 }
 
 export interface NumberTransform {
@@ -361,6 +361,7 @@ export interface WidgetValueStyle {
   color?: RgbColor
   alignment?: TextAlignment
   unavailable_text?: string
+  unavailable_color?: RgbColor
 }
 
 export interface ValueTransform extends TimeTransform, NumberTransform {
@@ -397,6 +398,7 @@ export interface WidgetCondition {
   color?: RgbColor
   background_color?: RgbColor
   border_color?: RgbColor
+  title_color?: RgbColor
   hidden?: boolean
   blink_ms?: number
   hold_ms?: number
@@ -784,7 +786,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   WidgetPlacement: ['x', 'y', 'width', 'height'],
   WidgetInsets: ['left', 'top', 'right', 'bottom'],
   WidgetBorder: ['color', 'width_px', 'radius_px'],
-  WidgetValueStyle: ['font', 'color', 'alignment', 'unavailable_text'],
+  WidgetValueStyle: ['font', 'color', 'alignment', 'unavailable_text', 'unavailable_color'],
   ValueTransform: ['type', 'format', 'decimals', 'scale', 'offset', 'prefix', 'suffix'],
   ValueModifier: ['type'],
   ValueSourceConfiguration: ['binding', 'modifiers'],
@@ -792,7 +794,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ColorStop: ['at', 'color'],
   ColorRamp: ['target', 'stops'],
   WidgetAction: ['type', 'screen'],
-  WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
+  WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'title_color', 'hidden', 'blink_ms', 'hold_ms'],
   ValueCondition: ['op', 'value'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
   WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions'],

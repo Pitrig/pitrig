@@ -16,16 +16,13 @@ namespace pitrig::configuration::validation {
 
 [[nodiscard]] bool valid_transform(const ValueTransform& transform,
                                    const telemetry::ValueType type) {
-  using transformers::time_transform::Format;
   switch (transform.type) {
     case ValueTransformType::none:
       return true;
     case ValueTransformType::time:
-      return ((transform.time.format == Format::duration_ms ||
-               transform.time.format == Format::clock_ms) &&
-              type == telemetry::ValueType::uint32) ||
-             (transform.time.format == Format::signed_duration_ms &&
-              type == telemetry::ValueType::int32);
+      return type == (transformers::time_transform::is_signed(transform.time.format)
+                          ? telemetry::ValueType::int32
+                          : telemetry::ValueType::uint32);
     case ValueTransformType::number:
       return type != telemetry::ValueType::boolean &&
              transform.number.decimals <= transformers::number_transform::kMaximumDecimals &&

@@ -49,6 +49,7 @@ void Painter::configure(const Config& config, const Box& box, const std::uint32_
       .color = content_color,
       .background_color = config.background_color,
       .border_color = config.border.color,
+      .title_color = config.title.color,
       .blink_ms = 0,
       .hidden = false,
   };
@@ -172,6 +173,9 @@ void Painter::apply_style(const conditions::ResolvedStyle& style) {
   }
   if (style.border_color != applied_style_.border_color) {
     lv_obj_set_style_border_color(box_.container, lv_color_hex(style.border_color), LV_PART_MAIN);
+  }
+  if (style.title_color != applied_style_.title_color && box_.caption != nullptr) {
+    lv_obj_set_style_text_color(box_.caption, lv_color_hex(style.title_color), LV_PART_MAIN);
   }
   if (style.blink_ms != applied_style_.blink_ms) {
     blink_started_ = lv_tick_get();

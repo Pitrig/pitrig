@@ -29,7 +29,8 @@ export function TextWidgetPreview({
   )
   const valueFont = resolvedFont(configuration.value?.font, 48, loadedFamilies)
   const content = contentArea(placement, borderWidth, configuration.padding)
-  const previewValue = composedText(configuration, values)
+  const { text: previewValue, unavailable } = composedText(configuration, values)
+  const unavailableColor = unavailable ? configuration.value?.unavailable_color : undefined
 
   const metrics = fontMetrics(previewValue, valueFont)
   const { column, row } = alignmentAnchor(configuration.value?.alignment ?? 'center')
@@ -54,7 +55,7 @@ export function TextWidgetPreview({
       <text
         x={valueX}
         y={labelTop + metrics.ascent}
-        fill={style.color ?? DEFAULT_TEXT_COLOR}
+        fill={unavailableColor ?? style.color ?? DEFAULT_TEXT_COLOR}
         fontFamily={valueFont.family}
         fontSize={valueFont.sizePx}
         fontWeight={valueFont.weight}
@@ -65,7 +66,10 @@ export function TextWidgetPreview({
   )
 }
 
-function composedText(configuration: TextWidgetConfiguration, values: PreviewValues): string {
+function composedText(
+  configuration: TextWidgetConfiguration,
+  values: PreviewValues
+): { text: string; unavailable: boolean } {
   const sources = configuration.sources ?? []
   let anyAvailable = false
   const parts = sources.map(({ binding, transform }) => {
@@ -74,8 +78,9 @@ function composedText(configuration: TextWidgetConfiguration, values: PreviewVal
     const body = transformedBody(transform, value)
     return withAffixes(transform, body ?? placeholderBody(transform))
   })
-  if (!anyAvailable && values.started() && configuration.value?.unavailable_text) {
-    return configuration.value.unavailable_text
+  const unavailable = !anyAvailable && values.started()
+  if (unavailable && configuration.value?.unavailable_text) {
+    return { text: configuration.value.unavailable_text, unavailable }
   }
-  return composeWidgetText(parts)
+  return { text: composeWidgetText(parts), unavailable }
 }

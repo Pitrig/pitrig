@@ -507,7 +507,8 @@
         "scale": "Applied before the offset: the drawn number is value × scale + offset, rounded to the decimals set beside it.",
         "affix": "Literal text drawn immediately before and after this source. With several sources this is the only separator between them.",
         "alignment": "Where the text sits inside the widget box, after the padding is taken off.",
-        "fallback": "Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value’s zero is drawn instead."
+        "fallback": "Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value’s zero is drawn instead.",
+        "fallbackColour": "Paints what the widget draws while the game reports none of its fields — the fallback text, or the zero when there is none — whatever a rule says. Unset keeps the value colour."
       },
       "title": {
         "fallback": "A second installed family to try for glyphs the first does not have — an icon family beside a text one, which is how a value carries an icon and its number in one widget. It is built at the same size, so it costs one more font.",
@@ -641,6 +642,7 @@
       "when": "When",
       "value": "Value",
       "border": "Border",
+      "title": "Title",
       "hide": "Hide",
       "blinkPeriodInMilliseconds0": "Blink period in milliseconds, 0 is steady",
       "holdInMillisecondsAfterThe": "Hold in milliseconds after the rule stops holding",
@@ -847,6 +849,7 @@
       "addSource": "Add source",
       "alignment": "Alignment",
       "fallback": "Fallback",
+      "fallbackColour": "Fallback colour",
       "imageHasASingleFrame": "\"{image}\" has a single frame, so the device will refuse a frame or a frame source on it.",
       "thisShapeHoldsNoWidgets": "This shape holds no widgets. Drag widgets onto it to make it a container; an empty one with an action is an invisible tap zone.",
       "holdsHeldWidgetSPlaced": "Holds {held} widget(s), placed relative to this box.",
@@ -2359,7 +2362,7 @@
       "twoScreensShareTheId": "Two screens share the id {id}; a tap target names a screen by its id."
     },
     "transforms": {
-      "whatOfLabelIsA": "{what} of {label} is a time transform with no format; the device needs \"duration_ms\", \"clock_ms\" or \"signed_duration_ms\".",
+      "whatOfLabelIsA": "{what} of {label} is a time transform with no format; the device needs one of \"duration_ms\", \"compact_duration_ms\", \"clock_ms\", \"compact_clock_ms\", \"split_ms\", \"signed_duration_ms\" or \"signed_digits_ms\".",
       "whatOfLabelTimesBinding": "{what} of {label} times \"{binding}\", which the device carries as {type}; a {_ms} is {counted} whole number of milliseconds.",
       "whatOfLabelPutsA": "{what} of {label} puts a number transform on \"{binding}\", which is true or false and has nothing to scale.",
       "whatOfLabelAsksFor": "{what} of {label} asks for {decimals} decimals; the device writes at most {mAXIMUM_TRANSFORM_DECIMALS}.",
