@@ -68,7 +68,7 @@ function sectionsOf(text: string): Section[] {
   const sections: Section[] = []
   let kind: FirmwareChangeKind | undefined
   let entry: Entry | undefined
-  text.split('\n').forEach((raw, index) => {
+  text.split(/\r?\n/).forEach((raw, index) => {
     const line = index + 1
     const heading = raw.startsWith('## ') ? HEADING.exec(raw) : undefined
     if (raw.startsWith('## ') && !heading) fail(line, `unreadable heading "${raw}"`)

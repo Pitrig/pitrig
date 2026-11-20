@@ -84,6 +84,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** The installers include the licence of the bundled fonts.
 - **Development.** The Guition ESP32-4848S040 debug image starts with a display again.
 - **Development.** Build tools no longer use a vulnerable `minimatch`.
+- **Development.** The configurator builds from a Windows checkout again.
 
 **Removed**
 
