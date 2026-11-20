@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 272. Static limit: 350.
+Catalog version: 1. Fields: 274. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -201,6 +201,8 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `environment.cloud_level` | `39` | `float32` | `percent` | `slow` | `game_specific` | iRacing, LMU | Cloud cover level. |
 | `environment.forecast` | `3a` | `text` | `source` | `changes` | `game_specific` | ACC | Weather forecast. |
 | `environment.forecast_30` | `F3` | `text` | `source` | `changes` | `game_specific` | ACC | Weather forecast in 30 minutes. |
+| `environment.rain_forecast_10` | `W1` | `float32` | `percent` | `changes` | `game_specific` | ACC | Rain intensity forecast in 10 minutes, on the scale of environment.rain_level. |
+| `environment.rain_forecast_30` | `W3` | `float32` | `percent` | `changes` | `game_specific` | ACC | Rain intensity forecast in 30 minutes, on the scale of environment.rain_level. |
 ## Motion and vehicle physics
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |

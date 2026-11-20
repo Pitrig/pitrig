@@ -41,6 +41,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **SimHub plugin.** New field: places gained or lost since the start.
 - **SimHub plugin.** New field: the working tyre temperature, the core where a game sends no inner, middle and outer, as ACC.
 - **SimHub plugin.** ACC damage gives an approximate repair time for each zone and the whole car.
+- **SimHub plugin.** New fields: ACC's rain forecast in 10 and 30 minutes as a level, for icons.
 
 **Changed**
 

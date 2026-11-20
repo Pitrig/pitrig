@@ -88,6 +88,8 @@ export const SIMHUB_PROPERTIES: Readonly<Record<string, string>> = {
   "environment.cloud_level": "DataCorePlugin.GameRawData.Telemetry.Skies",
   "environment.forecast": "DataCorePlugin.GameRawData.Graphics.rainIntensityIn10min",
   "environment.forecast_30": "DataCorePlugin.GameRawData.Graphics.rainIntensityIn30min",
+  "environment.rain_forecast_10": "DataCorePlugin.GameRawData.Graphics.rainIntensityIn10min",
+  "environment.rain_forecast_30": "DataCorePlugin.GameRawData.Graphics.rainIntensityIn30min",
   "motion.acceleration_longitudinal": "DataCorePlugin.GameData.NewData.AccelerationSurge",
   "motion.acceleration_lateral": "DataCorePlugin.GameData.NewData.AccelerationSway",
   "motion.acceleration_vertical": "DataCorePlugin.GameData.NewData.AccelerationHeave",

@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 272;
+inline constexpr std::size_t kFieldCount = 274;
 inline constexpr std::size_t kMaximumFieldCount = 350;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -166,6 +166,8 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"environment.cloud_level", ValueType::float32},
     {"environment.forecast", ValueType::text},
     {"environment.forecast_30", ValueType::text},
+    {"environment.rain_forecast_10", ValueType::float32},
+    {"environment.rain_forecast_30", ValueType::float32},
     {"motion.acceleration_longitudinal", ValueType::float32},
     {"motion.acceleration_lateral", ValueType::float32},
     {"motion.acceleration_vertical", ValueType::float32},

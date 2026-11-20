@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maximum_fields": 350,
-  "expected_field_count": 272,
+  "expected_field_count": 274,
   "wheels": ["front_left", "front_right", "rear_left", "rear_right"],
   "fields": [
     {"name":"vehicle.speed","wire_id":"S","type":"text","unit":"source","category":"speed_control","rate":"fast","availability":"common","description":"Vehicle speed formatted by the telemetry source."},
@@ -170,6 +170,8 @@
     {"name":"environment.cloud_level","type":"float32","unit":"percent","category":"track_weather","rate":"slow","availability":"game_specific","description":"Cloud cover level."},
     {"name":"environment.forecast","type":"text","unit":"source","category":"track_weather","rate":"changes","availability":"game_specific","description":"Weather forecast."},
     {"name":"environment.forecast_30","wire_id":"F3","type":"text","unit":"source","category":"track_weather","rate":"changes","availability":"game_specific","description":"Weather forecast in 30 minutes."},
+    {"name":"environment.rain_forecast_10","wire_id":"W1","type":"float32","unit":"percent","category":"track_weather","rate":"changes","availability":"game_specific","description":"Rain intensity forecast in 10 minutes, on the scale of environment.rain_level."},
+    {"name":"environment.rain_forecast_30","wire_id":"W3","type":"float32","unit":"percent","category":"track_weather","rate":"changes","availability":"game_specific","description":"Rain intensity forecast in 30 minutes, on the scale of environment.rain_level."},
 
     {"name":"motion.acceleration_longitudinal","type":"float32","unit":"meter_per_second_squared","category":"motion_physics","rate":"fast","availability":"optional","description":"Longitudinal acceleration."},
     {"name":"motion.acceleration_lateral","type":"float32","unit":"meter_per_second_squared","category":"motion_physics","rate":"fast","availability":"optional","description":"Lateral acceleration."},

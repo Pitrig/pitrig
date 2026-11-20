@@ -128,7 +128,7 @@ it whether the Controls page (`features/controls/`) wants the plugin's
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 272-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 274-row catalog table),
 so nothing re-renders while the bridge is stopped. `PreviewCanvas` reads live
 values per frame and the lamp preview (`features/modules/LedPreview.tsx` over
 `preview-values.ts`) with it, while the catalog table in
