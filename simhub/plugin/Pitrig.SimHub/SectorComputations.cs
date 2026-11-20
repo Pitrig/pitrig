@@ -7,7 +7,7 @@ namespace Pitrig.SimHub
     {
         private const string Lmu = "LMU";
         private const string Scoring = "DataCorePlugin.GameRawData.PlayerNativeScoring.";
-        private const double FinishedLapHoldMs = 3000;
+        private const double FinishedLapHoldMs = 5000;
         private const int LastSector = 3;
 
         public static double? Running(TelemetryState state)

@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 263. Static limit: 350.
+Catalog version: 1. Fields: 272. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -66,22 +66,22 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.lap.delta_best` | `0t` | `int32` | `millisecond` | `normal` | `computed` | any | Signed delta of the estimated lap to the personal best lap, empty without either. |
 | `session.lap.delta_session_best` | `0u` | `int32` | `millisecond` | `normal` | `computed` | any | Signed estimated delta of the current lap to the fastest lap of the session in the player's class. |
 | `session.lap.delta_all_time_best` | `61` | `int32` | `millisecond` | `normal` | `computed` | any | Signed live delta to the all-time personal best lap, empty without one. |
-| `session.lap.last_delta_best` | `LD` | `int32` | `millisecond` | `changes` | `computed` | any | Signed delta of the last lap to the personal best, 0 when the last lap set it. |
+| `session.lap.last_delta_best` | `LD` | `int32` | `millisecond` | `changes` | `computed` | any | Signed delta of the last lap to the personal best; when the last lap set it, its gain over the previous best, empty without one. |
 | `session.lap.delta_status` | `62` | `uint32` | `status` | `normal` | `computed` | any | The current lap's estimate to the millisecond against the personal best and the fastest lap in the player's class: 0 none, 1 slower than the personal best, 2 at or under it, 3 at or under the fastest lap, 4 invalid lap; empty with nothing to compare. |
 | `session.lap.last_status` | `63` | `uint32` | `status` | `changes` | `computed` | any | The last lap against the personal best and the fastest lap in the player's class, coded like session.lap.delta_status, 4 when it was invalid. |
 | `session.lap.invalid` | `0v` | `boolean` | `boolean` | `normal` | `optional` | any | Whether the current lap is invalid: ACC's and F1's own flags, in iRacing an off-track outside a race until the next lap, else SimHub's flag when it says invalid; empty when nothing tells. |
 | `session.lap.valid` | `0w` | `boolean` | `boolean` | `normal` | `optional` | any | The opposite of session.lap.invalid, empty when that is. |
 | `session.sector.current` | `0x` | `uint32` | `count` | `normal` | `common` | any | Current sector number. |
 | `session.sector.current_time` | `0y` | `uint32` | `millisecond` | `normal` | `computed` | any | Elapsed time in the current sector. |
-| `session.sector.1_time` | `0z` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector one: this lap's once done, running while in it, else the last lap's; the finished lap's for three seconds after the line. |
-| `session.sector.2_time` | `10` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector two: this lap's once done, running while in it, else the last lap's; the finished lap's for three seconds after the line. |
-| `session.sector.3_time` | `11` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector three: this lap's once done, running while in it, else the last lap's; the finished lap's for three seconds after the line. |
+| `session.sector.1_time` | `0z` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector one: this lap's once done, running while in it, else the last lap's; the finished lap's for five seconds after the line. |
+| `session.sector.2_time` | `10` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector two: this lap's once done, running while in it, else the last lap's; the finished lap's for five seconds after the line. |
+| `session.sector.3_time` | `11` | `uint32` | `millisecond` | `changes` | `optional` | any | Sector three: this lap's once done, running while in it, else the last lap's; the finished lap's for five seconds after the line. |
 | `session.sector.1_best` | `12` | `uint32` | `millisecond` | `changes` | `computed` | any | Best sector one time. |
 | `session.sector.2_best` | `13` | `uint32` | `millisecond` | `changes` | `computed` | any | Best sector two time. |
 | `session.sector.3_best` | `14` | `uint32` | `millisecond` | `changes` | `computed` | any | Best sector three time. |
-| `session.sector.1_status` | `64` | `uint32` | `status` | `normal` | `computed` | any | Sector one against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for three seconds after the line. |
-| `session.sector.2_status` | `65` | `uint32` | `status` | `normal` | `computed` | any | Sector two against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for three seconds after the line. |
-| `session.sector.3_status` | `66` | `uint32` | `status` | `changes` | `computed` | any | Sector three against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for three seconds after the line. |
+| `session.sector.1_status` | `64` | `uint32` | `status` | `normal` | `computed` | any | Sector one against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for five seconds after the line. |
+| `session.sector.2_status` | `65` | `uint32` | `status` | `normal` | `computed` | any | Sector two against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for five seconds after the line. |
+| `session.sector.3_status` | `66` | `uint32` | `status` | `changes` | `computed` | any | Sector three against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for five seconds after the line. |
 | `session.sector.delta` | `15` | `int32` | `millisecond` | `normal` | `computed` | any | Signed time gained or lost so far in the current sector against the best lap. |
 | `track.position_percent` | `16` | `float32` | `normalized` | `fast` | `common` | any | Vehicle position around the lap, from 0 to 1. |
 ## Session and position
@@ -102,6 +102,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.finished` | `1i` | `boolean` | `boolean` | `changes` | `game_specific` | LMU | Whether the player has finished. |
 | `session.checkered` | `1j` | `boolean` | `boolean` | `changes` | `computed` | any | Whether the checkered flag has been shown in this session. |
 | `session.starting_grid_position` | `1k` | `uint32` | `count` | `changes` | `computed` | any | Starting grid position. |
+| `session.positions_gained` | `PG` | `int32` | `count` | `changes` | `computed` | any | Places gained since the start: the starting grid position less the current one, negative for places lost, empty while either is unknown. |
 | `session.gap_ahead` | `1l` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the car one position ahead: on track in a race, between best laps in other sessions. |
 | `session.gap_behind` | `1m` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the car one position behind: on track in a race, between best laps in other sessions. |
 | `session.gap_leader` | `1n` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the session leader: on track in a race, between best laps in other sessions. |
@@ -109,8 +110,8 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
 |---|---:|---|---|---|---|---|---|
-| `vehicle.fuel.level` | `F` | `text` | `source` | `slow` | `common` | any | Fuel level to three significant figures and at most two decimals, such as 2.37, 12.4 or 123. |
-| `vehicle.fuel.percent` | `1o` | `float32` | `percent` | `slow` | `computed` | any | Fuel tank level percentage. |
+| `vehicle.fuel.level` | `F` | `text` | `source` | `slow` | `common` | any | Fuel level to three significant figures and at most two decimals, such as 2.37, 12.4 or 123, empty while the game reports none. |
+| `vehicle.fuel.percent` | `1o` | `float32` | `percent` | `slow` | `computed` | any | Fuel tank level percentage, empty while the game reports none. |
 | `vehicle.fuel.capacity` | `1p` | `float32` | `liter` | `changes` | `optional` | any | Fuel tank capacity. |
 | `vehicle.fuel.average_consumption` | `FC` | `text` | `source` | `slow` | `computed` | any | Average fuel per lap to three significant figures and at most two decimals, such as 2.37, 12.4 or 123. |
 | `vehicle.fuel.current_consumption` | `1q` | `float32` | `liter` | `slow` | `computed` | any | Fuel used on the current lap. |
@@ -150,11 +151,15 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.horn` | `2d` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether the horn is active. |
 | `vehicle.speed_limiter` | `2e` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether a non-pit speed limiter is active. |
 | `vehicle.damage.aero` | `2f` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC, LMU | Aerodynamic damage level. |
-| `vehicle.damage.front_grade` | `DF` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Front bodywork damage in whole percent, as SimHub reports the zone. |
-| `vehicle.damage.rear_grade` | `DB` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Rear bodywork damage in whole percent, as SimHub reports the zone. |
-| `vehicle.damage.left_grade` | `DL` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Left bodywork damage in whole percent, as SimHub reports the zone. |
-| `vehicle.damage.right_grade` | `DR` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Right bodywork damage in whole percent, as SimHub reports the zone. |
-| `vehicle.damage.repair_time` | `RT` | `uint32` | `millisecond` | `slow` | `game_specific` | iRacing | Pit time for repairs as the game reports it: iRacing's mandatory and optional repairs together; empty where the game reports none. |
+| `vehicle.damage.front_grade` | `DF` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Front bodywork damage as SimHub reports the zone, rounded to a whole number; in ACC these are damage units, not a percent. |
+| `vehicle.damage.rear_grade` | `DB` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Rear bodywork damage as SimHub reports the zone, rounded to a whole number; in ACC these are damage units, not a percent. |
+| `vehicle.damage.left_grade` | `DL` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Left bodywork damage as SimHub reports the zone, rounded to a whole number; in ACC these are damage units, not a percent. |
+| `vehicle.damage.right_grade` | `DR` | `text` | `source` | `slow` | `game_specific` | ACC, AC | Right bodywork damage as SimHub reports the zone, rounded to a whole number; in ACC these are damage units, not a percent. |
+| `vehicle.damage.repair_time` | `RT` | `uint32` | `millisecond` | `slow` | `game_specific` | iRacing, ACC | Pit time for repairs: iRacing's mandatory and optional repairs together as it reports them, or ACC's whole bodywork damage at an approximate 0.284 s a unit; empty for other games. |
+| `vehicle.damage.front_repair_time` | `RF` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the front bodywork: ACC's front damage at 0.284 s a unit; empty for other games. |
+| `vehicle.damage.rear_repair_time` | `RB` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the rear bodywork: ACC's rear damage at 0.284 s a unit; empty for other games. |
+| `vehicle.damage.left_repair_time` | `RL` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the left bodywork: ACC's left damage at 0.284 s a unit; empty for other games. |
+| `vehicle.damage.right_repair_time` | `RR` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the right bodywork: ACC's right damage at 0.284 s a unit; empty for other games. |
 | `vehicle.damage.suspension` | `2g` | `float32` | `percent` | `slow` | `game_specific` | none | Overall suspension damage level. |
 | `vehicle.damage.transmission` | `2h` | `float32` | `percent` | `slow` | `game_specific` | none | Overall transmission damage level. |
 ## Flags and messages
@@ -221,10 +226,10 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
 |---|---:|---|---|---|---|---|---|
-| `tyre.front_left.pressure` | `3m` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the front-left wheel. |
-| `tyre.front_right.pressure` | `3n` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the front-right wheel. |
-| `tyre.rear_left.pressure` | `3o` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the rear-left wheel. |
-| `tyre.rear_right.pressure` | `3p` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the rear-right wheel. |
+| `tyre.front_left.pressure` | `3m` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the front-left wheel, empty while the game reports none. |
+| `tyre.front_right.pressure` | `3n` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the front-right wheel, empty while the game reports none. |
+| `tyre.rear_left.pressure` | `3o` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the rear-left wheel, empty while the game reports none. |
+| `tyre.rear_right.pressure` | `3p` | `float32` | `kilopascal` | `slow` | `optional` | any | Tyre pressure at the rear-right wheel, empty while the game reports none. |
 | `tyre.front_left.temperature` | `3q` | `float32` | `celsius` | `slow` | `optional` | LMU | Average tyre temperature at the front-left wheel; in LMU a blend of the carcass and inner layers. |
 | `tyre.front_right.temperature` | `3r` | `float32` | `celsius` | `slow` | `optional` | LMU | Average tyre temperature at the front-right wheel; in LMU a blend of the carcass and inner layers. |
 | `tyre.rear_left.temperature` | `3s` | `float32` | `celsius` | `slow` | `optional` | LMU | Average tyre temperature at the rear-left wheel; in LMU a blend of the carcass and inner layers. |
@@ -249,10 +254,10 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `tyre.front_right.surface_temperature` | `4b` | `float32` | `celsius` | `slow` | `game_specific` | none | Tyre surface temperature at the front-right wheel. |
 | `tyre.rear_left.surface_temperature` | `4c` | `float32` | `celsius` | `slow` | `game_specific` | none | Tyre surface temperature at the rear-left wheel. |
 | `tyre.rear_right.surface_temperature` | `4d` | `float32` | `celsius` | `slow` | `game_specific` | none | Tyre surface temperature at the rear-right wheel. |
-| `tyre.front_left.wear` | `4e` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the front-left wheel. |
-| `tyre.front_right.wear` | `4f` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the front-right wheel. |
-| `tyre.rear_left.wear` | `4g` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the rear-left wheel. |
-| `tyre.rear_right.wear` | `4h` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the rear-right wheel. |
+| `tyre.front_left.wear` | `4e` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the front-left wheel, empty while the game reports none. |
+| `tyre.front_right.wear` | `4f` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the front-right wheel, empty while the game reports none. |
+| `tyre.rear_left.wear` | `4g` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the rear-left wheel, empty while the game reports none. |
+| `tyre.rear_right.wear` | `4h` | `float32` | `percent` | `slow` | `optional` | any | Tyre wear at the rear-right wheel, empty while the game reports none. |
 | `tyre.front_left.detached` | `4i` | `boolean` | `boolean` | `changes` | `game_specific` | LMU | Whether the front-left wheel is detached. |
 | `tyre.front_right.detached` | `4j` | `boolean` | `boolean` | `changes` | `game_specific` | LMU | Whether the front-right wheel is detached. |
 | `tyre.rear_left.detached` | `4k` | `boolean` | `boolean` | `changes` | `game_specific` | LMU | Whether the rear-left wheel is detached. |
@@ -281,10 +286,10 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
 |---|---:|---|---|---|---|---|---|
-| `brake.front_left.temperature` | `56` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the front-left wheel. |
-| `brake.front_right.temperature` | `57` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the front-right wheel. |
-| `brake.rear_left.temperature` | `58` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the rear-left wheel. |
-| `brake.rear_right.temperature` | `59` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the rear-right wheel. |
+| `brake.front_left.temperature` | `56` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the front-left wheel, empty while the game reports none. |
+| `brake.front_right.temperature` | `57` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the front-right wheel, empty while the game reports none. |
+| `brake.rear_left.temperature` | `58` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the rear-left wheel, empty while the game reports none. |
+| `brake.rear_right.temperature` | `59` | `float32` | `celsius` | `slow` | `optional` | any | Brake temperature at the rear-right wheel, empty while the game reports none. |
 | `brake.front_left.pressure` | `5a` | `float32` | `kilopascal` | `fast` | `game_specific` | iRacing | Brake pressure at the front-left wheel. |
 | `brake.front_right.pressure` | `5b` | `float32` | `kilopascal` | `fast` | `game_specific` | iRacing | Brake pressure at the front-right wheel. |
 | `brake.rear_left.pressure` | `5c` | `float32` | `kilopascal` | `fast` | `game_specific` | iRacing | Brake pressure at the rear-left wheel. |
@@ -329,3 +334,11 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `brake.front_right.temperature_average` | `6i` | `float32` | `celsius` | `slow` | `computed` | any | Brake temperature at the front-right wheel averaged over the last laps on track, sampled every three seconds outside the pits. |
 | `brake.rear_left.temperature_average` | `6j` | `float32` | `celsius` | `slow` | `computed` | any | Brake temperature at the rear-left wheel averaged over the last laps on track, sampled every three seconds outside the pits. |
 | `brake.rear_right.temperature_average` | `6k` | `float32` | `celsius` | `slow` | `computed` | any | Brake temperature at the rear-right wheel averaged over the last laps on track, sampled every three seconds outside the pits. |
+## Tyres
+
+| Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
+|---|---:|---|---|---|---|---|---|
+| `tyre.front_left.temperature_working` | `6l` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the front-left tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
+| `tyre.front_right.temperature_working` | `6m` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the front-right tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
+| `tyre.rear_left.temperature_working` | `6n` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the rear-left tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
+| `tyre.rear_right.temperature_working` | `6o` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the rear-right tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |

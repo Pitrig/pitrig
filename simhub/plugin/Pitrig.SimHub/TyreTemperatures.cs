@@ -19,14 +19,33 @@ namespace Pitrig.SimHub
             { FieldComputation.TyreTemperatureRearRight, 3 }
         };
 
+        private static readonly Dictionary<FieldComputation, int> WorkingWheels = new Dictionary<FieldComputation, int>
+        {
+            { FieldComputation.TyreTemperatureWorkingFrontLeft, 0 },
+            { FieldComputation.TyreTemperatureWorkingFrontRight, 1 },
+            { FieldComputation.TyreTemperatureWorkingRearLeft, 2 },
+            { FieldComputation.TyreTemperatureWorkingRearRight, 3 }
+        };
+
         public static bool Covers(FieldComputation computation)
         {
-            return Wheels.ContainsKey(computation);
+            return Wheels.ContainsKey(computation) || WorkingWheels.ContainsKey(computation);
         }
 
         public static double? Live(TelemetryState state, FieldComputation computation)
         {
-            return state.Status == null ? null : Reading(state, Wheels[computation]);
+            if (state.Status == null) return null;
+            return WorkingWheels.TryGetValue(computation, out var wheel)
+                ? Working(state, wheel)
+                : Reading(state, Wheels[computation]);
+        }
+
+        private static double? Working(TelemetryState state, int wheel)
+        {
+            var middle = Middle(state.Status, wheel);
+            if (middle > 0) return middle;
+            var whole = Reading(state, wheel);
+            return whole > 0 ? whole : null;
         }
 
         public static double? Reading(TelemetryState state, int wheel)
@@ -64,6 +83,21 @@ namespace Pitrig.SimHub
                     return status.TyreTemperatureRearLeft;
                 default:
                     return status.TyreTemperatureRearRight;
+            }
+        }
+
+        private static double Middle(StatusDataBase status, int wheel)
+        {
+            switch (wheel)
+            {
+                case 0:
+                    return status.TyreTemperatureFrontLeftMiddle;
+                case 1:
+                    return status.TyreTemperatureFrontRightMiddle;
+                case 2:
+                    return status.TyreTemperatureRearLeftMiddle;
+                default:
+                    return status.TyreTemperatureRearRightMiddle;
             }
         }
 

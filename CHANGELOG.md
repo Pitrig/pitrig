@@ -35,6 +35,9 @@ a release says when either applies.
 - **Configurator, Display boards.** A sector over a minute shows as 1:38.4 and over ten as 10:06, so it keeps its width.
 - **Configurator, Display boards.** A styling rule can recolour the widget's caption.
 - **Configurator, Display boards.** A text widget can draw a missing value in its own colour.
+- **SimHub plugin.** New field: places gained or lost since the start.
+- **SimHub plugin.** New field: the working tyre temperature, the core where a game sends no inner, middle and outer, as ACC.
+- **SimHub plugin.** ACC damage gives an approximate repair time for each zone and the whole car.
 
 **Changed**
 
@@ -56,7 +59,9 @@ a release says when either applies.
 - **SimHub plugin.** Hybrid modes show the name the game documents, or else the mode number.
 - **SimHub plugin.** The engine map and the session type show what the game reports; damage reads in percent.
 - **SimHub plugin.** Lap and delta colours compare with your class's best lap; sectors with the session's best.
-- **SimHub plugin.** A finished lap's sectors stay on screen for three seconds.
+- **SimHub plugin.** A finished lap's sectors stay on screen for five seconds.
+- **SimHub plugin.** On a lap that sets your best, the delta to the best shows the gain over the previous one.
+- **SimHub plugin.** Tyre pressure and wear, brake temperature and fuel read as missing while the game sends 0.
 - **SimHub plugin.** The pit call stays off when the fuel lasts to the finish.
 - **SimHub plugin.** Fuel level, use and laps show three significant figures.
 - **SimHub plugin.** Repair time comes only from iRacing, which reports it.
@@ -72,6 +77,7 @@ a release says when either applies.
 - **Guition JC1060P470C.** After a dashboard change the board keeps the faster drawing mode.
 - **Guition ESP32-4848S040.** Saving to the board or updating it no longer garbles the screen.
 - **SimHub plugin.** Usage reports name the right SimHub version.
+- **SimHub plugin.** At a rolling start the laps remaining no longer jump before the line.
 - **Configurator.** The installers include the licence of the bundled fonts.
 - **Development.** The Guition ESP32-4848S040 debug image starts with a display again.
 - **Development.** Build tools no longer use a vulnerable `minimatch`.

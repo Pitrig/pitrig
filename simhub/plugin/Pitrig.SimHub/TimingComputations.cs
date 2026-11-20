@@ -46,10 +46,15 @@ namespace Pitrig.SimHub
             return (LapEstimates.Seconds(state) - Computed.Seconds(SessionBestLap(state.Status))) * 1000;
         }
 
-        public static double? LastLapDeltaBest(StatusDataBase status)
+        public static double? LastLapDeltaBest(TelemetryState state)
         {
+            var status = state.Status;
             if (status == null) return null;
-            return (Computed.Seconds(status.LastLapTime) - BestSeconds(status)) * 1000;
+            var last = Computed.Seconds(status.LastLapTime);
+            var best = BestSeconds(status);
+            if (last == null || best == null) return null;
+            if (Thousandths(last) != Thousandths(best)) return (last - best) * 1000;
+            return (last - state.PreviousBestSeconds) * 1000;
         }
 
         public static int? DeltaStatus(TelemetryState state)
@@ -88,7 +93,8 @@ namespace Pitrig.SimHub
             if (lap == null) return null;
             var left = status.SessionTimeLeft.TotalSeconds;
             if (left <= 0) return 1;
-            var toLine = Math.Max(lap.Value - status.CurrentLapTime.TotalSeconds, 0);
+            var driven = state.LapTimerStale ? 0 : status.CurrentLapTime.TotalSeconds;
+            var toLine = Math.Max(lap.Value - driven, 0);
             return 1 + Math.Ceiling(Math.Max(left - toLine, 0) / lap.Value);
         }
 

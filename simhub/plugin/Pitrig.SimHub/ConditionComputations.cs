@@ -6,6 +6,9 @@ namespace Pitrig.SimHub
 {
     internal static class ConditionComputations
     {
+        private const string Acc = "AssettoCorsaCompetizione";
+        private const double AccRepairMsPerDamage = 284;
+        private const int AccBodyworkZone = 4;
         private const string AccGrip = "DataCorePlugin.GameRawData.Graphics.trackGripStatus";
         private const string IracingWetness = "DataCorePlugin.GameRawData.Telemetry.TrackWetness";
         private const string LmuWetness = "DataCorePlugin.GameRawData.Data.mAvgPathWetness";
@@ -28,7 +31,15 @@ namespace Pitrig.SimHub
         public static double? RepairTime(TelemetryState state)
         {
             if (state.Status == null) return null;
+            if (state.GameName == Acc) return ZoneRepairTime(state, AccBodyworkZone);
             return (Raw(state, IracingRepair) + (Raw(state, IracingOptionalRepair) ?? 0)) * 1000;
+        }
+
+        public static double? ZoneRepairTime(TelemetryState state, int zone)
+        {
+            var status = state.Status;
+            if (status == null || state.GameName != Acc) return null;
+            return Zone(status, zone) * AccRepairMsPerDamage;
         }
 
         public static string TrackCondition(TelemetryState state)
@@ -36,7 +47,7 @@ namespace Pitrig.SimHub
             if (state.Status == null) return null;
             switch (state.GameName)
             {
-                case "AssettoCorsaCompetizione":
+                case Acc:
                     return Named(Raw(state, AccGrip), AccConditions, 0) ?? "N/A";
                 case "IRacing":
                     return Named(Raw(state, IracingWetness), IracingConditions, 1) ?? "---";
@@ -57,8 +68,10 @@ namespace Pitrig.SimHub
                     return status.CarDamage2;
                 case 2:
                     return status.CarDamage3;
-                default:
+                case 3:
                     return status.CarDamage4;
+                default:
+                    return status.CarDamage5;
             }
         }
 

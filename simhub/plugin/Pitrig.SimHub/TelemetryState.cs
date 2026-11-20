@@ -7,9 +7,14 @@ namespace Pitrig.SimHub
 {
     internal sealed class TelemetryState
     {
+        private const double LapTimerJumpMs = 1000;
+
         private string session;
         private int completedLaps;
         private TimeSpan lastLap;
+        private TimeSpan bestLap;
+        private TimeSpan lapTimer;
+        private double lapTimerAt;
         private bool lapTouchedPit;
 
         public PluginManager Manager { get; private set; }
@@ -17,6 +22,10 @@ namespace Pitrig.SimHub
         public double Now { get; private set; }
 
         public double? LapCompletedAt { get; private set; }
+
+        public bool LapTimerStale { get; private set; }
+
+        public double? PreviousBestSeconds { get; private set; }
 
         public string GameName { get; private set; }
 
@@ -66,6 +75,11 @@ namespace Pitrig.SimHub
                 CheckeredShown = false;
                 CleanLapSeconds = null;
                 LapCompletedAt = null;
+                LapTimerStale = false;
+                PreviousBestSeconds = null;
+                bestLap = Status.BestLapTime;
+                lapTimer = Status.CurrentLapTime;
+                lapTimerAt = now;
                 lastLap = Status.LastLapTime;
                 lapTouchedPit = true;
                 Sectors.Reset();
@@ -75,12 +89,35 @@ namespace Pitrig.SimHub
             {
                 LapCompletedAt = now;
             }
+            TrackLapTimer(now);
+            TrackBestLap();
             if (Status.Flag_Checkered > 0) CheckeredShown = true;
             Validity.Update(this);
             var inPit = Status.IsInPitLane > 0 || Status.IsInPit > 0;
             TrackCleanLap(inPit);
             Sectors.Update(Status.CurrentSectorIndex, TimingComputations.LiveDeltaSeconds(this),
                 Computed.Seconds(Status.BestLapTime));
+        }
+
+        private void TrackLapTimer(double now)
+        {
+            var timer = Status.CurrentLapTime;
+            var startedAhead = lapTimer <= TimeSpan.Zero && timer.TotalMilliseconds > now - lapTimerAt + LapTimerJumpMs;
+            if (timer <= TimeSpan.Zero || timer < lapTimer) LapTimerStale = false;
+            else if (startedAhead) LapTimerStale = true;
+            lapTimer = timer;
+            lapTimerAt = now;
+        }
+
+        private void TrackBestLap()
+        {
+            var best = Status.BestLapTime;
+            if (best == bestLap) return;
+            if (bestLap > TimeSpan.Zero && best > TimeSpan.Zero && best < bestLap)
+            {
+                PreviousBestSeconds = Computed.Seconds(bestLap);
+            }
+            bestLap = best;
         }
 
         private void TrackCleanLap(bool inPit)

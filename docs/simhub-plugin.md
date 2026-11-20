@@ -91,8 +91,9 @@ structures and want a live session to confirm.
 
 A field with no single property is computed in `Computed.cs` and the classes
 beside it, named by the mapping's `computed` key: the gaps come from
-SimHub's leaderboard, and so does the class position, the class position of the
-player's row. Outside a race the gaps are best-lap differences, because SimHub's
+SimHub's leaderboard, and so do the class position, the class position of the
+player's row, and the places gained, that row's starting position less its
+current one. Outside a race the gaps are best-lap differences, because SimHub's
 race gaps mean nothing in practice.
 
 The position comes from SimHub's leaderboard, the fuel time is SimHub's
@@ -107,8 +108,12 @@ without them; their colour grades a time to the millisecond against the personal
 best and the fastest lap of the player's class, and the last lap's colour reads
 invalid when that lap was. The sector times show this lap's finished sectors, the
 running sector live and the sectors still to come from the last lap, and hold the
-finished lap for three seconds after the line, graded the same way against the
-session's best splits, with LMU's sectors from its own scoring. The plugin works
+finished lap for five seconds after the line, graded the same way against the
+session's best splits, with LMU's sectors from its own scoring. A lap timer that
+starts above zero holds a time from before the lap, as ACC's does between the
+green flag and the line at a rolling start: the running sector shows it as the
+game sends it, and the laps remaining count the lap as not begun until it restarts. The last lap's delta to
+the personal best is, on a lap that set it, its gain over the previous best. The plugin works
 out the fuel to finish, the fuel to add with the fuel margin on top and at most
 what the tank still takes, and the pit call: the fuel left at the line, less the
 margin, covers neither another lap nor the rest of the race. The fuel level,
@@ -116,10 +121,18 @@ consumption and fuel laps show three significant figures. Brake bias adds
 iRacing's fine adjustment, the engine map is the game's own number, the hybrid
 modes read as names, DRS in iRacing comes from its own status, and the session
 type is SimHub's name in capitals without the game's initials. Damage zones read
-in whole percent and the repair time is iRacing's own. The plugin's tyre,
+as SimHub reports them, units rather than percent in ACC, and the repair time is
+iRacing's own. ACC reports no repair time, so the plugin estimates one at 0.284 s
+a damage unit, per zone and for the whole bodywork, which ACC's fifth zone sums;
+the factor is a community figure still to be checked against the pit menu. The plugin's tyre,
 pressure and brake averages take a sample every three seconds outside the pits,
 keep as many as the chosen laps hold at the best lap over three seconds, and last
 until SimHub restarts; LMU's tyre temperature blends the carcass and inner layers.
+The working tyre temperature is the middle of the tread, else that tyre temperature,
+which in ACC is the core: ACC reports no inner, middle or outer temperature and no
+tyre wear. Tyre pressure, tyre wear, brake temperature and the fuel level and
+percentage read as missing while the game reports 0, which it does at a session
+start.
 The laps left in a timed session run on the best lap, else the last lap clear of
 the pit lane, else the all-time best; the fuel figures run on the last lap clear
 of the pit lane, else the best lap. The Settings tab's fuel margin and averages start
