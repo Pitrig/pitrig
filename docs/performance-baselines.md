@@ -21,6 +21,7 @@ measurement history of a single decision stays in its ADR (0026, 0027, 0032).
   the last one that holds them. `ddu-1024` is its 1024 x 600 template with the
   screens `main`, `times` and `fuel`. The `round-dial-480` figures below measure
   the design of that commit too; the template has been redrawn since.
+  `race-ddu` was removed on 2026-11-20; its rows stay as a record only.
 - Each document is applied with `@PR:APPLY`, 3 s are discarded, and 6 s of
   `@PR:DIAG` replies, four a second, are averaged. The battery runs twice, in
   the order of the table, without a reboot.

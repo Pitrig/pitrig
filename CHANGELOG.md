@@ -71,6 +71,7 @@ a release says when either applies.
 - **Development.** The Guition JC1060P470C full-screen render mode.
 - **Configurator.** Per-part tools, raw JSON and the change list on Configs; the Pitrig Debugger still has the first two.
 - **Configurator.** Saving a named copy inside Pitrig; **Save…** writes a file, and old copies stay in the recent list.
+- **Configurator.** The Race DDU starter dashboard.
 
 ## 0.3.2 — 2026-11-16 — firmware 0.3.1
 
