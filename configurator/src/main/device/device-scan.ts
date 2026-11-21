@@ -100,11 +100,12 @@ export async function scanForDevice(
   return match
 }
 
-const RECONNECT_SETTLE_MS = 2_500
+const RECONNECT_GONE_MS = 2_500
 const RECONNECT_TIMEOUT_MS = 30_000
-const RECONNECT_POLL_MS = 750
-const RECONNECT_RETRY_MS = 2_000
-const RECONNECT_MAXIMUM_ATTEMPTS = 5
+const RECONNECT_POLL_MS = 100
+const RECONNECT_RETRY_MS = 250
+const RECONNECT_HOLD_MS = 15_000
+const RECONNECT_MAXIMUM_ATTEMPTS = 20
 
 export function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
@@ -128,21 +129,26 @@ async function attemptReconnect(
   connection: DeviceConnection,
   token: number
 ): Promise<DeviceResult<DeviceState>> {
-  await delay(RECONNECT_SETTLE_MS)
+  const wanted = serialIdentity(connection.path)
+  const find = async (): Promise<PortRecord | undefined> => {
+    try {
+      const records = await manager.refreshPortRegistry()
+      return records.find((candidate) => serialIdentity(candidate.path) === wanted)
+    } catch {
+      return undefined
+    }
+  }
+  const gone = Date.now() + RECONNECT_GONE_MS
+  while (Date.now() < gone && (await find())) {
+    manager.ensureCurrent(token)
+    await delay(RECONNECT_POLL_MS)
+  }
   manager.ensureCurrent(token)
 
-  const wanted = serialIdentity(connection.path)
   const deadline = Date.now() + RECONNECT_TIMEOUT_MS
   let attempts = 0
   while (Date.now() < deadline && attempts < RECONNECT_MAXIMUM_ATTEMPTS) {
-    let record: PortRecord | undefined
-    try {
-      record = (await manager.refreshPortRegistry()).find(
-        (candidate) => serialIdentity(candidate.path) === wanted
-      )
-    } catch {
-      record = undefined
-    }
+    const record = await find()
     manager.ensureCurrent(token)
     if (!record) {
       await delay(RECONNECT_POLL_MS)
@@ -154,7 +160,8 @@ async function attemptReconnect(
       record.summary.id,
       connection.baudRate,
       true,
-      token
+      token,
+      Date.now() + RECONNECT_HOLD_MS
     )
     if (connected.ok) return connected
     manager.ensureCurrent(token)

@@ -11,7 +11,7 @@ import type {
 } from '../../shared/device'
 import { listenToActivePort } from './active-port-listeners'
 import { DeviceServiceError, failure, success, toDeviceError } from './device-errors'
-import { PortLeases, openWhenFree, probeAfterHandover } from './port-leases'
+import { PortLeases, openWhenFree, probeAfterHandover, probeWhileHeld } from './port-leases'
 import { PortRegistry, type PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
@@ -91,7 +91,8 @@ export class ConnectionManager {
     portId: string,
     baudRate: number,
     quiet: boolean,
-    token: number
+    token: number,
+    holdUntil?: number
   ): Promise<DeviceResult<DeviceState>> {
     if (this.activePort?.isOpen) {
       return failure({ code: 'busy', message: t('device.deviceConnection.aDeviceIsAlreadyConnected') })
@@ -109,7 +110,7 @@ export class ConnectionManager {
 
     this.setState({ status: 'connecting' })
     try {
-      const opened = await this.openAndProbe(record, baudRate, token)
+      const opened = await this.openAndProbe(record, baudRate, token, holdUntil)
       this.attachActivePort(opened, record, baudRate)
       return success(this.state)
     } catch (error) {
@@ -183,8 +184,13 @@ export class ConnectionManager {
     return reconnectToBoard(this, connection)
   }
 
-  async openAndProbe(record: PortRecord, baudRate: number, token: number): Promise<OpenedDevice> {
-    const opened = await this.openPortFor(record, baudRate, token, probePitrig)
+  async openAndProbe(
+    record: PortRecord,
+    baudRate: number,
+    token: number,
+    holdUntil?: number
+  ): Promise<OpenedDevice> {
+    const opened = await this.openPortFor(record, baudRate, token, probePitrig, holdUntil)
     return { port: opened.port, session: opened.value, traffic: opened.traffic }
   }
 
@@ -201,7 +207,8 @@ export class ConnectionManager {
     record: PortRecord,
     baudRate: number,
     token: number,
-    probe: (port: SerialPort, onTraffic: TrafficCallback) => Promise<T>
+    probe: (port: SerialPort, onTraffic: TrafficCallback) => Promise<T>,
+    holdUntil?: number
   ): Promise<{ port: SerialPort; traffic: SerialTrafficReporter; value: T }> {
     this.ensureCurrent(token)
     const fromPlugin = await this.leases.take(record.path)
@@ -218,9 +225,14 @@ export class ConnectionManager {
     try {
       await openWhenFree(port, fromPlugin)
       this.ensureCurrent(token)
-      const value = await probeAfterHandover(
-        () => probe(port, (direction, data) => traffic.write(direction, data)),
-        fromPlugin
+      const value = await probeWhileHeld(
+        () =>
+          probeAfterHandover(
+            () => probe(port, (direction, data) => traffic.write(direction, data)),
+            fromPlugin
+          ),
+        port,
+        holdUntil
       )
       this.ensureCurrent(token)
       this.pendingPort = undefined

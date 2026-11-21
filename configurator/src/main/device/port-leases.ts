@@ -10,6 +10,7 @@ const OPEN_ATTEMPTS = 5
 const OPEN_RETRY_MS = 200
 const PROBE_ATTEMPTS = 3
 const PROBE_RETRY_MS = 1_000
+const HOLD_RETRY_MS = 250
 
 export interface PortHandback {
   baudRate: number
@@ -74,6 +75,21 @@ export async function openWhenFree(port: SerialPort, fromPlugin: boolean): Promi
         throw error
       }
       await sleep(OPEN_RETRY_MS)
+    }
+  }
+}
+
+export async function probeWhileHeld<T>(
+  probe: () => Promise<T>,
+  port: SerialPort,
+  holdUntil: number | undefined
+): Promise<T> {
+  for (;;) {
+    try {
+      return await probe()
+    } catch (error) {
+      if (holdUntil === undefined || !port.isOpen || Date.now() >= holdUntil) throw error
+      await sleep(HOLD_RETRY_MS)
     }
   }
 }
