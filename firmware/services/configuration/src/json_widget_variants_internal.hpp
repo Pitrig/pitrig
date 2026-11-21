@@ -13,5 +13,7 @@ namespace pitrig::configuration::json::variants {
                                           ValidationFailure& failure);
 [[nodiscard]] bool parse_graph_widget(const cJSON* object, GraphWidgetConfiguration& config,
                                       ValidationFailure& failure);
+[[nodiscard]] bool parse_track_map_widget(const cJSON* object, TrackMapWidgetConfiguration& config,
+                                          ValidationFailure& failure);
 
 }

@@ -8,7 +8,8 @@ export {
   MAXIMUM_SHAPE_WIDGETS,
   MAXIMUM_SLOT_PAGES,
   MAXIMUM_SLOT_WIDGETS,
-  MAXIMUM_TEXT_WIDGETS
+  MAXIMUM_TEXT_WIDGETS,
+  MAXIMUM_TRACK_MAP_WIDGETS
 } from '@shared/configuration-schema'
 
 export type { WidgetSelection } from './editor/store'

@@ -157,6 +157,11 @@ namespace pitrig::configuration::validation {
                 parented(dashboard.slot_widgets[reference.index].frame) &&
                 validator.slot_widget(dashboard.slot_widgets[reference.index]);
         break;
+      case WidgetType::track_map:
+        valid = reference.index < dashboard.track_map_widget_count &&
+                parented(dashboard.track_map_widgets[reference.index].frame) &&
+                validator.track_map_widget(dashboard.track_map_widgets[reference.index]);
+        break;
     }
     if (!valid) {
       (void)reject(failure, ValidationError::invalid_widget, "widgets");

@@ -27,6 +27,7 @@ class Validator final {
   [[nodiscard]] bool graph_widget(const GraphWidgetConfiguration& config);
   [[nodiscard]] bool image_widget(const ImageWidgetConfiguration& config);
   [[nodiscard]] bool slot_widget(const SlotWidgetConfiguration& config);
+  [[nodiscard]] bool track_map_widget(const TrackMapWidgetConfiguration& config);
 
  private:
   [[nodiscard]] bool slot_page(const SlotPageConfiguration& config);

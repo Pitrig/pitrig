@@ -9,8 +9,6 @@ namespace pitrig::dashboard::graph_widget::plot {
 
 [[nodiscard]] std::int32_t line_reserve(std::uint16_t line_width_px);
 
-[[nodiscard]] std::int32_t corner_reserve(std::uint16_t radius_px, std::int32_t border_px);
-
 [[nodiscard]] float sample_y(std::int32_t plot_height, float fraction);
 
 inline constexpr float kSubPixel = 16.0F;

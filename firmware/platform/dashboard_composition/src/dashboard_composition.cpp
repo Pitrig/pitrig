@@ -84,7 +84,9 @@ void on_telemetry_updated(const events::Event&, void* const context) {
       dashboard.widgets.add(
           widget_descriptor<ValueWidgetOps<IndicatorWidgets>>(dashboard.indicator)) &&
       dashboard.widgets.add(widget_descriptor<ValueWidgetOps<GraphWidgets>>(dashboard.graph)) &&
-      dashboard.widgets.add(widget_descriptor<ValueWidgetOps<ImageWidgets>>(dashboard.image));
+      dashboard.widgets.add(widget_descriptor<ValueWidgetOps<ImageWidgets>>(dashboard.image)) &&
+      dashboard.widgets.add(
+          widget_descriptor<ValueWidgetOps<TrackMapWidgets>>(dashboard.track_map));
   lvgl_port_unlock();
   if (!registered) {
     log::error(kTag, "Failed to register dashboard widget types");
@@ -136,7 +138,8 @@ bool create(lv_display_t* const display,
             const telemetry::ITelemetryRegistry& telemetry_registry,
             const telemetry::ITelemetryReader& telemetry,
             const transport::ITransport& telemetry_transport,
-            value_smoothing::Service* const smoothing) {
+            value_smoothing::Service* const smoothing,
+            const track_map::Service* const track_map) {
   if (display == nullptr) {
     log::error(kTag, "Dashboard display is unavailable");
     return false;
@@ -167,6 +170,7 @@ bool create(lv_display_t* const display,
     storage->smoothing = smoothing;
   }
   dashboard_state.image.images = &dashboard_state.images;
+  dashboard_state.track_map.track_map = track_map;
   dashboard_state.shape.container_slots = dashboard_state.containers;
   dashboard_state.slot.page_slots = dashboard_state.pages;
 

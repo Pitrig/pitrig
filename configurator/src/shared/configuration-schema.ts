@@ -19,6 +19,7 @@ export const MAXIMUM_ARC_WIDGETS = 24
 export const MAXIMUM_INDICATOR_WIDGETS = 12
 export const MAXIMUM_GRAPH_WIDGETS = 6
 export const MAXIMUM_IMAGE_WIDGETS = 64
+export const MAXIMUM_TRACK_MAP_WIDGETS = 4
 export const MAXIMUM_INDICATOR_SEGMENTS = 16
 export const MINIMUM_BLINK_MS = 100
 export const MAXIMUM_BLINK_MS = 5000
@@ -156,8 +157,8 @@ export const SLOT_TRIGGER_VALUES: readonly SlotTrigger[] = ['none', 'value_chang
 export type WidgetParentKind = 'screen' | 'shape' | 'slot_page'
 export const WIDGET_PARENT_KIND_VALUES: readonly WidgetParentKind[] = ['screen', 'shape', 'slot_page']
 
-export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph' | 'image' | 'slot'
-export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph', 'image', 'slot']
+export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph' | 'image' | 'slot' | 'track_map'
+export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph', 'image', 'slot', 'track_map']
 
 export interface FieldRange {
   readonly key: string
@@ -173,6 +174,7 @@ export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
   indicator: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'center_angle_deg', minimum: 0, maximum: 359 }, { key: 'sector_deg', minimum: 1, maximum: 360 }, { key: 'thickness_px', minimum: 1, maximum: 65535 }, { key: 'radius_px', minimum: 1, maximum: 2048, zeroMeansOff: true }, { key: 'x_offset_px', minimum: -2048, maximum: 2048 }, { key: 'y_offset_px', minimum: -2048, maximum: 2048 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }],
   graph: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'point_count', minimum: 2, maximum: 128 }, { key: 'sample_interval_ms', minimum: 1, maximum: 65535 }, { key: 'line_width_px', minimum: 1, maximum: 65535 }],
   image: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'sprite_frame', minimum: 0, maximum: 64 }],
+  track_map: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'line_width_px', minimum: 1, maximum: 16 }, { key: 'car_size_px', minimum: 2, maximum: 32 }, { key: 'player_size_px', minimum: 2, maximum: 48 }, { key: 'rotation_deg', minimum: 0, maximum: 359 }, { key: 'refresh_ms', minimum: 20, maximum: 1000 }],
   shape: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
   slot: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'home_after_ms', minimum: 0, maximum: 600000 }],
   LedPart: [{ key: 'from', minimum: 0, maximum: 512 }, { key: 'count', minimum: 1, maximum: 512 }],
@@ -608,6 +610,47 @@ export interface ImageWidgetConfiguration {
   recolor_opa?: number
 }
 
+export interface TrackMapWidgetConfiguration {
+  type: 'track_map'
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  padding?: WidgetInsets
+  border?: WidgetBorder
+  title?: WidgetTitleStyle
+  background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
+  background_inset_px?: number
+  fill_corners?: FillCorners
+  action?: WidgetAction
+  condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
+  conditions?: WidgetCondition[]
+  line_color?: RgbColor
+  line_width_px?: number
+  sector_mark_color?: RgbColor
+  pit_lane_color?: RgbColor
+  finish_line_color?: RgbColor
+  car_color?: RgbColor
+  car_size_px?: number
+  player_color?: RgbColor
+  player_size_px?: number
+  player_border_color?: RgbColor
+  ahead_color?: RgbColor
+  behind_color?: RgbColor
+  lapping_color?: RgbColor
+  lapped_color?: RgbColor
+  pit_car_color?: RgbColor
+  class_1_color?: RgbColor
+  class_2_color?: RgbColor
+  class_3_color?: RgbColor
+  class_4_color?: RgbColor
+  fit_rotation?: boolean
+  rotation_deg?: number
+  refresh_ms?: number
+}
+
 export interface ShapeWidgetConfiguration {
   type: 'shape'
   id?: string
@@ -768,9 +811,9 @@ export const CONFIGURATION_DOCUMENTS: Record<
   protocol: { id: 'protocol', sections: ['telemetry_transport'], keys: ['board', 'telemetry_transport'], maxPayload: 1024, rebootRequired: true },
 }
 
-export type WidgetConfiguration = ArcWidgetConfiguration | BarWidgetConfiguration | GraphWidgetConfiguration | ImageWidgetConfiguration | IndicatorWidgetConfiguration | ShapeWidgetConfiguration | SlotWidgetConfiguration | TextWidgetConfiguration
+export type WidgetConfiguration = ArcWidgetConfiguration | BarWidgetConfiguration | GraphWidgetConfiguration | ImageWidgetConfiguration | IndicatorWidgetConfiguration | ShapeWidgetConfiguration | SlotWidgetConfiguration | TextWidgetConfiguration | TrackMapWidgetConfiguration
 
-export const WIDGET_TYPES: readonly string[] = ['text', 'bar', 'arc', 'indicator', 'graph', 'image', 'shape', 'slot']
+export const WIDGET_TYPES: readonly string[] = ['text', 'bar', 'arc', 'indicator', 'graph', 'image', 'track_map', 'shape', 'slot']
 
 export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   BoardConfiguration: ['board'],
@@ -807,6 +850,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   GraphTraceConfiguration: ['source', 'minimum', 'maximum', 'line_color'],
   GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px', 'traces'],
   ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'sprite_frame', 'sprite_frame_source', 'recolor', 'recolor_opa'],
+  TrackMapWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'line_color', 'line_width_px', 'sector_mark_color', 'pit_lane_color', 'finish_line_color', 'car_color', 'car_size_px', 'player_color', 'player_size_px', 'player_border_color', 'ahead_color', 'behind_color', 'lapping_color', 'lapped_color', 'pit_car_color', 'class_1_color', 'class_2_color', 'class_3_color', 'class_4_color', 'fit_rotation', 'rotation_deg', 'refresh_ms'],
   ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind', 'clip_children', 'widgets'],
   SlotPageConfiguration: ['in_loop', 'trigger', 'source', 'duration_ms', 'dismiss', 'dismiss_ms', 'conditions', 'widgets'],
   SlotWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'clip_children', 'home_after_ms', 'pages'],
@@ -823,7 +867,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ApplicationConfiguration: ['board', 'hardware', 'inputs', 'telemetry_transport', 'dashboard'],
 }
 
-export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', arc: 'ArcWidgetConfiguration', indicator: 'IndicatorWidgetConfiguration', graph: 'GraphWidgetConfiguration', image: 'ImageWidgetConfiguration', shape: 'ShapeWidgetConfiguration', slot: 'SlotWidgetConfiguration' }
+export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', arc: 'ArcWidgetConfiguration', indicator: 'IndicatorWidgetConfiguration', graph: 'GraphWidgetConfiguration', image: 'ImageWidgetConfiguration', track_map: 'TrackMapWidgetConfiguration', shape: 'ShapeWidgetConfiguration', slot: 'SlotWidgetConfiguration' }
 
 export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {
   ShapeWidgetConfiguration: ['widgets'],
@@ -849,6 +893,7 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   GraphTraceConfiguration: { source: 'ValueSourceConfiguration' },
   GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', traces: 'GraphTraceConfiguration' },
   ImageWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', sprite_frame_source: 'ValueSourceConfiguration' },
+  TrackMapWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
   ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
   SlotPageConfiguration: { source: 'ValueSourceConfiguration', conditions: 'ValueCondition' },
   SlotWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', pages: 'SlotPageConfiguration' },
@@ -884,6 +929,7 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'GraphWidgetConfiguration.id': 16,
   'ImageWidgetConfiguration.id': 16,
   'ImageWidgetConfiguration.image': 32,
+  'TrackMapWidgetConfiguration.id': 16,
   'ShapeWidgetConfiguration.id': 16,
   'SlotWidgetConfiguration.id': 16,
   'ScreenConfiguration.id': 16,

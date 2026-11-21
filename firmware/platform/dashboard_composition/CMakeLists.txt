@@ -9,6 +9,6 @@ idf_component_register(
   INCLUDE_DIRS "include"
   PRIV_REQUIRES configuration_contract controls dashboard display esp_lvgl_port event_bus
                 font_assets image_assets logger lvgl__lvgl module_composition
-                overlays pitrig_config telemetry)
+                overlays pitrig_config telemetry track_map)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

@@ -1,6 +1,7 @@
 import {
   AlignLeft,
   Box,
+  Car,
   ChartLine,
   Database,
   Frame,
@@ -14,6 +15,8 @@ import {
   MonitorPlay,
   MousePointerClick,
   RectangleHorizontal,
+  RotateCw,
+  Route,
   Rows3,
   Ruler,
   Spline,
@@ -21,6 +24,7 @@ import {
   SquareStack,
   Tag,
   Type,
+  Users,
   Zap
 } from 'lucide-react'
 import type { WidgetConfiguration } from '@shared/configuration-schema'
@@ -33,7 +37,8 @@ export const WIDGET_ICONS: Record<WidgetConfiguration['type'], LucideIcon> = {
   indicator: Lightbulb,
   graph: ChartLine,
   image: Image,
-  slot: SquareStack
+  slot: SquareStack,
+  track_map: Route
 }
 
 export const GROUP_ICONS = {
@@ -41,6 +46,8 @@ export const GROUP_ICONS = {
   arc: Gauge,
   bar: RectangleHorizontal,
   box: Frame,
+  cars: Car,
+  classes: Users,
   conditions: Zap,
   container: Box,
   dashboard: LayoutGrid,
@@ -49,6 +56,7 @@ export const GROUP_ICONS = {
   graph: Spline,
   image: Image,
   pages: Layers,
+  rotation: RotateCw,
   screen: Monitor,
   screenChanges: MonitorPlay,
   segments: Rows3,
@@ -56,5 +64,6 @@ export const GROUP_ICONS = {
   slot: SquareStack,
   strip: Lightbulb,
   title: Tag,
+  track: Route,
   value: AlignLeft
 } satisfies Record<string, LucideIcon>
