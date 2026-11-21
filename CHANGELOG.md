@@ -49,7 +49,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 **Fixed**
 
 - **SimHub plugin.** A cut ACC lap shows INVALID as the last lap.
-- **Configurator.** After a board restart the configurator takes the serial port back at once, so SimHub's port scan cannot leave a board on its USB-Serial-JTAG port in download mode.
+- **Configurator.** A board on a USB-UART bridge or the USB-Serial-JTAG port reconnects as soon as it has restarted.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 

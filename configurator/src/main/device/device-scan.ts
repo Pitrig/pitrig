@@ -7,7 +7,7 @@ import {
 } from '../../shared/device'
 import { DeviceServiceError, failure, toDeviceError } from './device-errors'
 import { samePort } from './port-leases'
-import { serialIdentity, type PortRecord } from './port-registry'
+import { dropsDuringRestart, serialIdentity, type PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import type { ConnectionManager } from './device-connection'
 import { t } from '@shared/ui-text'
@@ -138,34 +138,36 @@ async function attemptReconnect(
       return undefined
     }
   }
-  const gone = Date.now() + RECONNECT_GONE_MS
-  while (Date.now() < gone && (await find())) {
-    manager.ensureCurrent(token)
-    await delay(RECONNECT_POLL_MS)
-  }
+  let record = await find()
   manager.ensureCurrent(token)
+  if (record && dropsDuringRestart(record.summary)) {
+    const gone = Date.now() + RECONNECT_GONE_MS
+    while (record && Date.now() < gone) {
+      await delay(RECONNECT_POLL_MS)
+      manager.ensureCurrent(token)
+      record = await find()
+      manager.ensureCurrent(token)
+    }
+  }
 
   const deadline = Date.now() + RECONNECT_TIMEOUT_MS
   let attempts = 0
   while (Date.now() < deadline && attempts < RECONNECT_MAXIMUM_ATTEMPTS) {
-    const record = await find()
-    manager.ensureCurrent(token)
-    if (!record) {
-      await delay(RECONNECT_POLL_MS)
+    if (record) {
+      attempts += 1
+      const connected = await manager.openWithToken(
+        record.summary.id,
+        connection.baudRate,
+        true,
+        token,
+        Date.now() + RECONNECT_HOLD_MS
+      )
+      if (connected.ok) return connected
       manager.ensureCurrent(token)
-      continue
     }
-    attempts += 1
-    const connected = await manager.openWithToken(
-      record.summary.id,
-      connection.baudRate,
-      true,
-      token,
-      Date.now() + RECONNECT_HOLD_MS
-    )
-    if (connected.ok) return connected
+    await delay(record ? RECONNECT_RETRY_MS : RECONNECT_POLL_MS)
     manager.ensureCurrent(token)
-    await delay(RECONNECT_RETRY_MS)
+    record = await find()
     manager.ensureCurrent(token)
   }
   const error: DeviceError = {
