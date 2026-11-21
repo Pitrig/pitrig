@@ -6,8 +6,10 @@ namespace Pitrig.SimHub
         private const string IracingRepair = "DataCorePlugin.GameRawData.Telemetry.PitRepairLeft";
         private const string IracingOptionalRepair = "DataCorePlugin.GameRawData.Telemetry.PitOptRepairLeft";
         private const double Step = 0.5;
+        private const double QuietMs = 1000;
 
         private double? last;
+        private double? lastRise;
 
         public uint Count { get; private set; }
 
@@ -15,7 +17,11 @@ namespace Pitrig.SimHub
         {
             var total = Total(state);
             if (total == null) return;
-            if (last != null && total.Value >= last.Value + Step) Count++;
+            if (last != null && total.Value >= last.Value + Step)
+            {
+                if (lastRise == null || state.Now - lastRise.Value >= QuietMs) Count++;
+                lastRise = state.Now;
+            }
             last = total;
         }
 

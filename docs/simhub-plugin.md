@@ -136,7 +136,8 @@ iRacing's own. ACC reports no repair time, so the plugin estimates one at 0.284 
 a damage unit, per zone and for the whole bodywork, which ACC's fifth zone sums;
 the factor is a community figure still to be checked against the pit menu. The hit
 counter grows whenever the zones, SimHub's damage maximum or iRacing's repair time
-rise by half a unit or more, and never goes back, so only its changes mean anything.
+rise by half a unit or more, counts rises less than a second apart as one hit, and
+never goes back, so only its changes mean anything.
 Brake pad and disc life are ACC's and AC EVO's thickness against new parts, 29 mm
 and 32 mm, so 0 % is worn through; neither game reports a worn limit, AC EVO
 reports metres, and both read 0 until the car is live.

@@ -201,7 +201,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.damage.rear_repair_time` | `RB` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the rear bodywork: ACC's rear damage at 0.284 s a unit; empty for other games. |
 | `vehicle.damage.left_repair_time` | `RL` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the left bodywork: ACC's left damage at 0.284 s a unit; empty for other games. |
 | `vehicle.damage.right_repair_time` | `RR` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the right bodywork: ACC's right damage at 0.284 s a unit; empty for other games. |
-| `vehicle.damage.hits` | `DH` | `uint32` | `count` | `changes` | `computed` | any | Hits to the car since SimHub started: one more at every rise in body damage or repair time, so a dashboard can react to each hit; its value means nothing else. |
+| `vehicle.damage.hits` | `DH` | `uint32` | `count` | `changes` | `computed` | any | Hits to the car since SimHub started: one more at every rise in body damage or repair time, rises less than a second apart counting as one, so a dashboard can react to each hit; its value means nothing else. |
 | `vehicle.damage.suspension` | `2g` | `float32` | `percent` | `slow` | `game_specific` | none | Overall suspension damage level. |
 | `vehicle.damage.transmission` | `2h` | `float32` | `percent` | `slow` | `game_specific` | none | Overall transmission damage level. |
 ## Flags and messages
