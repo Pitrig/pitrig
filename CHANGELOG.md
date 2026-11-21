@@ -38,6 +38,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Development.** A Guition JC1060P470C build option moves the link to the top USB port when native USB has no PC.
 - **Display boards, Configurator.** Track map widget: the track being driven with every car on it, the sectors, the pit lane and the finish line.
 - **SimHub plugin.** Sends the track map from SimHub's own map of the track, with the pit lane learnt from the cars that drive it.
+- **Configurator.** Endurance has a second screen with the track map beside the centre column; swipe to it.
 
 **Changed**
 
