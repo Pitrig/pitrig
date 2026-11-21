@@ -9,6 +9,7 @@
 #include "tinyusb_cdc_acm.h"
 #include "tinyusb_default_config.h"
 #include "transport_watchdog.hpp"
+#include "tusb.h"
 #include "usb_descriptors.hpp"
 
 namespace pitrig::transport {
@@ -171,6 +172,8 @@ bool UsbCdcTransport::write(const std::span<const std::uint8_t> data) {
   xSemaphoreGive(write_mutex_);
   return complete;
 }
+
+bool UsbCdcTransport::host_connected() const { return started_ && tud_mounted(); }
 
 void UsbCdcTransport::receive_callback(const int interface, cdcacm_event_t* const event) {
   (void)interface;

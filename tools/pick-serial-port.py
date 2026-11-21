@@ -15,7 +15,7 @@ import sys
 
 APPLICATION = "Pitrig application link — telemetry and @PR:, not a flashing port"
 KNOWN = {
-    "303a:1001": "USB JTAG/serial debug unit — flashing and the ESP console",
+    "303a:1001": "USB JTAG/serial unit — flashing, the console, a P4 link without native USB",
     "303a:4001": APPLICATION,
     "1a86:7523": "CH340 bridge — flashing and the console",
     "1a86:55d4": "CH9102 bridge — flashing and the console",

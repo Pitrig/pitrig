@@ -42,6 +42,7 @@ export async function scanForDevice(
       matches.push({ record, baudRate: held.baudRate })
       continue
     }
+    if (record.fallback && matches.length > 0) continue
     for (const baudRate of AUTOMATIC_BAUD_RATES) {
       connection.ensureCurrent(token)
       attempt += 1
