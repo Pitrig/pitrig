@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 315. Static limit: 350.
+Catalog version: 1. Fields: 324. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -201,6 +201,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.damage.rear_repair_time` | `RB` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the rear bodywork: ACC's rear damage at 0.284 s a unit; empty for other games. |
 | `vehicle.damage.left_repair_time` | `RL` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the left bodywork: ACC's left damage at 0.284 s a unit; empty for other games. |
 | `vehicle.damage.right_repair_time` | `RR` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the right bodywork: ACC's right damage at 0.284 s a unit; empty for other games. |
+| `vehicle.damage.hits` | `DH` | `uint32` | `count` | `changes` | `computed` | any | Hits to the car since SimHub started: one more at every rise in body damage or repair time, so a dashboard can react to each hit; its value means nothing else. |
 | `vehicle.damage.suspension` | `2g` | `float32` | `percent` | `slow` | `game_specific` | none | Overall suspension damage level. |
 | `vehicle.damage.transmission` | `2h` | `float32` | `percent` | `slow` | `game_specific` | none | Overall transmission damage level. |
 ## Flags and messages
@@ -385,3 +386,15 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `tyre.front_right.temperature_working` | `6m` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the front-right tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
 | `tyre.rear_left.temperature_working` | `6n` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the rear-left tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
 | `tyre.rear_right.temperature_working` | `6o` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the rear-right tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
+## Brakes and suspension
+
+| Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
+|---|---:|---|---|---|---|---|---|
+| `brake.front_left.pad_life` | `6p` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the front-left wheel: 100 when new, 0 when worn through. |
+| `brake.front_right.pad_life` | `6q` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the front-right wheel: 100 when new, 0 when worn through. |
+| `brake.rear_left.pad_life` | `6r` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the rear-left wheel: 100 when new, 0 when worn through. |
+| `brake.rear_right.pad_life` | `6s` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the rear-right wheel: 100 when new, 0 when worn through. |
+| `brake.front_left.disc_life` | `6t` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the front-left wheel: 100 when new, 0 when worn through. |
+| `brake.front_right.disc_life` | `6u` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the front-right wheel: 100 when new, 0 when worn through. |
+| `brake.rear_left.disc_life` | `6v` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the rear-left wheel: 100 when new, 0 when worn through. |
+| `brake.rear_right.disc_life` | `6w` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the rear-right wheel: 100 when new, 0 when worn through. |

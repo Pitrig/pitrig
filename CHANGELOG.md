@@ -32,6 +32,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** The field picker shows which fields AC EVO sends.
 - **All boards, SimHub plugin.** New fields: standings around the player, overall and in the class, and the optimal lap.
 - **SimHub plugin.** LMU's laps left on virtual energy.
+- **All boards, SimHub plugin.** New fields: brake pad and disc life in ACC and AC EVO, and a hit counter for damage.
 - **Configurator.** New starter dashboard: Endurance Clean, Endurance without on-screen shift lights.
 - **Configurator.** Endurance blocks switch to standings, best laps, a hybrid page and a damage drawing of the car; race control covers the delta.
 - **Development.** A Guition JC1060P470C build option moves the link to the top USB port when native USB has no PC.

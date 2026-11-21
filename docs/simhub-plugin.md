@@ -134,7 +134,13 @@ type is SimHub's name in capitals without the game's initials. Damage zones read
 as SimHub reports them, units rather than percent in ACC, and the repair time is
 iRacing's own. ACC reports no repair time, so the plugin estimates one at 0.284 s
 a damage unit, per zone and for the whole bodywork, which ACC's fifth zone sums;
-the factor is a community figure still to be checked against the pit menu. The plugin's tyre,
+the factor is a community figure still to be checked against the pit menu. The hit
+counter grows whenever the zones, SimHub's damage maximum or iRacing's repair time
+rise by half a unit or more, and never goes back, so only its changes mean anything.
+Brake pad and disc life are ACC's and AC EVO's thickness against new parts, 29 mm
+and 32 mm, so 0 % is worn through; neither game reports a worn limit, AC EVO
+reports metres, and both read 0 until the car is live.
+The plugin's tyre,
 pressure and brake averages take a sample every three seconds outside the pits,
 keep as many as the chosen laps hold at the best lap over three seconds, and last
 until SimHub restarts; LMU's tyre temperature blends the carcass and inner layers.

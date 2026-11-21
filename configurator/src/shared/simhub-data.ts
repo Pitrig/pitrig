@@ -165,5 +165,13 @@ export const SIMHUB_PROPERTIES: Readonly<Record<string, string>> = {
   "suspension.front_left.damage": "DataCorePlugin.GameRawData.Physics.suspensionDamage01",
   "suspension.front_right.damage": "DataCorePlugin.GameRawData.Physics.suspensionDamage02",
   "suspension.rear_left.damage": "DataCorePlugin.GameRawData.Physics.suspensionDamage03",
-  "suspension.rear_right.damage": "DataCorePlugin.GameRawData.Physics.suspensionDamage04"
+  "suspension.rear_right.damage": "DataCorePlugin.GameRawData.Physics.suspensionDamage04",
+  "brake.front_left.pad_life": "DataCorePlugin.GameRawData.Physics.padLife01",
+  "brake.front_right.pad_life": "DataCorePlugin.GameRawData.Physics.padLife02",
+  "brake.rear_left.pad_life": "DataCorePlugin.GameRawData.Physics.padLife03",
+  "brake.rear_right.pad_life": "DataCorePlugin.GameRawData.Physics.padLife04",
+  "brake.front_left.disc_life": "DataCorePlugin.GameRawData.Physics.discLife01",
+  "brake.front_right.disc_life": "DataCorePlugin.GameRawData.Physics.discLife02",
+  "brake.rear_left.disc_life": "DataCorePlugin.GameRawData.Physics.discLife03",
+  "brake.rear_right.disc_life": "DataCorePlugin.GameRawData.Physics.discLife04"
 }

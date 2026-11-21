@@ -53,6 +53,8 @@ namespace Pitrig.SimHub
 
         public EnergyTracker Energy { get; } = new EnergyTracker();
 
+        public DamageHits Hits { get; } = new DamageHits();
+
         public void Reset()
         {
             session = null;
@@ -98,6 +100,7 @@ namespace Pitrig.SimHub
             TrackBestLap();
             if (Status.Flag_Checkered > 0) CheckeredShown = true;
             Validity.Update(this);
+            Hits.Update(this);
             var inPit = Status.IsInPitLane > 0 || Status.IsInPit > 0;
             TrackCleanLap(inPit);
             Energy.Update(this, lapCompleted, inPit);

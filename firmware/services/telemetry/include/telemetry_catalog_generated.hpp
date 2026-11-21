@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 315;
+inline constexpr std::size_t kFieldCount = 324;
 inline constexpr std::size_t kMaximumFieldCount = 350;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -174,6 +174,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"vehicle.damage.rear_repair_time", ValueType::uint32},
     {"vehicle.damage.left_repair_time", ValueType::uint32},
     {"vehicle.damage.right_repair_time", ValueType::uint32},
+    {"vehicle.damage.hits", ValueType::uint32},
     {"vehicle.damage.suspension", ValueType::float32},
     {"vehicle.damage.transmission", ValueType::float32},
     {"session.flag.current", ValueType::text},
@@ -322,6 +323,14 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"tyre.front_right.temperature_working", ValueType::float32},
     {"tyre.rear_left.temperature_working", ValueType::float32},
     {"tyre.rear_right.temperature_working", ValueType::float32},
+    {"brake.front_left.pad_life", ValueType::float32},
+    {"brake.front_right.pad_life", ValueType::float32},
+    {"brake.rear_left.pad_life", ValueType::float32},
+    {"brake.rear_right.pad_life", ValueType::float32},
+    {"brake.front_left.disc_life", ValueType::float32},
+    {"brake.front_right.disc_life", ValueType::float32},
+    {"brake.rear_left.disc_life", ValueType::float32},
+    {"brake.rear_right.disc_life", ValueType::float32},
 }};
 
 static_assert(kFieldCount <= kMaximumFieldCount);

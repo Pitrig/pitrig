@@ -57,6 +57,8 @@ namespace Pitrig.SimHub
                     return ConditionComputations.ZoneRepairTime(state, 2);
                 case FieldComputation.DamageRepairRight:
                     return ConditionComputations.ZoneRepairTime(state, 3);
+                case FieldComputation.DamageHits:
+                    return (double)state.Hits.Count;
                 case FieldComputation.TrackCondition:
                     return ConditionComputations.TrackCondition(state);
                 case FieldComputation.GearNumber:
