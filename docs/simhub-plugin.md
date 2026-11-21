@@ -29,7 +29,10 @@ from SimHub's start so that a running configurator can claim its board first. A
 port behind a USB-UART bridge (`1A86:7523`, `1A86:55D4`, `10C4:EA60`) is opened
 only once the configurator has handed it back as a Pitrig board; the plugin
 remembers it with its baud rate. A port that does not answer `@PR:INFO` is left
-alone until it disappears and comes back.
+alone until it disappears and comes back. SimHub's own Arduino scan skips every
+port the plugin feeds, the configurator has claimed or the plugin remembers, and
+its log names Pitrig as the reason, so it cannot reset such a board into the ROM
+download mode.
 
 On a board that answers, the plugin reads the dashboard and modules documents
 — only the modules document after a hand-back that names the fields — and sends
@@ -224,8 +227,8 @@ version it does not know drops the datagram.
 ## Building
 
 The project targets .NET Framework 4.8 and references `GameReaderCommon.dll`,
-`SimHub.Plugins.dll`, `SimHub.Logging.dll` and `log4net.dll` from a SimHub
-installation:
+`SimHub.Plugins.dll`, `SimHub.Logging.dll`, `SerialDash.dll` and `log4net.dll`
+from a SimHub installation:
 
 ```powershell
 cd simhub\plugin\Pitrig.SimHub

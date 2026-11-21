@@ -135,6 +135,19 @@ namespace Pitrig.SimHub
             Measure(started, now);
         }
 
+        public bool IsPitrigPort(string port)
+        {
+            if (string.IsNullOrEmpty(port)) return false;
+            return link.HeldPorts().Any(held => SamePort(held, port)) ||
+                   boards.Describe().Any(board => SamePort(board.Port, port)) ||
+                   KnownPorts().Any(known => SamePort(known.Name, port));
+        }
+
+        private static bool SamePort(string left, string right)
+        {
+            return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        }
+
         private List<KnownPort> KnownPorts()
         {
             lock (settingsGate) return settings.KnownPorts?.ToList() ?? new List<KnownPort>();

@@ -16,6 +16,7 @@ namespace Pitrig.SimHub
         private static readonly Lazy<ImageSource> Icon = new Lazy<ImageSource>(Artwork.MenuIcon);
 
         private InputHooks hooks;
+        private ScanGuard guard;
 
         public PluginManager PluginManager { get; set; }
 
@@ -31,12 +32,15 @@ namespace Pitrig.SimHub
         {
             Settings = this.ReadCommonSettings(SettingsName, () => new PluginSettings());
             Hub.Attach(this);
+            guard = new ScanGuard(Hub.IsPitrigPort);
+            guard.Attach();
             hooks = new InputHooks(Hub.Inputs);
             hooks.Attach(this, pluginManager);
         }
 
         public void End(PluginManager pluginManager)
         {
+            guard?.Detach();
             hooks?.Detach();
             SaveSettings();
             Hub.Detach(this);

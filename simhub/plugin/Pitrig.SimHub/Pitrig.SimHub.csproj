@@ -41,6 +41,10 @@
       <HintPath>$(SimHubPath)\SimHub.Logging.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="SerialDash">
+      <HintPath>$(SimHubPath)\SerialDash.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="log4net">
       <HintPath>$(SimHubPath)\log4net.dll</HintPath>
       <Private>false</Private>

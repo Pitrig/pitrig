@@ -104,7 +104,8 @@ JC1060P470C's link `UsbFallbackTransport`: native USB, unless the
 USB-Serial-JTAG port has a host and native USB does not enumerate within two
 seconds of start — then `transport/usb_serial_jtag`, in the same storage slot,
 because the P4 has almost no internal RAM to spare (ADR 0029); SimHub's port scan
-can still park such a board in download mode unless a host holds the port. Without the option `transport/usb_serial_jtag` registers no sources. `led/ws2812_rmt`
+would park such a board in download mode, so the plugin keeps the scan off every
+Pitrig port through SimHub's `CanBeScanned` hook. Without the option `transport/usb_serial_jtag` registers no sources. `led/ws2812_rmt`
 drives one RMT channel per output, which is why four outputs is the ceiling on
 both chips.
 

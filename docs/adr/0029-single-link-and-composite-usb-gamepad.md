@@ -48,14 +48,16 @@ never waits. The two transports share one storage slot, because the P4 has
 almost no internal RAM to spare, the option moves the ring buffer's ISR
 functions to flash for the same reason, and the choice holds until the next
 restart. On that port ESP logs go quiet at the end of startup, as on a UART
-board. SimHub's Arduino scan opens a port about three seconds after it appears
-and toggles DTR and RTS, which leaves the board waiting in the ROM download mode.
-The build sets the controller's bit that refuses a chip reset from the serial
-channel, but on the rig the scan still did it, so what keeps the board running is
-a host on the port: the plugin while it feeds the board, and the configurator,
-which takes the port back as soon as it returns after a restart and holds it
-until the board answers. An update goes over OTA, or esptool runs with
-`--before no-reset` on a board put into download mode by hand.
+board. SimHub's Arduino scan opens a free port with DTR and RTS raised, which
+leaves the board waiting in the ROM download mode; the controller's bit that
+refuses a chip reset from the serial channel, which the build sets, does not stop
+it. So the plugin keeps the scan off every port it knows as a Pitrig board — one
+it feeds, one the configurator has claimed, one it remembers — through the
+`CanBeScanned` event of SimHub's `ComportScanner`, the hook SimHub's own plugins
+use, and the scan never opens such a port. Without the plugin the configurator
+only narrows the gap: after a restart it opens a port that stays listed at once
+and holds it until the board answers. An update goes over OTA, or esptool runs
+with `--before no-reset` on a board put into download mode by hand.
 
 **A composite USB device.** On a board with native USB — T-Display-S3,
 JC1060P470C and the ESP32-S3-DevKitC-1 — the `usb_cdc` driver's descriptor gains
