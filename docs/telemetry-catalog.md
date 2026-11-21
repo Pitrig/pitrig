@@ -17,7 +17,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.handbrake` | `03` | `float32` | `percent` | `fast` | `optional` | any | Handbrake position. |
 | `vehicle.steering` | `04` | `float32` | `normalized` | `fast` | `game_specific` | ACC, AC, LMU | Normalized steering position. |
 | `vehicle.steering_angle` | `05` | `float32` | `degree` | `fast` | `game_specific` | iRacing | Steering wheel angle. |
-| `vehicle.brake_bias` | `BB` | `text` | `source` | `normal` | `optional` | ACC, AC, iRacing, LMU | Front-to-rear brake bias, with iRacing's fine adjustment added, formatted by the telemetry source. |
+| `vehicle.brake_bias` | `BB` | `text` | `source` | `normal` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Front-to-rear brake bias, with iRacing's fine adjustment added, formatted by the telemetry source. |
 ## Engine
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
@@ -29,7 +29,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `engine.shift_percent` | `5y` | `float32` | `percent` | `fast` | `computed` | any | Engine speed as a percentage of the current gear's shift point. |
 | `engine.shift_progress` | `SP` | `float32` | `percent` | `fast` | `computed` | any | How far the current gear has gone from the car's first shift light to its full shift-light bar. |
 | `engine.redline_reached` | `5z` | `boolean` | `boolean` | `fast` | `computed` | any | Whether engine speed has reached the current gear's shift point. |
-| `engine.running` | `09` | `boolean` | `boolean` | `normal` | `optional` | ACC, AC | Whether the engine is running. |
+| `engine.running` | `09` | `boolean` | `boolean` | `normal` | `optional` | ACC, AC, AC EVO | Whether the engine is running. |
 | `engine.ignition` | `0a` | `boolean` | `boolean` | `normal` | `optional` | ACC, AC | Whether ignition is enabled. |
 | `engine.starter` | `0b` | `boolean` | `boolean` | `normal` | `game_specific` | ACC, LMU | Whether the starter is active. |
 | `engine.water_temperature` | `0c` | `float32` | `celsius` | `slow` | `optional` | any | Engine coolant temperature. |
@@ -132,11 +132,11 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
 |---|---:|---|---|---|---|---|---|
-| `vehicle.aids.traction_control_level` | `T` | `text` | `source` | `normal` | `optional` | ACC, AC, iRacing, LMU | Configured traction-control level. |
-| `vehicle.aids.traction_control_cut` | `TC` | `text` | `source` | `changes` | `game_specific` | ACC, iRacing, LMU | Second traction-control setting: TC cut in ACC and LMU, the second TC knob in iRacing. |
-| `vehicle.aids.traction_control_active` | `20` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, LMU | Whether traction control is intervening. |
-| `vehicle.aids.abs_level` | `A` | `text` | `source` | `normal` | `optional` | ACC, AC, iRacing, LMU | Configured ABS level. |
-| `vehicle.aids.abs_active` | `21` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, LMU | Whether ABS is intervening. |
+| `vehicle.aids.traction_control_level` | `T` | `text` | `source` | `normal` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Configured traction-control level. |
+| `vehicle.aids.traction_control_cut` | `TC` | `text` | `source` | `changes` | `game_specific` | ACC, AC EVO, iRacing, LMU | Second traction-control setting: TC cut in ACC, AC EVO and LMU, the second TC knob in iRacing. |
+| `vehicle.aids.traction_control_active` | `20` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, AC EVO, LMU | Whether traction control is intervening. |
+| `vehicle.aids.abs_level` | `A` | `text` | `source` | `normal` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Configured ABS level. |
+| `vehicle.aids.abs_active` | `21` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, AC EVO, LMU | Whether ABS is intervening. |
 | `vehicle.aids.stability_control` | `22` | `text` | `source` | `normal` | `game_specific` | none | Configured stability-control level. |
 | `vehicle.pit_limiter.enabled` | `23` | `boolean` | `boolean` | `fast` | `common` | any | Whether the pit limiter is enabled. |
 | `vehicle.in_pit_lane` | `24` | `boolean` | `boolean` | `normal` | `common` | any | Whether the vehicle is in the pit lane. |
@@ -148,11 +148,11 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.push_to_pass.active` | `2a` | `boolean` | `boolean` | `fast` | `optional` | any | Whether push-to-pass is active. |
 | `vehicle.headlights` | `2b` | `text` | `source` | `changes` | `game_specific` | ACC, LMU | Headlight state. |
 | `vehicle.wipers` | `2c` | `text` | `source` | `changes` | `game_specific` | ACC | Wiper mode. |
-| `vehicle.lights.beam` | `HL` | `uint32` | `position` | `changes` | `game_specific` | ACC, LMU | Headlights as a number: 0 off, 1 low beam, 2 high beam; LMU reports only 0 or 1. |
-| `vehicle.lights.turn_left` | `TL` | `boolean` | `boolean` | `changes` | `game_specific` | ACC | Whether the left direction indicator is on. |
-| `vehicle.lights.turn_right` | `TR` | `boolean` | `boolean` | `changes` | `game_specific` | ACC | Whether the right direction indicator is on. |
-| `vehicle.lights.rain` | `RN` | `boolean` | `boolean` | `changes` | `game_specific` | ACC | Whether the rear rain light is on. |
-| `vehicle.wiper_level` | `WP` | `uint32` | `position` | `changes` | `game_specific` | ACC | Wiper speed as a number: 0 off, then the game's steps upward; ACC goes to 3. |
+| `vehicle.lights.beam` | `HL` | `uint32` | `position` | `changes` | `game_specific` | ACC, AC EVO, LMU | Headlights as a number: 0 off, 1 low beam, 2 high beam; LMU reports only 0 or 1. |
+| `vehicle.lights.turn_left` | `TL` | `boolean` | `boolean` | `changes` | `game_specific` | ACC, AC EVO | Whether the left direction indicator is on. |
+| `vehicle.lights.turn_right` | `TR` | `boolean` | `boolean` | `changes` | `game_specific` | ACC, AC EVO | Whether the right direction indicator is on. |
+| `vehicle.lights.rain` | `RN` | `boolean` | `boolean` | `changes` | `game_specific` | ACC, AC EVO | Whether the rear rain light is on. |
+| `vehicle.wiper_level` | `WP` | `uint32` | `position` | `changes` | `game_specific` | ACC, AC EVO | Wiper speed as a number: 0 off, then the game's steps upward; ACC goes to 3, AC EVO to 4. |
 | `vehicle.horn` | `2d` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether the horn is active. |
 | `vehicle.speed_limiter` | `2e` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether a non-pit speed limiter is active. |
 | `vehicle.damage.aero` | `2f` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC, LMU | Aerodynamic damage level. |
@@ -195,10 +195,10 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `track.name` | `2z` | `text` | `source` | `changes` | `common` | any | Track name. |
 | `track.configuration` | `30` | `text` | `source` | `changes` | `optional` | any | Track configuration or layout. |
 | `track.length` | `31` | `float32` | `meter` | `changes` | `common` | any | Track lap length. |
-| `track.temperature` | `32` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, iRacing, LMU | Track surface temperature. |
+| `track.temperature` | `32` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Track surface temperature. |
 | `track.wetness` | `33` | `float32` | `percent` | `slow` | `game_specific` | ACC, iRacing, LMU | Track wetness level. |
 | `track.condition` | `TK` | `text` | `source` | `slow` | `game_specific` | ACC, iRacing, LMU | Track condition in three letters, such as GRN, OPT, DMP or WET. |
-| `environment.air_temperature` | `34` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, iRacing, LMU | Ambient air temperature. |
+| `environment.air_temperature` | `34` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Ambient air temperature. |
 | `environment.rain_level` | `35` | `float32` | `percent` | `slow` | `game_specific` | ACC, iRacing, LMU | Rain intensity. |
 | `environment.wind_speed` | `36` | `float32` | `meter_per_second` | `slow` | `game_specific` | ACC, iRacing | Wind speed. |
 | `environment.wind_direction` | `37` | `float32` | `degree` | `slow` | `game_specific` | ACC, iRacing | Wind direction. |

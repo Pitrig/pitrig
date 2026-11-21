@@ -16,14 +16,18 @@ those fields never carried a value in any game.
 ## Decision
 
 **A mapping names its games.** `games` in `telemetry/simhub_generic_mappings.json`
-lists which of the tracked games — ACC, AC, iRacing and LMU, each with its
+lists which of the tracked games — ACC, AC, AC EVO, iRacing and LMU, each with its
 SimHub game code in the top-level `games` table — send the field. `true` means
 the generic source works there; an object gives that game's raw property
-(arrays flattened as `Name01`…, wheels through `{index}` and `{corner}`) and at
-most one transform: a `scale`, a `values` table with an optional `default`, a
-`bit` of a bitfield, or a `clock` that turns seconds of the day into `HH:MM`. A
-field no tracked game sends lists none and keeps its placeholder, and no
-mapping names a generic property that does not exist.
+(arrays flattened as `Name01`…, wheels through `{index}`, `{corner}` and
+`{short_corner}`, and a tread read left to right through `{inner_side}` and
+`{outer_side}`) and at most one transform: a `scale`, a `values` table with an
+optional `default`, a `bit` of a bitfield, or a `clock` that turns seconds of
+the day into `HH:MM`. `"any": true` beside a generic property keeps the field
+for every game SimHub reports that property for, while the objects next to it
+give single games their own source. A field no tracked game sends lists none
+and keeps its placeholder, and no mapping names a generic property that does
+not exist.
 
 **The plugin picks the current game.** It reads the source of
 `GameData.GameName` before the generic one. A game's source counts only while
@@ -36,9 +40,9 @@ Protocol page show which games send a field.
 
 - A new game is an entry in the `games` table and its sources; nothing in the
   firmware changes.
-- The ACC and AC sources were checked live against SimHub's own values; the
-  iRacing and LMU ones come from SimHub's reader structures and need a session
-  of each game to confirm.
+- The ACC and AC sources were checked live against SimHub's own values and the
+  AC EVO ones during a replay; the iRacing and LMU ones come from SimHub's
+  reader structures and need a session of each game to confirm.
 - The catalog's limit is 350 fields, raised from 256 when the bodywork damage
   grades, the repair time, the track condition and the 30-minute forecast
   joined it.

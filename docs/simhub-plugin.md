@@ -86,8 +86,10 @@ each game's own data where SimHub's generic data has nothing
 property per game, and the plugin reads the one of `GameData.GameName` only while
 the game runs, since SimHub keeps a closed game's last raw data. SimHub flattens raw arrays as
 `CarDamage01`…, which its `/api/GetProperty/<name>` answers while a game runs.
-ACC and AC were checked that way; iRacing and LMU follow SimHub's reader
-structures and want a live session to confirm.
+ACC and AC were checked that way, AC EVO during a replay; iRacing and LMU follow
+SimHub's reader structures and want a live session to confirm. AC EVO reads each
+tread left to right, so a left wheel's inner edge is its right one and a right
+wheel's its left one.
 
 A field with no single property is computed in `Computed.cs` and the classes
 beside it, named by the mapping's `computed` key: the gaps come from

@@ -28,6 +28,8 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 **Added**
 
 - **All boards, SimHub plugin.** New fields: ACC's rain forecast, direction indicators, headlights, rain light and wiper speed.
+- **SimHub plugin.** AC EVO sends its TC cut, headlights, direction indicators, rain light, wiper speed, oil temperature and pressure, and each tyre's inner, middle and outer temperature.
+- **Configurator.** The field picker shows which fields AC EVO sends.
 - **Configurator.** New starter dashboard: Endurance Clean, Endurance without on-screen shift lights.
 - **Development.** A Guition JC1060P470C build option moves the link to the top USB port when native USB has no PC.
 

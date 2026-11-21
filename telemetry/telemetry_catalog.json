@@ -109,7 +109,7 @@
     {"name":"vehicle.energy.laps_remaining","type":"float32","unit":"count","category":"fuel_energy","rate":"slow","availability":"game_specific","description":"Estimated laps remaining on electrical energy."},
 
     {"name":"vehicle.aids.traction_control_level","wire_id":"T","type":"text","unit":"source","category":"electronics_state","rate":"normal","availability":"optional","description":"Configured traction-control level."},
-    {"name":"vehicle.aids.traction_control_cut","wire_id":"TC","type":"text","unit":"source","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Second traction-control setting: TC cut in ACC and LMU, the second TC knob in iRacing."},
+    {"name":"vehicle.aids.traction_control_cut","wire_id":"TC","type":"text","unit":"source","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Second traction-control setting: TC cut in ACC, AC EVO and LMU, the second TC knob in iRacing."},
     {"name":"vehicle.aids.traction_control_active","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"optional","description":"Whether traction control is intervening."},
     {"name":"vehicle.aids.abs_level","wire_id":"A","type":"text","unit":"source","category":"electronics_state","rate":"normal","availability":"optional","description":"Configured ABS level."},
     {"name":"vehicle.aids.abs_active","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"optional","description":"Whether ABS is intervening."},
@@ -128,7 +128,7 @@
     {"name":"vehicle.lights.turn_left","wire_id":"TL","type":"boolean","unit":"boolean","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Whether the left direction indicator is on."},
     {"name":"vehicle.lights.turn_right","wire_id":"TR","type":"boolean","unit":"boolean","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Whether the right direction indicator is on."},
     {"name":"vehicle.lights.rain","wire_id":"RN","type":"boolean","unit":"boolean","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Whether the rear rain light is on."},
-    {"name":"vehicle.wiper_level","wire_id":"WP","type":"uint32","unit":"position","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Wiper speed as a number: 0 off, then the game's steps upward; ACC goes to 3."},
+    {"name":"vehicle.wiper_level","wire_id":"WP","type":"uint32","unit":"position","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Wiper speed as a number: 0 off, then the game's steps upward; ACC goes to 3, AC EVO to 4."},
     {"name":"vehicle.horn","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"game_specific","description":"Whether the horn is active."},
     {"name":"vehicle.speed_limiter","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"game_specific","description":"Whether a non-pit speed limiter is active."},
     {"name":"vehicle.damage.aero","type":"float32","unit":"percent","category":"electronics_state","rate":"slow","availability":"game_specific","description":"Aerodynamic damage level."},
