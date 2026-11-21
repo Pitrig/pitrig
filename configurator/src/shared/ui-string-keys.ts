@@ -1771,6 +1771,11 @@ export type UiStringKey =
   | 'templates.templatesPage.nameDeleted'
   | 'templates.templatesPage.readingTheLibrary'
   | 'templates.templatesPage.unreadableFiles'
+  | 'templates.variantDialog.hint'
+  | 'templates.variantDialog.label'
+  | 'templates.variantDialog.title'
+  | 'templates.variants.clean'
+  | 'templates.variants.full'
   | 'templates.widgetSection.emptyAfter'
   | 'templates.widgetSection.emptyBefore'
   | 'templates.widgetSection.noWidgets'
@@ -2427,6 +2432,7 @@ export interface UiStringParameters {
   'templates.templatesPage.deleteTheSavedKindName': { kind: string | number, name: string | number }
   'templates.templatesPage.nameDeleted': { name: string | number }
   'templates.templatesPage.unreadableFiles': { count: number }
+  'templates.variantDialog.title': { name: string | number }
   'updates.banner.appAvailable': { version: string | number }
   'updates.banner.appReady': { version: string | number }
   'updates.banner.firmwareAvailable': { running: string | number, version: string | number }

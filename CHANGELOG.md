@@ -33,7 +33,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **All boards, SimHub plugin.** New fields: standings around the player, overall and in the class, and the optimal lap.
 - **SimHub plugin.** LMU's laps left on virtual energy.
 - **All boards, SimHub plugin.** New fields: brake pad and disc life in ACC and AC EVO, and a hit counter for damage.
-- **Configurator.** New starter dashboard: Endurance Clean, Endurance without on-screen shift lights.
+- **Configurator.** Endurance comes in two versions on one card, Full and Clean without on-screen shift lights; Use and Add ask which.
 - **Configurator.** Endurance blocks switch to standings, best laps, a hybrid page and a damage drawing of the car; race control covers the delta.
 - **Development.** A Guition JC1060P470C build option moves the link to the top USB port when native USB has no PC.
 - **Display boards, Configurator.** Track map widget: the track being driven with every car on it, the sectors, the pit lane and the finish line.

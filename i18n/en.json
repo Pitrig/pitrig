@@ -1918,6 +1918,15 @@
       "aDashboardHoldsAtMost": "A dashboard holds at most {maximum} screens.",
       "thatDashboardHasNoSuch": "That dashboard has no such screen.",
       "thatScreenWouldNotBe": "That screen would not be accepted here, so nothing changed. {error}"
+    },
+    "variants": {
+      "full": "Full",
+      "clean": "Clean"
+    },
+    "variantDialog": {
+      "label": "Choose a version",
+      "title": "Which version of {name}?",
+      "hint": "Each version is a whole dashboard of its own."
     }
   },
   "app": {

@@ -25,6 +25,7 @@ import { DashboardThumbnail } from './DashboardThumbnail'
 import { DashboardListControls } from './DashboardListControls'
 import { effectiveBoard, listedDashboards } from './dashboard-listing'
 import { TemplateCard } from './TemplateCard'
+import { VariantDialog } from './VariantDialog'
 import { useInsertScreenStore } from './insert-screen-store'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
 import { t } from '@shared/ui-text'
@@ -54,6 +55,7 @@ export function DashboardSection({
   const openPicker = useInsertScreenStore((state) => state.openPicker)
   const [report, setReport] = useState<LayoutTransferResult>()
   const [applied, setApplied] = useState<DeviceConfiguration>()
+  const [choosing, setChoosing] = useState<{ summary: DashboardTemplateSummary; add: boolean }>()
 
   const libraryEntries = useFontLibraryStore((state) => state.entries)
   const missing = useMemo(
@@ -178,7 +180,9 @@ export function DashboardSection({
                         ? t('templates.dashboardSection.addScreensFromThisTemplate')
                         : t('templates.dashboardSection.openADashboardFirstThere')
                     }
-                    onClick={() => openPicker(summary)}
+                    onClick={() =>
+                      summary.variants ? setChoosing({ summary, add: true }) : openPicker(summary)
+                    }
                   >
                     <Plus aria-hidden="true" className="mr-1 size-3.5" />
                     {t('common.add')}</Button>
@@ -187,7 +191,9 @@ export function DashboardSection({
                     variant="outline"
                     disabled={busy}
                     title={t('templates.dashboardSection.replaceEverythingYouHaveOpen')}
-                    onClick={() => void use(summary)}
+                    onClick={() =>
+                      summary.variants ? setChoosing({ summary, add: false }) : void use(summary)
+                    }
                   >
                     {t('templates.dashboardSection.use')}</Button>
                   {summary.origin === 'user' ? (
@@ -207,6 +213,18 @@ export function DashboardSection({
           ))}
         </ul>
       )}
+
+      {choosing ? (
+        <VariantDialog
+          summary={choosing.summary}
+          onClose={() => setChoosing(undefined)}
+          onPick={(variant) => {
+            setChoosing(undefined)
+            if (choosing.add) openPicker(variant)
+            else void use(variant)
+          }}
+        />
+      ) : null}
 
       {missing.length > 0 ? (
         <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-amber-300">
