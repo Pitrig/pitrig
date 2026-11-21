@@ -64,7 +64,7 @@ first time the configurator connects to it.
 
 - **Widgets** — text, arcs, bars, indicator strips, graphs, images and shaped
   containers, composed freely on the screen.
-- **279 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
+- **315 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
   flags, session state and the rest of the catalogue, with damage, weather,
   electronics, energy and penalties read per game for ACC, AC, iRacing and LMU.
 - **Conditional styling** — colour ramps, gradients, visibility and blink driven

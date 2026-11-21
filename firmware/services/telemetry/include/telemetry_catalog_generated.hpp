@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 279;
+inline constexpr std::size_t kFieldCount = 315;
 inline constexpr std::size_t kMaximumFieldCount = 350;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -51,6 +51,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"session.lap.delta_best", ValueType::int32},
     {"session.lap.delta_session_best", ValueType::int32},
     {"session.lap.delta_all_time_best", ValueType::int32},
+    {"session.lap.optimal_time", ValueType::uint32},
     {"session.lap.last_delta_best", ValueType::int32},
     {"session.lap.delta_status", ValueType::uint32},
     {"session.lap.last_status", ValueType::uint32},
@@ -87,6 +88,41 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"session.gap_ahead", ValueType::text},
     {"session.gap_behind", ValueType::text},
     {"session.gap_leader", ValueType::text},
+    {"session.standings.leader.name", ValueType::text},
+    {"session.standings.leader.car", ValueType::text},
+    {"session.standings.leader.class", ValueType::text},
+    {"session.standings.leader.class_index", ValueType::uint32},
+    {"session.standings.leader.last_lap", ValueType::uint32},
+    {"session.standings.ahead.position", ValueType::uint32},
+    {"session.standings.ahead.name", ValueType::text},
+    {"session.standings.ahead.car", ValueType::text},
+    {"session.standings.ahead.class", ValueType::text},
+    {"session.standings.ahead.class_index", ValueType::uint32},
+    {"session.standings.ahead.gap", ValueType::text},
+    {"session.standings.player.class", ValueType::text},
+    {"session.standings.player.class_index", ValueType::uint32},
+    {"session.standings.player.car", ValueType::text},
+    {"session.standings.player.gap", ValueType::text},
+    {"session.standings.behind.position", ValueType::uint32},
+    {"session.standings.behind.name", ValueType::text},
+    {"session.standings.behind.car", ValueType::text},
+    {"session.standings.behind.class", ValueType::text},
+    {"session.standings.behind.class_index", ValueType::uint32},
+    {"session.standings.behind.gap", ValueType::text},
+    {"session.class_standings.leader.name", ValueType::text},
+    {"session.class_standings.leader.car", ValueType::text},
+    {"session.class_standings.leader.last_lap", ValueType::uint32},
+    {"session.class_standings.ahead.position", ValueType::uint32},
+    {"session.class_standings.ahead.name", ValueType::text},
+    {"session.class_standings.ahead.car", ValueType::text},
+    {"session.class_standings.ahead.gap", ValueType::text},
+    {"session.class_standings.ahead.interval", ValueType::text},
+    {"session.class_standings.player.gap", ValueType::text},
+    {"session.class_standings.behind.position", ValueType::uint32},
+    {"session.class_standings.behind.name", ValueType::text},
+    {"session.class_standings.behind.car", ValueType::text},
+    {"session.class_standings.behind.gap", ValueType::text},
+    {"session.class_standings.behind.interval", ValueType::text},
     {"vehicle.fuel.level", ValueType::text},
     {"vehicle.fuel.percent", ValueType::float32},
     {"vehicle.fuel.capacity", ValueType::float32},

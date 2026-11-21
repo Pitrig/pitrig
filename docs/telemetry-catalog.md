@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 279. Static limit: 350.
+Catalog version: 1. Fields: 315. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -66,6 +66,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.lap.delta_best` | `0t` | `int32` | `millisecond` | `normal` | `computed` | any | Signed delta of the estimated lap to the personal best lap, empty without either. |
 | `session.lap.delta_session_best` | `0u` | `int32` | `millisecond` | `normal` | `computed` | any | Signed estimated delta of the current lap to the fastest lap of the session in the player's class. |
 | `session.lap.delta_all_time_best` | `61` | `int32` | `millisecond` | `normal` | `computed` | any | Signed live delta to the all-time personal best lap, empty without one. |
+| `session.lap.optimal_time` | `OL` | `uint32` | `millisecond` | `changes` | `computed` | any | Sum of the player's best sectors in this session, empty until every sector has one. |
 | `session.lap.last_delta_best` | `LD` | `int32` | `millisecond` | `changes` | `computed` | any | Signed delta of the last lap to the personal best; when the last lap set it, its gain over the previous best, empty without one. |
 | `session.lap.delta_status` | `62` | `uint32` | `status` | `normal` | `computed` | any | The current lap's estimate to the millisecond against the personal best and the fastest lap in the player's class: 0 none, 1 slower than the personal best, 2 at or under it, 3 at or under the fastest lap, 4 invalid lap; empty with nothing to compare. |
 | `session.lap.last_status` | `63` | `uint32` | `status` | `changes` | `computed` | any | The last lap against the personal best and the fastest lap in the player's class, coded like session.lap.delta_status, 4 when it was invalid. |
@@ -106,6 +107,41 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.gap_ahead` | `1l` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the car one position ahead: on track in a race, between best laps in other sessions. |
 | `session.gap_behind` | `1m` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the car one position behind: on track in a race, between best laps in other sessions. |
 | `session.gap_leader` | `1n` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the session leader: on track in a race, between best laps in other sessions. |
+| `session.standings.leader.name` | `QA` | `text` | `source` | `changes` | `computed` | any | Overall leader's driver surname in capitals, for a standings list. |
+| `session.standings.leader.car` | `QB` | `text` | `source` | `changes` | `computed` | any | Overall leader's car as the game names it. |
+| `session.standings.leader.class` | `QC` | `text` | `source` | `changes` | `computed` | any | Overall leader's class, at most four characters such as HYP, LMP2 or GT3. |
+| `session.standings.leader.class_index` | `QD` | `uint32` | `count` | `changes` | `computed` | any | Overall leader's class by pace: 1 for the fastest class present, up to 4. |
+| `session.standings.leader.last_lap` | `QE` | `uint32` | `millisecond` | `changes` | `computed` | any | Overall leader's last lap time. |
+| `session.standings.ahead.position` | `QF` | `uint32` | `count` | `changes` | `computed` | any | Overall position of the car one place ahead of the player; empty when the player leads or runs second. |
+| `session.standings.ahead.name` | `QG` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one place ahead, in capitals. |
+| `session.standings.ahead.car` | `QH` | `text` | `source` | `changes` | `computed` | any | Car one place ahead, as the game names it. |
+| `session.standings.ahead.class` | `QI` | `text` | `source` | `changes` | `computed` | any | Class of the car one place ahead, at most four characters. |
+| `session.standings.ahead.class_index` | `QJ` | `uint32` | `count` | `changes` | `computed` | any | Class of the car one place ahead by pace, 1 for the fastest class present. |
+| `session.standings.ahead.gap` | `QK` | `text` | `source` | `normal` | `computed` | any | Gap of the car one place ahead to the leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.standings.player.class` | `QL` | `text` | `source` | `changes` | `computed` | any | The player's class, at most four characters. |
+| `session.standings.player.class_index` | `QM` | `uint32` | `count` | `changes` | `computed` | any | The player's class by pace, 1 for the fastest class present. |
+| `session.standings.player.car` | `QN` | `text` | `source` | `changes` | `computed` | any | The player's car as the game names it. |
+| `session.standings.player.gap` | `QO` | `text` | `source` | `normal` | `computed` | any | The player's gap to the overall leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference; empty while the player leads. |
+| `session.standings.behind.position` | `QP` | `uint32` | `count` | `changes` | `computed` | any | Overall position of the car one place behind the player. |
+| `session.standings.behind.name` | `QQ` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one place behind, in capitals. |
+| `session.standings.behind.car` | `QR` | `text` | `source` | `changes` | `computed` | any | Car one place behind, as the game names it. |
+| `session.standings.behind.class` | `QS` | `text` | `source` | `changes` | `computed` | any | Class of the car one place behind, at most four characters. |
+| `session.standings.behind.class_index` | `QT` | `uint32` | `count` | `changes` | `computed` | any | Class of the car one place behind by pace, 1 for the fastest class present. |
+| `session.standings.behind.gap` | `QU` | `text` | `source` | `normal` | `computed` | any | Gap of the car one place behind to the leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.class_standings.leader.name` | `KA` | `text` | `source` | `changes` | `computed` | any | Driver surname of the leader of the player's class, in capitals. |
+| `session.class_standings.leader.car` | `KB` | `text` | `source` | `changes` | `computed` | any | Car of the leader of the player's class. |
+| `session.class_standings.leader.last_lap` | `KC` | `uint32` | `millisecond` | `changes` | `computed` | any | Last lap time of the leader of the player's class. |
+| `session.class_standings.ahead.position` | `KD` | `uint32` | `count` | `changes` | `computed` | any | Class position of the car one class place ahead; empty when the player leads the class or runs second in it. |
+| `session.class_standings.ahead.name` | `KE` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one class place ahead, in capitals. |
+| `session.class_standings.ahead.car` | `KF` | `text` | `source` | `changes` | `computed` | any | Car one class place ahead. |
+| `session.class_standings.ahead.gap` | `KG` | `text` | `source` | `normal` | `computed` | any | Gap of the car one class place ahead to the class leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.class_standings.ahead.interval` | `KH` | `text` | `source` | `normal` | `computed` | any | Gap in seconds between the player and the car one class place ahead: on track in a race, between best laps in other sessions. |
+| `session.class_standings.player.gap` | `KI` | `text` | `source` | `normal` | `computed` | any | The player's gap to the class leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference; empty while the player leads the class. |
+| `session.class_standings.behind.position` | `KJ` | `uint32` | `count` | `changes` | `computed` | any | Class position of the car one class place behind the player. |
+| `session.class_standings.behind.name` | `KK` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one class place behind, in capitals. |
+| `session.class_standings.behind.car` | `KL` | `text` | `source` | `changes` | `computed` | any | Car one class place behind. |
+| `session.class_standings.behind.gap` | `KM` | `text` | `source` | `normal` | `computed` | any | Gap of the car one class place behind to the class leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.class_standings.behind.interval` | `KN` | `text` | `source` | `normal` | `computed` | any | Gap in seconds between the player and the car one class place behind: on track in a race, between best laps in other sessions. |
 ## Fuel and energy
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
@@ -127,7 +163,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.energy.virtual` | `VE` | `float32` | `percent` | `slow` | `game_specific` | LMU | Virtual energy left, as LMU reports it for the stint. |
 | `vehicle.energy.deployment_mode` | `1x` | `text` | `source` | `changes` | `game_specific` | AC, iRacing | Hybrid deployment mode: its name where the game documents one, otherwise MODE and the number; empty for a car without hybrid energy. |
 | `vehicle.energy.recovery_mode` | `1y` | `text` | `source` | `changes` | `game_specific` | AC | Energy recovery level as the game reports it. |
-| `vehicle.energy.laps_remaining` | `1z` | `float32` | `count` | `slow` | `game_specific` | none | Estimated laps remaining on electrical energy. |
+| `vehicle.energy.laps_remaining` | `1z` | `float32` | `count` | `slow` | `game_specific` | LMU | Estimated laps remaining on electrical energy. |
 ## Electronics and vehicle state
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |

@@ -49,6 +49,10 @@ namespace Pitrig.SimHub
 
         public InputState Inputs { get; } = new InputState();
 
+        public Standings Standings { get; } = new Standings();
+
+        public EnergyTracker Energy { get; } = new EnergyTracker();
+
         public void Reset()
         {
             session = null;
@@ -84,6 +88,7 @@ namespace Pitrig.SimHub
                 lapTouchedPit = true;
                 Sectors.Reset();
                 Validity.Reset();
+                Energy.Reset();
             }
             else if (lapCompleted)
             {
@@ -95,6 +100,7 @@ namespace Pitrig.SimHub
             Validity.Update(this);
             var inPit = Status.IsInPitLane > 0 || Status.IsInPit > 0;
             TrackCleanLap(inPit);
+            Energy.Update(this, lapCompleted, inPit);
             Sectors.Update(Status.CurrentSectorIndex, TimingComputations.LiveDeltaSeconds(this),
                 Computed.Seconds(Status.BestLapTime));
         }

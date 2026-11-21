@@ -96,7 +96,13 @@ beside it, named by the mapping's `computed` key: the gaps come from
 SimHub's leaderboard, and so do the class position, the class position of the
 player's row, and the places gained, that row's starting position less its
 current one. Outside a race the gaps are best-lap differences, because SimHub's
-race gaps mean nothing in practice.
+race gaps mean nothing in practice. The standings fields read the same
+leaderboard, overall and within the player's class: the leader, the car one place
+ahead (empty when that is the leader) and the one behind, each with its position,
+surname in capitals, car and class, a class ranked by its fastest best lap, and
+the gap to the leader in seconds or whole laps. The optimal lap sums the
+session's best sectors, and LMU's laps on virtual energy divide what is left by
+the mean use of the last three laps clear of the pits.
 
 The position comes from SimHub's leaderboard, the fuel time is SimHub's
 `Fuel_RemainingTime`, and the laps left in a race over laps SimHub's
