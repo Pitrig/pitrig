@@ -109,7 +109,9 @@ The position comes from SimHub's leaderboard, the fuel time is SimHub's
 `RemainingLaps` (iRacing's own count there). A lap is invalid by ACC's and F1's
 own flags, in iRacing from any moment off the track outside a race until the lap
 count changes, and elsewhere only when SimHub's flag says so; with no flag it is
-unknown. A session runs on time by iRacing's own flag, elsewhere when time is left
+unknown. A finished lap is invalid when any moment of it was, judged before the
+line, because ACC restarts the lap timer and clears its flag a few frames before
+it counts the lap. A session runs on time by iRacing's own flag, elsewhere when time is left
 and there is no lap limit. The estimated lap time is the tracker's session-best
 estimate and the live delta that estimate less the personal best, both empty
 without them; their colour grades a time to the millisecond against the personal

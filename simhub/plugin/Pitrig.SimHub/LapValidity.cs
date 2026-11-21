@@ -12,10 +12,17 @@ namespace Pitrig.SimHub
         private const string IracingTrackSurface = "DataCorePlugin.GameRawData.Telemetry.PlayerTrackSurface";
         private const string AccValidLap = "DataCorePlugin.GameRawData.Graphics.isValidLap";
         private const string F1LapInvalid = "DataCorePlugin.GameRawData.PlayerLapData.m_currentLapInvalid";
+        private static readonly TimeSpan TimerRestart = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan BoundaryWindow = TimeSpan.FromSeconds(5);
 
         private int? lap;
         private bool leftTrack;
         private bool? current;
+        private bool? running;
+        private bool? ended;
+        private bool timerRestartedFirst;
+        private bool countMovedFirst;
+        private TimeSpan timer;
 
         public bool? LastLapInvalid { get; private set; }
 
@@ -24,6 +31,11 @@ namespace Pitrig.SimHub
             lap = null;
             leftTrack = false;
             current = null;
+            running = null;
+            ended = null;
+            timerRestartedFirst = false;
+            countMovedFirst = false;
+            timer = TimeSpan.Zero;
             LastLapInvalid = null;
         }
 
@@ -31,13 +43,10 @@ namespace Pitrig.SimHub
         {
             var status = state.Status;
             if (status == null) return;
-            if (status.CompletedLaps != lap)
-            {
-                LastLapInvalid = lap == null ? null : current;
-                lap = status.CompletedLaps;
-                leftTrack = false;
-            }
+            TrackTimer(status.CurrentLapTime);
+            if (status.CompletedLaps != lap) CountLap(status.CompletedLaps);
             current = state.GameName == Iracing ? IracingVerdict(state) : GameVerdict(state);
+            running = Worse(running, current);
         }
 
         public bool? Invalid(TelemetryState state)
@@ -49,6 +58,51 @@ namespace Pitrig.SimHub
         {
             var invalid = Invalid(state);
             return invalid == null ? null : (bool?)!invalid.Value;
+        }
+
+        private void TrackTimer(TimeSpan now)
+        {
+            var restarted = now + TimerRestart < timer;
+            timer = now;
+            if (restarted && lap != null)
+            {
+                if (countMovedFirst) countMovedFirst = false;
+                else EndLapByTimer();
+            }
+            else if (now > BoundaryWindow)
+            {
+                countMovedFirst = false;
+                timerRestartedFirst = false;
+                ended = null;
+            }
+        }
+
+        private void EndLapByTimer()
+        {
+            ended = running;
+            running = null;
+            leftTrack = false;
+            timerRestartedFirst = true;
+        }
+
+        private void CountLap(int completed)
+        {
+            if (lap != null) LastLapInvalid = timerRestartedFirst ? ended : running;
+            if (!timerRestartedFirst)
+            {
+                running = null;
+                countMovedFirst = lap != null;
+            }
+            timerRestartedFirst = false;
+            ended = null;
+            lap = completed;
+            leftTrack = false;
+        }
+
+        private static bool? Worse(bool? lapSoFar, bool? now)
+        {
+            if (lapSoFar == true || now == true) return true;
+            return lapSoFar == false || now == false ? false : (bool?)null;
         }
 
         private bool? IracingVerdict(TelemetryState state)

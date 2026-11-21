@@ -41,6 +41,10 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** Endurance has shift lights across the top, telltales beside the gear and one row of controls.
 - **All boards, Configurator.** A dashboard holds up to 240 text widgets, 16 slots and 160 KB.
 
+**Fixed**
+
+- **SimHub plugin.** A cut ACC lap shows INVALID as the last lap.
+
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new options need firmware 0.4.0.
