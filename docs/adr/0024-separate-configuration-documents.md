@@ -51,7 +51,7 @@ generator emits them for both readers:
 
 | Document | Carries | Maximum payload | Restart to take effect |
 | --- | --- | --- | --- |
-| `dashboard` | `board`, `dashboard` | 163840 bytes | no |
+| `dashboard` | `board`, `dashboard` | 196608 bytes | no |
 | `modules` | `board`, `hardware` | 32768 bytes | no |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes | yes |
 

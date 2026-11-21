@@ -197,7 +197,7 @@ the schema break now rather than hiding it in a value nobody authors.
 The bounded caps — per widget type, per source list, per modifier list, per
 string — are embedded-system limits rather than unfinished work. Their values
 live in [configuration-schema.md](configuration-schema.md), which is generated
-from the contract, and are deliberately not repeated here. Neither the 160 KB
+from the contract, and are deliberately not repeated here. Neither the 192 KB
 payload nor internal RAM is what bounds them any more: widget state lives in
 external RAM ([ADR 0026](adr/0026-ui-memory-in-external-ram.md)), so raising a
 particular cap is a decision about frame time, answered by applying the document

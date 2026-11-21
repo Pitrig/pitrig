@@ -42,7 +42,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 **Changed**
 
 - **Configurator.** Endurance has shift lights across the top, telltales beside the gear and one row of controls.
-- **All boards, Configurator.** A dashboard holds up to 240 text widgets, 16 slots and 160 KB.
+- **All boards, Configurator.** A dashboard holds up to 240 text widgets, 24 slots, 128 shapes, 16 indicator strips and 192 KB.
 - **Configurator.** Endurance marks the current lap INVALID as soon as it is cut.
 - **Configurator.** Endurance shows brake pad and disc life in place of the brake temperature bar where the game sends them, and the damage view opens on every hit.
 
