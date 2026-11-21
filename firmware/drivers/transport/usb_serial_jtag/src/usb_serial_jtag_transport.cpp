@@ -42,6 +42,7 @@ bool UsbSerialJtagTransport::start(const DataHandler handler, void* const contex
     release_write_mutex();
     return false;
   }
+  ignore_host_reset();
 
   instrumentation_.reset();
   handler_.bind(handler, context);
