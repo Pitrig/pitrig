@@ -33,6 +33,7 @@ struct PlatformAdapters {
   platform::ExternalMemoryBuffer font_memory;
   platform::ExternalMemoryBuffer image_memory;
   platform::ExternalMemoryBuffer smoothing_memory;
+  platform::ExternalMemoryBuffer telemetry_memory;
 };
 
 struct ApplicationServices {

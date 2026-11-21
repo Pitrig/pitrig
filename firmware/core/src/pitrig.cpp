@@ -196,6 +196,11 @@ void run() {
 #if PITRIG_DEBUG
   performance::begin();
 #endif
+  if (!application.platform.telemetry_memory.initialize(
+          telemetry::TelemetryStateService::kStorageBytes) ||
+      !application.services.telemetry_state.attach(application.platform.telemetry_memory.bytes())) {
+    log::error(kTag, "Telemetry storage is unavailable");
+  }
   boot_guard::reached(boot_guard::Phase::link);
   if (!start_link(application, board, buffers)) {
     if (boot_guard::safe_mode()) {

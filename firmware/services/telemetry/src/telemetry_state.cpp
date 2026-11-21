@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 
 #include "esp_timer.h"
 #include "pitrig_features.hpp"
@@ -12,6 +13,21 @@ namespace pitrig::telemetry {
 TelemetryStateService::TelemetryStateService(const ITelemetryRegistry& registry)
     : registry_(registry) {}
 
+bool TelemetryStateService::attach(const std::span<std::uint8_t> storage) {
+  const auto address = reinterpret_cast<std::uintptr_t>(storage.data());
+  const std::uintptr_t aligned = (address + alignof(StateSlot) - 1) & ~(alignof(StateSlot) - 1);
+  const std::size_t needed = sizeof(StateSlot) * catalog::kFieldCount + (aligned - address);
+  if (!slots_.empty() || storage.size() < needed) {
+    return false;
+  }
+  auto* const slots = reinterpret_cast<StateSlot*>(aligned);
+  for (std::size_t index = 0; index < catalog::kFieldCount; ++index) {
+    std::construct_at(slots + index);
+  }
+  slots_ = {slots, catalog::kFieldCount};
+  return true;
+}
+
 CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
   const std::lock_guard lock(mutex_);
   if (registry_.describe(update.handle) == nullptr || update.handle.index >= slots_.size()) {
@@ -20,7 +36,7 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
   started_.store(true, std::memory_order_release);
   last_arrival_us_.store(esp_timer_get_time(), std::memory_order_relaxed);
 
-  Slot& slot = slots_[update.handle.index];
+  StateSlot& slot = slots_[update.handle.index];
   bool changed = slot.available != update.available;
   if (update.available) {
     switch (update.handle.type) {
@@ -77,7 +93,7 @@ TelemetryRead TelemetryStateService::read(const Handle handle) const {
     return {.handle = handle};
   }
 
-  const Slot& slot = slots_[handle.index];
+  const StateSlot& slot = slots_[handle.index];
   return seqlock_read(slot.sequence, [&slot, handle] {
     TelemetryRead result{.handle = handle};
     result.value = slot.value;

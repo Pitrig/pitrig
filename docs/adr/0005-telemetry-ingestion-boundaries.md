@@ -44,8 +44,10 @@ state service or Event Bus.
 publishes a `TelemetryUpdated` event containing the changed handle and
 revision. An unavailable update invalidates only that slot.
 
-The state service is the only owner of mutable canonical values. Storage is a
-fixed array indexed by handle. Each slot retains availability, typed value,
+The state service is the only owner of mutable canonical values. Storage is one
+array indexed by handle, allocated in external RAM at startup so that a growing
+catalog takes no internal RAM from the display; until it is attached every read
+is unavailable and every update is dropped. Each slot retains availability, typed value,
 bounded source text and revision. Beside the slots the service keeps one
 arrival timestamp, stamped on every update it accepts whether or not the value
 changed; that is what the lap timer's staleness timeout and the LED
