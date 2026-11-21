@@ -48,8 +48,11 @@ never waits. The two transports share one storage slot, because the P4 has
 almost no internal RAM to spare, the option moves the ring buffer's ISR
 functions to flash for the same reason, and the choice holds until the next
 restart. On that port ESP logs go quiet at the end of startup, as on a UART
-board; the chip's DTR/RTS reset stays enabled, so flashing over the port still
-works.
+board, and the chip ignores a reset signalled with DTR/RTS on the port's serial
+channel: SimHub's Arduino scan toggles both lines when the port appears, which
+left the board waiting in the ROM download mode. An update therefore goes over
+OTA, or esptool runs with `--before no-reset` on a board put into download mode
+by hand; the JTAG channel's reset still works.
 
 **A composite USB device.** On a board with native USB — T-Display-S3,
 JC1060P470C and the ESP32-S3-DevKitC-1 — the `usb_cdc` driver's descriptor gains

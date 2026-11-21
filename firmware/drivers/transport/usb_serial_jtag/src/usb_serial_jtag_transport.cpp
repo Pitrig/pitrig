@@ -6,6 +6,8 @@
 #include "driver/usb_serial_jtag.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "soc/soc.h"
+#include "soc/usb_serial_jtag_reg.h"
 #include "transport_watchdog.hpp"
 
 namespace pitrig::transport {
@@ -18,6 +20,10 @@ constexpr char kTag[] = "usb_serial_jtag_transport";
 UsbSerialJtagTransport::~UsbSerialJtagTransport() { stop(); }
 
 bool UsbSerialJtagTransport::host_present() { return usb_serial_jtag_is_connected(); }
+
+void UsbSerialJtagTransport::ignore_host_reset() {
+  REG_SET_BIT(USB_SERIAL_JTAG_CHIP_RST_REG, USB_SERIAL_JTAG_USB_UART_CHIP_RST_DIS);
+}
 
 bool UsbSerialJtagTransport::start(const DataHandler handler, void* const context) {
   if (started_ || handler == nullptr) {

@@ -30,6 +30,7 @@ bool UsbFallbackTransport::start(const DataHandler handler, void* const context)
   if (!std::holds_alternative<std::monostate>(port_)) {
     return false;
   }
+  UsbSerialJtagTransport::ignore_host_reset();
   UsbCdcTransport& native = port_.emplace<UsbCdcTransport>();
   if (native.start(handler, context) && stays_on_native(native)) {
     return true;

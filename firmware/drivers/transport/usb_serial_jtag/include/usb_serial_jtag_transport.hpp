@@ -22,6 +22,7 @@ class UsbSerialJtagTransport final : public ITransport {
   UsbSerialJtagTransport& operator=(const UsbSerialJtagTransport&) = delete;
 
   [[nodiscard]] static bool host_present();
+  static void ignore_host_reset();
 
   bool start(DataHandler handler, void* context) override;
   void stop() override;

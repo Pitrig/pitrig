@@ -103,8 +103,9 @@ T-Display-S3, the JC1060P470C and the DevKitC-1). Only with
 JC1060P470C's link `UsbFallbackTransport`: native USB, unless the
 USB-Serial-JTAG port has a host and native USB does not enumerate within two
 seconds of start — then `transport/usb_serial_jtag`, in the same storage slot,
-because the P4 has almost no internal RAM to spare (ADR 0029). Without the
-option `transport/usb_serial_jtag` registers no sources. `led/ws2812_rmt`
+because the P4 has almost no internal RAM to spare (ADR 0029); that build also
+ignores DTR/RTS resets on the USB-Serial-JTAG port, which SimHub's port scan
+sends. Without the option `transport/usb_serial_jtag` registers no sources. `led/ws2812_rmt`
 drives one RMT channel per output, which is why four outputs is the ceiling on
 both chips.
 

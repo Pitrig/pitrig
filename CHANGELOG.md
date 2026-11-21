@@ -45,6 +45,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 **Fixed**
 
 - **SimHub plugin.** A cut ACC lap shows INVALID as the last lap.
+- **Development.** The Guition JC1060P470C top-port build no longer drops into download mode when SimHub scans its port.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 
