@@ -7,7 +7,7 @@
 #include "driver/uart.h"
 #include "uart_transport.hpp"
 #endif
-#if CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+#if CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK
 #include "usb_fallback_transport.hpp"
 #elif !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
 #include "usb_cdc_transport.hpp"
@@ -19,7 +19,7 @@ namespace {
 #if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
 UartTransport g_uart;
 #endif
-#if CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+#if CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK
 UsbFallbackTransport g_usb;
 #elif !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
 UsbCdcTransport g_usb;
@@ -57,9 +57,9 @@ ITransport* TelemetryComposition::select(
 }
 
 void TelemetryComposition::silence_logs() {
-#if CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+#if CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK
   g_usb.silence_logs();
-#else
+#elif !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
   g_uart.silence_logs();
 #endif
 }

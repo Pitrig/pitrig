@@ -103,7 +103,7 @@ What each directory holds:
 - `drivers/` — `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c`,
   `touch/gt911`, `transport/uart`, `transport/usb_cdc` (the whole native USB
   device: a composite CDC serial port and an HID gamepad, ADR 0029),
-  `transport/usb_serial_jtag` (the P4's link when native USB has no host),
+  `transport/usb_serial_jtag` (an opt-in P4 fallback link, ADR 0029),
   `transport/transport_common` (the read counters every link shares and the
   console-port log silencing) and `led/ws2812_rmt`, which drives one RMT
   transmit channel per output — why four outputs is the ceiling on both chips.
@@ -447,8 +447,8 @@ What exists:
 - Display drivers, one per board (T-Display-S3, Guition ESP32-4848S040,
   Guition JC1060P470C)
 - One touch driver, the GT911
-- Transport drivers: UART, USB CDC and the P4's USB-Serial-JTAG fallback, over a
-  shared `transport_common`. The USB CDC driver owns the whole native USB
+- Transport drivers: UART, USB CDC and an opt-in USB-Serial-JTAG fallback for
+  the P4, over a shared `transport_common`. The USB CDC driver owns the whole native USB
   device, which on a board that has one enumerates as a composite CDC serial
   port plus an HID gamepad
 

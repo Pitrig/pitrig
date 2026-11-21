@@ -9,7 +9,6 @@ export interface PortRecord {
   likelyUsb: boolean
   bluetooth: boolean
   scanPriority: number
-  fallback: boolean
   summary: SerialPortSummary
 }
 
@@ -57,10 +56,9 @@ export class PortRegistry {
         const usb = usbIdentity(port)
         const record: PortRecord = {
           path: port.path,
-          likelyUsb: isLikelyUsbSerial(port),
+          likelyUsb: isLikelyUsbSerial(port, usb),
           bluetooth: isBluetoothPort(port),
           scanPriority: scanPriorityOf(usb),
-          fallback: usb === USB_SERIAL_JTAG_IDENTITY,
           summary
         }
         this.records.set(id, record)
@@ -89,7 +87,6 @@ function usbIdentity(port: { vendorId?: string; productId?: string }): string {
 
 function scanPriorityOf(usb: string): number {
   if (usb === PITRIG_USB_IDENTITY) return 0
-  if (usb === USB_SERIAL_JTAG_IDENTITY) return 3
   return USB_BRIDGE_IDENTITIES.includes(usb) ? 1 : 2
 }
 
@@ -100,7 +97,8 @@ function isBluetoothPort(port: { path: string; pnpId?: string }): boolean {
   )
 }
 
-function isLikelyUsbSerial(port: { path: string; vendorId?: string }): boolean {
+function isLikelyUsbSerial(port: { path: string; vendorId?: string }, usb: string): boolean {
+  if (usb === USB_SERIAL_JTAG_IDENTITY) return false
   if (process.platform === 'win32') return Boolean(port.vendorId)
   const name = port.path.toLowerCase()
   return (

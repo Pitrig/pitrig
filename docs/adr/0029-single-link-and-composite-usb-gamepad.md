@@ -3,8 +3,8 @@
 Status: Accepted. Narrows the transport picture of
 [ADR 0006](0006-simhub-custom-serial-line-protocol.md): a board now carries
 exactly one serial link, and on a board with native USB that link shares its USB
-device with an HID gamepad. Amended on 2026-11-21: the JC1060P470C's one link
-falls back to the USB-Serial-JTAG port when native USB has no host.
+device with an HID gamepad. Amended on 2026-11-21: a JC1060P470C build option
+lets the one link fall back to the USB-Serial-JTAG port.
 
 ## Context
 
@@ -37,15 +37,19 @@ that port leaves the board with nothing to talk to.
 port, the one its `protocol` document already names. Flashing and the ESP
 console keep the USB-Serial-JTAG port.
 
-**The P4's link falls back to the USB-Serial-JTAG port.** The JC1060P470C picks
-its one port when the link starts. It starts native USB CDC; when a host is on
-the USB-Serial-JTAG port and none enumerates native USB within two seconds, it
-stops TinyUSB and starts the `usb_serial_jtag` transport instead. With no host
-on the USB-Serial-JTAG port it never waits. The two transports share one
-storage slot, because the P4 has almost no internal RAM to spare, and the
-choice holds until the next restart. On that port ESP logs go quiet at the end
-of startup, as on a UART board; the chip's DTR/RTS reset stays enabled, so
-flashing over the port still works.
+**A fallback for a board without its native connector, as a build option.**
+`CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK` (the `sdkconfig.defaults.jtag-fallback`
+fragment) is off in every released image, so a release keeps the rule above.
+With it, the JC1060P470C picks its one port when the link starts: it starts
+native USB CDC, and when a host is on the USB-Serial-JTAG port and none
+enumerates native USB within two seconds, it stops TinyUSB and starts the
+`usb_serial_jtag` transport instead. With no host on the USB-Serial-JTAG port it
+never waits. The two transports share one storage slot, because the P4 has
+almost no internal RAM to spare, the option moves the ring buffer's ISR
+functions to flash for the same reason, and the choice holds until the next
+restart. On that port ESP logs go quiet at the end of startup, as on a UART
+board; the chip's DTR/RTS reset stays enabled, so flashing over the port still
+works.
 
 **A composite USB device.** On a board with native USB — T-Display-S3,
 JC1060P470C and the ESP32-S3-DevKitC-1 — the `usb_cdc` driver's descriptor gains
@@ -80,7 +84,8 @@ twice.
   on the CDC port. That was the development convenience the second link bought,
   and it is gone.
 - A P4 on the fallback has no gamepad, and a native cable plugged in later is
-  used only after a restart. The configurator probes `303a:1001` last, and only
-  when no other port answered; the SimHub plugin opens it once the configurator
-  has handed it back, like a port behind a USB-UART bridge.
+  used only after a restart. The configurator reaches it through a port picked
+  by hand, the SimHub plugin once the configurator has handed it back, and an
+  update must carry the option, or the board loses its link until it is flashed
+  by cable.
 - The gamepad costs about 1.6 KB of flash on the boards that carry it.

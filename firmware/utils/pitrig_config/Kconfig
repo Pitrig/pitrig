@@ -152,6 +152,18 @@ config PITRIG_DISPLAY_UNCAPPED
         screen reaching the panel rate that wait is the largest single term
         in it.
 
+config PITRIG_USB_SERIAL_JTAG_FALLBACK
+    bool "Run the link on the USB-Serial-JTAG port when native USB has no host"
+    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+    default n
+    select RINGBUF_PLACE_ISR_FUNCTIONS_INTO_FLASH
+    help
+        For a board whose native USB connector is gone. The link starts on
+        native USB; when the USB-Serial-JTAG port has a host and native USB
+        does not enumerate within two seconds, it moves to the
+        USB-Serial-JTAG port until the next restart. Released images leave
+        it off. ADR 0029.
+
 choice PITRIG_FACTORY_BOARD
     prompt "Factory board profile"
     default PITRIG_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4

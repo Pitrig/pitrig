@@ -230,9 +230,7 @@ Electron 44. On Windows `serialport` reports the driver's manufacturer
 (`Microsoft` for `usbser.sys`), not the board's USB string, so
 `port-registry.ts` names the two identities a board shows by VID:PID — `303a:4001`,
 the application link fixed in `usb_descriptors.cpp`, and `303a:1001`, the
-USB-Serial/JTAG unit — as `tools/pick-serial-port.py` does. The scan probes
-`303a:1001` last and only when no other port answered: it is a P4's link only
-when that board has no host on native USB (ADR 0029).
+USB-Serial/JTAG unit — as `tools/pick-serial-port.py` does.
 
 `pnpm run build` runs typecheck then `electron-vite build`; `pnpm run package`
 wraps the product in `electron-builder.yml` (`dist/`); `pnpm run build:debug`

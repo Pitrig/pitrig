@@ -53,6 +53,7 @@ Fragments appended to `SDKCONFIG_DEFAULTS` select what a build trades; the figur
 | `sdkconfig.defaults.vsync-lock` | `CONFIG_PITRIG_DISPLAY_VSYNC_LOCK`, P4 | frames scheduled from the telemetry burst (ADR 0032); off by default |
 | `sdkconfig.defaults.uncapped` | `CONFIG_PITRIG_DISPLAY_UNCAPPED`, P4 | no pacing hold; a measurement option, not a shipping one |
 | `sdkconfig.defaults.jit` | `CONFIG_PITRIG_DISPLAY_JIT`, P4 | the experiment vsync-lock superseded, kept for comparison |
+| `sdkconfig.defaults.jtag-fallback` | `CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK`, P4 | the link moves to the USB-Serial-JTAG port when native USB has no host (ADR 0029); for a board without its native connector, never a release |
 
 Flash and monitor use the same `-B` build directory: `idf.py -B build-t-display -p <port> flash monitor`.
 Switching boards switches `IDF_TARGET`; `esp32p4` uses `dependencies.lock.esp32p4`. A clean checkout

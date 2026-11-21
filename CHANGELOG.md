@@ -29,8 +29,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 - **All boards, SimHub plugin.** New fields: ACC's rain forecast, direction indicators, headlights, rain light and wiper speed.
 - **Configurator.** New starter dashboard: Endurance Clean, Endurance without on-screen shift lights.
-- **Guition JC1060P470C.** With no PC on its native USB port at start, the board talks through its top USB port.
-- **Configurator.** Finds a Guition JC1060P470C on its top USB port when no other board answers.
+- **Development.** A Guition JC1060P470C build option moves the link to the top USB port when native USB has no PC.
 
 **Changed**
 

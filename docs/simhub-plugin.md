@@ -26,11 +26,10 @@ By hand: close SimHub, copy the DLL attached to the release next to
 The plugin lists the COM ports from the registry once a second and opens a
 `303A:4001` port — a board on native USB — by itself, after waiting two seconds
 from SimHub's start so that a running configurator can claim its board first. A
-port behind a USB-UART bridge (`1A86:7523`, `1A86:55D4`, `10C4:EA60`), or a
-P4's USB-Serial-JTAG port (`303A:1001`), is opened only once the configurator
-has handed it back as a Pitrig board; the plugin remembers it with its baud
-rate. A port that does not answer `@PR:INFO` is left alone until it disappears
-and comes back.
+port behind a USB-UART bridge (`1A86:7523`, `1A86:55D4`, `10C4:EA60`) is opened
+only once the configurator has handed it back as a Pitrig board; the plugin
+remembers it with its baud rate. A port that does not answer `@PR:INFO` is left
+alone until it disappears and comes back.
 
 On a board that answers, the plugin reads the dashboard and modules documents
 — only the modules document after a hand-back that names the fields — and sends
