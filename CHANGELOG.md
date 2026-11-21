@@ -21,6 +21,14 @@ board** does that for you, and nothing is erased. A partition table change needs
 a cable flash and erases the configuration, fonts and images. The first line of
 a release says when either applies.
 
+## Unreleased
+
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields need this firmware.
+
+**Added**
+
+- **All boards, SimHub plugin.** New fields: ACC's rain forecast, direction indicators, headlights, rain light and wiper speed.
+
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new options need firmware 0.4.0.
@@ -41,7 +49,6 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **SimHub plugin.** New field: places gained or lost since the start.
 - **SimHub plugin.** New field: the working tyre temperature, the core where a game sends no inner, middle and outer, as ACC.
 - **SimHub plugin.** ACC damage gives an approximate repair time for each zone and the whole car.
-- **SimHub plugin.** New fields: ACC's rain forecast in 10 and 30 minutes as a level, for icons.
 
 **Changed**
 

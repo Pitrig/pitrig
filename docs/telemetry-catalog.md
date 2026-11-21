@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 274. Static limit: 350.
+Catalog version: 1. Fields: 279. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -148,6 +148,11 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.push_to_pass.active` | `2a` | `boolean` | `boolean` | `fast` | `optional` | any | Whether push-to-pass is active. |
 | `vehicle.headlights` | `2b` | `text` | `source` | `changes` | `game_specific` | ACC, LMU | Headlight state. |
 | `vehicle.wipers` | `2c` | `text` | `source` | `changes` | `game_specific` | ACC | Wiper mode. |
+| `vehicle.lights.beam` | `HL` | `uint32` | `position` | `changes` | `game_specific` | ACC, LMU | Headlights as a number: 0 off, 1 low beam, 2 high beam; LMU reports only 0 or 1. |
+| `vehicle.lights.turn_left` | `TL` | `boolean` | `boolean` | `changes` | `game_specific` | ACC | Whether the left direction indicator is on. |
+| `vehicle.lights.turn_right` | `TR` | `boolean` | `boolean` | `changes` | `game_specific` | ACC | Whether the right direction indicator is on. |
+| `vehicle.lights.rain` | `RN` | `boolean` | `boolean` | `changes` | `game_specific` | ACC | Whether the rear rain light is on. |
+| `vehicle.wiper_level` | `WP` | `uint32` | `position` | `changes` | `game_specific` | ACC | Wiper speed as a number: 0 off, then the game's steps upward; ACC goes to 3. |
 | `vehicle.horn` | `2d` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether the horn is active. |
 | `vehicle.speed_limiter` | `2e` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether a non-pit speed limiter is active. |
 | `vehicle.damage.aero` | `2f` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC, LMU | Aerodynamic damage level. |

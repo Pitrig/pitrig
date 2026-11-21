@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maximum_fields": 350,
-  "expected_field_count": 274,
+  "expected_field_count": 279,
   "wheels": ["front_left", "front_right", "rear_left", "rear_right"],
   "fields": [
     {"name":"vehicle.speed","wire_id":"S","type":"text","unit":"source","category":"speed_control","rate":"fast","availability":"common","description":"Vehicle speed formatted by the telemetry source."},
@@ -124,6 +124,11 @@
     {"name":"vehicle.push_to_pass.active","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"optional","description":"Whether push-to-pass is active."},
     {"name":"vehicle.headlights","type":"text","unit":"source","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Headlight state."},
     {"name":"vehicle.wipers","type":"text","unit":"source","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Wiper mode."},
+    {"name":"vehicle.lights.beam","wire_id":"HL","type":"uint32","unit":"position","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Headlights as a number: 0 off, 1 low beam, 2 high beam; LMU reports only 0 or 1."},
+    {"name":"vehicle.lights.turn_left","wire_id":"TL","type":"boolean","unit":"boolean","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Whether the left direction indicator is on."},
+    {"name":"vehicle.lights.turn_right","wire_id":"TR","type":"boolean","unit":"boolean","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Whether the right direction indicator is on."},
+    {"name":"vehicle.lights.rain","wire_id":"RN","type":"boolean","unit":"boolean","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Whether the rear rain light is on."},
+    {"name":"vehicle.wiper_level","wire_id":"WP","type":"uint32","unit":"position","category":"electronics_state","rate":"changes","availability":"game_specific","description":"Wiper speed as a number: 0 off, then the game's steps upward; ACC goes to 3."},
     {"name":"vehicle.horn","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"game_specific","description":"Whether the horn is active."},
     {"name":"vehicle.speed_limiter","type":"boolean","unit":"boolean","category":"electronics_state","rate":"fast","availability":"game_specific","description":"Whether a non-pit speed limiter is active."},
     {"name":"vehicle.damage.aero","type":"float32","unit":"percent","category":"electronics_state","rate":"slow","availability":"game_specific","description":"Aerodynamic damage level."},

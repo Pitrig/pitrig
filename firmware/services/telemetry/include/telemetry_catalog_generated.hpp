@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 274;
+inline constexpr std::size_t kFieldCount = 279;
 inline constexpr std::size_t kMaximumFieldCount = 350;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -121,6 +121,11 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"vehicle.push_to_pass.active", ValueType::boolean},
     {"vehicle.headlights", ValueType::text},
     {"vehicle.wipers", ValueType::text},
+    {"vehicle.lights.beam", ValueType::uint32},
+    {"vehicle.lights.turn_left", ValueType::boolean},
+    {"vehicle.lights.turn_right", ValueType::boolean},
+    {"vehicle.lights.rain", ValueType::boolean},
+    {"vehicle.wiper_level", ValueType::uint32},
     {"vehicle.horn", ValueType::boolean},
     {"vehicle.speed_limiter", ValueType::boolean},
     {"vehicle.damage.aero", ValueType::float32},
