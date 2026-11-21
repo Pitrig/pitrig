@@ -28,6 +28,11 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 **Added**
 
 - **All boards, SimHub plugin.** New fields: ACC's rain forecast, direction indicators, headlights, rain light and wiper speed.
+- **Configurator.** New starter dashboard: Endurance Clean, Endurance without on-screen shift lights.
+
+**Changed**
+
+- **Configurator.** Endurance has shift lights across the top, telltales beside the gear and one row of controls.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 
