@@ -13,8 +13,16 @@ namespace Pitrig.SimHub
 
         private static readonly string[] ControlInputs = { "input.buttons", "input.switch", "session.time_elapsed" };
 
+        private static readonly string[] TrackMapInputs =
+        {
+            "track.map.outline", "track.map.cars_1", "track.map.cars_2", "track.map.cars_3", "track.map.cars_4"
+        };
+
         private static readonly Regex Binding =
             new Regex("\"binding\"\\s*:\\s*\"([^\"\\\\]+)\"", RegexOptions.CultureInvariant);
+
+        private static readonly Regex TrackMap =
+            new Regex("\"type\"\\s*:\\s*\"track_map\"", RegexOptions.CultureInvariant);
 
         public static int[] Of(params string[] documents)
         {
@@ -25,6 +33,7 @@ namespace Pitrig.SimHub
                 foreach (Match match in Binding.Matches(document)) names.Add(match.Groups[1].Value);
                 if (document.IndexOf(Modifiers, StringComparison.Ordinal) >= 0) names.Add(LapTimerInput);
                 if (document.IndexOf(Controls, StringComparison.Ordinal) >= 0) names.AddRange(ControlInputs);
+                if (TrackMap.IsMatch(document)) names.AddRange(TrackMapInputs);
             }
             return CatalogIndex.OfNames(names);
         }

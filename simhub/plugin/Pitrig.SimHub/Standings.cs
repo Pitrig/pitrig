@@ -127,7 +127,7 @@ namespace Pitrig.SimHub
             };
         }
 
-        private static Dictionary<string, int> ClassIndices(List<Opponent> cars)
+        internal static Dictionary<string, int> ClassIndices(List<Opponent> cars)
         {
             var classes = cars.Where(car => !string.IsNullOrEmpty(car.CarClass))
                 .GroupBy(car => car.CarClass)

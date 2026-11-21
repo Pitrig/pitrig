@@ -104,6 +104,16 @@ the gap to the leader in seconds or whole laps. The optimal lap sums the
 session's best sectors, and LMU's laps on virtual energy divide what is left by
 the mean use of the last three laps clear of the pits.
 
+The track map's outline is SimHub's own record of the track: one recorded on
+this PC (`PluginsData\<game>\MapRecords`), else one SimHub downloaded
+(`MapRecordsCloud`), looked for again every 20 s while there is neither. The
+plugin records no outline itself. It learns the pit lane, which SimHub does not
+record, from the cars that drive it and keeps it in `%APPDATA%\Pitrig\pit-lanes`;
+the finish line and the sectors come from the record. A car's role and class
+come from SimHub's leaderboard, lapped and lapping only in a race
+([ADR 0043](adr/0043-track-map.md)). A track SimHub has no record of — every AC
+EVO track — shows the cars on a ring.
+
 The position comes from SimHub's leaderboard, the fuel time is SimHub's
 `Fuel_RemainingTime`, and the laps left in a race over laps SimHub's
 `RemainingLaps` (iRacing's own count there). A lap is invalid by ACC's and F1's

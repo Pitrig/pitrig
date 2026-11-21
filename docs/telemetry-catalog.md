@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 324. Static limit: 350.
+Catalog version: 1. Fields: 329. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -235,6 +235,11 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `track.temperature` | `32` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Track surface temperature. |
 | `track.wetness` | `33` | `float32` | `percent` | `slow` | `game_specific` | ACC, iRacing, LMU | Track wetness level. |
 | `track.condition` | `TK` | `text` | `source` | `slow` | `game_specific` | ACC, iRacing, LMU | Track condition in three letters, such as GRN, OPT, DMP or WET. |
+| `track.map.outline` | `MO` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, LMU | One piece of the current track's outline, which the plugin sends over and over for the track map widget (ADR 0043). |
+| `track.map.cars_1` | `MA` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 1 to 21 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
+| `track.map.cars_2` | `MB` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 22 to 42 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
+| `track.map.cars_3` | `MC` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 43 to 63 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
+| `track.map.cars_4` | `MD` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 64 to 84 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
 | `environment.air_temperature` | `34` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Ambient air temperature. |
 | `environment.rain_level` | `35` | `float32` | `percent` | `slow` | `game_specific` | ACC, iRacing, LMU | Rain intensity. |
 | `environment.wind_speed` | `36` | `float32` | `meter_per_second` | `slow` | `game_specific` | ACC, iRacing | Wind speed. |

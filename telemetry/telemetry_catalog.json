@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maximum_fields": 350,
-  "expected_field_count": 324,
+  "expected_field_count": 329,
   "wheels": ["front_left", "front_right", "rear_left", "rear_right"],
   "fields": [
     {"name":"vehicle.speed","wire_id":"S","type":"text","unit":"source","category":"speed_control","rate":"fast","availability":"common","description":"Vehicle speed formatted by the telemetry source."},
@@ -204,6 +204,11 @@
     {"name":"track.temperature","type":"float32","unit":"celsius","category":"track_weather","rate":"slow","availability":"optional","description":"Track surface temperature."},
     {"name":"track.wetness","type":"float32","unit":"percent","category":"track_weather","rate":"slow","availability":"game_specific","description":"Track wetness level."},
     {"name":"track.condition","wire_id":"TK","type":"text","unit":"source","category":"track_weather","rate":"slow","availability":"game_specific","description":"Track condition in three letters, such as GRN, OPT, DMP or WET."},
+    {"name":"track.map.outline","wire_id":"MO","type":"text","unit":"source","category":"track_weather","rate":"normal","availability":"computed","description":"One piece of the current track's outline, which the plugin sends over and over for the track map widget (ADR 0043)."},
+    {"name":"track.map.cars_1","wire_id":"MA","type":"text","unit":"source","category":"track_weather","rate":"normal","availability":"computed","description":"Cars 1 to 21 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043)."},
+    {"name":"track.map.cars_2","wire_id":"MB","type":"text","unit":"source","category":"track_weather","rate":"normal","availability":"computed","description":"Cars 22 to 42 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043)."},
+    {"name":"track.map.cars_3","wire_id":"MC","type":"text","unit":"source","category":"track_weather","rate":"normal","availability":"computed","description":"Cars 43 to 63 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043)."},
+    {"name":"track.map.cars_4","wire_id":"MD","type":"text","unit":"source","category":"track_weather","rate":"normal","availability":"computed","description":"Cars 64 to 84 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043)."},
     {"name":"environment.air_temperature","type":"float32","unit":"celsius","category":"track_weather","rate":"slow","availability":"optional","description":"Ambient air temperature."},
     {"name":"environment.rain_level","type":"float32","unit":"percent","category":"track_weather","rate":"slow","availability":"game_specific","description":"Rain intensity."},
     {"name":"environment.wind_speed","type":"float32","unit":"meter_per_second","category":"track_weather","rate":"slow","availability":"game_specific","description":"Wind speed."},
