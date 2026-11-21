@@ -139,7 +139,7 @@ python3 -m tools.codegen.ui_strings
 ## Configuration is three documents
 
 `dashboard`, `modules` and `protocol` are transferred, stored, validated and applied on their own:
-`@PR:GET:<doc>` and `@PR:SET:<doc>:<json>`, one NVS record and payload bound each (128 KB / 32 KB /
+`@PR:GET:<doc>` and `@PR:SET:<doc>:<json>`, one NVS record and payload bound each (160 KB / 32 KB /
 1 KB), `reboot_required` only for `protocol`, and `APPLY` rebuilding the running composition without
 writing storage (ADR 0024). The contract lives in the `configuration_contract` service component and
 mirrors into `configurator/src/shared/`; the `documents` block of the schema must partition every

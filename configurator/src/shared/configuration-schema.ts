@@ -4,16 +4,16 @@ export type RgbColor = `#${string}`
 
 export const CONFIGURATION_SCHEMA_VERSION = 27
 
-export const MAXIMUM_PAYLOAD_SIZE = 131072
+export const MAXIMUM_PAYLOAD_SIZE = 163840
 export const MAXIMUM_SCREENS = 4
 export const MAXIMUM_WIDGETS_PER_SCREEN = 255
 export const MAXIMUM_WIDGETS_PER_CONTAINER = 32
 export const MAXIMUM_NESTING_DEPTH = 4
 export const MAXIMUM_ACTIONS = 32
 export const MAXIMUM_SLOT_PAGES = 8
-export const MAXIMUM_TEXT_WIDGETS = 160
+export const MAXIMUM_TEXT_WIDGETS = 240
 export const MAXIMUM_SHAPE_WIDGETS = 96
-export const MAXIMUM_SLOT_WIDGETS = 12
+export const MAXIMUM_SLOT_WIDGETS = 16
 export const MAXIMUM_BAR_WIDGETS = 48
 export const MAXIMUM_ARC_WIDGETS = 24
 export const MAXIMUM_INDICATOR_WIDGETS = 12
@@ -763,7 +763,7 @@ export const CONFIGURATION_DOCUMENTS: Record<
   ConfigurationDocumentId,
   ConfigurationDocumentDescriptor
 > = {
-  dashboard: { id: 'dashboard', sections: ['dashboard'], keys: ['board', 'dashboard'], maxPayload: 131072, rebootRequired: false },
+  dashboard: { id: 'dashboard', sections: ['dashboard'], keys: ['board', 'dashboard'], maxPayload: 163840, rebootRequired: false },
   modules: { id: 'modules', sections: ['hardware', 'inputs'], keys: ['board', 'hardware', 'inputs'], maxPayload: 32768, rebootRequired: false },
   protocol: { id: 'protocol', sections: ['telemetry_transport'], keys: ['board', 'telemetry_transport'], maxPayload: 1024, rebootRequired: true },
 }

@@ -23,7 +23,7 @@ a release says when either applies.
 
 ## Unreleased
 
-Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields need this firmware.
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need this firmware.
 
 **Added**
 
@@ -38,6 +38,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 **Changed**
 
 - **Configurator.** Endurance has shift lights across the top, telltales beside the gear and one row of controls.
+- **All boards, Configurator.** A dashboard holds up to 240 text widgets, 16 slots and 160 KB.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 

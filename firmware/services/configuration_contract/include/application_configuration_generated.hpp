@@ -17,16 +17,16 @@ inline constexpr std::uint16_t kConfigurationSchemaVersion = 27;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
-inline constexpr std::size_t kMaximumPayloadSize = 131072;
+inline constexpr std::size_t kMaximumPayloadSize = 163840;
 inline constexpr std::size_t kMaximumScreens = 4;
 inline constexpr std::size_t kMaximumWidgetsPerScreen = 255;
 inline constexpr std::size_t kMaximumWidgetsPerContainer = 32;
 inline constexpr std::size_t kMaximumNestingDepth = 4;
 inline constexpr std::size_t kMaximumActions = 32;
 inline constexpr std::size_t kMaximumSlotPages = 8;
-inline constexpr std::size_t kMaximumTextWidgets = 160;
+inline constexpr std::size_t kMaximumTextWidgets = 240;
 inline constexpr std::size_t kMaximumShapeWidgets = 96;
-inline constexpr std::size_t kMaximumSlotWidgets = 12;
+inline constexpr std::size_t kMaximumSlotWidgets = 16;
 inline constexpr std::size_t kMaximumBarWidgets = 48;
 inline constexpr std::size_t kMaximumArcWidgets = 24;
 inline constexpr std::size_t kMaximumIndicatorWidgets = 12;
@@ -111,7 +111,7 @@ inline constexpr std::array<std::string_view, 3> kConfigurationDocumentNames{{
 }
 
 inline constexpr std::array<std::size_t, 3> kConfigurationDocumentPayloadSizes{{
-    131072,
+    163840,
     32768,
     1024,
 }};
