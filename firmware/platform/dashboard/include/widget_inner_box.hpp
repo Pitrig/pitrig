@@ -23,4 +23,11 @@ struct InnerBox {
           bounds.height - 2 * border - frame.padding.top - frame.padding.bottom - 2 * inset, 0)};
 }
 
+[[nodiscard]] inline std::int32_t corner_reserve(const std::uint16_t radius_px,
+                                                 const std::int32_t border_px) {
+  const std::int32_t inner =
+      std::max<std::int32_t>(static_cast<std::int32_t>(radius_px) - border_px, 0);
+  return (inner * 2929 + 9999) / 10000;
+}
+
 }

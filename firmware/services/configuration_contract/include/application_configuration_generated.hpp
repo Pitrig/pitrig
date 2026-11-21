@@ -32,6 +32,7 @@ inline constexpr std::size_t kMaximumArcWidgets = 24;
 inline constexpr std::size_t kMaximumIndicatorWidgets = 12;
 inline constexpr std::size_t kMaximumGraphWidgets = 6;
 inline constexpr std::size_t kMaximumImageWidgets = 64;
+inline constexpr std::size_t kMaximumTrackMapWidgets = 4;
 inline constexpr std::size_t kMaximumIndicatorSegments = 16;
 inline constexpr std::size_t kMinimumBlinkMs = 100;
 inline constexpr std::size_t kMaximumBlinkMs = 5000;
@@ -356,6 +357,7 @@ enum class WidgetType : std::uint8_t {
   graph,
   image,
   slot,
+  track_map,
 };
 
 struct BoardConfiguration {
@@ -694,6 +696,34 @@ struct ImageWidgetConfiguration {
   std::uint8_t recolor_opa{255};
 };
 
+struct TrackMapWidgetConfiguration {
+  WidgetFrame frame{};
+  std::uint32_t line_color{0xC9D1D9};
+  std::uint16_t line_width_px{3};
+  std::uint32_t sector_1_color{kTransparentColor};
+  std::uint32_t sector_2_color{kTransparentColor};
+  std::uint32_t sector_3_color{kTransparentColor};
+  std::uint32_t pit_lane_color{kTransparentColor};
+  std::uint32_t finish_line_color{kTransparentColor};
+  std::uint32_t car_color{0xE5E7EB};
+  std::uint16_t car_size_px{6};
+  std::uint32_t player_color{0xC27BFF};
+  std::uint16_t player_size_px{10};
+  std::uint32_t player_border_color{kTransparentColor};
+  std::uint32_t ahead_color{kTransparentColor};
+  std::uint32_t behind_color{kTransparentColor};
+  std::uint32_t lapping_color{kTransparentColor};
+  std::uint32_t lapped_color{kTransparentColor};
+  std::uint32_t pit_car_color{kTransparentColor};
+  std::uint32_t class_1_color{kTransparentColor};
+  std::uint32_t class_2_color{kTransparentColor};
+  std::uint32_t class_3_color{kTransparentColor};
+  std::uint32_t class_4_color{kTransparentColor};
+  bool fit_rotation{true};
+  std::uint16_t rotation_deg{};
+  std::uint16_t refresh_ms{100};
+};
+
 struct ShapeWidgetConfiguration {
   WidgetFrame frame{};
   ShapeKind kind{ShapeKind::rectangle};
@@ -783,6 +813,8 @@ struct DashboardConfiguration {
   std::array<ImageWidgetConfiguration, kMaximumImageWidgets> image_widgets{};
   std::uint8_t slot_widget_count{};
   std::array<SlotWidgetConfiguration, kMaximumSlotWidgets> slot_widgets{};
+  std::uint8_t track_map_widget_count{};
+  std::array<TrackMapWidgetConfiguration, kMaximumTrackMapWidgets> track_map_widgets{};
 };
 
 struct ApplicationConfiguration {
@@ -1500,7 +1532,7 @@ inline constexpr std::array<std::string_view, 3> kWidgetParentKindNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 8> kWidgetTypeNames{{
+inline constexpr std::array<std::string_view, 9> kWidgetTypeNames{{
     "text",
     "shape",
     "bar",
@@ -1509,6 +1541,7 @@ inline constexpr std::array<std::string_view, 8> kWidgetTypeNames{{
     "graph",
     "image",
     "slot",
+    "track_map",
 }};
 
 [[nodiscard]] inline std::string_view widget_type_name(const WidgetType value) {
@@ -1541,7 +1574,7 @@ struct WidgetTypeTraits {
                                               std::uint8_t){};
 };
 
-inline constexpr std::array<WidgetTypeTraits, 8> kWidgetTypeTraits{{
+inline constexpr std::array<WidgetTypeTraits, 9> kWidgetTypeTraits{{
     {
         .type = WidgetType::text,
         .name = "text",
@@ -1796,6 +1829,38 @@ inline constexpr std::array<WidgetTypeTraits, 8> kWidgetTypeTraits{{
             return {};
           }
           return std::as_bytes(std::span{&dashboard.slot_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::track_map,
+        .name = "track_map",
+        .storage_key = "track_map_widgets",
+        .capacity = kMaximumTrackMapWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.track_map_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.track_map_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.track_map_widget_count
+                     ? &dashboard.track_map_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.track_map_widget_count
+                     ? &dashboard.track_map_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.track_map_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.track_map_widgets[index], 1});
         },
     },
 }};

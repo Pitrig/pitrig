@@ -74,7 +74,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
 
   const std::int32_t border = config.frame.border.width_px;
   const std::int32_t reserve =
-      state.line_inset + plot::corner_reserve(config.frame.border.radius_px, border);
+      state.line_inset + corner_reserve(config.frame.border.radius_px, border);
   const InnerBox inner = inner_box(config.frame, bounds, reserve);
   state.plot_width = inner.width;
   state.plot_height = inner.height;

@@ -10,6 +10,7 @@ namespace Pitrig.SimHub
             if (WheelAverages.Covers(computation)) return state.Averages.Mean(computation);
             if (TyreTemperatures.Covers(computation)) return TyreTemperatures.Live(state, computation);
             if (Standings.Covers(computation)) return state.Standings.Value(state, computation);
+            if (TrackMaps.Covers(computation)) return state.Maps.Value(state, computation);
             var status = state.Status;
             switch (computation)
             {

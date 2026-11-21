@@ -63,7 +63,8 @@ export const NEW_WIDGET_SIZE: Record<
   arc: { width: 120, height: 120 },
   indicator: { width: 240, height: 20 },
   image: { width: 96, height: 96 },
-  graph: { width: 200, height: 80 }
+  graph: { width: 200, height: 80 },
+  track_map: { width: 240, height: 240 }
 }
 
 export interface NewWidgetExtras {
@@ -132,6 +133,13 @@ export const WIDGET_DEFAULTS: Record<
     source: { binding: NEW_GRAPH_BINDING },
     background_color: '#1E293B',
     placement: centeredPlacement(display, NEW_WIDGET_SIZE.graph)
+  }),
+  track_map: (display) => ({
+    type: 'track_map',
+    pit_lane_color: '#56606B',
+    finish_line_color: '#FFFFFF',
+    player_border_color: '#FFFFFF',
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.track_map)
   }),
 }
 

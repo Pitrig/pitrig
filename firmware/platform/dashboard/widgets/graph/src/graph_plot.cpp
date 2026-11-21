@@ -10,12 +10,6 @@ std::int32_t line_reserve(const std::uint16_t line_width_px) {
   return (static_cast<std::int32_t>(line_width_px) + 1) / 2;
 }
 
-std::int32_t corner_reserve(const std::uint16_t radius_px, const std::int32_t border_px) {
-  const std::int32_t inner =
-      std::max<std::int32_t>(static_cast<std::int32_t>(radius_px) - border_px, 0);
-  return (inner * 2929 + 9999) / 10000;
-}
-
 float sample_y(const std::int32_t plot_height, const float fraction) {
   const float y = static_cast<float>(plot_height) * (1.0F - fraction);
   return std::clamp<float>(y, 0.0F, static_cast<float>(plot_height));

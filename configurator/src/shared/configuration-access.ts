@@ -7,6 +7,7 @@ import {
   MAXIMUM_SHAPE_WIDGETS,
   MAXIMUM_SLOT_WIDGETS,
   MAXIMUM_TEXT_WIDGETS,
+  MAXIMUM_TRACK_MAP_WIDGETS,
   WIDGET_TYPES
 } from './configuration-schema'
 import type {
@@ -21,9 +22,11 @@ import type {
   SlotPageConfiguration,
   SlotWidgetConfiguration,
   TextWidgetConfiguration,
+  TrackMapWidgetConfiguration,
   ValueSourceConfiguration,
   WidgetConfiguration
 } from './configuration-schema'
+import { TRACK_MAP_BINDINGS } from './track-map-codec'
 
 export type WidgetParent = ScreenConfiguration | ShapeWidgetConfiguration | SlotPageConfiguration
 
@@ -35,6 +38,7 @@ export type FramedWidgetConfiguration =
   | IndicatorWidgetConfiguration
   | GraphWidgetConfiguration
   | ImageWidgetConfiguration
+  | TrackMapWidgetConfiguration
 
 export const WIDGET_POOL_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
   text: MAXIMUM_TEXT_WIDGETS,
@@ -44,7 +48,8 @@ export const WIDGET_POOL_CAPACITIES: Record<WidgetConfiguration['type'], number>
   indicator: MAXIMUM_INDICATOR_WIDGETS,
   graph: MAXIMUM_GRAPH_WIDGETS,
   image: MAXIMUM_IMAGE_WIDGETS,
-  slot: MAXIMUM_SLOT_WIDGETS
+  slot: MAXIMUM_SLOT_WIDGETS,
+  track_map: MAXIMUM_TRACK_MAP_WIDGETS
 }
 
 export function arrayOf<T>(value: readonly T[] | undefined): readonly T[] {
@@ -136,6 +141,9 @@ export function telemetryBindings(
     for (const source of widgetSources(widget)) record(source)
     if (isTextWidget(widget) && arrayOf(widget.sources).some((source) => !source?.binding)) {
       bindings.add(DEFAULT_TEXT_BINDING)
+    }
+    if (widget.type === 'track_map') {
+      for (const name of TRACK_MAP_BINDINGS) bindings.add(name)
     }
   }
   for (const device of arrayOf(configuration?.hardware)) {

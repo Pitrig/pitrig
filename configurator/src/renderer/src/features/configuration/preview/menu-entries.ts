@@ -26,6 +26,7 @@ const ADDABLE: { label: string; tool: Exclude<CanvasTool, 'select'> }[] = [
   { label: t('canvas.toolPalette.lights'), tool: 'indicator' },
   { label: t('canvas.toolPalette.graph'), tool: 'graph' },
   { label: t('firmware.firmwarePage.image'), tool: 'image' },
+  { label: t('canvas.toolPalette.trackMap'), tool: 'track_map' },
   { label: t('canvas.toolPalette.slot'), tool: 'slot' },
   { label: t('canvas.toolPalette.tapZone'), tool: 'tap_zone' }
 ]

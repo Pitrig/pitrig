@@ -75,7 +75,7 @@ Editor gaps against SimHub are in
 - [ ] Containers clipped to an ellipse or a mask — for round displays (GC9A01) and
   shaped panels; the container form of image masks
 - [ ] Table widget
-- [ ] Track map widget
+- [*] Track map widget ([ADR 0043](adr/0043-track-map.md))
 
 # Phase 5 — Interaction
 

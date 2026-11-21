@@ -79,6 +79,9 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
       if constexpr (requires { widgets.images; }) {
         return widgets.collection.create(widgets.layout, configurations, widgets.binder.bindings(),
                                          *widgets.fonts, *widgets.images);
+      } else if constexpr (requires { widgets.track_map; }) {
+        return widgets.collection.create(widgets.layout, configurations, widgets.binder.bindings(),
+                                         *widgets.fonts, widgets.track_map);
       } else if constexpr (requires { widgets.container_slots; }) {
         return widgets.collection.create(widgets.layout, configurations, widgets.binder.bindings(),
                                          *widgets.fonts, widgets.container_slots);
@@ -100,6 +103,10 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
       return widgets.collection.recreate(index, widgets.layout, configurations[index],
                                          widgets.binder.bindings()[index], *widgets.fonts,
                                          *widgets.images);
+    } else if constexpr (requires { widgets.track_map; }) {
+      return widgets.collection.recreate(index, widgets.layout, configurations[index],
+                                         widgets.binder.bindings()[index], *widgets.fonts,
+                                         widgets.track_map);
     } else if constexpr (requires { widgets.container_slots; }) {
       return widgets.collection.recreate(index, widgets.layout, configurations[index],
                                          widgets.binder.bindings()[index], *widgets.fonts,

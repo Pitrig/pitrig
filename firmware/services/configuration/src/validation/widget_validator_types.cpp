@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -260,6 +261,26 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
     return reject(failure_, ValidationError::invalid_widget, "value");
   }
   return true;
+}
+
+bool Validator::track_map_widget(const TrackMapWidgetConfiguration& config) {
+  if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
+    return reject(failure_, ValidationError::invalid_widget, out_of_range);
+  }
+  const bool colors_valid =
+      valid_color(config.line_color) && valid_color(config.car_color) &&
+      valid_color(config.player_color) &&
+      std::ranges::all_of(
+          std::array{config.sector_1_color, config.sector_2_color, config.sector_3_color,
+                     config.pit_lane_color, config.finish_line_color, config.player_border_color,
+                     config.ahead_color, config.behind_color, config.lapping_color,
+                     config.lapped_color, config.pit_car_color, config.class_1_color,
+                     config.class_2_color, config.class_3_color, config.class_4_color},
+          valid_optional_color);
+  if (!colors_valid) {
+    return reject(failure_, ValidationError::invalid_widget, "color");
+  }
+  return frame(config.frame);
 }
 
 }

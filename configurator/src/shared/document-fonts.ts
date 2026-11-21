@@ -16,6 +16,7 @@ function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
     case 'indicator':
     case 'graph':
     case 'image':
+    case 'track_map':
       return caption
     case 'slot':
       return []

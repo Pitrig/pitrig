@@ -32,6 +32,9 @@ class EventBus;
 namespace pitrig::value_smoothing {
 class Service;
 }
+namespace pitrig::track_map {
+class Service;
+}
 namespace pitrig::controls {
 class DashboardTarget;
 }
@@ -75,7 +78,8 @@ void dismiss_startup_screen(const configuration::ApplicationConfiguration& confi
                           const telemetry::ITelemetryRegistry& telemetry_registry,
                           const telemetry::ITelemetryReader& telemetry,
                           const transport::ITransport& telemetry_transport,
-                          value_smoothing::Service* smoothing);
+                          value_smoothing::Service* smoothing,
+                          const track_map::Service* track_map);
 
 [[nodiscard]] bool fonts_available(const configuration::ApplicationConfiguration& configuration,
                                    const Dashboard& dashboard);

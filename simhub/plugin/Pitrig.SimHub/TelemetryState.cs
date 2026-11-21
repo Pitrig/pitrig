@@ -55,6 +55,8 @@ namespace Pitrig.SimHub
 
         public DamageHits Hits { get; } = new DamageHits();
 
+        public TrackMaps Maps { get; } = new TrackMaps();
+
         public void Reset()
         {
             session = null;
@@ -75,6 +77,7 @@ namespace Pitrig.SimHub
             Shifts.Update(manager, Status, data?.GameName);
             Averages.Sample(this, data, now, settings.AverageLaps);
             if (Status == null) return;
+            Maps.Update(this);
             var lapCompleted = Status.CompletedLaps > completedLaps;
             if (NewSession())
             {

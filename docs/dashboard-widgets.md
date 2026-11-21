@@ -156,6 +156,7 @@ allowance. The production firmware supports these widget types:
 | `graph` | up to three rolling traces over one plot, sampled on its own timer |
 | `image` | an uploaded image, optionally tinted |
 | `slot` | nothing of its own; an area that switches between its pages |
+| `track_map` | the outline of the track being driven, with every car on it |
 
 Each pool's cap is in [configuration-schema.md](configuration-schema.md) and is
 not repeated here. Together they hold more widgets than either the payload or a
@@ -425,6 +426,23 @@ the table cannot state.
   a frame past the sheet is a composition error. An `alpha8` asset carries
   coverage and no colour, so there `recolor` *is* the colour: omitted it draws
   white, and `recolor_opa` does not apply.
+- `track_map` binds nothing: the SimHub plugin sends the outline and every
+  car's place on the lap ([ADR 0043](adr/0043-track-map.md)). The track is
+  fitted inside the inner box less a margin of half the widest of the line,
+  a car and the player's dot with its ring, plus a pixel. `fit_rotation` tries
+  every 5° from 0 to 175 and keeps the angle that draws the track and its pit
+  lane largest, the smallest angle on a tie; `rotation_deg` turns it further, clockwise, and the
+  result is fitted again and centred. Until an outline arrives the cars run
+  clockwise round a ring with the line at the top. The pit lane is half the
+  line's width, at least a pixel; the finish mark crosses the track
+  `2 × line_width_px + 8` pixels long and half the line's width thick, at
+  least two. A car's colour is its role's when that colour is set, else its
+  class's, else `car_color`, and a car in the pit lane takes `pit_car_color` or
+  half strength; it is drawn on the pit lane only while `pit_lane_color` draws
+  one. A styling rule's `color` repaints the whole track. The map is painted
+  opaque in `background_color`, or the colour behind it, inside the corner
+  reserve a rounded frame needs, so a gradient or a rule's background shows only
+  around it; a map area under 16 pixels draws nothing.
 
 ## Uploaded images
 

@@ -101,6 +101,8 @@ function typeChecks(widget: WidgetConfiguration, label: string): Check[] {
       ]
     case 'slot':
       return [badBoolean(widget.clip_children, label, 'clip_children'), ...pageChecks(widget, label)]
+    case 'track_map':
+      return [badBoolean(widget.fit_rotation, label, 'fit_rotation')]
     default:
       return []
   }

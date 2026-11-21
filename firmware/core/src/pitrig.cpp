@@ -93,6 +93,11 @@ bool compose(Application& application, const board_registry::BoardDefinition& bo
       !application.services.value_smoothing.attach(application.platform.smoothing_memory.bytes())) {
     log::error(kTag, "Value smoothing storage is unavailable");
   }
+  if (!application.platform.track_map_memory.initialize(track_map::Service::kStorageBytes) ||
+      !application.services.track_map.attach(application.platform.track_map_memory.bytes()) ||
+      !application.services.track_map.start()) {
+    log::error(kTag, "Track map storage is unavailable");
+  }
   controls::DashboardTarget* const dashboard =
       application.display != nullptr ? dashboard_composition::control_target() : nullptr;
   if (!module_composition::start(application.modules, application.services.event_bus,
@@ -107,7 +112,8 @@ bool compose(Application& application, const board_registry::BoardDefinition& bo
   const bool composed = dashboard_composition::create(
       application.display, configuration, application.modules, dashboard_composition::instance(),
       application.services.telemetry_registry, application.services.telemetry_state,
-      primary_transport(application), start_value_smoothing(application, configuration));
+      primary_transport(application), start_value_smoothing(application, configuration),
+      track_map_service(application));
   if (!composed) {
     log::error(kTag, "Dashboard composition is incomplete");
   }

@@ -36,6 +36,8 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** New starter dashboard: Endurance Clean, Endurance without on-screen shift lights.
 - **Configurator.** Endurance blocks switch to standings, best laps, a hybrid page and a damage drawing of the car; race control covers the delta.
 - **Development.** A Guition JC1060P470C build option moves the link to the top USB port when native USB has no PC.
+- **Display boards, Configurator.** Track map widget: the track being driven with every car on it, the sectors, the pit lane and the finish line.
+- **SimHub plugin.** Sends the track map from SimHub's own map of the track, with the pit lane learnt from the cars that drive it.
 
 **Changed**
 

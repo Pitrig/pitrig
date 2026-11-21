@@ -31,6 +31,10 @@ set(component_sources
     "widgets/text/src/text_drawing.cpp"
     "widgets/text/src/text_widget.cpp"
     "widgets/text/src/widget_binding.cpp"
+    "widgets/track_map/src/track_map_cars.cpp"
+    "widgets/track_map/src/track_map_outline.cpp"
+    "widgets/track_map/src/track_map_projection.cpp"
+    "widgets/track_map/src/track_map_widget.cpp"
     "src/widget_descriptor.cpp")
 set(component_include_dirs
     "include"
@@ -49,7 +53,8 @@ set(component_include_dirs
     "widgets/indicator/include"
     "widgets/shape/include"
     "widgets/slot/include"
-    "widgets/text/include")
+    "widgets/text/include"
+    "widgets/track_map/include")
 
 set(boot_splash_assets
     "assets/boot_splash/logo_480x480.rgb565"
@@ -67,7 +72,7 @@ idf_component_register(
     EMBED_FILES ${boot_splash_assets}
     LDFRAGMENTS ${lvgl_ldfragments}
     REQUIRES configuration_contract font_assets font_contract image_assets
-             image_contract lvgl__lvgl telemetry value_conditions
+             image_contract lvgl__lvgl telemetry track_map value_conditions
     PRIV_REQUIRES display esp_lvgl_port esp_rom esp_system esp_timer heap logger
                   number_transform performance pitrig_config text_writer
                   time_transform value_smoothing)

@@ -126,6 +126,8 @@ export type UiStringKey =
   | 'canvas.toolPalette.slot'
   | 'canvas.toolPalette.tapZone'
   | 'canvas.toolPalette.theDashboardAlreadyHoldsAs'
+  | 'canvas.toolPalette.theTrackBeingDrivenWith'
+  | 'canvas.toolPalette.trackMap'
   | 'canvas.toolPalette.widgetTools'
   | 'common.add'
   | 'common.cancel'
@@ -997,6 +999,27 @@ export type UiStringKey =
   | 'inspector.hints.title.offset'
   | 'inspector.hints.title.source'
   | 'inspector.hints.title.text'
+  | 'inspector.hints.trackMap.ahead'
+  | 'inspector.hints.trackMap.behind'
+  | 'inspector.hints.trackMap.car'
+  | 'inspector.hints.trackMap.carSize'
+  | 'inspector.hints.trackMap.classColor'
+  | 'inspector.hints.trackMap.classes'
+  | 'inspector.hints.trackMap.finishLine'
+  | 'inspector.hints.trackMap.fitRotation'
+  | 'inspector.hints.trackMap.lapped'
+  | 'inspector.hints.trackMap.lapping'
+  | 'inspector.hints.trackMap.line'
+  | 'inspector.hints.trackMap.pitCar'
+  | 'inspector.hints.trackMap.pitLane'
+  | 'inspector.hints.trackMap.player'
+  | 'inspector.hints.trackMap.playerRing'
+  | 'inspector.hints.trackMap.playerSize'
+  | 'inspector.hints.trackMap.refresh'
+  | 'inspector.hints.trackMap.rotation'
+  | 'inspector.hints.trackMap.sector'
+  | 'inspector.hints.trackMap.track'
+  | 'inspector.hints.trackMap.width'
   | 'inspector.hints.widget.id'
   | 'inspector.iconPicker.anIconIsAGlyph'
   | 'inspector.iconPicker.firstShownOfTotal'
@@ -1116,6 +1139,35 @@ export type UiStringKey =
   | 'inspector.stylingEditors.yOffset'
   | 'inspector.telemetryBindingField.fieldSummary'
   | 'inspector.telemetryBindingField.unknownTelemetryBinding'
+  | 'inspector.trackMapEditor.ahead'
+  | 'inspector.trackMapEditor.behind'
+  | 'inspector.trackMapEditor.car'
+  | 'inspector.trackMapEditor.carSize'
+  | 'inspector.trackMapEditor.cars'
+  | 'inspector.trackMapEditor.carsSummary'
+  | 'inspector.trackMapEditor.classNumber'
+  | 'inspector.trackMapEditor.classes'
+  | 'inspector.trackMapEditor.classesSummary'
+  | 'inspector.trackMapEditor.finishLine'
+  | 'inspector.trackMapEditor.fitRotation'
+  | 'inspector.trackMapEditor.fitted'
+  | 'inspector.trackMapEditor.fittedRotation'
+  | 'inspector.trackMapEditor.fixedRotation'
+  | 'inspector.trackMapEditor.lapped'
+  | 'inspector.trackMapEditor.lapping'
+  | 'inspector.trackMapEditor.layout'
+  | 'inspector.trackMapEditor.line'
+  | 'inspector.trackMapEditor.lineWidth'
+  | 'inspector.trackMapEditor.pitCar'
+  | 'inspector.trackMapEditor.pitLane'
+  | 'inspector.trackMapEditor.player'
+  | 'inspector.trackMapEditor.playerRing'
+  | 'inspector.trackMapEditor.playerSize'
+  | 'inspector.trackMapEditor.refresh'
+  | 'inspector.trackMapEditor.rotation'
+  | 'inspector.trackMapEditor.sectorNumber'
+  | 'inspector.trackMapEditor.track'
+  | 'inspector.trackMapEditor.widthPx'
   | 'inspector.valueColorList.positionColour'
   | 'inspector.valueColorList.removeNounPosition'
   | 'inspector.widgetEditors.addImagesFirst'
@@ -2227,6 +2279,13 @@ export interface UiStringParameters {
   'inspector.sourceEditor.sourceNumber': { number: string | number }
   'inspector.stylingEditors.borderRadius': { border: string | number, radius: string | number }
   'inspector.telemetryBindingField.fieldSummary': { category: string | number, rate: string | number, type: string | number, unit: string | number, wireId: string | number }
+  'inspector.trackMapEditor.carsSummary': { car: string | number, player: string | number }
+  'inspector.trackMapEditor.classNumber': { number: string | number }
+  'inspector.trackMapEditor.classesSummary': { count: number, maximum: string | number }
+  'inspector.trackMapEditor.fittedRotation': { rotation: string | number }
+  'inspector.trackMapEditor.fixedRotation': { rotation: string | number }
+  'inspector.trackMapEditor.sectorNumber': { number: string | number }
+  'inspector.trackMapEditor.widthPx': { width: string | number }
   'inspector.valueColorList.positionColour': { position: string | number }
   'inspector.valueColorList.removeNounPosition': { noun: string | number, position: string | number }
   'inspector.widgetEditors.holdsHeldWidgetSPlaced': { held: string | number }

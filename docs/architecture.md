@@ -114,7 +114,8 @@ What each directory holds:
   `boot_guard`, `configuration`, `configuration_contract`,
   `configuration_control`, `event_bus`, `font_assets`, `font_contract`,
   `image_assets`, `image_contract`, `logger`, `telemetry` with
-  `telemetry/protocols/simhub`, `value_conditions` — the LVGL-free rule
+  `telemetry/protocols/simhub`, `track_map` — the outline the plugin streams,
+  assembled from its pieces (ADR 0043) — `value_conditions` — the LVGL-free rule
   resolver, a service so that a module may depend on it (ADR 0030) — and
   `value_smoothing`, the per-field followers of ADR 0033.
 - `platform/` — `board_registry`, `communication`, `dashboard` (LVGL `widgets`

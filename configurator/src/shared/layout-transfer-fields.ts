@@ -54,7 +54,12 @@ const TYPE_PIXEL_FIELDS: Partial<Record<WidgetType, readonly PixelField[]>> = {
     { path: 'segment_gap_px', kind: 'uint16' },
     { path: 'segment_radius_px', kind: 'uint16' }
   ],
-  graph: [{ path: 'line_width_px', kind: 'uint16', floorWhenPositive: true }]
+  graph: [{ path: 'line_width_px', kind: 'uint16', floorWhenPositive: true }],
+  track_map: [
+    { path: 'line_width_px', kind: 'uint16', floorWhenPositive: true },
+    { path: 'car_size_px', kind: 'uint16', floorWhenPositive: true },
+    { path: 'player_size_px', kind: 'uint16', floorWhenPositive: true }
+  ]
 }
 
 export function scaleAxis(

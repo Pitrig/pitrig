@@ -33,6 +33,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `kMaximumIndicatorWidgets` | 12 | Indicator strip storage for the whole dashboard. |
 | `kMaximumGraphWidgets` | 6 | Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. |
 | `kMaximumImageWidgets` | 64 | Image widget storage for the whole dashboard. Generous because an image that never changes is among the cheapest widgets to draw, and a dashboard that leans on artwork rather than on shapes spends its budget here instead. |
+| `kMaximumTrackMapWidgets` | 4 | Track map storage for the whole dashboard. Each instance keeps a picture of the outline as large as its box in external RAM, and one map a screen is as many as a dashboard needs. |
 | `kMaximumIndicatorSegments` | 16 | Segments in one indicator strip. |
 | `kMinimumBlinkMs` | 100 | Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal. |
 | `kMaximumBlinkMs` | 5000 | Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update. |
@@ -112,7 +113,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `SlotDismiss` | `next_event`, `timed`, `session` | How long a raised page stays away once a button dismisses it. next_event brings it back the next time its trigger fires anew: a value that changes again, or a comparison that stops holding and then holds again. timed keeps it away for dismiss_ms whatever happens. session keeps it away until the board restarts or the game starts a new session. |
 | `SlotTrigger` | `none`, `value_changed`, `conditions` | How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds. |
 | `WidgetParentKind` | `screen`, `shape`, `slot_page` | Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot. |
-| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
+| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot`, `track_map` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
 
 ## Objects
 
@@ -561,6 +562,40 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | `recolor` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `recolor_opa` | integer, 0..255 | `255` |
 
+### TrackMapWidgetConfiguration
+
+The outline of the track being driven, with the player and the other cars on it. The SimHub plugin sends SimHub's own map of the track with every car's place on the lap, so the widget binds no telemetry of its own; until an outline arrives the cars run around a ring. ADR 0043.
+
+Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `track_map` | required |
+| `line_color` | string `#RRGGBB` | `#C9D1D9` |
+| `line_width_px` | integer, 1..16 | `3` |
+| `sector_1_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `sector_2_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `sector_3_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `pit_lane_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `finish_line_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `car_color` | string `#RRGGBB` | `#E5E7EB` |
+| `car_size_px` | integer, 2..32 | `6` |
+| `player_color` | string `#RRGGBB` | `#C27BFF` |
+| `player_size_px` | integer, 2..48 | `10` |
+| `player_border_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `ahead_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `behind_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `lapping_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `lapped_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `pit_car_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_1_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_2_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_3_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_4_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `fit_rotation` | boolean | `true` |
+| `rotation_deg` | integer, 0..359 | `0` |
+| `refresh_ms` | integer, 20..1000 | `100` |
+
 ### ShapeWidgetConfiguration
 
 Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box and cut off at it, unless clip_children says otherwise.
@@ -572,7 +607,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | `type` | `WidgetType`, fixed `shape` | required |
 | `kind` | `ShapeKind` | `rectangle` |
 | `clip_children` | boolean | `true` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 32, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`TrackMapWidgetConfiguration`](#trackmapwidgetconfiguration), max 32, discriminated by `type` | absent |
 
 ### SlotPageConfiguration
 
@@ -587,7 +622,7 @@ One page of a slot: a set of widgets that share the slot's box and are shown or 
 | `dismiss` | `SlotDismiss` | `next_event` |
 | `dismiss_ms` | integer, 0..600000 | `0` |
 | `conditions` | array of [`ValueCondition`](#valuecondition), max 4 | absent |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 32, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`TrackMapWidgetConfiguration`](#trackmapwidgetconfiguration), max 32, discriminated by `type` | absent |
 
 ### SlotWidgetConfiguration
 
@@ -610,7 +645,7 @@ One dashboard screen: the coordinate space its widgets are placed in, and the or
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`SlotWidgetConfiguration`](#slotwidgetconfiguration), max 255, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`SlotWidgetConfiguration`](#slotwidgetconfiguration), [`TrackMapWidgetConfiguration`](#trackmapwidgetconfiguration), max 255, discriminated by `type` | absent |
 
 ### ControlBinding
 

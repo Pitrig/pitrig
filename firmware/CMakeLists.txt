@@ -46,6 +46,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/logger"
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry"
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry/protocols/simhub"
+     "${CMAKE_CURRENT_LIST_DIR}/services/track_map"
      "${CMAKE_CURRENT_LIST_DIR}/services/value_conditions"
      "${CMAKE_CURRENT_LIST_DIR}/services/value_smoothing"
      "${CMAKE_CURRENT_LIST_DIR}/utils/binary"
