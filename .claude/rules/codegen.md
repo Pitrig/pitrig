@@ -7,7 +7,7 @@ paths:
   - "i18n/**"
   - "simhub/**"
   - "**/*_generated.*"
-  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en}.ts"
+  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en,ui-strings-uk,ui-strings-ko,ui-strings-pl}.ts"
   - "configurator/src/main/font-library/google-fonts-catalog.json"
   - "docs/{configuration-schema,telemetry-catalog}.md"
 ---
@@ -59,11 +59,13 @@ banner.
   `fontFamilyId()` in `configurator/src/shared/font-library.ts` is the single
   id implementation; the generator only checks that every derivable id is valid
   and unique.
-- `ui_strings` — `i18n/en.json` → `configurator/src/shared/ui-string-keys.ts`
-  (the `UiStringKey` union and the parameter types) and
-  `configurator/src/shared/ui-strings-en.ts` (the table, an explicit
-  `Readonly<Record<string, string>>` so no project builds a literal type over
-  the catalog). Code reads them through `t()` in
+- `ui_strings` — `i18n/en.json` and its translations `uk.json`, `ko.json`,
+  `pl.json` → `configurator/src/shared/ui-string-keys.ts` (the `UiStringKey`
+  union and the parameter types) and one `ui-strings-<locale>.ts` table per
+  locale (an explicit `Readonly<Record<string, string>>` so no project builds a
+  literal type over the catalog). Code reads them through `t()` in
   `configurator/src/shared/ui-text.ts`. A plural message carries a `$plural`
-  object of CLDR categories selected by `Intl.PluralRules`, placeholders are
-  `{name}`, and `$note` is data for the translator (ADR 0031).
+  object of CLDR categories selected by `Intl.PluralRules`, exactly the ones
+  `PLURAL_CATEGORIES` in `catalog.py` lists for its locale; placeholders are
+  `{name}`, and `$note` is data for the translator. A locale lacking a key of
+  `en.json` fails the run (ADR 0031).

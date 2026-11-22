@@ -19,6 +19,11 @@ import {
 } from '../shared/app-updates'
 import { USAGE_GET_CHANNEL, USAGE_SET_CHANNEL } from '../shared/usage'
 import {
+  UI_LANGUAGE_GET_CHANNEL,
+  UI_LANGUAGE_RESTART_CHANNEL,
+  UI_LANGUAGE_SET_CHANNEL
+} from '../shared/ui-language'
+import {
   IMAGE_CANCEL_UPLOAD_CHANNEL,
   IMAGE_CLEAR_CHANNEL,
   IMAGE_SELECT_SOURCE_CHANNEL,
@@ -189,6 +194,9 @@ export const productApi: PitrigApi = {
   },
   getUsageSettings: () => ipcRenderer.invoke(USAGE_GET_CHANNEL),
   setUsageSettings: (request) => ipcRenderer.invoke(USAGE_SET_CHANNEL, request),
+  getUiLanguage: () => ipcRenderer.invoke(UI_LANGUAGE_GET_CHANNEL),
+  setUiLanguage: (request) => ipcRenderer.invoke(UI_LANGUAGE_SET_CHANNEL, request),
+  restartForUiLanguage: () => ipcRenderer.invoke(UI_LANGUAGE_RESTART_CHANNEL),
   selectImageSource: () => ipcRenderer.invoke(IMAGE_SELECT_SOURCE_CHANNEL),
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
   clearImageAssets: () => ipcRenderer.invoke(IMAGE_CLEAR_CHANNEL),

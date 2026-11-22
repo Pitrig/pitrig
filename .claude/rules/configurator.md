@@ -205,6 +205,18 @@ there, listed with its author's credit in `bundled-templates.ts` and opened by
 share a `variant.family` are listed as one summary carrying `variants`, and the
 card's `Use` and `Add` ask which version through `VariantDialog`.
 
+## Interface text
+
+Text lives in `i18n/en.json` with `uk.json`, `ko.json` and `pl.json` beside it
+(ADR 0031). The generator fails while a locale lacks a key, so a new English
+message carries its three translations in the same change, in the terms and
+style of `i18n/glossary.md`; a reworded one needs them updated by hand, since
+nothing detects it. The language is fixed for a run:
+`main/ui-language/startup-language.ts` is the first import of `main/index.ts`
+and must stay ahead of every module that calls `t()`. The Info page's Language
+section writes `language.json` in userData and relaunches the packaged
+application; in development it only saves, so restart `pnpm run dev` to see it.
+
 ## Traps
 
 Every dependency whose install script must run is listed in `allowBuilds` in

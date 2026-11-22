@@ -1210,6 +1210,13 @@ export type UiStringKey =
   | 'ipc.registerLibraryHandlers.invalidDashboardFileRequest'
   | 'ipc.registerLibraryHandlers.invalidTemplateRequest'
   | 'ipc.requestGuards.invalidDeviceConfigurationRequest'
+  | 'language.section.description'
+  | 'language.section.machineTranslated'
+  | 'language.section.restartClosesDraft'
+  | 'language.section.restartNow'
+  | 'language.section.restartToApply'
+  | 'language.section.system'
+  | 'language.section.title'
   | 'layers.layerList.fold'
   | 'layers.layerList.hideInTheEditorOnly'
   | 'layers.layerList.lockSoTheCanvasCannot'
@@ -2309,6 +2316,7 @@ export interface UiStringParameters {
   'inspector.widgetEditors.imageOnlyOnBoard': { image: string | number }
   'inspector.widgetEditors.lengthSources': { length: string | number }
   'ipc.registerAssetHandlers.familyCouldNotBeDownloaded': { family: string | number }
+  'language.section.system': { language: string | number }
   'layers.layerList.typeDoubleClickToRename': { type: string | number }
   'layers.slotPages.pageNumberNotInLoop': { number: string | number }
   'modules.devicePreview.lampNumber': { number: string | number }

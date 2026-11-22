@@ -1,5 +1,6 @@
 import type { AssetResult } from './asset-upload'
 import type { UsageSetRequest, UsageSettings } from './usage'
+import type { UiLanguageSetRequest, UiLanguageSettings } from './ui-language'
 import type { ImageSourceSelection } from './image-assets'
 import type {
   ImageLibraryAddRequest,
@@ -171,6 +172,9 @@ export interface PitrigApi {
   onUpdateStatus: (listener: (status: UpdateStatus) => void) => () => void
   getUsageSettings: () => Promise<UsageSettings>
   setUsageSettings: (request: UsageSetRequest) => Promise<UsageSettings>
+  getUiLanguage: () => Promise<UiLanguageSettings>
+  setUiLanguage: (request: UiLanguageSetRequest) => Promise<UiLanguageSettings>
+  restartForUiLanguage: () => Promise<boolean>
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
   cancelImageUpload: () => Promise<AssetResult<void>>
   clearImageAssets: () => Promise<DeviceResult<DeviceState>>

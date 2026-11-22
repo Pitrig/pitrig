@@ -29,6 +29,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 - **All boards, SimHub plugin.** New field: the distance left to the end of the lap or the rally stage.
 - **Configurator, SimHub plugin.** The Info page and the plugin's About tab link to the contact form on pitrig.com and show the email address.
+- **Configurator.** The interface in Ukrainian, Korean and Polish, taken from the system language or chosen on the Info page.
 
 **Changed**
 

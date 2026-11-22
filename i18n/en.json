@@ -2642,6 +2642,18 @@
       "whatIsSent": "What is sent"
     }
   },
+  "language": {
+    "section": {
+      "$note": "{language} is the name of the system language written in that language, for example Українська or 한국어.",
+      "title": "Language",
+      "description": "The language of the configurator.",
+      "system": "System ({language})",
+      "machineTranslated": "This translation was made with the help of AI. If you see a mistake, write to us: the contact details are below.",
+      "restartToApply": "The new language applies after Pitrig restarts.",
+      "restartNow": "Restart now",
+      "restartClosesDraft": "Restarting closes the current draft. Changes that are not on the board or in a file are lost. Restart now?"
+    }
+  },
   "contact": {
     "section": {
       "title": "Contact",

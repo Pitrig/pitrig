@@ -1,6 +1,8 @@
 import { app, BrowserWindow, crashReporter } from 'electron'
 import { join } from 'node:path'
 
+import { STARTUP_UI_LANGUAGE } from './ui-language/startup-language'
+
 applyBranding()
 applyApplicationMenu()
 crashReporter.start({ uploadToServer: false })
@@ -23,6 +25,7 @@ import {
 } from './ipc/broadcast'
 import { registerIpcHandlers } from './ipc/register-ipc-handlers'
 import { registerTelemetryBridge } from './telemetry-bridge/register-telemetry-bridge'
+import { registerUiLanguage } from './ui-language/register-ui-language'
 import { registerUpdates } from './updates/register-updates'
 import { registerUsage } from './usage/register-usage'
 
@@ -31,6 +34,7 @@ if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-allow-origins', 'http://localhost')
 }
 
+registerUiLanguage()
 const usage = registerUsage()
 const services: AppServices = createAppServices({
   onDeviceState: (state) => {
@@ -54,7 +58,8 @@ let quitAfterDeviceCleanup = false
 function createWindow(): void {
   createAppWindow({
     preload: join(__dirname, '../preload/index.cjs'),
-    renderer: '../renderer/index.html'
+    renderer: '../renderer/index.html',
+    uiLanguage: STARTUP_UI_LANGUAGE
   })
 }
 

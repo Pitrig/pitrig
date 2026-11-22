@@ -8,6 +8,12 @@ from . import BASE_LOCALE, SOURCE
 from .errors import fail
 
 PLURAL_FORMS = ("zero", "one", "two", "few", "many", "other")
+PLURAL_CATEGORIES = {
+    "en": ("one", "other"),
+    "ko": ("other",),
+    "pl": ("one", "few", "many", "other"),
+    "uk": ("one", "few", "many", "other"),
+}
 NOTE_KEY = "$note"
 PLURAL_KEY = "$plural"
 SEGMENT = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
@@ -125,12 +131,24 @@ def check_parity(base: dict[str, Message], locale: str, other: dict[str, Message
     for key, message in base.items():
         if set(other[key].parameters) - set(message.parameters):
             fail(f"'{key}' in {locale} uses placeholders {BASE_LOCALE} has none of")
+        if other[key].plural != message.plural:
+            fail(f"'{key}' in {locale} must be a plural message exactly when {BASE_LOCALE} has one")
+
+
+def check_plural_categories(locale: str, messages: dict[str, Message]) -> None:
+    categories = PLURAL_CATEGORIES.get(locale)
+    if categories is None:
+        fail(f"{locale} has no entry in PLURAL_CATEGORIES")
+    for key, message in messages.items():
+        if message.plural and set(message.forms) != set(categories):
+            fail(f"plural message '{key}' in {locale} must carry exactly " + ", ".join(categories))
 
 
 def load_catalog() -> dict[str, dict[str, Message]]:
     catalog = {locale: load_messages(locale) for locale in available_locales()}
     base = catalog[BASE_LOCALE]
     for locale, messages in catalog.items():
+        check_plural_categories(locale, messages)
         if locale != BASE_LOCALE:
             check_parity(base, locale, messages)
     return catalog

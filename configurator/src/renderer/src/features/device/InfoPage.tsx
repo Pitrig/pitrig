@@ -2,6 +2,7 @@ import { t } from '@shared/ui-text'
 
 import { PageShell } from '@/app/workspace/PageShell'
 import { ContactSection } from '@/features/updates/ContactSection'
+import { LanguageSection } from '@/features/updates/LanguageSection'
 import { UpdatesSection } from '@/features/updates/UpdatesSection'
 import { UsageSection } from '@/features/updates/UsageSection'
 import { BoardHealthLine } from './BoardHealthLine'
@@ -16,6 +17,7 @@ export function InfoPage(): React.JSX.Element {
       <div className="flex flex-col gap-[11px]">
         <UpdatesSection />
         {health ? <BoardHealthLine health={health} /> : null}
+        <LanguageSection />
         <SupportDetails />
         <ContactSection />
         <UsageSection />
