@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button'
+import { ModalDialog } from '@/components/ui/modal-dialog'
 import { UnresolvedFontsDialog } from '@/features/font-library/UnresolvedFontsDialog'
+import { updateBoardFromRelease } from '@/features/updates/update-store'
 import { useDeviceStore } from './device-store'
 import { useDraftState } from './draft-state'
 import { saveDraftToBoard, useSaveToBoardStore } from './save-to-board-store'
@@ -68,6 +70,37 @@ export function SaveFeedbackNote(): React.JSX.Element | null {
     >
       {feedback.message}
     </p>
+  )
+}
+
+export function FirmwareBehindGate(): React.JSX.Element | null {
+  const message = useSaveToBoardStore((state) => state.firmwareBehind)
+  const dismiss = useSaveToBoardStore((state) => state.dismissFirmwareBehind)
+  const selfUpdating = useDeviceStore((state) => state.session?.firmware?.storageAvailable === true)
+  if (!message) return null
+  return (
+    <ModalDialog
+      label={t('device.saveToBoardUi.needsNewerFirmware')}
+      className="w-[28rem] space-y-3 p-4"
+      onClose={dismiss}
+    >
+      <h2 className="text-sm font-semibold text-foreground">
+        {t('device.saveToBoardUi.needsNewerFirmware')}</h2>
+      <p className="break-words text-muted-foreground">{message}</p>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={dismiss}>
+          {t('common.close')}</Button>
+        {selfUpdating ? (
+          <Button
+            onClick={() => {
+              dismiss()
+              void updateBoardFromRelease()
+            }}
+          >
+            {t('device.saveToBoardUi.updateBoard')}</Button>
+        ) : null}
+      </div>
+    </ModalDialog>
   )
 }
 

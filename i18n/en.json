@@ -237,7 +237,9 @@
     "saveToBoardUi": {
       "saving": "Saving…",
       "saveToBoard": "Save to board",
-      "writeTheDashboardToThe": "Write the dashboard to the board (fonts install with it)"
+      "writeTheDashboardToThe": "Write the dashboard to the board (fonts install with it)",
+      "needsNewerFirmware": "This configuration needs newer firmware",
+      "updateBoard": "Update board"
     },
     "draftState": {
       "theBoardFirmwareReadsSchema": "The board's firmware reads configuration schema {schema} and this configurator writes {expected}. Update its firmware on the Firmware page first.",
@@ -1489,6 +1491,7 @@
   },
   "save": {
     "stage": {
+      "checking": "Checking the board's firmware",
       "preparing": "Checking fonts and images",
       "building": "Preparing fonts and images",
       "uploading": "Installing on the board",
@@ -1506,6 +1509,10 @@
       "savedTheBoardIsRestarting": "Saved. The board is restarting out of safe mode.",
       "savedTheBoardIsRunning": "Saved. The board is running the new dashboard.",
       "nothingToSaveTheBoard": "Nothing to save — the board already holds this configuration."
+    },
+    "firmwareCheck": {
+      "checking": "Checking that the board's firmware {version} accepts this configuration",
+      "refused": "The board runs firmware {running}, which does not accept this configuration: it needs firmware {released}. Nothing on the board has changed. Update the board, then save again. The board said: {reason}"
     },
     "fontDelivery": {
       "building": "Building the font package",

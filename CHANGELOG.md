@@ -23,7 +23,7 @@ a release says when either applies.
 
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 
-Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need firmware 0.4.1.
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need firmware 0.4.1, and an older configurator cannot open a board that holds one.
 
 **Added**
 
@@ -60,6 +60,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **All boards.** A board starts with more stack to spare, which a large dashboard with a track map or slot conditions came close to using up.
 - **SimHub plugin.** LMU's laps left on virtual energy leave out the part-lap from when SimHub started or the session changed.
 - **SimHub plugin.** The track map keeps a bounded record of where sectors start, so a long session no longer grows it.
+- **Configurator.** Saving to a board on older firmware first asks the board whether it accepts the configuration; if not, it names the firmware needed, offers Update board and leaves the board as it was.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 

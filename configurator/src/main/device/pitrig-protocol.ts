@@ -99,6 +99,22 @@ export async function applyConfiguration(
   )
 }
 
+export async function validateConfiguration(
+  port: SerialPort,
+  document: ConfigurationDocumentId,
+  payload: string,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    `@PR:VALIDATE:${document}:${payload}\n`,
+    `@PR:OK:VALID:${document}`,
+    writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
+    onTraffic,
+    'configuration_rejected'
+  )
+}
+
 export async function saveConfiguration(
   port: SerialPort,
   document: ConfigurationDocumentId,

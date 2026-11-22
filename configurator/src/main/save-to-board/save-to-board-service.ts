@@ -24,6 +24,7 @@ import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import { FontAssetService } from '../font-assets/font-asset-service'
 import type { ImageAssetService } from '../image-assets/image-asset-service'
 import type { ImageLibraryService } from '../image-library/image-library-service'
+import { refusedByOlderFirmware } from './firmware-check'
 import { deliverFonts, plannedFamilies, type FontSources } from './font-delivery'
 import { deliverImages, plannedImages } from './image-delivery'
 import { messageOf, saveFailure, withMessage, type RestartOutcome } from './save-results'
@@ -81,6 +82,15 @@ export class SaveToBoardService {
     )
     const safeMode = session.info.health?.safeMode ?? false
     const assetsInScope = !safeMode && (requested === undefined || requested.includes('dashboard'))
+
+    const refused = await refusedByOlderFirmware({
+      deviceService: this.deviceService,
+      session,
+      json: request.json,
+      changed,
+      report: (message) => this.report('checking', 0, 1, message)
+    })
+    if (refused) return refused
 
     this.report('preparing', 0, 1, t('save.saveToBoardService.checkingTheFontsThisDashboard'))
     const planned = assetsInScope
