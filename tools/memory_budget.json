@@ -1,0 +1,24 @@
+{
+ "boards": {
+  "t-display-s3": {
+   "sdkconfig": "PITRIG_FACTORY_BOARD_T_DISPLAY_S3",
+   "product": {"internal_ram": 213620, "external_ram": 640000, "image": 2097152},
+   "debug": {"internal_ram": 217096, "external_ram": 640000, "image": 2097152}
+  },
+  "guition-4848s040": {
+   "sdkconfig": "PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040",
+   "product": {"internal_ram": 206415, "external_ram": 640000, "image": 2097152},
+   "debug": {"internal_ram": 209763, "external_ram": 640000, "image": 2097152}
+  },
+  "jc1060p470c": {
+   "sdkconfig": "PITRIG_FACTORY_BOARD_GUITION_JC1060P470C",
+   "product": {"internal_ram": 176000, "external_ram": 640000, "image": 2097152},
+   "debug": {"internal_ram": 176000, "external_ram": 640000, "image": 2097152}
+  },
+  "esp32s3-devkit": {
+   "sdkconfig": "PITRIG_FACTORY_BOARD_ESP32S3_DEVKIT",
+   "product": {"internal_ram": 213044, "external_ram": 640000, "image": 2097152},
+   "debug": {"internal_ram": 216500, "external_ram": 640000, "image": 2097152}
+  }
+ }
+}

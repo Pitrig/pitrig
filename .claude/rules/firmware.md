@@ -150,6 +150,17 @@ A change that can move frame cost is run on the bench of
 there; a slower document is explained before the change lands, and a faster
 board gets a new entry.
 
+LVGL is linked after the application's code, so any change to Pitrig code moves
+it in flash: on the ESP32-P4 an every-field stress feed renders up to 4 % apart
+between builds of the same code, while a race-like feed does not move. Before
+blaming a change for such a shift, rebuild it with a scratch-only block of `nop`s
+in `core/` that puts LVGL exactly 32 KB after its old address, the same cache
+position. A feed must change what is shown every tick: `engine.rpm`,
+`vehicle.speed` and `transmission.gear` are text fields from the source, so feed
+them as numbers, on a fixed time grid. `python3 tools/check_memory_budget.py
+<build-dir>`, in the ESP-IDF environment, checks static memory against
+`tools/memory_budget.json`.
+
 ## Conventions
 
 Static allocation, `constexpr`, bounded fixed-size structures; no heap churn in

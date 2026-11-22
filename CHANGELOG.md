@@ -32,6 +32,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** The interface in Ukrainian, Korean and Polish, taken from the system language or chosen on the Info page.
 - **SimHub plugin.** Its pages in Ukrainian, Korean and Polish, in the language the configurator uses.
 - **Configurator.** A saved template's card shares it as one file; Open on the Templates page adds a received one.
+- **Development.** A firmware build fails when its static memory passes its board's ceiling in `tools/memory_budget.json`.
 
 **Changed**
 

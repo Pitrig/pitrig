@@ -333,3 +333,9 @@ allocator. External RAM is what a dashboard spends: a distinct
 image costs its own pixels. The per-type widget caps in the configuration
 contract are therefore not a memory decision: raising one is a decision about
 the frame, judged by applying the document and reading `render_us` back.
+
+Static memory is checked when firmware is built: `tools/check_memory_budget.py`
+compares an image with its board's ceilings in `tools/memory_budget.json`, and CI
+fails above one. The JC1060P470C's internal ceiling sits 9 KB below the 185 KB at
+which its display stopped starting; an ESP32-S3 board's is the last figure known to
+run on it, until a board is measured with `@PR:DIAG`.

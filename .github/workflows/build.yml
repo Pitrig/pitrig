@@ -242,6 +242,12 @@ jobs:
           idf.py -B "$build" reconfigure
           idf.py -B "$build" build
 
+      - name: Memory budget
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          python3 tools/check_memory_budget.py "firmware/build-${{ matrix.directory }}"
+
       - name: Collect
         shell: bash
         run: |
