@@ -29,6 +29,10 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 - **All boards, SimHub plugin.** New field: the distance left to the end of the lap or the rally stage.
 
+**Changed**
+
+- **Configurator.** The T-Display lap timer starter has the Endurance look, with larger last and best times.
+
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need firmware 0.4.1, and an older configurator cannot open a board that holds one.
