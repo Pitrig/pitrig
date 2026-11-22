@@ -2642,6 +2642,15 @@
       "whatIsSent": "What is sent"
     }
   },
+  "contact": {
+    "section": {
+      "title": "Contact",
+      "description": "A question, a board that will not start or an idea goes straight to the developer. With a problem, paste the details for support into your message.",
+      "form": "Contact form",
+      "copyEmail": "Copy email",
+      "copied": "Copied"
+    }
+  },
   "share": {
     "button": {
       "label": "Share…",

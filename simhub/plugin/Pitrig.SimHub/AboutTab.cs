@@ -10,6 +10,8 @@ namespace Pitrig.SimHub
         private const string Guides = Website + "/docs";
         private const string Repository = "https://github.com/Pitrig/pitrig";
         private const string Issues = Repository + "/issues";
+        private const string Contact = Website + "/contact";
+        private const string Email = "contact.pitrig@gmail.com";
         private const string License = "https://www.apache.org/licenses/LICENSE-2.0";
         private const double WordmarkHeight = 44;
         private const double TitleSize = 16;
@@ -49,6 +51,10 @@ namespace Pitrig.SimHub
                     PageParts.Link("Guides", Guides),
                     PageParts.Link("Source code", Repository),
                     PageParts.Link("Report a problem", Issues)),
+                PageParts.Section("CONTACT",
+                    PageParts.Text("A question, a board that will not start or an idea goes straight to the developer."),
+                    PageParts.Link("Contact form", Contact),
+                    PageParts.Link(Email, "mailto:" + Email)),
                 PageParts.Section("STATISTICS",
                     PageParts.Text("Pitrig sends anonymous usage statistics: a random install number, whether Pitrig " +
                                    "was used on this computer before, the plugin and SimHub versions, the board model " +

@@ -1,36 +1,26 @@
 import { ChevronRight } from 'lucide-react'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment } from 'react'
 
 import { t } from '@shared/ui-text'
 import { Button } from '@/components/ui/button'
 import { useUpdateStore } from '@/features/updates/update-store'
+import { useCopy } from '@/lib/use-copy'
 import { useAppInfo } from './app-info'
 import { useDeviceStore } from './device-store'
 import { supportRows, supportText } from './support-details'
-
-const COPIED_MS = 1500
 
 export function SupportDetails(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const connection = useDeviceStore((state) => state.connection)
   const simhub = useUpdateStore((state) => state.status?.simhub)
   const appInfo = useAppInfo()
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopy()
   const rows = supportRows(session, connection, appInfo?.platform)
 
-  useEffect(() => {
-    if (!copied) return undefined
-    const timer = window.setTimeout(() => setCopied(false), COPIED_MS)
-    return () => window.clearTimeout(timer)
-  }, [copied])
-
-  const copy = async (event: React.MouseEvent): Promise<void> => {
+  const copyDetails = async (event: React.MouseEvent): Promise<void> => {
     event.preventDefault()
     event.stopPropagation()
-    await navigator.clipboard.writeText(
-      supportText({ appVersion: appInfo?.version, session, simhub, rows })
-    )
-    setCopied(true)
+    await copy(supportText({ appVersion: appInfo?.version, session, simhub, rows }))
   }
 
   return (
@@ -46,7 +36,7 @@ export function SupportDetails(): React.JSX.Element {
         <Button
           variant="outline"
           className="h-7 flex-none px-2.5 text-foreground"
-          onClick={(event) => void copy(event)}
+          onClick={(event) => void copyDetails(event)}
         >
           {copied ? t('device.supportDetails.copied') : t('device.supportDetails.copy')}
         </Button>
