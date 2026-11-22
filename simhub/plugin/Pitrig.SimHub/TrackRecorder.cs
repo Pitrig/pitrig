@@ -14,6 +14,7 @@ namespace Pitrig.SimHub
         private const int LargestPitGap = 6;
         private const int ShortestPitLane = 16;
         private const double NeighbourFraction = 0.05;
+        private const int SectorSamples = 256;
 
         private readonly Bin[] pit = new Bin[BinCount];
         private readonly Dictionary<string, Progress> cars = new Dictionary<string, Progress>();
@@ -36,7 +37,8 @@ namespace Pitrig.SimHub
             if (cars.TryGetValue(car, out var last) && Neighbouring(last.Fraction, fraction) && sector.HasValue &&
                 last.Sector.HasValue && sector == last.Sector + 1)
             {
-                StartOf(sector.Value).Add(Middle(last.Fraction, fraction));
+                var starts = StartOf(sector.Value);
+                if (starts.Count < SectorSamples) starts.Add(Middle(last.Fraction, fraction));
             }
             cars[car] = new Progress { Fraction = fraction, Sector = sector };
         }

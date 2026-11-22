@@ -17,7 +17,7 @@ namespace Pitrig.SimHub
         {
             perLap.Clear();
             lapStart = null;
-            lapTouchedPit = false;
+            lapTouchedPit = true;
         }
 
         public void Update(TelemetryState state, bool lapCompleted, bool inPit)

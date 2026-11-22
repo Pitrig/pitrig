@@ -10,6 +10,7 @@ namespace Pitrig.SimHub
 
         private readonly Func<string, bool> isPitrigPort;
         private object scanner;
+        private bool failed;
 
         public ScanGuard(Func<string, bool> isPitrigPort)
         {
@@ -62,6 +63,21 @@ namespace Pitrig.SimHub
         }
 
         private void Screen(object sender, global::SerialDash.SerialDashController.ScanArgs port)
+        {
+            try
+            {
+                Mark(port);
+            }
+            catch (Exception exception)
+            {
+                if (failed) return;
+                failed = true;
+                PluginLog.Warn(Unprotected + exception.Message);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void Mark(global::SerialDash.SerialDashController.ScanArgs port)
         {
             if (port == null || port.PortIsBusy || !isPitrigPort(port.ComPort)) return;
             port.PortIsBusy = true;

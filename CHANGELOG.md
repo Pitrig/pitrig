@@ -58,6 +58,8 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** A screen with many slots lists them on more rows instead of past the toolbar's edge.
 - **Guition JC1060P470C, LilyGO T-Display-S3, Espressif ESP32-S3-DevKitC-1.** A board sent data over USB without a pause no longer restarts after about ten seconds.
 - **All boards.** A board starts with more stack to spare, which a large dashboard with a track map or slot conditions came close to using up.
+- **SimHub plugin.** LMU's laps left on virtual energy leave out the part-lap from when SimHub started or the session changed.
+- **SimHub plugin.** The track map keeps a bounded record of where sectors start, so a long session no longer grows it.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 
