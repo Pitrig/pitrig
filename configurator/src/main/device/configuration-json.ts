@@ -37,10 +37,17 @@ export function parseDeviceConfigurationValue(value: unknown): DeviceConfigurati
 }
 
 export function parseWidgetFragment(value: unknown, board: PitrigBoardId): WidgetConfiguration {
-  const document = parseDeviceConfigurationValue({
+  return carriedWidget(widgetCarrier(value, board))
+}
+
+export function widgetCarrier(value: unknown, board: PitrigBoardId): DeviceConfiguration {
+  return parseDeviceConfigurationValue({
     board,
     dashboard: { screens: [{ widgets: [value] }] }
   })
+}
+
+export function carriedWidget(document: DeviceConfiguration): WidgetConfiguration {
   const widget = document.dashboard?.screens?.[0]?.widgets?.[0]
   if (!widget) throw new Error(t('device.configurationJson.theFragmentHoldsNoWidget'))
   return widget

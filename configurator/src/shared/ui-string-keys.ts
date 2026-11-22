@@ -1667,6 +1667,7 @@ export type UiStringKey =
   | 'share.dialog.saveButton'
   | 'share.dialog.saveFile'
   | 'share.dialog.saveTitle'
+  | 'share.dialog.saveWidgetTitle'
   | 'share.dialog.saved'
   | 'share.dialog.savedWithout'
   | 'share.dialog.saving'
@@ -1674,6 +1675,8 @@ export type UiStringKey =
   | 'share.errors.name'
   | 'share.errors.notSaved'
   | 'share.file.damaged'
+  | 'share.file.isDashboard'
+  | 'share.file.isWidget'
   | 'share.file.newer'
   | 'share.file.newerVersion'
   | 'share.file.tooLarge'
@@ -1732,6 +1735,10 @@ export type UiStringKey =
   | 'templates.dashboardSection.wholeLayoutsScaledToSize'
   | 'templates.dashboardThumbnail.noPreview'
   | 'templates.dashboardThumbnail.reading'
+  | 'templates.files.added'
+  | 'templates.files.open'
+  | 'templates.files.openTitle'
+  | 'templates.files.share'
   | 'templates.insertScreen.aDashboardHoldsAtMost'
   | 'templates.insertScreen.thatDashboardHasNoSuch'
   | 'templates.insertScreen.thatScreenWouldNotBe'
@@ -2430,6 +2437,8 @@ export interface UiStringParameters {
   'templates.dashboardSection.nameWouldNotBeAccepted': { error: string | number, name: string | number }
   'templates.dashboardSection.replaceEverythingYouHaveOpen2': { name: string | number }
   'templates.dashboardSection.wholeLayoutsScaledToSize': { size: string | number }
+  'templates.files.added': { name: string | number }
+  'templates.files.share': { name: string | number }
   'templates.insertScreen.aDashboardHoldsAtMost': { maximum: string | number }
   'templates.insertScreen.thatScreenWouldNotBe': { error: string | number }
   'templates.insertScreenDialog.addsLength': { length: string | number }

@@ -71,7 +71,11 @@ export function TemplatesPage(): React.JSX.Element {
         onNotice={setNotice}
         onDelete={(entry) => void remove(entry)}
       />
-      <WidgetSection busy={busy} onDelete={(entry) => void remove(entry)} />
+      <WidgetSection
+        busy={busy}
+        onNotice={setNotice}
+        onDelete={(entry) => void remove(entry)}
+      />
 
       {loading && !library ? (
         <p className="text-xs text-muted-foreground">{t('templates.templatesPage.readingTheLibrary')}</p>

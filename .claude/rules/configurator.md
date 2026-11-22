@@ -187,11 +187,14 @@ display. `transferConfiguration` is the engine every entry point ends in:
 `convertDraftToBoard` in `configuration-actions.ts` converts the open draft,
 while a template's `Use` and `Add` call it directly from `features/templates/`.
 The fit is one persisted preference in `panel-store.ts`. The template library holds dashboards and widgets in two
-folders (`templates/widgets/`) on one `TemplateCard`: a dashboard's `Add`
-appends screens through `insert-screen.ts` and `Use` replaces the draft; a
-widget entry carries its fragment in its summary, while a dashboard's document
-is read on demand and cached in `templates-store`, because a card draws it too;
-placing one is `pendingInsert` in the editor store,
+folders (`templates/widgets/`) on one `TemplateCard`, each saved one a
+`.pitrigdash` file with its images and fonts (`template-files.ts`; a `.json`
+from an earlier version is converted once by `template-migration.ts`): a
+dashboard's `Add` appends screens through `insert-screen.ts` and `Use` replaces
+the draft; a widget entry carries its fragment in its summary, while a
+dashboard's document is read on demand and cached in `templates-store`, because
+a card draws it too; a widget's `Add` goes through `templates:adopt` first, so
+its images reach the library, and placing it is `pendingInsert` in the editor store,
 scaled by `insert-template.ts` only when it would not fit. Re-iding is not
 special to it: every `insertWidget` runs `freshWidgetIds` over what it inserts,
 as does a screen imported through `insert-screen.ts`. A template is its payload inside
@@ -203,7 +206,9 @@ there, listed with its author's credit in `bundled-templates.ts` and opened by
 `bundled-template-library.ts` through the dashboard file service, so `Use` and
 `Add` (`templates:adopt`) bring its images into the library. Entries there that
 share a `variant.family` are listed as one summary carrying `variants`, and the
-card's `Use` and `Add` ask which version through `VariantDialog`.
+card's `Use` and `Add` ask which version through `VariantDialog`. A saved
+template's card writes its file out through `templates:share`, and each
+section's Open adds a received one through `templates:import`.
 
 ## Interface text
 

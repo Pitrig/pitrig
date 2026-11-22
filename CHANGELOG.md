@@ -23,17 +23,19 @@ a release says when either applies.
 
 ## Unreleased
 
-Same schema and partition table: a board update keeps the configuration. Dashboards with the new field need this firmware.
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new field need this firmware. An older configurator does not list the templates this one saves.
 
 **Added**
 
 - **All boards, SimHub plugin.** New field: the distance left to the end of the lap or the rally stage.
 - **Configurator, SimHub plugin.** The Info page and the plugin's About tab link to the contact form on pitrig.com and show the email address.
 - **Configurator.** The interface in Ukrainian, Korean and Polish, taken from the system language or chosen on the Info page.
+- **Configurator.** A saved template's card shares it as one file; Open on the Templates page adds a received one.
 
 **Changed**
 
 - **Configurator.** The T-Display lap timer starter has the Endurance look, with larger last and best times.
+- **Configurator.** Saved templates, widgets too, keep their images and fonts in one file; removing an image from the PC no longer breaks them.
 
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 

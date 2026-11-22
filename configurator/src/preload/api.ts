@@ -106,10 +106,12 @@ import { PREVIEW_ASSETS_READ_CHANNEL } from '../shared/preview-assets'
 import {
   TEMPLATE_ADOPT_CHANNEL,
   TEMPLATE_DELETE_CHANNEL,
+  TEMPLATE_IMPORT_CHANNEL,
   TEMPLATE_LIST_CHANNEL,
   TEMPLATE_OPEN_CREDIT_CHANNEL,
   TEMPLATE_READ_CHANNEL,
-  TEMPLATE_SAVE_CHANNEL
+  TEMPLATE_SAVE_CHANNEL,
+  TEMPLATE_SHARE_CHANNEL
 } from '../shared/templates'
 
 const telemetryBridgeApi: TelemetryBridgeApi = {
@@ -153,6 +155,8 @@ export const productApi: PitrigApi = {
   openTemplateCredit: (request) => ipcRenderer.invoke(TEMPLATE_OPEN_CREDIT_CHANNEL, request),
   saveTemplate: (request) => ipcRenderer.invoke(TEMPLATE_SAVE_CHANNEL, request),
   deleteTemplate: (request) => ipcRenderer.invoke(TEMPLATE_DELETE_CHANNEL, request),
+  shareTemplate: (request) => ipcRenderer.invoke(TEMPLATE_SHARE_CHANNEL, request),
+  importTemplateFile: (request) => ipcRenderer.invoke(TEMPLATE_IMPORT_CHANNEL, request),
   listSerialPorts: () => ipcRenderer.invoke(DEVICE_LIST_PORTS_CHANNEL),
   getDeviceState: () => ipcRenderer.invoke(DEVICE_GET_STATE_CHANNEL),
   connectDevice: (request) => ipcRenderer.invoke(DEVICE_CONNECT_CHANNEL, request),

@@ -135,8 +135,7 @@ Editor gaps against SimHub are in
 
 - [*] Dashboard bundle
 - [*] Sharing a dashboard as one file with its images, opened on another PC as it was
-- [*] Templates that carry their images — bundled starters
-- [ ] Templates that carry their images — user templates
+- [*] Templates that carry their images
 - [ ] In-app gallery
 - [ ] CI on pull requests
 - [*] Compatibility policy and changelog

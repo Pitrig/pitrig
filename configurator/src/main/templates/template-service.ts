@@ -1,15 +1,17 @@
-import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import type { BrowserWindow } from 'electron'
+import { readFile, stat } from 'node:fs/promises'
+import { basename } from 'node:path'
 
-import { emptyOpenReport, type OpenedDashboard } from '../../shared/dashboard-files'
 import {
-  MAXIMUM_TEMPLATE_FILE_SIZE,
+  MAXIMUM_DASHBOARD_FILE_SIZE,
+  emptyOpenReport,
+  type DashboardShareSaveValue,
+  type OpenedDashboard
+} from '../../shared/dashboard-files'
+import { freeAssetId } from '../../shared/document-assets'
+import {
   MAXIMUM_USER_TEMPLATES,
-  TEMPLATE_FORMAT,
-  TEMPLATE_FORMAT_VERSION,
   TEMPLATE_ID_PATTERN,
-  WIDGET_TEMPLATE_FORMAT,
-  WIDGET_TEMPLATE_SUBDIRECTORY,
   isBundledTemplateId,
   templateIdFor,
   type DashboardTemplateSummary,
@@ -23,87 +25,109 @@ import {
   type TemplateSummary,
   type WidgetTemplateSummary
 } from '../../shared/templates'
+import { isContainer } from '../dashboard-files/dashboard-file-container'
 import {
-  dashboardSummary,
-  failure,
-  isMissing,
-  messageOf,
-  parseTemplateDocument,
-  parseWidgetTemplateDocument,
-  widgetSummary
-} from './template-documents'
-import type { BundledTemplateLibrary } from './bundled-template-library'
+  decodeDashboardFile,
+  readDashboardFileHeader,
+  templateOf,
+  wrongTemplate
+} from '../dashboard-files/dashboard-file-format'
+import type { DashboardFileService } from '../dashboard-files/dashboard-file-service'
 import { writeFileAtomic } from '../write-file-atomic'
+import type { BundledTemplateLibrary } from './bundled-template-library'
+import {
+  carrierOf,
+  documentFromFile,
+  documentFromLegacy,
+  documentFromRequest,
+  draftOf,
+  isDashboardDocument
+} from './template-content'
+import {
+  failure,
+  limitReached,
+  messageOf,
+  notFound,
+  savedFailure,
+  templateSummary
+} from './template-documents'
+import { TemplateFiles, type StoredTemplate } from './template-files'
+import { migrateLegacyTemplates } from './template-migration'
+import { previewsOf } from './template-previews'
 import { t } from '@shared/ui-text'
 
-const FILE_EXTENSION = '.json'
+const KINDS: readonly TemplateKind[] = ['dashboard', 'widget']
 
 export class TemplateService {
-  constructor(
-    private readonly directory: string,
-    private readonly bundled: BundledTemplateLibrary
-  ) {}
+  private readonly files: TemplateFiles
+  private migration?: Promise<void>
 
-  private get widgetDirectory(): string {
-    return join(this.directory, WIDGET_TEMPLATE_SUBDIRECTORY)
+  constructor(
+    directory: string,
+    private readonly bundled: BundledTemplateLibrary,
+    private readonly dashboardFiles: DashboardFileService
+  ) {
+    this.files = new TemplateFiles(directory)
   }
 
   async list(): Promise<TemplateResult<TemplateLibrary>> {
+    await this.ready()
     const starters = await this.bundled.list()
-    const bundled = starters.summaries
     let unreadable = starters.unreadable
-
     const dashboards: DashboardTemplateSummary[] = []
-    for (const id of await this.savedIds('dashboard')) {
-      if (!TEMPLATE_ID_PATTERN.test(id)) {
-        unreadable += 1
-        continue
-      }
-      try {
-        const value = await this.readSavedValue(id, 'dashboard')
-        dashboards.push(dashboardSummary(id, 'user', parseTemplateDocument(value)))
-      } catch {
-        unreadable += 1
-      }
-    }
-    dashboards.sort((left, right) => left.name.localeCompare(right.name))
-
     const widgets: WidgetTemplateSummary[] = []
-    for (const id of await this.savedIds('widget')) {
-      if (!TEMPLATE_ID_PATTERN.test(id)) {
-        unreadable += 1
-        continue
-      }
-      try {
-        widgets.push(widgetSummary(id, await this.readSaved(id, 'widget')))
-      } catch {
-        unreadable += 1
+    for (const kind of KINDS) {
+      for (const entry of await this.files.list(kind)) {
+        try {
+          const summary = templateSummary(entry.id, await this.documentOf(entry, kind))
+          if (summary.kind === 'dashboard') dashboards.push(summary)
+          else widgets.push(summary)
+        } catch {
+          unreadable += 1
+        }
       }
     }
-    widgets.sort((left, right) => left.name.localeCompare(right.name))
-
-    return { ok: true, value: { dashboards: [...bundled, ...dashboards], widgets, unreadable } }
+    dashboards.sort(byName)
+    widgets.sort(byName)
+    return {
+      ok: true,
+      value: { dashboards: [...starters.summaries, ...dashboards], widgets, unreadable }
+    }
   }
 
   async read(id: string, kind: TemplateKind): Promise<TemplateResult<TemplateReadValue>> {
     if (kind === 'dashboard' && isBundledTemplateId(id)) return this.bundled.read(id)
     try {
-      return { ok: true, value: await this.readSaved(id, kind) }
+      const entry = await this.find(id, kind)
+      if (!entry) return notFound(id)
+      const bytes = await this.files.read(entry, kind)
+      if (entry.format === 'legacy') return { ok: true, value: documentFromLegacy(bytes, kind) }
+      const content = await decodeDashboardFile(bytes)
+      const document = documentFromFile(content, kind)
+      const previews = previewsOf(content)
+      return { ok: true, value: previews.length > 0 ? { ...document, previews } : document }
     } catch (error) {
       return savedFailure(id, error)
     }
   }
 
-  async adopt(id: string): Promise<TemplateResult<OpenedDashboard>> {
-    if (isBundledTemplateId(id)) return this.bundled.adopt(id)
+  async adopt(id: string, kind: TemplateKind): Promise<TemplateResult<OpenedDashboard>> {
+    if (kind === 'dashboard' && isBundledTemplateId(id)) return this.bundled.adopt(id)
     try {
-      const document = parseTemplateDocument(await this.readSavedValue(id, 'dashboard'))
+      const entry = await this.find(id, kind)
+      if (!entry) return notFound(id)
+      const bytes = await this.files.read(entry, kind)
+      if (entry.format === 'file') {
+        const opened = await this.dashboardFiles.open(bytes, kind)
+        return opened.ok ? opened : failure('invalid_template', opened.error.message)
+      }
+      const document = documentFromLegacy(bytes, kind)
       return {
         ok: true,
         value: {
           name: document.name,
           ...(document.description ? { description: document.description } : {}),
-          configuration: document.configuration,
+          configuration: isDashboardDocument(document) ? document.configuration : carrierOf(document),
           report: emptyOpenReport()
         }
       }
@@ -123,58 +147,30 @@ export class TemplateService {
     if (!id) {
       return failure('invalid_template', t('templates.templateService.aTemplateNameNeedsAt'))
     }
-
     let document: TemplateDocument
     try {
-      const envelope = {
-        format_version: TEMPLATE_FORMAT_VERSION,
-        name,
-        ...(description ? { description } : {})
-      }
-      document =
-        request.kind === 'dashboard'
-          ? parseTemplateDocument({
-              ...envelope,
-              format: TEMPLATE_FORMAT,
-              configuration: JSON.parse(request.json)
-            })
-          : parseWidgetTemplateDocument({
-              ...envelope,
-              format: WIDGET_TEMPLATE_FORMAT,
-              board: request.board,
-              widget: JSON.parse(request.json)
-            })
+      document = documentFromRequest(request, name, description)
     } catch (error) {
       return failure(
         'invalid_template',
         messageOf(error, t('templates.templateService.thatCannotBeSavedAs'))
       )
     }
-
-    const directory = request.kind === 'dashboard' ? this.directory : this.widgetDirectory
     try {
-      await mkdir(directory, { recursive: true })
-      const saved = await this.savedIds(request.kind)
-      if (!saved.includes(id) && saved.length >= MAXIMUM_USER_TEMPLATES) {
-        return failure(
-          'limit_reached',
-          t('templates.templateService.theLibraryHoldsAtMost', { mAXIMUM_USER_TEMPLATES: MAXIMUM_USER_TEMPLATES, kind: request.kind })
-        )
+      await this.ready()
+      const saved = await this.files.list(request.kind)
+      if (!saved.some((entry) => entry.id === id) && saved.length >= MAXIMUM_USER_TEMPLATES) {
+        return limitReached(request.kind)
       }
-      await writeFileAtomic(
-        this.pathFor(id, request.kind),
-        `${JSON.stringify(document, null, 2)}\n`
-      )
+      const { bytes } = await this.dashboardFiles.encode(draftOf(document))
+      await this.files.write(id, request.kind, bytes)
     } catch (error) {
-      return failure('write_failed', messageOf(error, t('templates.templateService.failedToWriteTheTemplate')))
+      return failure(
+        'write_failed',
+        messageOf(error, t('templates.templateService.failedToWriteTheTemplate'))
+      )
     }
-    return {
-      ok: true,
-      value:
-        document.format === TEMPLATE_FORMAT
-          ? dashboardSummary(id, 'user', document)
-          : widgetSummary(id, document)
-    }
+    return { ok: true, value: templateSummary(id, document) }
   }
 
   async remove(id: string, kind: TemplateKind): Promise<TemplateResult<void>> {
@@ -182,60 +178,118 @@ export class TemplateService {
       return failure('read_only', t('templates.templateService.aStarterTemplateCannotBe'))
     }
     try {
-      await rm(this.pathFor(id, kind))
+      await this.ready()
+      if (!(await this.files.remove(id, kind))) return notFound(id)
       return { ok: true, value: undefined }
     } catch (error) {
-      if (isMissing(error)) return failure('not_found', t('templates.templateService.noTemplateNamedId', { id: id }))
-      return failure('write_failed', messageOf(error, t('templates.templateService.failedToDeleteTheTemplate')))
-    }
-  }
-
-  private async savedIds(kind: TemplateKind): Promise<string[]> {
-    try {
-      const directory = kind === 'dashboard' ? this.directory : this.widgetDirectory
-      return (await readdir(directory))
-        .filter((fileName) => fileName.endsWith(FILE_EXTENSION))
-        .map((fileName) => fileName.slice(0, -FILE_EXTENSION.length))
-    } catch (error) {
-      if (isMissing(error)) return []
-      throw error
-    }
-  }
-
-  private async readSavedValue(id: string, kind: TemplateKind): Promise<unknown> {
-    const path = this.pathFor(id, kind)
-    const metadata = await stat(path)
-    if (!metadata.isFile() || metadata.size > MAXIMUM_TEMPLATE_FILE_SIZE) {
-      throw new Error(
-        t('templates.templateService.aTemplateFileMustNot', { maximum: MAXIMUM_TEMPLATE_FILE_SIZE })
+      return failure(
+        'write_failed',
+        messageOf(error, t('templates.templateService.failedToDeleteTheTemplate'))
       )
     }
-    return JSON.parse(await readFile(path, 'utf8'))
   }
 
-  private async readSaved(id: string, kind: TemplateKind): Promise<TemplateDocument> {
-    const value = await this.readSavedValue(id, kind)
-    return kind === 'dashboard'
-      ? parseTemplateDocument(value)
-      : parseWidgetTemplateDocument(value)
-  }
-
-  private pathFor(id: string, kind: TemplateKind): string {
-    const fileName = `${id}${FILE_EXTENSION}`
-    const path = join(kind === 'dashboard' ? this.directory : this.widgetDirectory, fileName)
-    if (!TEMPLATE_ID_PATTERN.test(id) || basename(path) !== fileName) {
-      throw new Error(t('templates.templateService.idIsNotAValid', { id }))
+  async share(
+    id: string,
+    kind: TemplateKind,
+    owner?: BrowserWindow
+  ): Promise<TemplateResult<DashboardShareSaveValue>> {
+    try {
+      const entry = await this.find(id, kind)
+      if (!entry) return notFound(id)
+      const stored = await this.files.read(entry, kind)
+      const legacy = entry.format === 'legacy' ? documentFromLegacy(stored, kind) : undefined
+      const name = legacy?.name ?? documentFromFile(await readDashboardFileHeader(stored), kind).name
+      const encoded = legacy
+        ? await this.dashboardFiles.encode(draftOf(legacy))
+        : { bytes: stored, missingImages: [], missingFonts: [] }
+      const title = kind === 'widget' ? t('share.dialog.saveWidgetTitle') : t('share.dialog.saveTitle')
+      const path = await this.dashboardFiles.chooseSavePath(name, title, owner)
+      if (!path) return { ok: true, value: { saved: false } }
+      await writeFileAtomic(path, encoded.bytes)
+      return {
+        ok: true,
+        value: {
+          saved: true,
+          fileName: basename(path),
+          bytes: encoded.bytes.byteLength,
+          missingImages: encoded.missingImages,
+          missingFonts: encoded.missingFonts
+        }
+      }
+    } catch (error) {
+      return failure('write_failed', messageOf(error, t('share.errors.notSaved')))
     }
-    return path
+  }
+
+  async importFile(
+    kind: TemplateKind,
+    owner?: BrowserWindow
+  ): Promise<TemplateResult<TemplateSummary | null>> {
+    const path = await this.dashboardFiles.chooseOpenPath(t('templates.files.openTitle'), owner)
+    if (!path) return { ok: true, value: null }
+    let bytes: Buffer
+    let document: TemplateDocument
+    try {
+      const metadata = await stat(path)
+      if (!metadata.isFile() || metadata.size > MAXIMUM_DASHBOARD_FILE_SIZE) {
+        throw new Error(t('share.file.damaged'))
+      }
+      bytes = await readFile(path)
+      if (!isContainer(bytes)) throw new Error(t('share.file.damaged'))
+      const content = await decodeDashboardFile(bytes)
+      if (templateOf(content) !== kind) throw new Error(wrongTemplate(templateOf(content)))
+      try {
+        document = documentFromFile(content, kind)
+      } catch (error) {
+        throw this.dashboardFiles.isNewer(content.createdWith)
+          ? new Error(t('share.file.newerVersion', { version: content.createdWith?.app ?? '?' }))
+          : error
+      }
+    } catch (error) {
+      return failure('invalid_template', messageOf(error, t('share.file.damaged')))
+    }
+    try {
+      await this.ready()
+      const saved = await this.files.list(kind)
+      if (saved.length >= MAXIMUM_USER_TEMPLATES) return limitReached(kind)
+      const taken = new Set(saved.map((entry) => entry.id))
+      const id = freeAssetId(
+        templateIdFor(document.name) ?? kind,
+        (candidate) => taken.has(candidate),
+        TEMPLATE_ID_PATTERN
+      )
+      if (!id) return limitReached(kind)
+      await this.files.write(id, kind, bytes)
+      return { ok: true, value: templateSummary(id, document) }
+    } catch (error) {
+      return failure(
+        'write_failed',
+        messageOf(error, t('templates.templateService.failedToWriteTheTemplate'))
+      )
+    }
+  }
+
+  private async find(id: string, kind: TemplateKind): Promise<StoredTemplate | undefined> {
+    await this.ready()
+    return this.files.find(id, kind)
+  }
+
+  private async documentOf(entry: StoredTemplate, kind: TemplateKind): Promise<TemplateDocument> {
+    const bytes = await this.files.read(entry, kind)
+    return entry.format === 'file'
+      ? documentFromFile(await readDashboardFileHeader(bytes), kind)
+      : documentFromLegacy(bytes, kind)
+  }
+
+  private ready(): Promise<void> {
+    this.migration ??= migrateLegacyTemplates(this.files, (draft) =>
+      this.dashboardFiles.encode(draft)
+    ).catch(() => undefined)
+    return this.migration
   }
 }
 
-function savedFailure(id: string, error: unknown): TemplateResult<never> {
-  if (isMissing(error)) {
-    return failure('not_found', t('templates.templateService.noTemplateNamedId', { id }))
-  }
-  return failure(
-    'invalid_template',
-    messageOf(error, t('templates.templateService.theTemplateIsUnreadable'))
-  )
+function byName(left: { name: string }, right: { name: string }): number {
+  return left.name.localeCompare(right.name)
 }

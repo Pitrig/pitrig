@@ -7,6 +7,7 @@ import {
 import {
   MAXIMUM_TEMPLATE_DESCRIPTION,
   MAXIMUM_TEMPLATE_NAME,
+  MAXIMUM_USER_TEMPLATES,
   TEMPLATE_FORMAT,
   TEMPLATE_FORMAT_VERSION,
   WIDGET_TEMPLATE_FORMAT,
@@ -14,8 +15,10 @@ import {
   type DashboardTemplateSummary,
   type TemplateDocument,
   type TemplateError,
+  type TemplateKind,
   type TemplateOrigin,
   type TemplateResult,
+  type TemplateSummary,
   type WidgetTemplateDocument,
   type WidgetTemplateSummary
 } from '../../shared/templates'
@@ -134,6 +137,34 @@ export function widgetSummary(id: string, document: TemplateDocument): WidgetTem
     widgetCount: descendantsOf(document.widget).length,
     widget: document.widget
   }
+}
+
+export function templateSummary(id: string, document: TemplateDocument): TemplateSummary {
+  return document.format === TEMPLATE_FORMAT
+    ? dashboardSummary(id, 'user', document)
+    : widgetSummary(id, document)
+}
+
+export function limitReached(kind: TemplateKind): TemplateResult<never> {
+  return failure(
+    'limit_reached',
+    t('templates.templateService.theLibraryHoldsAtMost', {
+      mAXIMUM_USER_TEMPLATES: MAXIMUM_USER_TEMPLATES,
+      kind
+    })
+  )
+}
+
+export function notFound(id: string): TemplateResult<never> {
+  return failure('not_found', t('templates.templateService.noTemplateNamedId', { id }))
+}
+
+export function savedFailure(id: string, error: unknown): TemplateResult<never> {
+  if (isMissing(error)) return notFound(id)
+  return failure(
+    'invalid_template',
+    messageOf(error, t('templates.templateService.theTemplateIsUnreadable'))
+  )
 }
 
 export function isMissing(error: unknown): boolean {

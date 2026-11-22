@@ -10,6 +10,8 @@ export const TEMPLATE_SAVE_CHANNEL = 'templates:save' as const
 export const TEMPLATE_DELETE_CHANNEL = 'templates:delete' as const
 export const TEMPLATE_ADOPT_CHANNEL = 'templates:adopt' as const
 export const TEMPLATE_OPEN_CREDIT_CHANNEL = 'templates:open-credit' as const
+export const TEMPLATE_SHARE_CHANNEL = 'templates:share' as const
+export const TEMPLATE_IMPORT_CHANNEL = 'templates:import' as const
 
 export const TEMPLATE_FORMAT = 'pitrig-dashboard-template' as const
 export const WIDGET_TEMPLATE_FORMAT = 'pitrig-widget-template' as const
@@ -94,6 +96,10 @@ export type TemplateSaveRequest =
 
 export interface TemplateIdRequest {
   id: string
+  kind: TemplateKind
+}
+
+export interface TemplateImportRequest {
   kind: TemplateKind
 }
 

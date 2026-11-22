@@ -86,6 +86,7 @@ import type {
 } from './telemetry-bridge'
 import type {
   TemplateIdRequest,
+  TemplateImportRequest,
   TemplateLibrary,
   TemplateReadValue,
   TemplateResult,
@@ -124,6 +125,12 @@ export interface PitrigApi {
   openTemplateCredit: (request: TemplateIdRequest) => Promise<boolean>
   saveTemplate: (request: TemplateSaveRequest) => Promise<TemplateResult<TemplateSummary>>
   deleteTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<void>>
+  shareTemplate: (
+    request: TemplateIdRequest
+  ) => Promise<TemplateResult<DashboardShareSaveValue>>
+  importTemplateFile: (
+    request: TemplateImportRequest
+  ) => Promise<TemplateResult<TemplateSummary | null>>
   listSerialPorts: () => Promise<DeviceResult<SerialPortSummary[]>>
   getDeviceState: () => Promise<DeviceState>
   connectDevice: (

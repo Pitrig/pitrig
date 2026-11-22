@@ -5,6 +5,7 @@ import {
   isConfigurationPathRequest,
   isJsonDocumentRequest,
   isTemplateIdRequest,
+  isTemplateImportRequest,
   isTemplateSaveRequest
 } from './request-guards'
 import { isDashboardShareRequest } from './asset-request-guards'
@@ -29,10 +30,12 @@ import {
 import {
   TEMPLATE_ADOPT_CHANNEL,
   TEMPLATE_DELETE_CHANNEL,
+  TEMPLATE_IMPORT_CHANNEL,
   TEMPLATE_LIST_CHANNEL,
   TEMPLATE_OPEN_CREDIT_CHANNEL,
   TEMPLATE_READ_CHANNEL,
   TEMPLATE_SAVE_CHANNEL,
+  TEMPLATE_SHARE_CHANNEL,
   type TemplateResult
 } from '../../shared/templates'
 import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
@@ -107,10 +110,23 @@ export function registerLibraryHandlers(
     return templateService.remove(request.id, request.kind)
   })
   ipcMain.handle(TEMPLATE_ADOPT_CHANNEL, (_event, request: unknown) => {
-    if (!isTemplateIdRequest(request) || request.kind !== 'dashboard') {
-      return invalidTemplateRequest()
-    }
-    return templateService.adopt(request.id)
+    if (!isTemplateIdRequest(request)) return invalidTemplateRequest()
+    return templateService.adopt(request.id, request.kind)
+  })
+  ipcMain.handle(TEMPLATE_SHARE_CHANNEL, (event, request: unknown) => {
+    if (!isTemplateIdRequest(request)) return invalidTemplateRequest()
+    return templateService.share(
+      request.id,
+      request.kind,
+      BrowserWindow.fromWebContents(event.sender) ?? undefined
+    )
+  })
+  ipcMain.handle(TEMPLATE_IMPORT_CHANNEL, (event, request: unknown) => {
+    if (!isTemplateImportRequest(request)) return invalidTemplateRequest()
+    return templateService.importFile(
+      request.kind,
+      BrowserWindow.fromWebContents(event.sender) ?? undefined
+    )
   })
   ipcMain.handle(TEMPLATE_OPEN_CREDIT_CHANNEL, async (_event, request: unknown) => {
     if (!isTemplateIdRequest(request)) return false

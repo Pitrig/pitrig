@@ -49,16 +49,18 @@ display it was drawn for.
 
 **The library is bundled starters plus saved templates.** The starters are
 inlined into the application, because there is no packaging step to copy files
-through; the saved ones are one file each under the user data directory,
-dashboards in the template folder and widgets in its `widgets` subdirectory. A starter's identifier carries a prefix that the identifier pattern
+through; the saved ones are one dashboard file each
+([ADR 0041](0041-dashboard-files.md)) under the user data directory, carrying
+their images and fonts, dashboards in the template folder and widgets in its
+`widgets` subdirectory. A starter's identifier carries a prefix that the identifier pattern
 rejects, so a file can never produce one and one can never name a file — which
 makes "a starter is read-only" a property of the scheme rather than a check
 somebody has to remember. Both kinds go through the same parse a loaded file and
 a device payload go through, so a starter that drifts from the contract fails
 visibly instead of shipping. A starter that draws images ships as a dashboard
-file ([ADR 0041](0041-dashboard-files.md)) among the application's assets, and
-`Use` and `Add` open it the way a shared file is opened, so its images reach the
-image library; one made by somebody else names them, with a link the card opens
+file among the application's assets, and `Use` and `Add` open it, or a saved
+template, the way a shared file is opened, so its images reach the image
+library; a starter made by somebody else names them, with a link the card opens
 in the browser.
 
 **Moving a layout scales every pixel-valued property, in one of two fits the

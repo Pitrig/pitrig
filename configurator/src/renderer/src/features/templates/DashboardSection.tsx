@@ -25,6 +25,7 @@ import { DashboardThumbnail } from './DashboardThumbnail'
 import { DashboardListControls } from './DashboardListControls'
 import { effectiveBoard, listedDashboards } from './dashboard-listing'
 import { TemplateCard } from './TemplateCard'
+import { OpenTemplateFileButton, ShareTemplateButton } from './TemplateFileButtons'
 import { VariantDialog } from './VariantDialog'
 import { useInsertScreenStore } from './insert-screen-store'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
@@ -134,7 +135,12 @@ export function DashboardSection({
             })
           : t('templates.dashboardSection.wholeLayoutsAddTakesScreens')
       }
-      actions={<DashboardListControls entries={templates} />}
+      actions={
+        <>
+          <DashboardListControls entries={templates} />
+          <OpenTemplateFileButton kind="dashboard" disabled={busy} onNotice={onNotice} />
+        </>
+      }
     >
       {templates.length === 0 ? (
         <EmptyState
@@ -197,15 +203,24 @@ export function DashboardSection({
                   >
                     {t('templates.dashboardSection.use')}</Button>
                   {summary.origin === 'user' ? (
-                    <Button
-                      aria-label={t('configs.librarySection.deleteName', { name: summary.name })}
-                      className="h-7 px-2 text-red-400 hover:text-red-300"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() => onDelete(summary)}
-                    >
-                      <Trash2 aria-hidden="true" className="size-3.5" />
-                    </Button>
+                    <div className="grid grid-cols-2 gap-1">
+                      <ShareTemplateButton
+                        id={summary.id}
+                        kind="dashboard"
+                        name={summary.name}
+                        disabled={busy}
+                        onNotice={onNotice}
+                      />
+                      <Button
+                        aria-label={t('configs.librarySection.deleteName', { name: summary.name })}
+                        className="h-7 px-2 text-red-400 hover:text-red-300"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => onDelete(summary)}
+                      >
+                        <Trash2 aria-hidden="true" className="size-3.5" />
+                      </Button>
+                    </div>
                   ) : null}
                 </>
               }

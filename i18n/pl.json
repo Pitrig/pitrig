@@ -1952,6 +1952,12 @@
       "label": "Wybierz wersję",
       "title": "Która wersja „{name}”?",
       "hint": "Każda wersja to osobny, kompletny dashboard."
+    },
+    "files": {
+      "share": "Udostępnij „{name}” jako jeden plik z obrazami i czcionkami",
+      "open": "Otwórz otrzymany plik Pitrig i dodaj go do tej biblioteki",
+      "openTitle": "Dodaj do biblioteki szablonów",
+      "added": "Dodano „{name}” do biblioteki."
     }
   },
   "app": {
@@ -2703,6 +2709,7 @@
     },
     "dialog": {
       "saveTitle": "Udostępnij dashboard",
+      "saveWidgetTitle": "Udostępnij widżet",
       "saveButton": "Zapisz",
       "saveFile": "Zapisz plik…",
       "saving": "Zapisywanie…",
@@ -2723,7 +2730,9 @@
       "damaged": "Ten plik dashboardu jest uszkodzony lub niekompletny.",
       "newer": "Ten plik dashboardu utworzono w nowszej wersji Pitrig. Zaktualizuj Pitrig, aby go otworzyć.",
       "newerVersion": "Ten plik dashboardu utworzono w Pitrig {version}. Zaktualizuj Pitrig, aby go otworzyć.",
-      "tooLarge": "Plik dashboardu byłby większy niż {limit} MB."
+      "tooLarge": "Plik dashboardu byłby większy niż {limit} MB.",
+      "isWidget": "Ten plik zawiera widżet. Dodaj go do biblioteki widżetów na stronie Szablony.",
+      "isDashboard": "Ten plik zawiera cały dashboard, a nie widżet. Dodaj go do biblioteki dashboardów."
     },
     "errors": {
       "name": "Nazwa dashboardu musi mieć od 1 do {maximum} znaków.",

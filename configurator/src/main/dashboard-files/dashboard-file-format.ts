@@ -17,7 +17,15 @@ import {
   TEMPLATE_FORMAT
 } from '../../shared/templates'
 import { faceProblem } from '../font-library/font-library-files'
-import { damaged, isRecord, newer, openContainer, packContainer } from './dashboard-file-container'
+import {
+  damaged,
+  isRecord,
+  newer,
+  openContainer,
+  packContainer,
+  type OpenedContainer
+} from './dashboard-file-container'
+import { t } from '@shared/ui-text'
 
 const MAXIMUM_FONTS = 16
 const MAXIMUM_DECODED_BYTES = 96 * 1024 * 1024
@@ -36,13 +44,26 @@ export type FileFont =
   | { id: string; source: 'google'; family: string; variant: string }
   | { id: string; source: 'embedded'; name: string; bytes: Uint8Array }
 
+export type DashboardFileTemplate = 'dashboard' | 'widget'
+
 export interface DashboardFileContent {
   name: string
   description?: string
   createdWith?: { app?: string; schema?: number }
+  template?: DashboardFileTemplate
   configuration: unknown
   images: FileImage[]
   fonts: FileFont[]
+}
+
+export type DashboardFileHeader = Omit<DashboardFileContent, 'images' | 'fonts'>
+
+export function templateOf(content: Pick<DashboardFileContent, 'template'>): DashboardFileTemplate {
+  return content.template ?? 'dashboard'
+}
+
+export function wrongTemplate(found: DashboardFileTemplate): string {
+  return found === 'widget' ? t('share.file.isWidget') : t('share.file.isDashboard')
 }
 
 export async function encodeDashboardFile(content: DashboardFileContent): Promise<Buffer> {
@@ -68,6 +89,7 @@ export async function encodeDashboardFile(content: DashboardFileContent): Promis
       name: content.name,
       ...(content.description ? { description: content.description } : {}),
       ...(content.createdWith ? { created_with: content.createdWith } : {}),
+      ...(content.template === 'widget' ? { template: content.template } : {}),
       configuration: { blob: 0 },
       images,
       fonts
@@ -76,8 +98,20 @@ export async function encodeDashboardFile(content: DashboardFileContent): Promis
   )
 }
 
+export async function readDashboardFileHeader(bytes: Buffer): Promise<DashboardFileHeader> {
+  return readHeader(openContainer(bytes))
+}
+
 export async function decodeDashboardFile(bytes: Buffer): Promise<DashboardFileContent> {
   const container = openContainer(bytes)
+  const content = await readHeader(container)
+  const budget = { left: MAXIMUM_DECODED_BYTES }
+  const images = await decodeImages(container.header.images, container, budget)
+  const fonts = await decodeFonts(container.header.fonts, container, budget)
+  return { ...content, images, fonts }
+}
+
+async function readHeader(container: OpenedContainer): Promise<DashboardFileHeader> {
   const header = container.header
   const createdWith = parseCreatedWith(header.created_with)
   if (header.format !== TEMPLATE_FORMAT) throw damaged()
@@ -101,22 +135,18 @@ export async function decodeDashboardFile(bytes: Buffer): Promise<DashboardFileC
   } catch {
     throw damaged()
   }
-  const budget = { left: MAXIMUM_DECODED_BYTES }
-  const images = await decodeImages(header.images, container, budget)
-  const fonts = await decodeFonts(header.fonts, container, budget)
   return {
     name,
     ...(description ? { description } : {}),
     ...(createdWith ? { createdWith } : {}),
-    configuration,
-    images,
-    fonts
+    ...(header.template === 'widget' ? { template: 'widget' as const } : {}),
+    configuration
   }
 }
 
 async function decodeImages(
   value: unknown,
-  container: ReturnType<typeof openContainer>,
+  container: OpenedContainer,
   budget: { left: number }
 ): Promise<FileImage[]> {
   if (value === undefined) return []
@@ -158,7 +188,7 @@ async function decodeImages(
 
 async function decodeFonts(
   value: unknown,
-  container: ReturnType<typeof openContainer>,
+  container: OpenedContainer,
   budget: { left: number }
 ): Promise<FileFont[]> {
   if (value === undefined) return []

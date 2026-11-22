@@ -119,7 +119,8 @@ export function createAppServices(broadcasts: AppServiceBroadcasts): AppServices
     dashboardFileService,
     templateService: new TemplateService(
       join(userData, 'templates'),
-      new BundledTemplateLibrary(dashboardFileService)
+      new BundledTemplateLibrary(dashboardFileService),
+      dashboardFileService
     )
   }
 }

@@ -164,8 +164,11 @@ its screens to the open dashboard and whose `Use` replaces it — and widgets,
 one widget with its subtree and `Add` alone. A dashboard is scaled to the board
 in hand on the way in; a widget arrives at the size it was saved at, and
 `Save to templates` takes the selected widget or, with none, the whole
-dashboard. Placing a widget is a mode: the fragment follows the pointer until a
-click lands it, shrunk only when it would not otherwise fit.
+dashboard. Each saved template is one `.pitrigdash` file holding its images and
+fonts ([ADR 0041](adr/0041-dashboard-files.md)): its card shares that file, and
+the section's Open adds one received from somebody else. Placing a widget is a
+mode: the fragment follows the pointer until a click lands it, shrunk only when
+it would not otherwise fit.
 Choosing a different board while a draft is open is a layout transfer,
 confirmed in the numbers the new display produces, with the same
 `Fit`/`Stretch` preference the Configs page uses

@@ -1934,6 +1934,12 @@
       "label": "Choose a version",
       "title": "Which version of {name}?",
       "hint": "Each version is a whole dashboard of its own."
+    },
+    "files": {
+      "share": "Share {name} as one file with its images and fonts",
+      "open": "Open a shared Pitrig file and add it to this library",
+      "openTitle": "Add to the template library",
+      "added": "Added {name} to the library."
     }
   },
   "app": {
@@ -2670,6 +2676,7 @@
     },
     "dialog": {
       "saveTitle": "Share dashboard",
+      "saveWidgetTitle": "Share widget",
       "saveButton": "Save",
       "saveFile": "Save file…",
       "saving": "Saving…",
@@ -2690,7 +2697,9 @@
       "damaged": "This dashboard file is damaged or incomplete.",
       "newer": "This dashboard file was made with a newer Pitrig. Update Pitrig to open it.",
       "newerVersion": "This dashboard file was made with Pitrig {version}. Update Pitrig to open it.",
-      "tooLarge": "The dashboard file would be larger than {limit} MB."
+      "tooLarge": "The dashboard file would be larger than {limit} MB.",
+      "isWidget": "This file holds a widget. Add it to the widget library on the Templates page.",
+      "isDashboard": "This file holds a whole dashboard, not a widget. Add it to the dashboard library."
     },
     "errors": {
       "name": "A dashboard name is 1 to {maximum} characters.",
