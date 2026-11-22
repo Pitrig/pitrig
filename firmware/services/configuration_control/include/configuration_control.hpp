@@ -40,6 +40,10 @@ class ConfigurationControl {
 
   void consume(std::span<const std::uint8_t> line, transport::ITransport& reply);
 
+  [[nodiscard]] std::span<std::uint8_t> reserve_line();
+  void submit_line(std::size_t size, transport::ITransport& reply);
+  void release_line();
+
  private:
   enum class RequestState : std::uint8_t {
     idle,

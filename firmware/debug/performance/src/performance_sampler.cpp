@@ -135,11 +135,8 @@ void refresh_heap_and_stacks(PerformanceStats& into) {
           stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::transport)]),
       .configuration_free_bytes = stack_free_bytes(
           task_handles[static_cast<std::size_t>(TaskMetric::configuration_control)]),
-      .asset_upload_free_bytes = std::min(
-          {stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::font_asset_control)]),
-           stack_free_bytes(
-               task_handles[static_cast<std::size_t>(TaskMetric::image_asset_control)]),
-           stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::firmware_update)])}),
+      .asset_upload_free_bytes =
+          stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::asset_upload)]),
       .sampler_free_bytes =
           stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::sampler)]),
   };

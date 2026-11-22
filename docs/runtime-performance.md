@@ -116,9 +116,8 @@ far more than the frame counters do, and neither figure moves within a window.
 - **Uptime**, and the transport counters **Link** (bytes and reads per second),
   **Queue**, **Overflow**, **Gap**/**Handler** (worst read gap and handler time
   since boot), and **Stack** (free bytes of the LVGL, transport, configuration,
-  asset-upload and sampler tasks). The font and image upload tasks share one
-  stack figure, reported as the smaller of the two, because only one of them can
-  own the serial link at a time.
+  asset-upload and sampler tasks). Font, image and firmware uploads share one
+  task, because only one of them can own the serial link at a time.
 
 The service owns measurement and aggregation. What a debug build draws over
 the dashboard is the `PITRIG_DEBUG_OVERLAY` Kconfig choice: the full

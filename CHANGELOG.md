@@ -35,6 +35,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 **Changed**
 
+- **All boards.** About 12 KB more internal memory and 380 KB more external memory stay free for dashboards, fonts and images.
 - **Configurator.** The T-Display lap timer starter has the Endurance look, with larger last and best times.
 - **Configurator.** Saved templates, widgets too, keep their images and fonts in one file; removing an image from the PC no longer breaks them.
 

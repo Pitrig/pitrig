@@ -16,17 +16,19 @@ bool AssetControl::send_text(const char* const text) {
 }
 
 bool AssetControl::send_ok(const char* const rest) {
-  const int written = std::snprintf(response_.data(), response_.size(), "@PR:OK:%.*s:%s\n",
+  const std::span<char> response = worker_->reply_buffer();
+  const int written = std::snprintf(response.data(), response.size(), "@PR:OK:%.*s:%s\n",
                                     static_cast<int>(traits_.tag.size()), traits_.tag.data(), rest);
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
+  return written > 0 && static_cast<std::size_t>(written) < response.size() &&
+         send_text(response.data());
 }
 
 bool AssetControl::send_error(const char* const word) {
-  const int written = std::snprintf(response_.data(), response_.size(), "@PR:ERR:%.*s:%s\n",
+  const std::span<char> response = worker_->reply_buffer();
+  const int written = std::snprintf(response.data(), response.size(), "@PR:ERR:%.*s:%s\n",
                                     static_cast<int>(traits_.tag.size()), traits_.tag.data(), word);
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
+  return written > 0 && static_cast<std::size_t>(written) < response.size() &&
+         send_text(response.data());
 }
 
 void AssetControl::send_busy(transport::ITransport& reply, const std::string_view tag) const {
@@ -41,12 +43,13 @@ void AssetControl::send_busy(transport::ITransport& reply, const std::string_vie
 }
 
 bool AssetControl::send_ack(const std::uint32_t sequence) {
+  const std::span<char> response = worker_->reply_buffer();
   const int written = std::snprintf(
-      response_.data(), response_.size(), "@PR:OK:%.*s:ACK:sequence=%lu,received=%lu\n",
+      response.data(), response.size(), "@PR:OK:%.*s:ACK:sequence=%lu,received=%lu\n",
       static_cast<int>(traits_.tag.size()), traits_.tag.data(),
       static_cast<unsigned long>(sequence), static_cast<unsigned long>(received_size_));
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
+  return written > 0 && static_cast<std::size_t>(written) < response.size() &&
+         send_text(response.data());
 }
 
 }

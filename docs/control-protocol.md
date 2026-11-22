@@ -98,9 +98,9 @@ Fields:
   one. This is the figure the display latency work is judged by: it covers the
   wake, the render and the flush together, so a change that moves none of the
   parts but reorders them still shows up here;
-- `stack_*` is the free stack of each monitored task in bytes. The font and
-  image upload tasks share `stack_upload`, reported as the smaller of the two,
-  because only one of them can own the link at a time;
+- `stack_*` is the free stack of each monitored task in bytes. Font, image and
+  firmware uploads run on one task, `stack_upload`, because only one of them can
+  own the link at a time;
 - `uptime_ms` is milliseconds since boot.
 
 Nothing here is part of the configuration contract: the field list is a

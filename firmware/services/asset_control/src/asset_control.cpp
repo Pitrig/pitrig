@@ -7,7 +7,6 @@
 
 #include "binary_codec.hpp"
 #include "configuration_control.hpp"
-#include "pitrig_features.hpp"
 #include "scf1_frame.hpp"
 
 namespace pitrig::asset_control {
@@ -46,8 +45,9 @@ void AssetControl::consume_entry(void* const context, const std::span<const std:
 }
 
 bool AssetControl::initialize(const Traits& traits, const Operations& operations,
-                              binary_session::Claim& claim, const std::span<std::uint8_t> frame) {
-  if (task_ != nullptr || frame.size() < kMaximumFrameSize) {
+                              binary_session::Claim& claim, const std::span<std::uint8_t> frame,
+                              Worker& worker) {
+  if (worker_ != nullptr || frame.size() < kMaximumFrameSize) {
     return false;
   }
   traits_ = traits;
@@ -76,27 +76,15 @@ bool AssetControl::initialize(const Traits& traits, const Operations& operations
   };
   reset_session();
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
-  task_ = xTaskCreateStaticPinnedToCore(&AssetControl::task_entry, traits_.task_name,
-                                        task_stack_.size(), this, kTaskPriority, task_stack_.data(),
-                                        &task_state_, PITRIG_COMMUNICATION_CORE);
-  if (task_ != nullptr) {
-#if PITRIG_DEBUG
-    performance::register_task(traits_.metric, task_);
-#endif
-  } else {
+  if (!worker.attach(*this)) {
     stop();
+    return false;
   }
-  return task_ != nullptr;
+  worker_ = &worker;
+  return true;
 }
 
 void AssetControl::stop() {
-  if (task_ != nullptr) {
-#if PITRIG_DEBUG
-    performance::unregister_task(traits_.metric);
-#endif
-    vTaskDelete(task_);
-    task_ = nullptr;
-  }
   if (operations_.service != nullptr && active()) {
     operations_.cancel_update(operations_.service);
   }
@@ -109,9 +97,19 @@ void AssetControl::stop() {
   requested_reply_ = nullptr;
   reply_ = nullptr;
   frame_ = {};
+  worker_ = nullptr;
 }
 
-bool AssetControl::ready() const { return operations_.service != nullptr && task_ != nullptr; }
+bool AssetControl::ready() const {
+  return operations_.service != nullptr && worker_ != nullptr && worker_->running();
+}
+
+void AssetControl::wake() {
+  last_activity_.store(xTaskGetTickCount(), std::memory_order_release);
+  if (Worker* const worker = worker_; worker != nullptr) {
+    worker->notify();
+  }
+}
 
 bool AssetControl::claim_taken() const {
   return claim_ != nullptr && (!claim_->ready() || claim_->claimed());
@@ -169,7 +167,7 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line,
   expected_frame_size_ = 0;
   overrun_.store(false, std::memory_order_relaxed);
   request_state_.store(RequestState::ready, std::memory_order_release);
-  xTaskNotifyGive(task_);
+  wake();
 }
 
 void AssetControl::consume(const std::span<const std::uint8_t> bytes) {
@@ -178,7 +176,7 @@ void AssetControl::consume(const std::span<const std::uint8_t> bytes) {
   }
   if (request_state_.load(std::memory_order_acquire) != RequestState::idle) {
     overrun_.store(true, std::memory_order_release);
-    xTaskNotifyGive(task_);
+    wake();
     return;
   }
 

@@ -171,7 +171,12 @@ bottom row, took slot to 24, shape to 128, indicator to 16 and the payload to
 `.ext_ram.bss` went from 489,216 to 522,256 bytes and the payload buffers grew by
 another 128 KB. Validation's scratch grew by 1,536 bytes, so the main task went to
 7,168 bytes and the configuration control task to 9,728, the one rise in static
-internal RAM on every board.
+internal RAM on every board. Since then that scratch lives in the configuration
+memory in external RAM, so a cap no longer reaches a task stack: the control
+task's deepest measured use fell from 7,276 to 2,748 bytes. The command line, the
+command and the stored record share one payload-sized buffer, and fonts, images and
+firmware upload on one task, which left every board 12.4 KB more internal RAM and
+about 380 KB more external RAM.
 
 What the pools do not buy is a screen filled to 255. Widgets spread across four
 screens are free while three of them are not shown, but every object on the

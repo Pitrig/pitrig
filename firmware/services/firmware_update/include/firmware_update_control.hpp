@@ -12,7 +12,7 @@ namespace pitrig::firmware_update {
 class FirmwareUpdateControl final {
  public:
   [[nodiscard]] bool initialize(Service& service, binary_session::Claim& claim,
-                                std::span<std::uint8_t> frame);
+                                std::span<std::uint8_t> frame, asset_control::Worker& worker);
 
   [[nodiscard]] const binary_session::Session& session() const { return control_.session(); }
   void stop() { control_.stop(); }

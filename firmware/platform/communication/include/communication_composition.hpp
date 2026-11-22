@@ -55,7 +55,7 @@ class Composition final {
                            transport::ITransport& transport,
                            configuration::ConfigurationControl::ApplyHandler apply_handler,
                            void* apply_context, std::span<std::uint8_t> control_io_buffer,
-                           std::span<std::uint8_t> control_line_buffer, Surface surface);
+                           std::span<std::uint8_t> busy_line_buffer, Surface surface);
   void stop();
 
   void mark_composed();
@@ -70,6 +70,7 @@ class Composition final {
     protocols::SimHubProtocol protocol;
   };
 
+  void stop_uploads();
   static void submit_update(const telemetry::TelemetryUpdate& update, void* context);
   static void receive_telemetry_line(std::span<const std::uint8_t> line, void* context);
   static void receive_transport_data(std::span<const std::uint8_t> data, void* context);
@@ -80,6 +81,7 @@ class Composition final {
   font_assets::FontAssetControl font_asset_control_;
   image_assets::ImageAssetControl image_asset_control_;
   binary_session::Claim binary_claim_;
+  asset_control::Worker asset_worker_;
   std::array<std::uint8_t, asset_control::kMaximumFrameSize> upload_frame_{};
   Link link_;
   telemetry::TelemetryProvider* telemetry_{};

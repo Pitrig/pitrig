@@ -103,6 +103,34 @@ void ConfigurationControl::consume(const std::span<const std::uint8_t> line,
   xTaskNotifyGive(task_);
 }
 
+std::span<std::uint8_t> ConfigurationControl::reserve_line() {
+  RequestState expected = RequestState::idle;
+  if (service_ == nullptr || task_ == nullptr ||
+      !request_state_.compare_exchange_strong(expected, RequestState::writing,
+                                              std::memory_order_acquire,
+                                              std::memory_order_relaxed)) {
+    return {};
+  }
+  return io_buffer_;
+}
+
+void ConfigurationControl::submit_line(const std::size_t size, transport::ITransport& reply) {
+  if (request_state_.load(std::memory_order_acquire) != RequestState::writing) {
+    return;
+  }
+  request_size_ = size;
+  reply_ = &reply;
+  request_state_.store(RequestState::ready, std::memory_order_release);
+  xTaskNotifyGive(task_);
+}
+
+void ConfigurationControl::release_line() {
+  RequestState expected = RequestState::writing;
+  (void)request_state_.compare_exchange_strong(expected, RequestState::idle,
+                                               std::memory_order_release,
+                                               std::memory_order_relaxed);
+}
+
 void ConfigurationControl::answer_while_busy(const std::span<const std::uint8_t> line,
                                              transport::ITransport& reply) {
   constexpr std::string_view kReboot = "REBOOT";

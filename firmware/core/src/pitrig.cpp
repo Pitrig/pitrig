@@ -143,7 +143,7 @@ bool start_communication(Application& application, const ConfigurationBuffers& b
           application.services.font_assets, application.services.image_assets,
           application.services.telemetry_provider, *application.telemetry_transport,
           recovery ? nullptr : &apply_configuration, &application, buffers.control_io,
-          buffers.control_line,
+          buffers.busy_line,
           recovery ? communication::Composition::Surface::recovery
                    : communication::Composition::Surface::full)) {
     log::error(kTag, "Communication composition is incomplete");

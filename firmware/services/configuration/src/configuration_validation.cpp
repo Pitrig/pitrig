@@ -48,7 +48,8 @@ namespace {
 }
 
 ValidationFailure validate_configuration(const ApplicationConfiguration& configuration,
-                                         const ValidationContext& profile) {
+                                         const ValidationContext& profile,
+                                         ValidationScratch& scratch) {
   ValidationFailure failure{};
 
   if (static_cast<std::size_t>(configuration.board.id) >= kBoardIdNames.size()) {
@@ -123,9 +124,11 @@ ValidationFailure validate_configuration(const ApplicationConfiguration& configu
     }
   }
 
-  constexpr std::size_t kPageTableSize = kMaximumSlotWidgets * kMaximumSlotPages;
-  std::array<std::int64_t, kPageTableSize> page_origin_x{};
-  std::array<std::int64_t, kPageTableSize> page_origin_y{};
+  constexpr std::size_t kPageTableSize = ValidationScratch::kPageTableSize;
+  auto& page_origin_x = scratch.page_origin_x;
+  auto& page_origin_y = scratch.page_origin_y;
+  page_origin_x.fill(0);
+  page_origin_y.fill(0);
   for (std::size_t index = 0; index < dashboard.slot_widget_count; ++index) {
     const SlotWidgetConfiguration& slot = dashboard.slot_widgets[index];
     for (std::size_t page = 0; page < slot.page_count; ++page) {
@@ -135,8 +138,10 @@ ValidationFailure validate_configuration(const ApplicationConfiguration& configu
     }
   }
 
-  std::array<std::int64_t, kMaximumShapeWidgets> origin_x{};
-  std::array<std::int64_t, kMaximumShapeWidgets> origin_y{};
+  auto& origin_x = scratch.origin_x;
+  auto& origin_y = scratch.origin_y;
+  origin_x.fill(0);
+  origin_y.fill(0);
   for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
     const WidgetFrame& frame = dashboard.shape_widgets[index].frame;
     switch (frame.parent_kind) {

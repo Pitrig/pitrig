@@ -2,6 +2,7 @@ idf_component_register(
   SRCS "src/asset_control.cpp"
        "src/asset_control_worker.cpp"
        "src/asset_replies.cpp"
+       "src/asset_worker.cpp"
   INCLUDE_DIRS "include"
   PRIV_INCLUDE_DIRS "src"
   REQUIRES binary_session freertos performance pitrig_config transport

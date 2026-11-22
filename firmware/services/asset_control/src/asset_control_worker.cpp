@@ -7,46 +7,53 @@
 
 namespace pitrig::asset_control {
 
-void AssetControl::task_entry(void* const context) {
-  static_cast<AssetControl*>(context)->process();
+void AssetControl::serve() {
+  if (request_state_.load(std::memory_order_acquire) == RequestState::ready) {
+    handle_request();
+    last_activity_.store(xTaskGetTickCount(), std::memory_order_release);
+    return;
+  }
+  if (!active()) {
+    return;
+  }
+  if (overrun_.exchange(false, std::memory_order_acq_rel)) {
+    finish_with_error("protocol_overrun");
+    return;
+  }
+  if (wait_ticks() == 0) {
+    finish_with_error("timeout");
+  }
 }
 
-void AssetControl::process() {
-  while (true) {
-    const TickType_t wait = active() ? kInactivityTimeout : portMAX_DELAY;
-    const std::uint32_t notified = ulTaskNotifyTake(pdTRUE, wait);
-    if (notified == 0) {
-      if (active()) {
-        finish_with_error("timeout");
-      }
-      continue;
+TickType_t AssetControl::wait_ticks() const {
+  if (!active()) {
+    return portMAX_DELAY;
+  }
+  const TickType_t last = last_activity_.load(std::memory_order_acquire);
+  const TickType_t elapsed = xTaskGetTickCount() - last;
+  return elapsed >= kInactivityTimeout ? 0 : kInactivityTimeout - elapsed;
+}
+
+void AssetControl::handle_request() {
+  reply_ = requested_reply_;
+  if (request_type_ == RequestType::begin) {
+    handle_begin();
+  } else if (request_type_ == RequestType::info) {
+    handle_info();
+  } else if (request_type_ == RequestType::clear) {
+    handle_clear();
+  } else if (request_type_ == RequestType::frame) {
+    handle_frame();
+  } else if (request_type_ == RequestType::invalid_command) {
+    release_request();
+    (void)send_error("unknown_command");
+  } else if (request_type_ == RequestType::busy) {
+    release_request();
+    if (reply_ != nullptr) {
+      send_busy(*reply_, busy_tag_);
     }
-    if (request_state_.load(std::memory_order_acquire) != RequestState::ready) {
-      if (active() && overrun_.exchange(false, std::memory_order_acq_rel)) {
-        finish_with_error("protocol_overrun");
-      }
-      continue;
-    }
-    reply_ = requested_reply_;
-    if (request_type_ == RequestType::begin) {
-      handle_begin();
-    } else if (request_type_ == RequestType::info) {
-      handle_info();
-    } else if (request_type_ == RequestType::clear) {
-      handle_clear();
-    } else if (request_type_ == RequestType::frame) {
-      handle_frame();
-    } else if (request_type_ == RequestType::invalid_command) {
-      release_request();
-      (void)send_error("unknown_command");
-    } else if (request_type_ == RequestType::busy) {
-      release_request();
-      if (reply_ != nullptr) {
-        send_busy(*reply_, busy_tag_);
-      }
-    } else {
-      finish_with_error("invalid_frame");
-    }
+  } else {
+    finish_with_error("invalid_frame");
   }
 }
 
@@ -61,20 +68,21 @@ void AssetControl::handle_clear() {
 }
 
 void AssetControl::handle_info() {
+  const std::span<char> response = worker_->reply_buffer();
   int written =
-      std::snprintf(response_.data(), response_.size(),
+      std::snprintf(response.data(), response.size(),
                     "@PR:OK:%.*s:INFO:", static_cast<int>(traits_.tag.size()), traits_.tag.data());
   release_request();
-  if (written > 0 && static_cast<std::size_t>(written) < response_.size()) {
+  if (written > 0 && static_cast<std::size_t>(written) < response.size()) {
     auto offset = static_cast<std::size_t>(written);
-    written = operations_.write_info_body(operations_.service, response_.data() + offset,
-                                          response_.size() - offset);
+    written = operations_.write_info_body(operations_.service, response.data() + offset,
+                                          response.size() - offset);
     if (written >= 0) {
       offset += static_cast<std::size_t>(written);
-      if (offset + 1 < response_.size()) {
-        response_[offset++] = '\n';
-        response_[offset] = '\0';
-        (void)send_text(response_.data());
+      if (offset + 1 < response.size()) {
+        response[offset++] = '\n';
+        response[offset] = '\0';
+        (void)send_text(response.data());
         return;
       }
     }
@@ -170,7 +178,7 @@ void AssetControl::queue_request(const RequestType type) {
   if (!request_state_.compare_exchange_strong(
           expected, RequestState::writing, std::memory_order_acquire, std::memory_order_relaxed)) {
     overrun_.store(true, std::memory_order_release);
-    xTaskNotifyGive(task_);
+    wake();
     return;
   }
   request_frame_size_ = frame_size_;
@@ -178,7 +186,7 @@ void AssetControl::queue_request(const RequestType type) {
   expected_frame_size_ = 0;
   request_type_ = type;
   request_state_.store(RequestState::ready, std::memory_order_release);
-  xTaskNotifyGive(task_);
+  wake();
 }
 
 void AssetControl::release_request() {

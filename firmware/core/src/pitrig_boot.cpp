@@ -58,12 +58,13 @@ void report_document(const configuration::ConfigurationDocument document,
 }
 
 ConfigurationBuffers reserve_configuration_memory(Application& application) {
+  static_assert(configuration::ConfigurationControl::kIoBufferSize >=
+                configuration::ConfigurationService::kRecordBufferSize);
   constexpr std::size_t kConfigurationMemorySize =
-      configuration::ConfigurationService::kRecordBufferSize +
       configuration::ConfigurationService::kPayloadBufferSize +
       configuration::ConfigurationService::kConfigurationBufferSize +
       configuration::ConfigurationControl::kIoBufferSize +
-      communication::Router::kControlLineBufferSize;
+      communication::Router::kBusyLineBufferSize;
   if (!application.platform.configuration_memory.initialize(kConfigurationMemorySize)) {
     log::error(kTag,
                "Configuration memory needs %lu bytes of external RAM and did "
@@ -77,11 +78,13 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
     memory = memory.subspan(size);
     return buffer;
   };
+  const std::span<std::uint8_t> control_io =
+      take(configuration::ConfigurationControl::kIoBufferSize);
   return {
-      .record = take(configuration::ConfigurationService::kRecordBufferSize),
+      .record = control_io,
       .current_payloads = take(configuration::ConfigurationService::kPayloadBufferSize),
-      .control_io = take(configuration::ConfigurationControl::kIoBufferSize),
-      .control_line = take(communication::Router::kControlLineBufferSize),
+      .control_io = control_io,
+      .busy_line = take(communication::Router::kBusyLineBufferSize),
       .configuration = take(configuration::ConfigurationService::kConfigurationBufferSize),
   };
 }

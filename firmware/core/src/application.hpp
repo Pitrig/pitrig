@@ -64,7 +64,7 @@ struct ConfigurationBuffers {
   std::span<std::uint8_t> record;
   std::span<std::uint8_t> current_payloads;
   std::span<std::uint8_t> control_io;
-  std::span<std::uint8_t> control_line;
+  std::span<std::uint8_t> busy_line;
   std::span<std::uint8_t> configuration;
 };
 

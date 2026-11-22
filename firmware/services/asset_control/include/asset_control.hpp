@@ -7,11 +7,8 @@
 #include <span>
 #include <string_view>
 
+#include "asset_worker.hpp"
 #include "binary_session.hpp"
-#include "pitrig_features.hpp"
-#if PITRIG_DEBUG
-#include "performance.hpp"
-#endif
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "transport.hpp"
@@ -25,15 +22,10 @@ inline constexpr std::size_t kMaximumFrameSize =
     kFrameHeaderSize + kUploadMaximumChunkSize + kFrameCrcSize;
 
 inline constexpr std::size_t kInfoBodyCapacity = 1920;
-inline constexpr std::size_t kReplyCapacity = 2048;
 static_assert(kReplyCapacity >= kInfoBodyCapacity + 64);
 
 struct Traits {
   std::string_view tag;
-  const char* task_name;
-#if PITRIG_DEBUG
-  performance::TaskMetric metric;
-#endif
 };
 
 struct Operations {
@@ -51,12 +43,16 @@ class AssetControl final {
   ~AssetControl();
 
   [[nodiscard]] bool initialize(const Traits& traits, const Operations& operations,
-                                binary_session::Claim& claim, std::span<std::uint8_t> frame);
+                                binary_session::Claim& claim, std::span<std::uint8_t> frame,
+                                Worker& worker);
 
   [[nodiscard]] const binary_session::Session& session() const { return session_; }
   void stop();
 
   [[nodiscard]] bool active() const { return session_active_.load(std::memory_order_acquire); }
+
+  void serve();
+  [[nodiscard]] TickType_t wait_ticks() const;
 
  private:
   enum class RequestState : std::uint8_t {
@@ -75,16 +71,14 @@ class AssetControl final {
     invalid_frame,
   };
 
-  static constexpr std::size_t kTaskStackSize = 4096;
-  static constexpr UBaseType_t kTaskPriority = 4;
   static constexpr TickType_t kInactivityTimeout = pdMS_TO_TICKS(10'000);
   static constexpr std::size_t kCommandCapacity = 32;
 
   void consume_command(std::span<const std::uint8_t> line, transport::ITransport& reply);
   void consume(std::span<const std::uint8_t> bytes);
 
-  static void task_entry(void* context);
-  void process();
+  void wake();
+  void handle_request();
   void handle_begin();
   void handle_info();
   void handle_clear();
@@ -108,6 +102,7 @@ class AssetControl final {
 
   Traits traits_{};
   Operations operations_{};
+  Worker* worker_{};
   transport::ITransport* requested_reply_{};
   transport::ITransport* reply_{};
   binary_session::Claim* claim_{};
@@ -116,13 +111,11 @@ class AssetControl final {
   std::array<char, kCommandCapacity> begin_command_{};
   std::array<char, kCommandCapacity> info_command_{};
   std::array<char, kCommandCapacity> clear_command_{};
-  TaskHandle_t task_{};
-  StaticTask_t task_state_{};
-  std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
 
   std::atomic<bool> session_active_{false};
   std::atomic<bool> overrun_{false};
   std::atomic<RequestState> request_state_{RequestState::idle};
+  std::atomic<TickType_t> last_activity_{0};
   RequestType request_type_{RequestType::begin};
   std::string_view busy_tag_{};
   std::size_t requested_package_size_{};
@@ -134,7 +127,6 @@ class AssetControl final {
   std::size_t package_size_{};
   std::size_t received_size_{};
   std::uint32_t expected_sequence_{};
-  std::array<char, kReplyCapacity> response_{};
 };
 
 }
