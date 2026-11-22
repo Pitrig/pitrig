@@ -56,6 +56,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **SimHub plugin.** SimHub's Arduino port scan skips the Pitrig boards the plugin knows, so it no longer leaves a board on its USB-Serial-JTAG port in download mode.
 - **Configurator.** A board on a USB-UART bridge or the USB-Serial-JTAG port reconnects as soon as it has restarted.
 - **Configurator.** A screen with many slots lists them on more rows instead of past the toolbar's edge.
+- **Guition JC1060P470C, LilyGO T-Display-S3, Espressif ESP32-S3-DevKitC-1.** A board sent data over USB without a pause no longer restarts after about ten seconds.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 

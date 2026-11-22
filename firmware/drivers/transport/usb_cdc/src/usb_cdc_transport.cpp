@@ -233,6 +233,7 @@ void UsbCdcTransport::receive(const TickType_t lock_timeout) {
 
 void UsbCdcTransport::process() {
   Chunk chunk;
+  FloodBreak flood{};
   watch_current_task();
   while (true) {
     const bool has_chunk = xQueueReceive(queue_, &chunk, kWatchdogFeedTicks) == pdTRUE;
@@ -245,6 +246,7 @@ void UsbCdcTransport::process() {
                         instrumentation_);
     }
     receive(kReceiveLockTimeout);
+    flood.after(has_chunk && uxQueueMessagesWaiting(queue_) > 0);
   }
 }
 

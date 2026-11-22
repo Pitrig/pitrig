@@ -115,11 +115,13 @@ void UsbSerialJtagTransport::task_entry(void* const context) {
 
 void UsbSerialJtagTransport::process() {
   std::array<std::uint8_t, kChunkSize> data{};
+  FloodBreak flood{};
   watch_current_task();
   while (true) {
     const int received = usb_serial_jtag_read_bytes(data.data(), data.size(), kWatchdogFeedTicks);
     feed_watchdog();
     if (received <= 0) {
+      flood.after(false);
       continue;
     }
 
@@ -127,6 +129,7 @@ void UsbSerialJtagTransport::process() {
     handler_.dispatch(
         std::span<const std::uint8_t>(data.data(), static_cast<std::size_t>(received)),
         instrumentation_);
+    flood.after(static_cast<std::size_t>(received) == data.size());
   }
 }
 

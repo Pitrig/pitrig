@@ -21,4 +21,28 @@ inline void unwatch_task(TaskHandle_t task) {
   }
 }
 
+inline constexpr TickType_t kFloodYieldTicks = pdMS_TO_TICKS(10);
+
+class FloodBreak {
+ public:
+  void after(const bool more_waiting) {
+    if (!more_waiting) {
+      streaking_ = false;
+      return;
+    }
+    const TickType_t now = xTaskGetTickCount();
+    if (!streaking_) {
+      streaking_ = true;
+      since_ = now;
+    } else if (now - since_ >= kFloodYieldTicks) {
+      vTaskDelay(1);
+      since_ = xTaskGetTickCount();
+    }
+  }
+
+ private:
+  TickType_t since_{};
+  bool streaking_{};
+};
+
 }
