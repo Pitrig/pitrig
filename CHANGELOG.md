@@ -47,6 +47,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** Endurance marks the current lap INVALID as soon as it is cut.
 - **Configurator.** Endurance shows brake pad and disc life in place of the brake temperature bar where the game sends them, and the damage view opens on every hit.
 - **Configurator.** Endurance's track map screen no longer shows the water and oil temperature warnings.
+- **Configurator.** Endurance's right wheels mirror the left in the brake pad and disc life bars: pads outside, discs inside.
 
 **Fixed**
 
