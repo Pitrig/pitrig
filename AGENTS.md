@@ -92,6 +92,30 @@ Modules should be initialized from configuration.
 
 ---
 
+## Compatibility
+
+Releases meet in the field: a board is updated after its configurator, the
+macOS configurator does not update itself, SimHub keeps the old plugin until it
+restarts, and a board can roll back to the image in its other slot.
+
+So a change to the configuration schema, the telemetry catalog, or what the
+configurator, the plugin and a board send each other is checked against the
+previous release before it is committed, in each mix:
+
+- the new firmware with a configuration the previous release saved;
+- the previous firmware with a configuration the new release writes;
+- each configurator with the other release's firmware;
+- each plugin with the other release's firmware;
+- files and templates the previous configurator saved, opened in the new one.
+
+If a mix loses or changes a configuration, shows a wrong value, keeps a board
+from starting, or fails without telling the user what to do, stop and report it
+before committing: what breaks, for whom, and the ways to keep it working with
+what each costs. Wait for a decision. A mix that only lacks the new feature goes
+in the same report, and the release's first line in `CHANGELOG.md` says so.
+
+---
+
 ## Performance
 
 Performance is a core requirement.
