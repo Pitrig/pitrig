@@ -9,6 +9,7 @@
 #include "tinyusb_cdc_acm.h"
 #include "tinyusb_default_config.h"
 #include "transport_watchdog.hpp"
+#include "tusb.h"
 #include "usb_descriptors.hpp"
 
 namespace pitrig::transport {
@@ -172,6 +173,8 @@ bool UsbCdcTransport::write(const std::span<const std::uint8_t> data) {
   return complete;
 }
 
+bool UsbCdcTransport::host_connected() const { return started_ && tud_mounted(); }
+
 void UsbCdcTransport::receive_callback(const int interface, cdcacm_event_t* const event) {
   (void)interface;
   (void)event;
@@ -230,6 +233,7 @@ void UsbCdcTransport::receive(const TickType_t lock_timeout) {
 
 void UsbCdcTransport::process() {
   Chunk chunk;
+  FloodBreak flood{};
   watch_current_task();
   while (true) {
     const bool has_chunk = xQueueReceive(queue_, &chunk, kWatchdogFeedTicks) == pdTRUE;
@@ -242,6 +246,7 @@ void UsbCdcTransport::process() {
                         instrumentation_);
     }
     receive(kReceiveLockTimeout);
+    flood.after(has_chunk && uxQueueMessagesWaiting(queue_) > 0);
   }
 }
 

@@ -6,27 +6,13 @@
 #include <memory>
 
 #include "esp_timer.h"
+#include "sample_period.hpp"
 #include "telemetry_events.hpp"
 #include "telemetry_seqlock.hpp"
 #include "value_conditions.hpp"
 
 namespace pitrig::value_smoothing {
 namespace {
-
-constexpr std::int64_t kMinimumPeriodUs = 4'000;
-constexpr std::int64_t kMaximumPeriodUs = 250'000;
-constexpr std::int64_t kShorterPeriodDivisor = 2;
-constexpr std::int64_t kLongerPeriodDivisor = 8;
-
-[[nodiscard]] std::uint32_t blend_period(const std::uint32_t period_us, const std::int64_t gap_us) {
-  const std::int64_t gap = std::max(gap_us, kMinimumPeriodUs);
-  if (period_us == 0) {
-    return static_cast<std::uint32_t>(gap);
-  }
-  const auto period = static_cast<std::int64_t>(period_us);
-  const std::int64_t divisor = gap < period ? kShorterPeriodDivisor : kLongerPeriodDivisor;
-  return static_cast<std::uint32_t>(period + (gap - period) / divisor);
-}
 
 void clear_motion(Follower& follower) {
   const std::uint32_t sequence = follower.sequence.load(std::memory_order_relaxed);

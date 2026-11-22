@@ -49,6 +49,14 @@ namespace Pitrig.SimHub
 
         public InputState Inputs { get; } = new InputState();
 
+        public Standings Standings { get; } = new Standings();
+
+        public EnergyTracker Energy { get; } = new EnergyTracker();
+
+        public DamageHits Hits { get; } = new DamageHits();
+
+        public TrackMaps Maps { get; } = new TrackMaps();
+
         public void Reset()
         {
             session = null;
@@ -69,6 +77,7 @@ namespace Pitrig.SimHub
             Shifts.Update(manager, Status, data?.GameName);
             Averages.Sample(this, data, now, settings.AverageLaps);
             if (Status == null) return;
+            Maps.Update(this);
             var lapCompleted = Status.CompletedLaps > completedLaps;
             if (NewSession())
             {
@@ -84,6 +93,7 @@ namespace Pitrig.SimHub
                 lapTouchedPit = true;
                 Sectors.Reset();
                 Validity.Reset();
+                Energy.Reset();
             }
             else if (lapCompleted)
             {
@@ -93,8 +103,10 @@ namespace Pitrig.SimHub
             TrackBestLap();
             if (Status.Flag_Checkered > 0) CheckeredShown = true;
             Validity.Update(this);
+            Hits.Update(this);
             var inPit = Status.IsInPitLane > 0 || Status.IsInPit > 0;
             TrackCleanLap(inPit);
+            Energy.Update(this, lapCompleted, inPit);
             Sectors.Update(Status.CurrentSectorIndex, TimingComputations.LiveDeltaSeconds(this),
                 Computed.Seconds(Status.BestLapTime));
         }

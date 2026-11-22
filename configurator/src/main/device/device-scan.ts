@@ -7,7 +7,7 @@ import {
 } from '../../shared/device'
 import { DeviceServiceError, failure, toDeviceError } from './device-errors'
 import { samePort } from './port-leases'
-import { serialIdentity, type PortRecord } from './port-registry'
+import { dropsDuringRestart, serialIdentity, type PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import type { ConnectionManager } from './device-connection'
 import { t } from '@shared/ui-text'
@@ -100,11 +100,12 @@ export async function scanForDevice(
   return match
 }
 
-const RECONNECT_SETTLE_MS = 2_500
+const RECONNECT_GONE_MS = 2_500
 const RECONNECT_TIMEOUT_MS = 30_000
-const RECONNECT_POLL_MS = 750
-const RECONNECT_RETRY_MS = 2_000
-const RECONNECT_MAXIMUM_ATTEMPTS = 5
+const RECONNECT_POLL_MS = 100
+const RECONNECT_RETRY_MS = 250
+const RECONNECT_HOLD_MS = 15_000
+const RECONNECT_MAXIMUM_ATTEMPTS = 20
 
 export function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
@@ -128,37 +129,45 @@ async function attemptReconnect(
   connection: DeviceConnection,
   token: number
 ): Promise<DeviceResult<DeviceState>> {
-  await delay(RECONNECT_SETTLE_MS)
-  manager.ensureCurrent(token)
-
   const wanted = serialIdentity(connection.path)
+  const find = async (): Promise<PortRecord | undefined> => {
+    try {
+      const records = await manager.refreshPortRegistry()
+      return records.find((candidate) => serialIdentity(candidate.path) === wanted)
+    } catch {
+      return undefined
+    }
+  }
+  let record = await find()
+  manager.ensureCurrent(token)
+  if (record && dropsDuringRestart(record.summary)) {
+    const gone = Date.now() + RECONNECT_GONE_MS
+    while (record && Date.now() < gone) {
+      await delay(RECONNECT_POLL_MS)
+      manager.ensureCurrent(token)
+      record = await find()
+      manager.ensureCurrent(token)
+    }
+  }
+
   const deadline = Date.now() + RECONNECT_TIMEOUT_MS
   let attempts = 0
   while (Date.now() < deadline && attempts < RECONNECT_MAXIMUM_ATTEMPTS) {
-    let record: PortRecord | undefined
-    try {
-      record = (await manager.refreshPortRegistry()).find(
-        (candidate) => serialIdentity(candidate.path) === wanted
+    if (record) {
+      attempts += 1
+      const connected = await manager.openWithToken(
+        record.summary.id,
+        connection.baudRate,
+        true,
+        token,
+        Date.now() + RECONNECT_HOLD_MS
       )
-    } catch {
-      record = undefined
-    }
-    manager.ensureCurrent(token)
-    if (!record) {
-      await delay(RECONNECT_POLL_MS)
+      if (connected.ok) return connected
       manager.ensureCurrent(token)
-      continue
     }
-    attempts += 1
-    const connected = await manager.openWithToken(
-      record.summary.id,
-      connection.baudRate,
-      true,
-      token
-    )
-    if (connected.ok) return connected
+    await delay(record ? RECONNECT_RETRY_MS : RECONNECT_POLL_MS)
     manager.ensureCurrent(token)
-    await delay(RECONNECT_RETRY_MS)
+    record = await find()
     manager.ensureCurrent(token)
   }
   const error: DeviceError = {

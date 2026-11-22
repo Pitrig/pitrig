@@ -114,7 +114,8 @@ A board carries exactly one serial link, the one its `protocol` document
 selects. The ESP32-P4 build once attached a second link on the USB-Serial-JTAG
 port as a development aid; that is gone, and the P4's native USB CDC port is
 now its only link. Flashing and the ESP console still use the USB-Serial-JTAG
-port, which the application no longer touches.
+port; only a build with the USB-Serial-JTAG fallback option carries the link
+there ([ADR 0029](adr/0029-single-link-and-composite-usb-gamepad.md)).
 
 Only one upload may own the binary stream at a time; a `BEGIN`, `INFO` or
 `CLEAR` for either asset kind that finds it claimed — by startup, which is still

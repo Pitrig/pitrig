@@ -83,7 +83,7 @@ jobs:
           Expand-Archive $zip -DestinationPath $setup
           $installer = Get-ChildItem $setup -Filter '*.exe' -Recurse | Select-Object -First 1
           Start-Process $installer.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/DIR=C:\simhub'
-          $needed = 'GameReaderCommon.dll', 'SimHub.Plugins.dll', 'SimHub.Logging.dll', 'log4net.dll'
+          $needed = 'GameReaderCommon.dll', 'SimHub.Plugins.dll', 'SimHub.Logging.dll', 'SerialDash.dll', 'log4net.dll'
           $deadline = (Get-Date).AddMinutes(20)
           while (@($needed | Where-Object { -not (Test-Path (Join-Path 'C:\simhub' $_)) }).Count -gt 0) {
             if ((Get-Date) -gt $deadline) { throw 'SimHub did not finish installing in time' }

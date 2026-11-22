@@ -81,6 +81,10 @@ const PITRIG_USB_IDENTITY = '303a:4001'
 const USB_SERIAL_JTAG_IDENTITY = '303a:1001'
 const USB_BRIDGE_IDENTITIES: readonly string[] = ['1a86:7523', '1a86:55d4', '10c4:ea60']
 
+export function dropsDuringRestart(summary: SerialPortSummary): boolean {
+  return usbIdentity(summary) === PITRIG_USB_IDENTITY
+}
+
 function usbIdentity(port: { vendorId?: string; productId?: string }): string {
   return `${port.vendorId ?? ''}:${port.productId ?? ''}`.toLowerCase()
 }

@@ -31,6 +31,8 @@ class UsbCdcTransport final : public ITransport {
   [[nodiscard]] Diagnostics diagnostics() const override;
 #endif
 
+  [[nodiscard]] bool host_connected() const;
+
  private:
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kQueueDepth = 4;

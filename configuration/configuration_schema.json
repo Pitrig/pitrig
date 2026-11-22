@@ -5,7 +5,7 @@
   "documents": {
     "dashboard": {
       "sections": ["dashboard"],
-      "max_payload": 131072,
+      "max_payload": 196608,
       "reboot_required": false,
       "doc": "The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place."
     },
@@ -25,8 +25,8 @@
 
   "limits": {
     "kMaximumPayloadSize": {
-      "value": 131072,
-      "doc": "Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. At the ~350 bytes of compact JSON a widget measures it carries around 370 widgets, which is what a document can actually instantiate — fewer than the per-type pools below add up to, and already past what one screen can address. Two of these also have to fit in the 512 KB configuration partition while a record is being replaced, which is why it stops here rather than growing again. The buffers it sizes and the parser's document both live in external memory."
+      "value": 196608,
+      "doc": "Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. At the ~350 bytes of compact JSON a widget measures it carries around 560 widgets, which is what a document can actually instantiate — fewer than the per-type pools below add up to, and already past what one screen can address. Two of these, while a record is being replaced, and the other two documents take 110 of the 127 usable 4 KB pages of the 512 KB configuration partition; 224 KB would take 126 and leave the partition no page to collect into, which is why it stops here. The buffers it sizes and the parser's document both live in external memory."
     },
     "kMaximumScreens": {
       "value": 4,
@@ -53,15 +53,15 @@
       "doc": "Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries."
     },
     "kMaximumTextWidgets": {
-      "value": 160,
+      "value": 240,
       "doc": "Text widget storage for the whole dashboard, and the largest pool because a dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026."
     },
     "kMaximumShapeWidgets": {
-      "value": 96,
+      "value": 128,
       "doc": "Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap after text: every container spends one, and a dense screen spends them faster than it spends any gauge."
     },
     "kMaximumSlotWidgets": {
-      "value": 12,
+      "value": 24,
       "doc": "Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool."
     },
     "kMaximumBarWidgets": {
@@ -73,7 +73,7 @@
       "doc": "Arc widget storage for the whole dashboard."
     },
     "kMaximumIndicatorWidgets": {
-      "value": 12,
+      "value": 16,
       "doc": "Indicator strip storage for the whole dashboard."
     },
     "kMaximumGraphWidgets": {
@@ -83,6 +83,10 @@
     "kMaximumImageWidgets": {
       "value": 64,
       "doc": "Image widget storage for the whole dashboard. Generous because an image that never changes is among the cheapest widgets to draw, and a dashboard that leans on artwork rather than on shapes spends its budget here instead."
+    },
+    "kMaximumTrackMapWidgets": {
+      "value": 4,
+      "doc": "Track map storage for the whole dashboard. Each instance keeps a picture of the outline as large as its box in external RAM, and one map a screen is as many as a dashboard needs."
     },
     "kMaximumIndicatorSegments": {
       "value": 16,
@@ -449,7 +453,7 @@
       "doc": "Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot."
     },
     "WidgetType": {
-      "json_values": ["text", "shape", "bar", "arc", "indicator", "graph", "image", "slot"],
+      "json_values": ["text", "shape", "bar", "arc", "indicator", "graph", "image", "slot", "track_map"],
       "default": "text",
       "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted."
     }
@@ -904,6 +908,36 @@
       ]
     },
 
+    "TrackMapWidgetConfiguration": {
+      "widget_type": "track_map",
+      "doc": "The outline of the track being driven, with the player and the other cars on it. The SimHub plugin sends SimHub's own map of the track with every car's place on the lap, so the widget binds no telemetry of its own; until an outline arrives the cars run around a ring. ADR 0043.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "line_color", "kind": "color", "default": "0x6B7280", "doc": "Colour of the track. A styling rule that names a color repaints it." },
+        { "name": "line_width_px", "kind": "uint16", "default": 3, "minimum": 1, "maximum": 16, "doc": "Thickness of the track. The pit lane is drawn half as thick, and never thinner than a pixel." },
+        { "name": "sector_mark_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a thin mark across the track where each sector after the first begins. Omitted draws no marks." },
+        { "name": "pit_lane_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of the pit lane, once the plugin has seen a car drive it. Omitted leaves the pit lane out, and a car in it is drawn on the track at its place on the lap." },
+        { "name": "finish_line_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a short mark across the track at the start and finish line. Omitted draws no mark." },
+        { "name": "car_color", "kind": "color", "default": "0xE5E7EB", "doc": "Colour of a car on the player's lap that no other colour claims." },
+        { "name": "car_size_px", "kind": "uint16", "default": 8, "minimum": 2, "maximum": 32, "doc": "Diameter of the dot each other car is drawn as. A one-pixel ring of the background colour around it keeps it apart from the track." },
+        { "name": "player_color", "kind": "color", "default": "0xC27BFF", "doc": "Colour of the player's own dot, which is drawn over every other car." },
+        { "name": "player_size_px", "kind": "uint16", "default": 12, "minimum": 2, "maximum": 48, "doc": "Diameter of the player's dot." },
+        { "name": "player_border_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of the one-pixel ring around the player's dot. Omitted rings it in the background colour, as every other car is." },
+        { "name": "ahead_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of the car one place ahead of the player in the player's class. Omitted draws it like any other car." },
+        { "name": "behind_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of the car one place behind the player in the player's class. Omitted draws it like any other car." },
+        { "name": "lapping_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a car a lap or more ahead of the player in distance run. Omitted draws it like any other car." },
+        { "name": "lapped_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a car a lap or more behind the player in distance run. Omitted draws it like any other car." },
+        { "name": "pit_car_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a car in the pit lane. Omitted draws it in the colour it would have on track, at half strength." },
+        { "name": "class_1_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a car of the fastest class when more than one class is on track. The plugin ranks classes by their best lap. Omitted keeps car_color." },
+        { "name": "class_2_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a car of the second fastest class. Omitted keeps car_color." },
+        { "name": "class_3_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a car of the third fastest class. Omitted keeps car_color." },
+        { "name": "class_4_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a car of the fourth fastest class and of every slower one. Omitted keeps car_color." },
+        { "name": "fit_rotation", "kind": "bool", "default": true, "doc": "Turns each track to the angle at which it fills the box best. False keeps the game's own axes." },
+        { "name": "rotation_deg", "kind": "uint16", "default": 0, "maximum": 359, "doc": "Further turn, clockwise, applied after fit_rotation." },
+        { "name": "refresh_ms", "kind": "uint16", "default": 25, "minimum": 20, "maximum": 1000, "doc": "Least time between two redraws of the cars. Each car glides along the lap between two updates from the plugin, so a shorter interval moves the cars more smoothly; each redraw repaints the area the cars cover, so a longer interval costs less frame time on a busy screen." }
+      ]
+    },
+
     "ShapeWidgetConfiguration": {
       "widget_type": "shape",
       "doc": "Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box and cut off at it, unless clip_children says otherwise.",
@@ -925,7 +959,8 @@
             "arc": "ArcWidgetConfiguration",
             "indicator": "IndicatorWidgetConfiguration",
             "graph": "GraphWidgetConfiguration",
-            "image": "ImageWidgetConfiguration"
+            "image": "ImageWidgetConfiguration",
+            "track_map": "TrackMapWidgetConfiguration"
           },
           "doc": "Widgets authored inside this shape, parsed into the dashboard pool exactly as a screen's are. Their geometry is relative to this shape's box. A shape among them nests one level deeper, up to kMaximumNestingDepth."
         }
@@ -957,7 +992,8 @@
             "arc": "ArcWidgetConfiguration",
             "indicator": "IndicatorWidgetConfiguration",
             "graph": "GraphWidgetConfiguration",
-            "image": "ImageWidgetConfiguration"
+            "image": "ImageWidgetConfiguration",
+            "track_map": "TrackMapWidgetConfiguration"
           },
           "doc": "Widgets authored on this page, parsed into the dashboard pool exactly as a screen's are. Their geometry is relative to the slot's box. A page costs no nesting level of its own, so these sit exactly where a container shape's children would: one below the slot, up to kMaximumNestingDepth."
         }
@@ -996,7 +1032,8 @@
             "indicator": "IndicatorWidgetConfiguration",
             "graph": "GraphWidgetConfiguration",
             "image": "ImageWidgetConfiguration",
-            "slot": "SlotWidgetConfiguration"
+            "slot": "SlotWidgetConfiguration",
+            "track_map": "TrackMapWidgetConfiguration"
           },
           "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the dashboard pool for its variant, and the screen keeps a reference to that pool entry. This is the only array a slot may appear in: a slot is built before every container that could hold one, which is what keeps composition to one pass per type."
         }
@@ -1069,7 +1106,9 @@
         { "name": "image_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "image_widgets", "kind": "array", "struct": "ImageWidgetConfiguration", "capacity": "kMaximumImageWidgets", "count_field": "image_widget_count", "serialized": false },
         { "name": "slot_widget_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "slot_widgets", "kind": "array", "struct": "SlotWidgetConfiguration", "capacity": "kMaximumSlotWidgets", "count_field": "slot_widget_count", "serialized": false }
+        { "name": "slot_widgets", "kind": "array", "struct": "SlotWidgetConfiguration", "capacity": "kMaximumSlotWidgets", "count_field": "slot_widget_count", "serialized": false },
+        { "name": "track_map_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "track_map_widgets", "kind": "array", "struct": "TrackMapWidgetConfiguration", "capacity": "kMaximumTrackMapWidgets", "count_field": "track_map_widget_count", "serialized": false }
       ]
     },
 

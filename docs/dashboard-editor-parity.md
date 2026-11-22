@@ -11,20 +11,16 @@ repeated here.
 
 ### 1. Widget types
 
-Missing: tables, and a track map. The map is not an uploaded asset: SimHub
-already generates the outline, so it travels the link once per track and the
-device keeps it in RAM, with the car placed on it by `track.position_percent` —
-the only positional field the catalog carries. That makes it the first payload
-that is neither a telemetry line nor an asset package: what SimHub can be made
-to emit, how the outline is encoded, and when it is dropped (a track change) are
-the ADR's questions.
+Missing: tables. The track map needed no new kind of payload: the plugin
+repeats the outline as pieces of one text field and packs every car's place on
+the lap into four ([ADR 0043](adr/0043-track-map.md)).
 
 Every type needs an LVGL implementation, a compile-time descriptor per
 [ADR 0015](adr/0015-widget-descriptors.md) and an entry in the schema. That is
 firmware work; the configurator follows the generated contract.
 
-Neither waits on a widget, though: `<id>;<value>` addresses one scalar, so there
-is nothing for a table to iterate and nothing to carry an outline. A runtime
+A table does not wait on a widget, though: `<id>;<value>` addresses one scalar,
+so there is nothing for it to iterate. A runtime
 repeater is refused — it costs the per-instance lifecycle ADR 0015 deliberately
 does not have. What replaces it is a bounded relative: N cars ahead and N behind
 plus the leader, as flat fields the plugin sorts, leaving protocol, pools and
@@ -152,7 +148,7 @@ board's layout rather than its pixels — and an *imported* face or an image
 uploaded on another machine, which fall back to a stand-in face and a named box.
 
 Two gaps remain against a running board even with the stream: `dashboard.smoothing`
-glides between packets on the device while the canvas steps, and
+and the track map's cars glide between packets on the device while the canvas steps, and
 `session.lap.current_time` is extrapolated on the device and only sampled here.
 
 Missing, and much cheaper than the bridge was: a value the author sets by hand on
@@ -201,7 +197,7 @@ the schema break now rather than hiding it in a value nobody authors.
 The bounded caps — per widget type, per source list, per modifier list, per
 string — are embedded-system limits rather than unfinished work. Their values
 live in [configuration-schema.md](configuration-schema.md), which is generated
-from the contract, and are deliberately not repeated here. Neither the 128 KB
+from the contract, and are deliberately not repeated here. Neither the 192 KB
 payload nor internal RAM is what bounds them any more: widget state lives in
 external RAM ([ADR 0026](adr/0026-ui-memory-in-external-ram.md)), so raising a
 particular cap is a decision about frame time, answered by applying the document
@@ -215,8 +211,8 @@ trace and a real string length cannot be judged against a placeholder; then the
 bounded value nodes, which more remaining items wait on than any other; then the
 bundle, because a dashboard nobody can install is not a dashboard anyone shares;
 then transparency and repeated structures; then images that survive a move
-together with reflow in the transfer; and last the table and track map, which
-need firmware work and, for both, the plugin frame of Phase 7.
+together with reflow in the transfer; and last the table, which needs firmware
+work and the plugin frame of Phase 7.
 
 This document covers the editor. The wider comparison — what SimHub is besides
 Dash Studio, and what it feeds a dashboard with — is not a parity list, because

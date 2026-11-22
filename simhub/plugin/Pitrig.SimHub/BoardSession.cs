@@ -29,7 +29,7 @@ namespace Pitrig.SimHub
         private const int StopTimeoutMs = 2000;
         private const int WriteChunkBytes = 1024;
         private const int ReadChunkBytes = 4096;
-        private const int MaximumLineBytes = 160 * 1024;
+        private const int MaximumLineBytes = 32 + 192 * 1024;
         private const int OutputHighWater = 512;
         private const string InfoRequest = "\n@PR:INFO\n";
         private const string InfoReply = "@PR:OK:INFO:";

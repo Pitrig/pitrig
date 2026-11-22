@@ -12,6 +12,7 @@ import { GeometryEditor } from './section-editors'
 import { ArcEditor, BarEditor, GraphEditor } from './gauge-editors'
 import { IndicatorEditor } from './indicator-editor'
 import { ImageEditor, ShapeEditor, SlotEditor, TextEditor } from './widget-editors'
+import { TrackMapEditor } from './track-map-editor'
 import { Card } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -67,6 +68,8 @@ export function WidgetInspector(): React.JSX.Element {
               <GraphEditor selection={selection} widget={widget} />
             ) : widget.type === 'image' ? (
               <ImageEditor selection={selection} widget={widget} />
+            ) : widget.type === 'track_map' ? (
+              <TrackMapEditor selection={selection} widget={widget} />
             ) : widget.type === 'shape' ? (
               <ShapeEditor selection={selection} widget={widget} />
             ) : widget.type === 'slot' ? (

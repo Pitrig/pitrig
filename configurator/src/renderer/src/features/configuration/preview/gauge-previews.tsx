@@ -7,7 +7,7 @@ import { markupId } from './canvas-geometry'
 import { DEFAULT_FILL_COLOR } from './preview-theme'
 import { type PreviewStyle, type PreviewValues, normalizeColor } from './preview-values'
 import { TrackGradientDefinition, WidgetFrameShape } from './frame-shape'
-import { contentArea, cornerRadii, gradientPaint, paintedColor, squareFill } from './preview-geometry-paint'
+import { contentArea, cornerRadii, cornerReserve, gradientPaint, paintedColor, squareFill } from './preview-geometry-paint'
 import { deviceFloat } from '@shared/contract-number'
 import { gradientArcSegments } from './arc-gradient'
 
@@ -157,8 +157,7 @@ export function GraphPreview({
   if (!placement) return null
   const width = configuration.line_width_px ?? 2
   const border = configuration.border?.width_px ?? 0
-  const innerRadius = Math.max(0, (configuration.border?.radius_px ?? 0) - border)
-  const reserve = Math.ceil(width / 2) + Math.ceil((innerRadius * 2929) / 10000)
+  const reserve = Math.ceil(width / 2) + cornerReserve(configuration.border?.radius_px ?? 0, border)
   const content = contentArea(placement, border, configuration.padding)
   const plot = {
     x: content.x + reserve,

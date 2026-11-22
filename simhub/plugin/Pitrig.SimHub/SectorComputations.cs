@@ -36,6 +36,19 @@ namespace Pitrig.SimHub
             return state.Status == null ? null : Milliseconds(Best(state, sector));
         }
 
+        public static double? OptimalTime(TelemetryState state)
+        {
+            if (state.Status == null) return null;
+            double total = 0;
+            for (var sector = 1; sector <= 3; sector++)
+            {
+                var best = Best(state, sector);
+                if (best == null) return null;
+                total += best.Value;
+            }
+            return Milliseconds(total);
+        }
+
         public static int? Status(TelemetryState state, int sector)
         {
             var status = state.Status;

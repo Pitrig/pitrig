@@ -128,7 +128,7 @@ it whether the Controls page (`features/controls/`) wants the plugin's
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 272-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 329-row catalog table),
 so nothing re-renders while the bridge is stopped. `PreviewCanvas` reads live
 values per frame and the lamp preview (`features/modules/LedPreview.tsx` over
 `preview-values.ts`) with it, while the catalog table in
@@ -201,7 +201,9 @@ example configurations in `src/main/templates/bundled/` are starting points,
 not inheritance profiles. A starter that draws images is a `.pitrigdash` file
 there, listed with its author's credit in `bundled-templates.ts` and opened by
 `bundled-template-library.ts` through the dashboard file service, so `Use` and
-`Add` (`templates:adopt`) bring its images into the library.
+`Add` (`templates:adopt`) bring its images into the library. Entries there that
+share a `variant.family` are listed as one summary carrying `variants`, and the
+card's `Use` and `Add` ask which version through `VariantDialog`.
 
 ## Traps
 

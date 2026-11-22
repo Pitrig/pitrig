@@ -18,6 +18,7 @@ const TOOLS: { tool: CanvasTool; label: string; icon: LucideIcon; hint: string }
   { tool: 'indicator', label: t('canvas.toolPalette.lights'), icon: WIDGET_ICONS.indicator, hint: t('canvas.toolPalette.aStripOfLamps') },
   { tool: 'graph', label: t('canvas.toolPalette.graph'), icon: WIDGET_ICONS.graph, hint: t('canvas.toolPalette.aTraceOverTime') },
   { tool: 'image', label: t('firmware.firmwarePage.image'), icon: WIDGET_ICONS.image, hint: t('canvas.toolPalette.anUploadedBitmap') },
+  { tool: 'track_map', label: t('canvas.toolPalette.trackMap'), icon: WIDGET_ICONS.track_map, hint: t('canvas.toolPalette.theTrackBeingDrivenWith') },
   { tool: 'slot', label: t('canvas.toolPalette.slot'), icon: WIDGET_ICONS.slot, hint: t('canvas.toolPalette.anAreaThatSwitchesBetween') },
   { tool: 'tap_zone', label: t('canvas.toolPalette.tapZone'), icon: MousePointerClick, hint: t('canvas.toolPalette.anInvisibleRectangleThatTakes') }
 ]

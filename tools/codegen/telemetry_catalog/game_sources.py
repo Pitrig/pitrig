@@ -9,6 +9,7 @@ NEW_DATA_SEGMENT = ".GameData.NewData."
 SOURCE_KEYS = {"property", "scale", "values", "default", "bit", "clock"}
 GENERIC_KEYS = ("property", "computed")
 HIGHEST_BIT = 31
+ANY_GAME = "any"
 
 
 def validate_games_table(games: Any) -> None:
@@ -65,7 +66,14 @@ def validate_game_sources(
         return
     if not isinstance(sources, dict):
         fail(f"SimHub games of {field['name']} must be an object")
+    if ANY_GAME in sources:
+        if sources[ANY_GAME] is not True or "property" not in mapping:
+            fail(f"{field['name']} keeps any game only as true, beside a generic property")
+        if len(sources) == 1:
+            fail(f"{field['name']} lists any game and nothing else; leave games out instead")
     for game_id, source in sources.items():
+        if game_id == ANY_GAME:
+            continue
         if game_id not in games:
             fail(f"{field['name']} names an unknown game {game_id}")
         if source is True:
@@ -79,4 +87,4 @@ def validate_game_sources(
 
 def tracked_games(mapping: dict[str, Any]) -> list[str] | None:
     sources = mapping.get("games")
-    return None if sources is None else list(sources)
+    return None if sources is None or ANY_GAME in sources else list(sources)

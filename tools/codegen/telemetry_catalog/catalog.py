@@ -105,6 +105,9 @@ def load_simhub_mappings(
         "{suffix}": mappings["wheel_suffixes"],
         "{index}": mappings["wheel_indices"],
         "{corner}": mappings["wheel_corners"],
+        "{short_corner}": mappings["wheel_short_corners"],
+        "{inner_side}": mappings["wheel_inner_sides"],
+        "{outer_side}": mappings["wheel_outer_sides"],
     }
     for label, table in placeholders.items():
         if set(table) != set(document["wheels"]):

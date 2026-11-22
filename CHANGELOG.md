@@ -21,6 +21,46 @@ board** does that for you, and nothing is erased. A partition table change needs
 a cable flash and erases the configuration, fonts and images. The first line of
 a release says when either applies.
 
+## 0.4.1 — 2026-11-22 — firmware 0.4.1
+
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need firmware 0.4.1.
+
+**Added**
+
+- **All boards, SimHub plugin.** New fields: ACC's rain forecast, direction indicators, headlights, rain light and wiper speed.
+- **SimHub plugin.** AC EVO sends its TC cut, headlights, direction indicators, rain light, wiper speed, oil temperature and pressure, and each tyre's inner, middle and outer temperature.
+- **Configurator.** The field picker shows which fields AC EVO sends.
+- **All boards, SimHub plugin.** New fields: standings around the player, overall and in the class, and the optimal lap.
+- **SimHub plugin.** LMU's laps left on virtual energy.
+- **All boards, SimHub plugin.** New fields: brake pad and disc life in ACC and AC EVO, and a hit counter for damage.
+- **Configurator.** Endurance comes in two versions on one card, Full and Clean without on-screen shift lights; Use and Add ask which.
+- **Configurator.** Endurance blocks switch to standings, best laps, a hybrid page and a damage drawing of the car; race control covers the delta.
+- **Development.** A Guition JC1060P470C build option moves the link to the top USB port when native USB has no PC.
+- **Display boards, Configurator.** Track map widget: the track being driven with every car on it, the sectors, the pit lane and the finish line.
+- **SimHub plugin.** Sends the track map from SimHub's own map of the track, with the pit lane learnt from the cars that drive it.
+- **Configurator.** Endurance has a second screen with the track map beside the centre column; swipe to it.
+
+**Changed**
+
+- **Configurator.** Endurance has shift lights across the top, telltales beside the gear and one row of controls.
+- **All boards, Configurator.** A dashboard holds up to 240 text widgets, 24 slots, 128 shapes, 16 indicator strips and 192 KB.
+- **Configurator.** Endurance marks the current lap INVALID as soon as it is cut.
+- **Configurator.** Endurance shows brake pad and disc life in place of the brake temperature bar where the game sends them, and the damage view opens on every hit.
+- **Configurator.** Endurance's track map screen no longer shows the water and oil temperature warnings.
+- **Configurator.** Endurance's right wheels mirror the left in the brake pad and disc life bars: pads outside, discs inside.
+
+**Fixed**
+
+- **SimHub plugin.** A cut ACC lap shows INVALID as the last lap.
+- **Configurator.** Endurance shows the fuel left at the finish in one colour at a time: red at 0.0 or below, amber to 0.5, green above.
+- **SimHub plugin.** SimHub's Arduino port scan skips the Pitrig boards the plugin knows, so it no longer leaves a board on its USB-Serial-JTAG port in download mode.
+- **Configurator.** A board on a USB-UART bridge or the USB-Serial-JTAG port reconnects as soon as it has restarted.
+- **Configurator.** A screen with many slots lists them on more rows instead of past the toolbar's edge.
+- **Guition JC1060P470C, LilyGO T-Display-S3, Espressif ESP32-S3-DevKitC-1.** A board sent data over USB without a pause no longer restarts after about ten seconds.
+- **All boards.** A board starts with more stack to spare, which a large dashboard with a track map or slot conditions came close to using up.
+- **SimHub plugin.** LMU's laps left on virtual energy leave out the part-lap from when SimHub started or the session changed.
+- **SimHub plugin.** The track map keeps a bounded record of where sectors start, so a long session no longer grows it.
+
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new options need firmware 0.4.0.

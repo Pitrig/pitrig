@@ -103,6 +103,7 @@ What each directory holds:
 - `drivers/` — `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c`,
   `touch/gt911`, `transport/uart`, `transport/usb_cdc` (the whole native USB
   device: a composite CDC serial port and an HID gamepad, ADR 0029),
+  `transport/usb_serial_jtag` (an opt-in P4 fallback link, ADR 0029),
   `transport/transport_common` (the read counters every link shares and the
   console-port log silencing) and `led/ws2812_rmt`, which drives one RMT
   transmit channel per output — why four outputs is the ceiling on both chips.
@@ -113,7 +114,8 @@ What each directory holds:
   `boot_guard`, `configuration`, `configuration_contract`,
   `configuration_control`, `event_bus`, `font_assets`, `font_contract`,
   `image_assets`, `image_contract`, `logger`, `telemetry` with
-  `telemetry/protocols/simhub`, `value_conditions` — the LVGL-free rule
+  `telemetry/protocols/simhub`, `track_map` — the outline the plugin streams,
+  assembled from its pieces (ADR 0043) — `value_conditions` — the LVGL-free rule
   resolver, a service so that a module may depend on it (ADR 0030) — and
   `value_smoothing`, the per-field followers of ADR 0033.
 - `platform/` — `board_registry`, `communication`, `dashboard` (LVGL `widgets`
@@ -446,9 +448,10 @@ What exists:
 - Display drivers, one per board (T-Display-S3, Guition ESP32-4848S040,
   Guition JC1060P470C)
 - One touch driver, the GT911
-- Transport drivers: UART and USB CDC, over a shared `transport_common`. The
-  USB CDC driver owns the whole native USB device, which on a board that has
-  one enumerates as a composite CDC serial port plus an HID gamepad
+- Transport drivers: UART, USB CDC and an opt-in USB-Serial-JTAG fallback for
+  the P4, over a shared `transport_common`. The USB CDC driver owns the whole native USB
+  device, which on a board that has one enumerates as a composite CDC serial
+  port plus an HID gamepad
 
 Drivers implement interfaces used by components.
 
@@ -582,7 +585,7 @@ communication — the transport read tasks, the configuration-control and
 asset-upload tasks, and the render trigger they wake — runs on
 `PITRIG_COMMUNICATION_CORE`, and the LVGL task alone on `PITRIG_RENDER_CORE`
 (both in `pitrig_features.hpp`). Parsing a telemetry chunk, validating a
-128 KB document, or a live apply therefore never time-slices with a frame, and
+192 KB document, or a live apply therefore never time-slices with a frame, and
 because the render trigger has the lower priority on its core, a received chunk
 is parsed to the end before the single pass it triggers.
 

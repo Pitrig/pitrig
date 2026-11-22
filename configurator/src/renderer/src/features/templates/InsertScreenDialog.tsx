@@ -17,6 +17,7 @@ import { useDeviceStore } from '@/features/device/device-store'
 import { insertScreensFromDocument } from './insert-screen'
 import { useInsertScreenStore } from './insert-screen-store'
 import { ScreenView } from './ScreenGallery'
+import { summariesOf } from './template-variants'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
 import { t } from '@shared/ui-text'
 
@@ -136,7 +137,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
           {!chosen ? (
             <>
-              {dashboards.map((summary) => (
+              {dashboards.flatMap(summariesOf).map((summary) => (
                 <button
                   key={summary.id}
                   type="button"

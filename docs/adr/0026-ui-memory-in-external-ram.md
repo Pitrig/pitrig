@@ -159,7 +159,19 @@ of which two live in the PSRAM arena, from 156,000 to 255,360 — about 305 KB o
 the 7 MB free. Flash did not move; the pools are BSS. Internal RAM moved only
 where the caps reach a stack: validation's scratch is indexed by the shape and
 slot-page caps, so the main task went to 5,120 bytes and the configuration
-control task to 6,144.
+control task to 6,144. A second raise, when the Endurance starters held 155 texts,
+every slot and 98 % of the payload, took text to 240, slot to 16 and the payload
+to 160 KB: on the ESP32-P4 `.ext_ram.bss` went from 390,784 to 489,216 bytes,
+each `ApplicationConfiguration` grew by about 75 KB and the payload buffers by
+128 KB together, some 380 KB of external RAM. Static internal RAM did not move on
+any board; the main task went to 5,632 bytes for the larger slot page table. A
+third, when Endurance gained a map screen that repeats its centre column and its
+bottom row, took slot to 24, shape to 128, indicator to 16 and the payload to
+192 KB, 110 of the configuration partition's 127 pages: on the ESP32-P4
+`.ext_ram.bss` went from 489,216 to 522,256 bytes and the payload buffers grew by
+another 128 KB. Validation's scratch grew by 1,536 bytes, so the main task went to
+7,168 bytes and the configuration control task to 9,728, the one rise in static
+internal RAM on every board.
 
 What the pools do not buy is a screen filled to 255. Widgets spread across four
 screens are free while three of them are not shown, but every object on the

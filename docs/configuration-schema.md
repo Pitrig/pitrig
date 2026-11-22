@@ -10,7 +10,7 @@ The configuration is transferred and stored as three independent documents. Each
 
 | Document | Carries | Maximum payload | Restart to take effect | Purpose |
 | --- | --- | --- | --- | --- |
-| `dashboard` | `board`, `dashboard` | 131072 bytes | no | The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place. |
+| `dashboard` | `board`, `dashboard` | 196608 bytes | no | The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place. |
 | `modules` | `board`, `hardware`, `inputs` | 32768 bytes | no | Peripherals beyond the display: the addressable LED outputs, and which PC inputs press the logical buttons the dashboard's controls act on. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset. |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes | yes | Which link carries telemetry and how it is configured. The transport is bound once at startup, so writing this document stores a setting that is not yet in force — which is why it is the one document whose save asks for a restart. |
 
@@ -18,21 +18,22 @@ The configuration is transferred and stored as three independent documents. Each
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
-| `kMaximumPayloadSize` | 131072 | Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. At the ~350 bytes of compact JSON a widget measures it carries around 370 widgets, which is what a document can actually instantiate — fewer than the per-type pools below add up to, and already past what one screen can address. Two of these also have to fit in the 512 KB configuration partition while a record is being replaced, which is why it stops here rather than growing again. The buffers it sizes and the parser's document both live in external memory. |
+| `kMaximumPayloadSize` | 196608 | Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. At the ~350 bytes of compact JSON a widget measures it carries around 560 widgets, which is what a document can actually instantiate — fewer than the per-type pools below add up to, and already past what one screen can address. Two of these, while a record is being replaced, and the other two documents take 110 of the 127 usable 4 KB pages of the 512 KB configuration partition; 224 KB would take 126 and leave the partition no page to collect into, which is why it stops here. The buffers it sizes and the parser's document both live in external memory. |
 | `kMaximumScreens` | 4 | Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. |
 | `kMaximumWidgetsPerScreen` | 255 | Ordered widget references per screen, and the largest a uint8 count can address — which is what sets it. It is no longer the sum of the per-type caps below: the pool is dashboard-wide and deliberately larger than one screen, so four screens share it instead of each being able to hold all of it. What bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize, which at the ~350 bytes of compact JSON a widget measures carries fewer widgets than the pools could hold. |
 | `kMaximumWidgetsPerContainer` | 32 | Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does. |
 | `kMaximumNestingDepth` | 4 | How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference — and why a slot page costs nothing here: it is walked without a recursion of its own, so a slot spends exactly what a container shape spends. |
 | `kMaximumActions` | 32 | Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list. |
 | `kMaximumSlotPages` | 8 | Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries. |
-| `kMaximumTextWidgets` | 160 | Text widget storage for the whole dashboard, and the largest pool because a dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026. |
-| `kMaximumShapeWidgets` | 96 | Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap after text: every container spends one, and a dense screen spends them faster than it spends any gauge. |
-| `kMaximumSlotWidgets` | 12 | Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool. |
+| `kMaximumTextWidgets` | 240 | Text widget storage for the whole dashboard, and the largest pool because a dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026. |
+| `kMaximumShapeWidgets` | 128 | Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap after text: every container spends one, and a dense screen spends them faster than it spends any gauge. |
+| `kMaximumSlotWidgets` | 24 | Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool. |
 | `kMaximumBarWidgets` | 48 | Bar widget storage for the whole dashboard. |
 | `kMaximumArcWidgets` | 24 | Arc widget storage for the whole dashboard. |
-| `kMaximumIndicatorWidgets` | 12 | Indicator strip storage for the whole dashboard. |
+| `kMaximumIndicatorWidgets` | 16 | Indicator strip storage for the whole dashboard. |
 | `kMaximumGraphWidgets` | 6 | Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. |
 | `kMaximumImageWidgets` | 64 | Image widget storage for the whole dashboard. Generous because an image that never changes is among the cheapest widgets to draw, and a dashboard that leans on artwork rather than on shapes spends its budget here instead. |
+| `kMaximumTrackMapWidgets` | 4 | Track map storage for the whole dashboard. Each instance keeps a picture of the outline as large as its box in external RAM, and one map a screen is as many as a dashboard needs. |
 | `kMaximumIndicatorSegments` | 16 | Segments in one indicator strip. |
 | `kMinimumBlinkMs` | 100 | Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal. |
 | `kMaximumBlinkMs` | 5000 | Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update. |
@@ -112,7 +113,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `SlotDismiss` | `next_event`, `timed`, `session` | How long a raised page stays away once a button dismisses it. next_event brings it back the next time its trigger fires anew: a value that changes again, or a comparison that stops holding and then holds again. timed keeps it away for dismiss_ms whatever happens. session keeps it away until the board restarts or the game starts a new session. |
 | `SlotTrigger` | `none`, `value_changed`, `conditions` | How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds. |
 | `WidgetParentKind` | `screen`, `shape`, `slot_page` | Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot. |
-| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
+| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot`, `track_map` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
 
 ## Objects
 
@@ -561,6 +562,38 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | `recolor` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `recolor_opa` | integer, 0..255 | `255` |
 
+### TrackMapWidgetConfiguration
+
+The outline of the track being driven, with the player and the other cars on it. The SimHub plugin sends SimHub's own map of the track with every car's place on the lap, so the widget binds no telemetry of its own; until an outline arrives the cars run around a ring. ADR 0043.
+
+Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `track_map` | required |
+| `line_color` | string `#RRGGBB` | `#6B7280` |
+| `line_width_px` | integer, 1..16 | `3` |
+| `sector_mark_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `pit_lane_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `finish_line_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `car_color` | string `#RRGGBB` | `#E5E7EB` |
+| `car_size_px` | integer, 2..32 | `8` |
+| `player_color` | string `#RRGGBB` | `#C27BFF` |
+| `player_size_px` | integer, 2..48 | `12` |
+| `player_border_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `ahead_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `behind_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `lapping_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `lapped_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `pit_car_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_1_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_2_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_3_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `class_4_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `fit_rotation` | boolean | `true` |
+| `rotation_deg` | integer, 0..359 | `0` |
+| `refresh_ms` | integer, 20..1000 | `25` |
+
 ### ShapeWidgetConfiguration
 
 Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box and cut off at it, unless clip_children says otherwise.
@@ -572,7 +605,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | `type` | `WidgetType`, fixed `shape` | required |
 | `kind` | `ShapeKind` | `rectangle` |
 | `clip_children` | boolean | `true` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 32, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`TrackMapWidgetConfiguration`](#trackmapwidgetconfiguration), max 32, discriminated by `type` | absent |
 
 ### SlotPageConfiguration
 
@@ -587,7 +620,7 @@ One page of a slot: a set of widgets that share the slot's box and are shown or 
 | `dismiss` | `SlotDismiss` | `next_event` |
 | `dismiss_ms` | integer, 0..600000 | `0` |
 | `conditions` | array of [`ValueCondition`](#valuecondition), max 4 | absent |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 32, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`TrackMapWidgetConfiguration`](#trackmapwidgetconfiguration), max 32, discriminated by `type` | absent |
 
 ### SlotWidgetConfiguration
 
@@ -610,7 +643,7 @@ One dashboard screen: the coordinate space its widgets are placed in, and the or
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`SlotWidgetConfiguration`](#slotwidgetconfiguration), max 255, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`SlotWidgetConfiguration`](#slotwidgetconfiguration), [`TrackMapWidgetConfiguration`](#trackmapwidgetconfiguration), max 255, discriminated by `type` | absent |
 
 ### ControlBinding
 

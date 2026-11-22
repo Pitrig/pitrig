@@ -7,7 +7,9 @@
 #include "driver/uart.h"
 #include "uart_transport.hpp"
 #endif
-#if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
+#if CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK
+#include "usb_fallback_transport.hpp"
+#elif !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
 #include "usb_cdc_transport.hpp"
 #endif
 
@@ -17,8 +19,10 @@ namespace {
 #if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
 UartTransport g_uart;
 #endif
-#if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
-UsbCdcTransport g_usb_cdc;
+#if CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK
+UsbFallbackTransport g_usb;
+#elif !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
+UsbCdcTransport g_usb;
 #endif
 
 }
@@ -29,7 +33,7 @@ ITransport* TelemetryComposition::select(
   switch (board_registry::telemetry_transport_id(board, configuration)) {
     case configuration::TelemetryTransportId::native_usb_cdc:
 #if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
-      return &g_usb_cdc;
+      return &g_usb;
 #else
       break;
 #endif
@@ -53,7 +57,9 @@ ITransport* TelemetryComposition::select(
 }
 
 void TelemetryComposition::silence_logs() {
-#if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+#if CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK
+  g_usb.silence_logs();
+#elif !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
   g_uart.silence_logs();
 #endif
 }

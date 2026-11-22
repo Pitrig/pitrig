@@ -9,6 +9,8 @@ namespace Pitrig.SimHub
         {
             if (WheelAverages.Covers(computation)) return state.Averages.Mean(computation);
             if (TyreTemperatures.Covers(computation)) return TyreTemperatures.Live(state, computation);
+            if (Standings.Covers(computation)) return state.Standings.Value(state, computation);
+            if (TrackMaps.Covers(computation)) return state.Maps.Value(state, computation);
             var status = state.Status;
             switch (computation)
             {
@@ -56,6 +58,8 @@ namespace Pitrig.SimHub
                     return ConditionComputations.ZoneRepairTime(state, 2);
                 case FieldComputation.DamageRepairRight:
                     return ConditionComputations.ZoneRepairTime(state, 3);
+                case FieldComputation.DamageHits:
+                    return (double)state.Hits.Count;
                 case FieldComputation.TrackCondition:
                     return ConditionComputations.TrackCondition(state);
                 case FieldComputation.GearNumber:
@@ -104,6 +108,8 @@ namespace Pitrig.SimHub
                     return SectorComputations.BestTime(state, 2);
                 case FieldComputation.SectorBest3:
                     return SectorComputations.BestTime(state, 3);
+                case FieldComputation.OptimalLapTime:
+                    return SectorComputations.OptimalTime(state);
                 case FieldComputation.SectorDelta:
                     return state.Sectors.Delta;
                 case FieldComputation.LapValid:
@@ -138,6 +144,8 @@ namespace Pitrig.SimHub
                     return FuelComputations.AtFinish(state);
                 case FieldComputation.FuelPitNow:
                     return FuelComputations.PitNow(state);
+                case FieldComputation.EnergyLapsRemaining:
+                    return state.Energy.LapsRemaining(state);
                 case FieldComputation.InputButtons:
                     return state.Inputs.TakeButtons();
                 case FieldComputation.InputSwitch:

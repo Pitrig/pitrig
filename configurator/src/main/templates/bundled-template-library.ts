@@ -9,7 +9,8 @@ import {
   type DashboardTemplateSummary,
   type TemplateCredit,
   type TemplateReadValue,
-  type TemplateResult
+  type TemplateResult,
+  type TemplateVariant
 } from '../../shared/templates'
 import type { DashboardFileService } from '../dashboard-files/dashboard-file-service'
 import {
@@ -38,17 +39,42 @@ export class BundledTemplateLibrary {
     const summaries: DashboardTemplateSummary[] = []
     let unreadable = 0
     for (const entry of this.sources) {
+      if (!this.leads(entry)) continue
       try {
         const { document } = await this.load(entry)
+        const variants = entry.variant ? await this.variantsOf(entry.variant.family) : undefined
         summaries.push({
           ...dashboardSummary(entry.id, 'bundled', document),
-          ...(entry.credit ? { credit: entry.credit } : {})
+          ...(entry.credit ? { credit: entry.credit } : {}),
+          ...(variants ? { variants } : {})
         })
       } catch {
         unreadable += 1
       }
     }
     return { summaries, unreadable }
+  }
+
+  private leads(entry: BundledTemplateSource): boolean {
+    const family = entry.variant?.family
+    if (family === undefined) return true
+    return this.sources.find((other) => other.variant?.family === family) === entry
+  }
+
+  private async variantsOf(family: string): Promise<TemplateVariant[]> {
+    const variants: TemplateVariant[] = []
+    for (const entry of this.sources) {
+      const variant = entry.variant
+      if (!variant || variant.family !== family) continue
+      const { document } = await this.load(entry)
+      variants.push({
+        id: entry.id,
+        label: t(variant.label),
+        name: document.name,
+        ...(document.description ? { description: document.description } : {})
+      })
+    }
+    return variants
   }
 
   async read(id: string): Promise<TemplateResult<TemplateReadValue>> {

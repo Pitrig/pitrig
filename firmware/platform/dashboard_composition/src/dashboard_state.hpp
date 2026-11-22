@@ -23,6 +23,7 @@
 #include "shape_widget.hpp"
 #include "slot_widget.hpp"
 #include "text_widget.hpp"
+#include "track_map_widget.hpp"
 #include "widget_binding.hpp"
 #include "widget_descriptor.hpp"
 #include "widget_slots.hpp"
@@ -51,6 +52,9 @@ namespace pitrig::transport {
 class ITransport;
 }
 namespace pitrig::value_smoothing {
+class Service;
+}
+namespace pitrig::track_map {
 class Service;
 }
 
@@ -146,6 +150,16 @@ struct ImageWidgets : WidgetStorage {
   const dashboard::images::Registry* images{};
 };
 
+struct TrackMapWidgets : WidgetStorage {
+  using Config = configuration::TrackMapWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::track_map;
+  static constexpr auto kPool = &configuration::DashboardConfiguration::track_map_widgets;
+
+  dashboard::frame::ConditionBinder<Config, dashboard::track_map_widget::kMaximumInstances> binder;
+  dashboard::track_map_widget::Collection collection;
+  const track_map::Service* track_map{};
+};
+
 struct Dashboard {
   Dashboard();
 
@@ -172,6 +186,7 @@ struct Dashboard {
   IndicatorWidgets indicator;
   GraphWidgets graph;
   ImageWidgets image;
+  TrackMapWidgets track_map;
   dashboard::render_trigger::Trigger render_trigger;
   events::Subscription telemetry_subscription{};
 };

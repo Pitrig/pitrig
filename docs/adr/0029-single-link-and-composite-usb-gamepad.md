@@ -3,7 +3,8 @@
 Status: Accepted. Narrows the transport picture of
 [ADR 0006](0006-simhub-custom-serial-line-protocol.md): a board now carries
 exactly one serial link, and on a board with native USB that link shares its USB
-device with an HID gamepad.
+device with an HID gamepad. Amended on 2026-11-21: a JC1060P470C build option
+lets the one link fall back to the USB-Serial-JTAG port.
 
 ## Context
 
@@ -24,14 +25,39 @@ JTAG vendor interface) is fixed in the chip. There is no descriptor to extend.
 An HID interface requires TinyUSB, which runs on the USB-OTG peripheral — the
 other port, the one the CDC transport already drives.
 
+A JC1060P470C can also lose its native USB connector, as one did. It is then
+reachable only through the USB-Serial-JTAG port, and a link that never uses
+that port leaves the board with nothing to talk to.
+
 ## Decision
 
 **One link.** `Composition` holds a single `Link`, unconditionally. The
-`PITRIG_SECOND_TELEMETRY_LINK` option, its log-silencing companion, the
-`usb_serial_jtag` transport driver and the `second-link` build profiles are
-removed. The P4's link is its native USB CDC port, the one its `protocol`
-document already names. Flashing and the ESP console keep the USB-Serial-JTAG
-port; the application does not touch it.
+`PITRIG_SECOND_TELEMETRY_LINK` option, its log-silencing companion and the
+`second-link` build profiles are removed. The P4's link is its native USB CDC
+port, the one its `protocol` document already names. Flashing and the ESP
+console keep the USB-Serial-JTAG port.
+
+**A fallback for a board without its native connector, as a build option.**
+`CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK` (the `sdkconfig.defaults.jtag-fallback`
+fragment) is off in every released image, so a release keeps the rule above.
+With it, the JC1060P470C picks its one port when the link starts: it starts
+native USB CDC, and when a host is on the USB-Serial-JTAG port and none
+enumerates native USB within two seconds, it stops TinyUSB and starts the
+`usb_serial_jtag` transport instead. With no host on the USB-Serial-JTAG port it
+never waits. The two transports share one storage slot, because the P4 has
+almost no internal RAM to spare, the option moves the ring buffer's ISR
+functions to flash for the same reason, and the choice holds until the next
+restart. On that port ESP logs go quiet at the end of startup, as on a UART
+board. SimHub's Arduino scan opens a free port with DTR and RTS raised, which
+leaves the board waiting in the ROM download mode; the controller's bit that
+refuses a chip reset from the serial channel, which the build sets, does not stop
+it. So the plugin keeps the scan off every port it knows as a Pitrig board — one
+it feeds, one the configurator has claimed, one it remembers — through the
+`CanBeScanned` event of SimHub's `ComportScanner`, the hook SimHub's own plugins
+use, and the scan never opens such a port. Without the plugin the configurator
+only narrows the gap: after a restart it opens a port that stays listed at once
+and holds it until the board answers. An update goes over OTA, or esptool runs
+with `--before no-reset` on a board put into download mode by hand.
 
 **A composite USB device.** On a board with native USB — T-Display-S3,
 JC1060P470C and the ESP32-S3-DevKitC-1 — the `usb_cdc` driver's descriptor gains
@@ -65,4 +91,9 @@ twice.
 - A P4 board can no longer be talked to over its JTAG port while SimHub streams
   on the CDC port. That was the development convenience the second link bought,
   and it is gone.
+- A P4 on the fallback has no gamepad, and a native cable plugged in later is
+  used only after a restart. The configurator reaches it through a port picked
+  by hand, the SimHub plugin once the configurator has handed it back, and an
+  update must carry the option, or the board loses its link until it is flashed
+  by cable.
 - The gamepad costs about 1.6 KB of flash on the boards that carry it.

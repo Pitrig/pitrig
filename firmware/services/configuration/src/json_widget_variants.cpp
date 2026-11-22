@@ -143,6 +143,10 @@ const std::array<WidgetParser, kWidgetTypeTraits.size()> kWidgetParsers{{
        ValidationFailure& failure) {
       return parse_slot_widget(object, dashboard.slot_widgets[index], failure);
     },
+    [](const cJSON* const object, DashboardConfiguration& dashboard, const std::uint8_t index,
+       ValidationFailure& failure) {
+      return variants::parse_track_map_widget(object, dashboard.track_map_widgets[index], failure);
+    },
 }};
 
 }

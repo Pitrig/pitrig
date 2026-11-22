@@ -9,6 +9,7 @@ import { ImagePreview } from './ImagePreview'
 import { cornerRadii, squareFill } from './preview-geometry-paint'
 import { type PreviewValues, authoredStyleOf } from './preview-values'
 import { TextWidgetPreview } from './TextPreview'
+import { TrackMapPreview } from './track-map-preview'
 import { CaptionPreview, ShapePreview } from './widget-previews'
 
 export const WidgetBody = memo(function WidgetBody({
@@ -45,6 +46,8 @@ export const WidgetBody = memo(function WidgetBody({
           <GraphPreview configuration={configuration} style={style} />
         ) : configuration.type === 'image' ? (
           <ImagePreview configuration={configuration} values={values} style={style} />
+        ) : configuration.type === 'track_map' ? (
+          <TrackMapPreview configuration={configuration} values={values} style={style} behind={behind} />
         ) : configuration.type === 'shape' ? (
           <ShapePreview configuration={configuration} style={style} />
         ) : configuration.type === 'slot' ? null : (

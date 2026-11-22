@@ -397,7 +397,7 @@ other:
 
 | Document | Top-level properties | Maximum payload |
 | --- | --- | --- |
-| `dashboard` | `board`, `dashboard.transition`, `dashboard.smoothing`, `dashboard.controls`, `dashboard.screens` | 131072 bytes |
+| `dashboard` | `board`, `dashboard.transition`, `dashboard.smoothing`, `dashboard.controls`, `dashboard.screens` | 196608 bytes |
 | `modules` | `board`, `hardware`, `inputs` | 32768 bytes |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes |
 
@@ -542,8 +542,8 @@ The schema retains deterministic limits. They are generated from
 `configuration/configuration_schema.json` together with the firmware structures
 and the configurator types, and the current values are listed in
 [configuration-schema.md](configuration-schema.md). The widest payload bound is
-131072 bytes of compact JSON — the dashboard's, which at the ~350 bytes a widget
-measures carries around 370 of them; it is what sizes the shared line, record and
+196608 bytes of compact JSON — the dashboard's, which at the ~350 bytes a widget
+measures carries around 560 of them; it is what sizes the shared line, record and
 reply buffers, while the `modules` document is held to 32 KB — enough for a
 matrix's artwork to travel inline — and `protocol` to a kilobyte. That is
 the tighter of the two bounds a dense dashboard meets: the per-type widget pools

@@ -51,7 +51,7 @@ generator emits them for both readers:
 
 | Document | Carries | Maximum payload | Restart to take effect |
 | --- | --- | --- | --- |
-| `dashboard` | `board`, `dashboard` | 131072 bytes | no |
+| `dashboard` | `board`, `dashboard` | 196608 bytes | no |
 | `modules` | `board`, `hardware` | 32768 bytes | no |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes | yes |
 
@@ -131,5 +131,5 @@ nothing an author would recognise.
   activates from a `lap_timer` modifier inside a dashboard widget's source, and
   that binding stays inside one document.
 - The `pitrig_cfg` partition is unchanged by this decision. The three records
-  come to 161 KiB at their bounds, comfortably inside the 512 KiB it holds
-  since ADR 0022.
+  come to 193 KiB at their bounds, and replacing the dashboard record at its
+  bound still leaves a quarter of the 512 KiB it holds since ADR 0022.

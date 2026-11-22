@@ -46,8 +46,8 @@ components → interfaces ← drivers
   product behaviour (ADR 0028).
 
 Drivers may depend on drivers where the hardware says so: the Guition board
-display drivers require `touch/gt911`, and `transport/uart` and
-`transport/usb_cdc` require `transport/transport_common`.
+display drivers require `touch/gt911`, and the `transport/` drivers require
+`transport/transport_common`.
 
 Every layer directory is a separate ESP-IDF component. All of them except
 `components/` are registered in `EXTRA_COMPONENT_DIRS` in
@@ -98,7 +98,14 @@ document naming any screen is rejected rather than ignored, and it drives four
 configurable LED outputs like every other board. Each board has exactly one link;
 `transport/usb_cdc` owns the whole native USB device — a composite CDC serial
 port and an HID gamepad, selected by `CONFIG_TINYUSB_HID_COUNT` (set on the
-T-Display-S3, the JC1060P470C and the DevKitC-1). `led/ws2812_rmt`
+T-Display-S3, the JC1060P470C and the DevKitC-1). Only with
+`CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK`, off in released images, is the
+JC1060P470C's link `UsbFallbackTransport`: native USB, unless the
+USB-Serial-JTAG port has a host and native USB does not enumerate within two
+seconds of start — then `transport/usb_serial_jtag`, in the same storage slot,
+because the P4 has almost no internal RAM to spare (ADR 0029); SimHub's port scan
+would park such a board in download mode, so the plugin keeps the scan off every
+Pitrig port through SimHub's `CanBeScanned` hook. Without the option `transport/usb_serial_jtag` registers no sources. `led/ws2812_rmt`
 drives one RMT channel per output, which is why four outputs is the ceiling on
 both chips.
 

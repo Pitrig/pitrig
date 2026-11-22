@@ -501,6 +501,47 @@ inline constexpr std::array<std::string_view, 21> kImageWidgetConfigurationKeys{
     "recolor_opa",
 }};
 
+inline constexpr std::array<std::string_view, 38> kTrackMapWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "title",
+    "background_color",
+    "background_grad_color",
+    "background_grad_dir",
+    "background_inset_px",
+    "fill_corners",
+    "action",
+    "condition_source",
+    "color_ramp",
+    "conditions",
+    "line_color",
+    "line_width_px",
+    "sector_mark_color",
+    "pit_lane_color",
+    "finish_line_color",
+    "car_color",
+    "car_size_px",
+    "player_color",
+    "player_size_px",
+    "player_border_color",
+    "ahead_color",
+    "behind_color",
+    "lapping_color",
+    "lapped_color",
+    "pit_car_color",
+    "class_1_color",
+    "class_2_color",
+    "class_3_color",
+    "class_4_color",
+    "fit_rotation",
+    "rotation_deg",
+    "refresh_ms",
+}};
+
 inline constexpr std::array<std::string_view, 19> kShapeWidgetConfigurationKeys{{
     "type",
     "id",
@@ -835,6 +876,25 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
 [[nodiscard]] inline std::string_view range_error(const ImageWidgetConfiguration& config) {
   if (config.sprite_frame > kMaximumSpriteFrames) {
     return "sprite_frame";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const TrackMapWidgetConfiguration& config) {
+  if (config.line_width_px < 1 || config.line_width_px > 16) {
+    return "line_width_px";
+  }
+  if (config.car_size_px < 2 || config.car_size_px > 32) {
+    return "car_size_px";
+  }
+  if (config.player_size_px < 2 || config.player_size_px > 48) {
+    return "player_size_px";
+  }
+  if (config.rotation_deg > 359) {
+    return "rotation_deg";
+  }
+  if (config.refresh_ms < 20 || config.refresh_ms > 1000) {
+    return "refresh_ms";
   }
   return {};
 }

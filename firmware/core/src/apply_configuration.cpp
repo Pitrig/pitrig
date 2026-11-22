@@ -29,6 +29,11 @@ value_smoothing::Service* start_value_smoothing(
   return service.active() ? &service : nullptr;
 }
 
+track_map::Service* track_map_service(Application& application) {
+  track_map::Service& service = application.services.track_map;
+  return service.active() ? &service : nullptr;
+}
+
 namespace {
 
 bool restart_module(Application& application, const module_composition::Module module) {
@@ -53,7 +58,8 @@ bool create_dashboard(Application& application) {
   return dashboard_composition::create(
       application.display, configuration, application.modules, dashboard_composition::instance(),
       application.services.telemetry_registry, application.services.telemetry_state,
-      primary_transport(application), start_value_smoothing(application, configuration));
+      primary_transport(application), start_value_smoothing(application, configuration),
+      track_map_service(application));
 }
 
 configuration::ValidationFailure apply_modules_document(

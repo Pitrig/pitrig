@@ -29,7 +29,10 @@ from SimHub's start so that a running configurator can claim its board first. A
 port behind a USB-UART bridge (`1A86:7523`, `1A86:55D4`, `10C4:EA60`) is opened
 only once the configurator has handed it back as a Pitrig board; the plugin
 remembers it with its baud rate. A port that does not answer `@PR:INFO` is left
-alone until it disappears and comes back.
+alone until it disappears and comes back. SimHub's own Arduino scan skips every
+port the plugin feeds, the configurator has claimed or the plugin remembers, and
+its log names Pitrig as the reason, so it cannot reset such a board into the ROM
+download mode.
 
 On a board that answers, the plugin reads the dashboard and modules documents
 — only the modules document after a hand-back that names the fields — and sends
@@ -86,22 +89,42 @@ each game's own data where SimHub's generic data has nothing
 property per game, and the plugin reads the one of `GameData.GameName` only while
 the game runs, since SimHub keeps a closed game's last raw data. SimHub flattens raw arrays as
 `CarDamage01`…, which its `/api/GetProperty/<name>` answers while a game runs.
-ACC and AC were checked that way; iRacing and LMU follow SimHub's reader
-structures and want a live session to confirm.
+ACC and AC were checked that way, AC EVO during a replay; iRacing and LMU follow
+SimHub's reader structures and want a live session to confirm. AC EVO reads each
+tread left to right, so a left wheel's inner edge is its right one and a right
+wheel's its left one.
 
 A field with no single property is computed in `Computed.cs` and the classes
 beside it, named by the mapping's `computed` key: the gaps come from
 SimHub's leaderboard, and so do the class position, the class position of the
 player's row, and the places gained, that row's starting position less its
 current one. Outside a race the gaps are best-lap differences, because SimHub's
-race gaps mean nothing in practice.
+race gaps mean nothing in practice. The standings fields read the same
+leaderboard, overall and within the player's class: the leader, the car one place
+ahead (empty when that is the leader) and the one behind, each with its position,
+surname in capitals, car and class, a class ranked by its fastest best lap, and
+the gap to the leader in seconds or whole laps. The optimal lap sums the
+session's best sectors, and LMU's laps on virtual energy divide what is left by
+the mean use of the last three laps clear of the pits.
+
+The track map's outline is SimHub's own record of the track: one recorded on
+this PC (`PluginsData\<game>\MapRecords`), else one SimHub downloaded
+(`MapRecordsCloud`), looked for again every 20 s while there is neither. The
+plugin records no outline itself. It learns the pit lane, which SimHub does not
+record, from the cars that drive it and keeps it in `%APPDATA%\Pitrig\pit-lanes`;
+the finish line and the sectors come from the record. A car's role and class
+come from SimHub's leaderboard, lapped and lapping only in a race
+([ADR 0043](adr/0043-track-map.md)). A track SimHub has no record of — every AC
+EVO track — shows the cars on a ring.
 
 The position comes from SimHub's leaderboard, the fuel time is SimHub's
 `Fuel_RemainingTime`, and the laps left in a race over laps SimHub's
 `RemainingLaps` (iRacing's own count there). A lap is invalid by ACC's and F1's
 own flags, in iRacing from any moment off the track outside a race until the lap
 count changes, and elsewhere only when SimHub's flag says so; with no flag it is
-unknown. A session runs on time by iRacing's own flag, elsewhere when time is left
+unknown. A finished lap is invalid when any moment of it was, judged before the
+line, because ACC restarts the lap timer and clears its flag a few frames before
+it counts the lap. A session runs on time by iRacing's own flag, elsewhere when time is left
 and there is no lap limit. The estimated lap time is the tracker's session-best
 estimate and the live delta that estimate less the personal best, both empty
 without them; their colour grades a time to the millisecond against the personal
@@ -124,7 +147,14 @@ type is SimHub's name in capitals without the game's initials. Damage zones read
 as SimHub reports them, units rather than percent in ACC, and the repair time is
 iRacing's own. ACC reports no repair time, so the plugin estimates one at 0.284 s
 a damage unit, per zone and for the whole bodywork, which ACC's fifth zone sums;
-the factor is a community figure still to be checked against the pit menu. The plugin's tyre,
+the factor is a community figure still to be checked against the pit menu. The hit
+counter grows whenever the zones, SimHub's damage maximum or iRacing's repair time
+rise by half a unit or more, counts rises less than a second apart as one hit, and
+never goes back, so only its changes mean anything.
+Brake pad and disc life are ACC's and AC EVO's thickness against new parts, 29 mm
+and 32 mm, so 0 % is worn through; neither game reports a worn limit, AC EVO
+reports metres, and both read 0 until the car is live.
+The plugin's tyre,
 pressure and brake averages take a sample every three seconds outside the pits,
 keep as many as the chosen laps hold at the best lap over three seconds, and last
 until SimHub restarts; LMU's tyre temperature blends the carcass and inner layers.
@@ -197,8 +227,8 @@ version it does not know drops the datagram.
 ## Building
 
 The project targets .NET Framework 4.8 and references `GameReaderCommon.dll`,
-`SimHub.Plugins.dll`, `SimHub.Logging.dll` and `log4net.dll` from a SimHub
-installation:
+`SimHub.Plugins.dll`, `SimHub.Logging.dll`, `SerialDash.dll` and `log4net.dll`
+from a SimHub installation:
 
 ```powershell
 cd simhub\plugin\Pitrig.SimHub

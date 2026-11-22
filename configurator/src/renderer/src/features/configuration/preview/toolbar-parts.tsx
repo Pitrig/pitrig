@@ -12,8 +12,8 @@ export function ToolbarGroup({
   children: ReactNode
 }): React.JSX.Element {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border bg-muted/20 p-0.5">
-      <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-0.5 gap-y-1 rounded-lg border bg-muted/20 p-0.5">
+      <span className="flex-none px-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
       {children}

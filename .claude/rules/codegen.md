@@ -43,7 +43,9 @@ banner.
   the plugin and the configurator, and a field the plugin works out names its C#
   computation with `computed`; mappings hold no formulas. A mapping's `games`
   lists which tracked games send the field and gives a game its raw
-  `GameRawData` source, which the plugin reads for the current game (ADR 0039).
+  `GameRawData` source, which the plugin reads for the current game (ADR 0039);
+  `"any": true` beside a generic property keeps every game and lets the other
+  entries give single games their own source.
   A `format` may be a list of steps, each with `below` or `up_to` a magnitude,
   so a value keeps fewer decimals as it grows.
 - `led_font` — `fonts/led_bitmap_font.json` (four faces as rows of `#` and

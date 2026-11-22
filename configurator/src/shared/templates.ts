@@ -45,6 +45,13 @@ export interface TemplateCredit {
   url: string
 }
 
+export interface TemplateVariant {
+  id: string
+  label: string
+  name: string
+  description?: string
+}
+
 export interface DashboardTemplateSummary {
   kind: 'dashboard'
   id: string
@@ -55,6 +62,7 @@ export interface DashboardTemplateSummary {
   screenCount: number
   widgetCount: number
   credit?: TemplateCredit
+  variants?: TemplateVariant[]
 }
 
 export interface WidgetTemplateSummary {

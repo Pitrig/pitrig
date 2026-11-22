@@ -8,6 +8,7 @@ idf_component_register(
        "src/json_widgets.cpp"
        "src/json_widget_gauges.cpp"
        "src/json_widget_variants.cpp"
+       "src/json_widget_track_map.cpp"
        "src/configuration_validation.cpp"
        "src/validation/control_rules.cpp"
        "src/validation/document_rules.cpp"

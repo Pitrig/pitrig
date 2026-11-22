@@ -53,6 +53,7 @@ Fragments appended to `SDKCONFIG_DEFAULTS` select what a build trades; the figur
 | `sdkconfig.defaults.vsync-lock` | `CONFIG_PITRIG_DISPLAY_VSYNC_LOCK`, P4 | frames scheduled from the telemetry burst (ADR 0032); off by default |
 | `sdkconfig.defaults.uncapped` | `CONFIG_PITRIG_DISPLAY_UNCAPPED`, P4 | no pacing hold; a measurement option, not a shipping one |
 | `sdkconfig.defaults.jit` | `CONFIG_PITRIG_DISPLAY_JIT`, P4 | the experiment vsync-lock superseded, kept for comparison |
+| `sdkconfig.defaults.jtag-fallback` | `CONFIG_PITRIG_USB_SERIAL_JTAG_FALLBACK`, P4 | the link moves to the USB-Serial-JTAG port when native USB has no host (ADR 0029); for a board without its native connector, never a release |
 
 Flash and monitor use the same `-B` build directory: `idf.py -B build-t-display -p <port> flash monitor`.
 Switching boards switches `IDF_TARGET`; `esp32p4` uses `dependencies.lock.esp32p4`. A clean checkout
@@ -138,7 +139,7 @@ python3 -m tools.codegen.ui_strings
 ## Configuration is three documents
 
 `dashboard`, `modules` and `protocol` are transferred, stored, validated and applied on their own:
-`@PR:GET:<doc>` and `@PR:SET:<doc>:<json>`, one NVS record and payload bound each (128 KB / 32 KB /
+`@PR:GET:<doc>` and `@PR:SET:<doc>:<json>`, one NVS record and payload bound each (192 KB / 32 KB /
 1 KB), `reboot_required` only for `protocol`, and `APPLY` rebuilding the running composition without
 writing storage (ADR 0024). The contract lives in the `configuration_contract` service component and
 mirrors into `configurator/src/shared/`; the `documents` block of the schema must partition every

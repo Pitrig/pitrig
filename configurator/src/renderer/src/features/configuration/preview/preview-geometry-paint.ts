@@ -28,6 +28,10 @@ export function contentArea(
   }
 }
 
+export function cornerReserve(radius: number, border: number): number {
+  return Math.ceil((Math.max(0, radius - border) * 2929) / 10000)
+}
+
 export function cornerRadii(
   radius: number,
   width: number,

@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 272. Static limit: 350.
+Catalog version: 1. Fields: 329. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -17,7 +17,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.handbrake` | `03` | `float32` | `percent` | `fast` | `optional` | any | Handbrake position. |
 | `vehicle.steering` | `04` | `float32` | `normalized` | `fast` | `game_specific` | ACC, AC, LMU | Normalized steering position. |
 | `vehicle.steering_angle` | `05` | `float32` | `degree` | `fast` | `game_specific` | iRacing | Steering wheel angle. |
-| `vehicle.brake_bias` | `BB` | `text` | `source` | `normal` | `optional` | ACC, AC, iRacing, LMU | Front-to-rear brake bias, with iRacing's fine adjustment added, formatted by the telemetry source. |
+| `vehicle.brake_bias` | `BB` | `text` | `source` | `normal` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Front-to-rear brake bias, with iRacing's fine adjustment added, formatted by the telemetry source. |
 ## Engine
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
@@ -29,7 +29,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `engine.shift_percent` | `5y` | `float32` | `percent` | `fast` | `computed` | any | Engine speed as a percentage of the current gear's shift point. |
 | `engine.shift_progress` | `SP` | `float32` | `percent` | `fast` | `computed` | any | How far the current gear has gone from the car's first shift light to its full shift-light bar. |
 | `engine.redline_reached` | `5z` | `boolean` | `boolean` | `fast` | `computed` | any | Whether engine speed has reached the current gear's shift point. |
-| `engine.running` | `09` | `boolean` | `boolean` | `normal` | `optional` | ACC, AC | Whether the engine is running. |
+| `engine.running` | `09` | `boolean` | `boolean` | `normal` | `optional` | ACC, AC, AC EVO | Whether the engine is running. |
 | `engine.ignition` | `0a` | `boolean` | `boolean` | `normal` | `optional` | ACC, AC | Whether ignition is enabled. |
 | `engine.starter` | `0b` | `boolean` | `boolean` | `normal` | `game_specific` | ACC, LMU | Whether the starter is active. |
 | `engine.water_temperature` | `0c` | `float32` | `celsius` | `slow` | `optional` | any | Engine coolant temperature. |
@@ -66,6 +66,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.lap.delta_best` | `0t` | `int32` | `millisecond` | `normal` | `computed` | any | Signed delta of the estimated lap to the personal best lap, empty without either. |
 | `session.lap.delta_session_best` | `0u` | `int32` | `millisecond` | `normal` | `computed` | any | Signed estimated delta of the current lap to the fastest lap of the session in the player's class. |
 | `session.lap.delta_all_time_best` | `61` | `int32` | `millisecond` | `normal` | `computed` | any | Signed live delta to the all-time personal best lap, empty without one. |
+| `session.lap.optimal_time` | `OL` | `uint32` | `millisecond` | `changes` | `computed` | any | Sum of the player's best sectors in this session, empty until every sector has one. |
 | `session.lap.last_delta_best` | `LD` | `int32` | `millisecond` | `changes` | `computed` | any | Signed delta of the last lap to the personal best; when the last lap set it, its gain over the previous best, empty without one. |
 | `session.lap.delta_status` | `62` | `uint32` | `status` | `normal` | `computed` | any | The current lap's estimate to the millisecond against the personal best and the fastest lap in the player's class: 0 none, 1 slower than the personal best, 2 at or under it, 3 at or under the fastest lap, 4 invalid lap; empty with nothing to compare. |
 | `session.lap.last_status` | `63` | `uint32` | `status` | `changes` | `computed` | any | The last lap against the personal best and the fastest lap in the player's class, coded like session.lap.delta_status, 4 when it was invalid. |
@@ -106,6 +107,41 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.gap_ahead` | `1l` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the car one position ahead: on track in a race, between best laps in other sessions. |
 | `session.gap_behind` | `1m` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the car one position behind: on track in a race, between best laps in other sessions. |
 | `session.gap_leader` | `1n` | `text` | `source` | `normal` | `computed` | any | Gap in seconds to the session leader: on track in a race, between best laps in other sessions. |
+| `session.standings.leader.name` | `QA` | `text` | `source` | `changes` | `computed` | any | Overall leader's driver surname in capitals, for a standings list. |
+| `session.standings.leader.car` | `QB` | `text` | `source` | `changes` | `computed` | any | Overall leader's car as the game names it. |
+| `session.standings.leader.class` | `QC` | `text` | `source` | `changes` | `computed` | any | Overall leader's class, at most four characters such as HYP, LMP2 or GT3. |
+| `session.standings.leader.class_index` | `QD` | `uint32` | `count` | `changes` | `computed` | any | Overall leader's class by pace: 1 for the fastest class present, up to 4. |
+| `session.standings.leader.last_lap` | `QE` | `uint32` | `millisecond` | `changes` | `computed` | any | Overall leader's last lap time. |
+| `session.standings.ahead.position` | `QF` | `uint32` | `count` | `changes` | `computed` | any | Overall position of the car one place ahead of the player; empty when the player leads or runs second. |
+| `session.standings.ahead.name` | `QG` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one place ahead, in capitals. |
+| `session.standings.ahead.car` | `QH` | `text` | `source` | `changes` | `computed` | any | Car one place ahead, as the game names it. |
+| `session.standings.ahead.class` | `QI` | `text` | `source` | `changes` | `computed` | any | Class of the car one place ahead, at most four characters. |
+| `session.standings.ahead.class_index` | `QJ` | `uint32` | `count` | `changes` | `computed` | any | Class of the car one place ahead by pace, 1 for the fastest class present. |
+| `session.standings.ahead.gap` | `QK` | `text` | `source` | `normal` | `computed` | any | Gap of the car one place ahead to the leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.standings.player.class` | `QL` | `text` | `source` | `changes` | `computed` | any | The player's class, at most four characters. |
+| `session.standings.player.class_index` | `QM` | `uint32` | `count` | `changes` | `computed` | any | The player's class by pace, 1 for the fastest class present. |
+| `session.standings.player.car` | `QN` | `text` | `source` | `changes` | `computed` | any | The player's car as the game names it. |
+| `session.standings.player.gap` | `QO` | `text` | `source` | `normal` | `computed` | any | The player's gap to the overall leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference; empty while the player leads. |
+| `session.standings.behind.position` | `QP` | `uint32` | `count` | `changes` | `computed` | any | Overall position of the car one place behind the player. |
+| `session.standings.behind.name` | `QQ` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one place behind, in capitals. |
+| `session.standings.behind.car` | `QR` | `text` | `source` | `changes` | `computed` | any | Car one place behind, as the game names it. |
+| `session.standings.behind.class` | `QS` | `text` | `source` | `changes` | `computed` | any | Class of the car one place behind, at most four characters. |
+| `session.standings.behind.class_index` | `QT` | `uint32` | `count` | `changes` | `computed` | any | Class of the car one place behind by pace, 1 for the fastest class present. |
+| `session.standings.behind.gap` | `QU` | `text` | `source` | `normal` | `computed` | any | Gap of the car one place behind to the leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.class_standings.leader.name` | `KA` | `text` | `source` | `changes` | `computed` | any | Driver surname of the leader of the player's class, in capitals. |
+| `session.class_standings.leader.car` | `KB` | `text` | `source` | `changes` | `computed` | any | Car of the leader of the player's class. |
+| `session.class_standings.leader.last_lap` | `KC` | `uint32` | `millisecond` | `changes` | `computed` | any | Last lap time of the leader of the player's class. |
+| `session.class_standings.ahead.position` | `KD` | `uint32` | `count` | `changes` | `computed` | any | Class position of the car one class place ahead; empty when the player leads the class or runs second in it. |
+| `session.class_standings.ahead.name` | `KE` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one class place ahead, in capitals. |
+| `session.class_standings.ahead.car` | `KF` | `text` | `source` | `changes` | `computed` | any | Car one class place ahead. |
+| `session.class_standings.ahead.gap` | `KG` | `text` | `source` | `normal` | `computed` | any | Gap of the car one class place ahead to the class leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.class_standings.ahead.interval` | `KH` | `text` | `source` | `normal` | `computed` | any | Gap in seconds between the player and the car one class place ahead: on track in a race, between best laps in other sessions. |
+| `session.class_standings.player.gap` | `KI` | `text` | `source` | `normal` | `computed` | any | The player's gap to the class leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference; empty while the player leads the class. |
+| `session.class_standings.behind.position` | `KJ` | `uint32` | `count` | `changes` | `computed` | any | Class position of the car one class place behind the player. |
+| `session.class_standings.behind.name` | `KK` | `text` | `source` | `changes` | `computed` | any | Driver surname of the car one class place behind, in capitals. |
+| `session.class_standings.behind.car` | `KL` | `text` | `source` | `changes` | `computed` | any | Car one class place behind. |
+| `session.class_standings.behind.gap` | `KM` | `text` | `source` | `normal` | `computed` | any | Gap of the car one class place behind to the class leader, written +12.408 in seconds, or +1 LAP and +2 LAPS once lapped; in other sessions the best-lap difference. |
+| `session.class_standings.behind.interval` | `KN` | `text` | `source` | `normal` | `computed` | any | Gap in seconds between the player and the car one class place behind: on track in a race, between best laps in other sessions. |
 ## Fuel and energy
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
@@ -127,16 +163,16 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.energy.virtual` | `VE` | `float32` | `percent` | `slow` | `game_specific` | LMU | Virtual energy left, as LMU reports it for the stint. |
 | `vehicle.energy.deployment_mode` | `1x` | `text` | `source` | `changes` | `game_specific` | AC, iRacing | Hybrid deployment mode: its name where the game documents one, otherwise MODE and the number; empty for a car without hybrid energy. |
 | `vehicle.energy.recovery_mode` | `1y` | `text` | `source` | `changes` | `game_specific` | AC | Energy recovery level as the game reports it. |
-| `vehicle.energy.laps_remaining` | `1z` | `float32` | `count` | `slow` | `game_specific` | none | Estimated laps remaining on electrical energy. |
+| `vehicle.energy.laps_remaining` | `1z` | `float32` | `count` | `slow` | `game_specific` | LMU | Estimated laps remaining on electrical energy. |
 ## Electronics and vehicle state
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
 |---|---:|---|---|---|---|---|---|
-| `vehicle.aids.traction_control_level` | `T` | `text` | `source` | `normal` | `optional` | ACC, AC, iRacing, LMU | Configured traction-control level. |
-| `vehicle.aids.traction_control_cut` | `TC` | `text` | `source` | `changes` | `game_specific` | ACC, iRacing, LMU | Second traction-control setting: TC cut in ACC and LMU, the second TC knob in iRacing. |
-| `vehicle.aids.traction_control_active` | `20` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, LMU | Whether traction control is intervening. |
-| `vehicle.aids.abs_level` | `A` | `text` | `source` | `normal` | `optional` | ACC, AC, iRacing, LMU | Configured ABS level. |
-| `vehicle.aids.abs_active` | `21` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, LMU | Whether ABS is intervening. |
+| `vehicle.aids.traction_control_level` | `T` | `text` | `source` | `normal` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Configured traction-control level. |
+| `vehicle.aids.traction_control_cut` | `TC` | `text` | `source` | `changes` | `game_specific` | ACC, AC EVO, iRacing, LMU | Second traction-control setting: TC cut in ACC, AC EVO and LMU, the second TC knob in iRacing. |
+| `vehicle.aids.traction_control_active` | `20` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, AC EVO, LMU | Whether traction control is intervening. |
+| `vehicle.aids.abs_level` | `A` | `text` | `source` | `normal` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Configured ABS level. |
+| `vehicle.aids.abs_active` | `21` | `boolean` | `boolean` | `fast` | `optional` | ACC, AC, AC EVO, LMU | Whether ABS is intervening. |
 | `vehicle.aids.stability_control` | `22` | `text` | `source` | `normal` | `game_specific` | none | Configured stability-control level. |
 | `vehicle.pit_limiter.enabled` | `23` | `boolean` | `boolean` | `fast` | `common` | any | Whether the pit limiter is enabled. |
 | `vehicle.in_pit_lane` | `24` | `boolean` | `boolean` | `normal` | `common` | any | Whether the vehicle is in the pit lane. |
@@ -148,6 +184,11 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.push_to_pass.active` | `2a` | `boolean` | `boolean` | `fast` | `optional` | any | Whether push-to-pass is active. |
 | `vehicle.headlights` | `2b` | `text` | `source` | `changes` | `game_specific` | ACC, LMU | Headlight state. |
 | `vehicle.wipers` | `2c` | `text` | `source` | `changes` | `game_specific` | ACC | Wiper mode. |
+| `vehicle.lights.beam` | `HL` | `uint32` | `position` | `changes` | `game_specific` | ACC, AC EVO, LMU | Headlights as a number: 0 off, 1 low beam, 2 high beam; LMU reports only 0 or 1. |
+| `vehicle.lights.turn_left` | `TL` | `boolean` | `boolean` | `changes` | `game_specific` | ACC, AC EVO | Whether the left direction indicator is on. |
+| `vehicle.lights.turn_right` | `TR` | `boolean` | `boolean` | `changes` | `game_specific` | ACC, AC EVO | Whether the right direction indicator is on. |
+| `vehicle.lights.rain` | `RN` | `boolean` | `boolean` | `changes` | `game_specific` | ACC, AC EVO | Whether the rear rain light is on. |
+| `vehicle.wiper_level` | `WP` | `uint32` | `position` | `changes` | `game_specific` | ACC, AC EVO | Wiper speed as a number: 0 off, then the game's steps upward; ACC goes to 3, AC EVO to 4. |
 | `vehicle.horn` | `2d` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether the horn is active. |
 | `vehicle.speed_limiter` | `2e` | `boolean` | `boolean` | `fast` | `game_specific` | none | Whether a non-pit speed limiter is active. |
 | `vehicle.damage.aero` | `2f` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC, LMU | Aerodynamic damage level. |
@@ -160,6 +201,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.damage.rear_repair_time` | `RB` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the rear bodywork: ACC's rear damage at 0.284 s a unit; empty for other games. |
 | `vehicle.damage.left_repair_time` | `RL` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the left bodywork: ACC's left damage at 0.284 s a unit; empty for other games. |
 | `vehicle.damage.right_repair_time` | `RR` | `uint32` | `millisecond` | `slow` | `game_specific` | ACC | Approximate pit time to repair the right bodywork: ACC's right damage at 0.284 s a unit; empty for other games. |
+| `vehicle.damage.hits` | `DH` | `uint32` | `count` | `changes` | `computed` | any | Hits to the car since SimHub started: one more at every rise in body damage or repair time, rises less than a second apart counting as one, so a dashboard can react to each hit; its value means nothing else. |
 | `vehicle.damage.suspension` | `2g` | `float32` | `percent` | `slow` | `game_specific` | none | Overall suspension damage level. |
 | `vehicle.damage.transmission` | `2h` | `float32` | `percent` | `slow` | `game_specific` | none | Overall transmission damage level. |
 ## Flags and messages
@@ -190,10 +232,15 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `track.name` | `2z` | `text` | `source` | `changes` | `common` | any | Track name. |
 | `track.configuration` | `30` | `text` | `source` | `changes` | `optional` | any | Track configuration or layout. |
 | `track.length` | `31` | `float32` | `meter` | `changes` | `common` | any | Track lap length. |
-| `track.temperature` | `32` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, iRacing, LMU | Track surface temperature. |
+| `track.temperature` | `32` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Track surface temperature. |
 | `track.wetness` | `33` | `float32` | `percent` | `slow` | `game_specific` | ACC, iRacing, LMU | Track wetness level. |
 | `track.condition` | `TK` | `text` | `source` | `slow` | `game_specific` | ACC, iRacing, LMU | Track condition in three letters, such as GRN, OPT, DMP or WET. |
-| `environment.air_temperature` | `34` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, iRacing, LMU | Ambient air temperature. |
+| `track.map.outline` | `MO` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, LMU | One piece of the current track's outline, which the plugin sends over and over for the track map widget (ADR 0043). |
+| `track.map.cars_1` | `MA` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 1 to 21 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
+| `track.map.cars_2` | `MB` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 22 to 42 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
+| `track.map.cars_3` | `MC` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 43 to 63 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
+| `track.map.cars_4` | `MD` | `text` | `source` | `normal` | `computed` | ACC, AC, AC EVO, iRacing, LMU | Cars 64 to 84 of the track map, three characters each: the lap fraction, the role and the class (ADR 0043). |
+| `environment.air_temperature` | `34` | `float32` | `celsius` | `slow` | `optional` | ACC, AC, AC EVO, iRacing, LMU | Ambient air temperature. |
 | `environment.rain_level` | `35` | `float32` | `percent` | `slow` | `game_specific` | ACC, iRacing, LMU | Rain intensity. |
 | `environment.wind_speed` | `36` | `float32` | `meter_per_second` | `slow` | `game_specific` | ACC, iRacing | Wind speed. |
 | `environment.wind_direction` | `37` | `float32` | `degree` | `slow` | `game_specific` | ACC, iRacing | Wind direction. |
@@ -201,6 +248,8 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `environment.cloud_level` | `39` | `float32` | `percent` | `slow` | `game_specific` | iRacing, LMU | Cloud cover level. |
 | `environment.forecast` | `3a` | `text` | `source` | `changes` | `game_specific` | ACC | Weather forecast. |
 | `environment.forecast_30` | `F3` | `text` | `source` | `changes` | `game_specific` | ACC | Weather forecast in 30 minutes. |
+| `environment.rain_forecast_10` | `W1` | `float32` | `percent` | `changes` | `game_specific` | ACC | Rain intensity forecast in 10 minutes, on the scale of environment.rain_level. |
+| `environment.rain_forecast_30` | `W3` | `float32` | `percent` | `changes` | `game_specific` | ACC | Rain intensity forecast in 30 minutes, on the scale of environment.rain_level. |
 ## Motion and vehicle physics
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
@@ -342,3 +391,15 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `tyre.front_right.temperature_working` | `6m` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the front-right tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
 | `tyre.rear_left.temperature_working` | `6n` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the rear-left tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
 | `tyre.rear_right.temperature_working` | `6o` | `float32` | `celsius` | `slow` | `computed` | any | Working temperature of the rear-right tyre: the middle of the tread where the game reports one, else the temperature it reports for the whole tyre, such as the core in ACC. |
+## Brakes and suspension
+
+| Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
+|---|---:|---|---|---|---|---|---|
+| `brake.front_left.pad_life` | `6p` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the front-left wheel: 100 when new, 0 when worn through. |
+| `brake.front_right.pad_life` | `6q` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the front-right wheel: 100 when new, 0 when worn through. |
+| `brake.rear_left.pad_life` | `6r` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the rear-left wheel: 100 when new, 0 when worn through. |
+| `brake.rear_right.pad_life` | `6s` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake pad life left at the rear-right wheel: 100 when new, 0 when worn through. |
+| `brake.front_left.disc_life` | `6t` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the front-left wheel: 100 when new, 0 when worn through. |
+| `brake.front_right.disc_life` | `6u` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the front-right wheel: 100 when new, 0 when worn through. |
+| `brake.rear_left.disc_life` | `6v` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the rear-left wheel: 100 when new, 0 when worn through. |
+| `brake.rear_right.disc_life` | `6w` | `float32` | `percent` | `slow` | `game_specific` | ACC, AC EVO | Brake disc life left at the rear-right wheel: 100 when new, 0 when worn through. |
