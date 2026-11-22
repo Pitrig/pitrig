@@ -53,6 +53,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** Endurance shows the fuel left at the finish in one colour at a time: red at 0.0 or below, amber to 0.5, green above.
 - **SimHub plugin.** SimHub's Arduino port scan skips the Pitrig boards the plugin knows, so it no longer leaves a board on its USB-Serial-JTAG port in download mode.
 - **Configurator.** A board on a USB-UART bridge or the USB-Serial-JTAG port reconnects as soon as it has restarted.
+- **Configurator.** A screen with many slots lists them on more rows instead of past the toolbar's edge.
 
 ## 0.4.0 — 2026-11-20 — firmware 0.4.0
 

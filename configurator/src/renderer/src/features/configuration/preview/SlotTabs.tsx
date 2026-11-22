@@ -34,7 +34,7 @@ export function SlotTabs(): React.JSX.Element | null {
         const pages = pagesOf(slot)
         const current = visibleSlotPage(slot, slotPage)
         return (
-          <div key={id} className="flex items-center gap-0.5">
+          <div key={id} className="flex flex-none items-center gap-0.5">
             {position > 0 ? <ToolbarDivider /> : null}
             <span className="px-1 text-[11px] text-muted-foreground">{id}</span>
             {pages.map((page, index) => (
