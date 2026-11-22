@@ -35,6 +35,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/configuration"
      "${CMAKE_CURRENT_LIST_DIR}/services/configuration_contract"
      "${CMAKE_CURRENT_LIST_DIR}/services/configuration_control"
+     "${CMAKE_CURRENT_LIST_DIR}/services/control_protocol"
      "${CMAKE_CURRENT_LIST_DIR}/services/event_bus"
      "${CMAKE_CURRENT_LIST_DIR}/services/firmware_update"
      "${CMAKE_CURRENT_LIST_DIR}/services/font_asset_control"

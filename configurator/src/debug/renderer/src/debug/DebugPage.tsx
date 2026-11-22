@@ -12,14 +12,15 @@ import {
   writeEventLog,
   type EventLogEntry
 } from '@/lib/event-log'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 const SUGGESTIONS = [
-  '@PR:INFO',
-  '@PR:GET:dashboard',
-  '@PR:GET:protocol',
-  '@PR:FONT:INFO',
-  '@PR:IMAGE:INFO',
-  '@PR:FW:INFO'
+  `${CONTROL_PREFIX}INFO`,
+  `${CONTROL_PREFIX}GET:dashboard`,
+  `${CONTROL_PREFIX}GET:protocol`,
+  `${CONTROL_PREFIX}FONT:INFO`,
+  `${CONTROL_PREFIX}IMAGE:INFO`,
+  `${CONTROL_PREFIX}FW:INFO`
 ]
 
 export function DebugPage(): React.JSX.Element {
@@ -118,7 +119,7 @@ export function DebugPage(): React.JSX.Element {
               aria-label="Control command"
               className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 font-mono text-xs text-foreground outline-none focus:border-zinc-500 disabled:opacity-50"
               disabled={!connected || sending}
-              placeholder={connected ? '@PR:INFO' : 'Connect a board to send a command'}
+              placeholder={connected ? `${CONTROL_PREFIX}INFO` : 'Connect a board to send a command'}
               spellCheck={false}
               value={command}
               onChange={(event) => setCommand(event.target.value)}

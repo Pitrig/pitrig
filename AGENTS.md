@@ -146,8 +146,8 @@ past that, split it along a natural seam as part of that change — do not leave
 the split for a later refactor. Generated files (`*_generated.*`,
 `configuration-schema.ts`, `telemetry-catalog.ts`, `simhub-data.ts`,
 `led-font.ts`, `google-fonts-catalog.json`, `ui-string-keys.ts`,
-`ui-strings-<locale>.ts`) are exempt: they are generator outputs and are never
-edited by hand.
+`ui-strings-<locale>.ts`, `control-protocol.ts`) are exempt: they are generator
+outputs and are never edited by hand.
 
 No comments in code.
 

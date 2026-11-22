@@ -2,6 +2,7 @@ import { useDeviceStore } from '@/features/device/device-store'
 import { baudUtilization, type BenchSample, type BenchStatus } from '@debug-shared/bench'
 import { BENCH_SIGNALS } from '@debug-shared/bench-signals'
 import { useBenchStore } from './bench-store'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 interface BenchTablesProps {
   status: BenchStatus
@@ -55,7 +56,7 @@ export function BenchTables({ status, latest }: BenchTablesProps): React.JSX.Ele
             status.diagnostics === 'supported'
               ? `debug build · ${latest ? `${latest.roundTripMs.toFixed(0)} ms round trip` : 'waiting'}`
               : status.diagnostics === 'unsupported'
-                ? 'product build — no @PR:DIAG'
+                ? `product build — no ${CONTROL_PREFIX}DIAG`
                 : 'unknown until the first poll'
           }
           warn={status.diagnostics === 'unsupported'}

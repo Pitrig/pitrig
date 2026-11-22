@@ -30,6 +30,7 @@ import {
   validateConfiguration
 } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 export async function readDeviceConfiguration(
   connection: ConnectionManager,
@@ -184,8 +185,8 @@ async function readInfo(
   try {
     const line = await requestResponse(
       port,
-      '\n@PR:INFO\n',
-      '@PR:OK:INFO:',
+      `\n${CONTROL_PREFIX}INFO\n`,
+      `${CONTROL_PREFIX}OK:INFO:`,
       1_000,
       onTraffic,
       'serial_error'

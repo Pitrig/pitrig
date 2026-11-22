@@ -19,7 +19,7 @@ Editor gaps against SimHub are in
 - [*] Screens as a composition primitive
 - [*] Widget type descriptors
 - [*] Live configuration swap
-- [ ] Generated protocol tokens
+- [*] Generated protocol tokens
 
 # Phase 2 — Hardware
 

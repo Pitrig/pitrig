@@ -2,6 +2,7 @@
 
 #include "asset_control.hpp"
 #include "binary_codec.hpp"
+#include "control_protocol_generated.hpp"
 #include "crc32.hpp"
 #include "scf1_frame.hpp"
 
@@ -70,8 +71,8 @@ void AssetControl::handle_clear() {
 void AssetControl::handle_info() {
   const std::span<char> response = worker_->reply_buffer();
   int written =
-      std::snprintf(response.data(), response.size(),
-                    "@PR:OK:%.*s:INFO:", static_cast<int>(traits_.tag.size()), traits_.tag.data());
+      std::snprintf(response.data(), response.size(), PITRIG_CONTROL_PREFIX "OK:%.*s:INFO:",
+                    static_cast<int>(traits_.tag.size()), traits_.tag.data());
   release_request();
   if (written > 0 && static_cast<std::size_t>(written) < response.size()) {
     auto offset = static_cast<std::size_t>(written);

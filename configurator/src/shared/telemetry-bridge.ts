@@ -2,6 +2,7 @@ import type { InputsConfiguration } from './configuration-schema'
 import { SIMHUB_LINK } from './simhub-data'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from './telemetry-catalog'
 import type { TelemetryValue } from './telemetry-value'
+import { PLUGIN_PREFIX } from './control-protocol'
 
 export const TELEMETRY_BRIDGE_START_CHANNEL = 'telemetry-bridge:start' as const
 export const TELEMETRY_BRIDGE_STATUS_CHANNEL = 'telemetry-bridge:status' as const
@@ -21,8 +22,8 @@ export interface TelemetrySimulation {
 
 export const SNAPSHOT_INTERVAL_MS = 16
 
-export const PLUGIN_STATUS_MARKER = '@PT:STATUS'
-export const PLUGIN_INPUT_MARKER = '@PT:INPUT'
+export const PLUGIN_STATUS_MARKER = `${PLUGIN_PREFIX}STATUS`
+export const PLUGIN_INPUT_MARKER = `${PLUGIN_PREFIX}INPUT`
 export const PLUGIN_SILENCE_MS = 3_000
 
 export const LINK_MAGIC = SIMHUB_LINK.magic

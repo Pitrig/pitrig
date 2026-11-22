@@ -8,10 +8,10 @@ namespace Pitrig.SimHub
         private const double RetryMs = 20;
         private const double ReplyTimeoutMs = 5000;
         private const double DeadlineMs = 15000;
-        private const string ReplyPrefix = "@PR:OK:CONFIG:";
-        private const string BusyReply = "@PR:ERR:busy";
-        private const string UnknownDocument = "@PR:ERR:unknown_document";
-        private const string ErrorReply = "@PR:ERR:";
+        private const string ReplyPrefix = ControlProtocol.ControlPrefix + "OK:CONFIG:";
+        private const string BusyReply = ControlProtocol.ControlPrefix + "ERR:busy";
+        private const string UnknownDocument = ControlProtocol.ControlPrefix + "ERR:unknown_document";
+        private const string ErrorReply = ControlProtocol.ControlPrefix + "ERR:";
         private const string Modules = "modules";
 
         private static readonly string[] Everything = { "dashboard", Modules };
@@ -57,7 +57,7 @@ namespace Pitrig.SimHub
             if (Done || now < sendAt) return null;
             if (!double.IsNaN(sentAt) && now - sentAt < ReplyTimeoutMs) return null;
             sentAt = now;
-            return "@PR:GET:" + names[current] + "\n";
+            return ControlProtocol.ControlPrefix + "GET:" + names[current] + "\n";
         }
 
         public void Accept(string line, double now)

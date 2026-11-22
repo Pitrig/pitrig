@@ -15,8 +15,8 @@ namespace Pitrig.SimHub
         private const int StatusIntervalMs = 1000;
         private const int ConnectionResetControlCode = -1744830452;
         private const int ReceiveCapacity = 65536;
-        private const string StatusMarker = "@PT:STATUS\n";
-        private const string InputMarker = "@PT:INPUT\n";
+        private const string StatusMarker = ControlProtocol.PluginPrefix + "STATUS\n";
+        private const string InputMarker = ControlProtocol.PluginPrefix + "INPUT\n";
         private const string TraceSource = "configurator";
 
         private readonly byte[] datagram = new byte[HeaderBytes + TelemetryCatalog.LinkMaximumPayload];

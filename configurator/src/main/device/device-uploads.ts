@@ -15,12 +15,13 @@ import { clearFontAssets, clearImageAssets } from './pitrig-protocol'
 import { parseFontAssetInfo, parseImageAssetInfo } from './asset-info-parsers'
 import { requestResponse } from './serial-request'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 const ASSET_INFO_TIMEOUT_MS = 1_000
 
 const ASSET_INFO_REQUESTS = {
-  FONT: { request: '@PR:FONT:INFO\n', prefix: '@PR:OK:FONT:INFO:' },
-  IMAGE: { request: '@PR:IMAGE:INFO\n', prefix: '@PR:OK:IMAGE:INFO:' }
+  FONT: { request: `${CONTROL_PREFIX}FONT:INFO\n`, prefix: `${CONTROL_PREFIX}OK:FONT:INFO:` },
+  IMAGE: { request: `${CONTROL_PREFIX}IMAGE:INFO\n`, prefix: `${CONTROL_PREFIX}OK:IMAGE:INFO:` }
 } as const
 
 export async function uploadPackage(

@@ -6,13 +6,13 @@
 #include <cstring>
 
 #include "binary_codec.hpp"
-#include "configuration_control.hpp"
+#include "control_protocol_generated.hpp"
 #include "scf1_frame.hpp"
 
 namespace pitrig::asset_control {
 namespace {
 
-using configuration::kControlPrefix;
+using protocol::kControlPrefix;
 
 [[nodiscard]] bool matches(const std::span<const std::uint8_t> line,
                            const std::string_view command) {

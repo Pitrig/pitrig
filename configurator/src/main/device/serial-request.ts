@@ -5,17 +5,18 @@ import { describeDeviceError } from '@shared/device-error-message'
 import { DeviceServiceError } from './device-errors'
 import { exchangeLines } from './line-exchange'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 export type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
 
-export const CONFIGURATION_RESPONSE_PREFIX = '@PR:OK:CONFIG:'
+export const CONFIGURATION_RESPONSE_PREFIX = `${CONTROL_PREFIX}OK:CONFIG:`
 const MAXIMUM_RESPONSE_BUFFER_SIZE =
   CONFIGURATION_RESPONSE_PREFIX.length +
   'dashboard:'.length +
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE +
   '\r\n'.length
 const CONTROL_COMMAND_TIMEOUT_MS = 3_000
-const DEVICE_ERROR_PREFIX = '@PR:ERR:'
+const DEVICE_ERROR_PREFIX = `${CONTROL_PREFIX}ERR:`
 const REQUEST_LABEL_PARTS = 3
 const BUSY_TOKEN = 'busy'
 const BUSY_RETRY_MS = 20
@@ -129,9 +130,9 @@ export function sendControlCommand(
     onReceive: (text) => onTraffic('rx', text),
     consume: (lines) => {
       for (const line of lines) {
-        if (!line.startsWith('@PR:')) continue
+        if (!line.startsWith(CONTROL_PREFIX)) continue
         collected.push(line)
-        if (line.startsWith('@PR:OK:') || line.startsWith(DEVICE_ERROR_PREFIX)) {
+        if (line.startsWith(`${CONTROL_PREFIX}OK:`) || line.startsWith(DEVICE_ERROR_PREFIX)) {
           return { value: collected }
         }
       }

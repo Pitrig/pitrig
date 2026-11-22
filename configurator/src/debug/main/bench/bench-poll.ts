@@ -4,8 +4,9 @@ import type { BenchDiagnosticsSupport, BenchSample } from '@debug-shared/bench'
 import type { DeviceService } from '@main/device/device-service'
 import { isDiagnosticsReply, parseBenchDiagnostics } from './bench-diagnostics'
 import type { TelemetryFeed } from './telemetry-feed'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
-const DIAGNOSTICS_COMMAND = '@PR:DIAG'
+const DIAGNOSTICS_COMMAND = `${CONTROL_PREFIX}DIAG`
 const PRODUCT_BUILD = 'This board runs a product build; flash a debug build for diagnostics.'
 
 export interface BenchPollHost {
@@ -94,7 +95,7 @@ export class BenchPoller {
     if (!result.ok) return undefined
     const reply = result.value.lines.find(isDiagnosticsReply)
     if (reply === undefined) {
-      if (result.value.lines.some((line) => line.startsWith('@PR:ERR:'))) {
+      if (result.value.lines.some((line) => line.startsWith(`${CONTROL_PREFIX}ERR:`))) {
         this.support = 'unsupported'
         this.host.onNotice(PRODUCT_BUILD)
       }

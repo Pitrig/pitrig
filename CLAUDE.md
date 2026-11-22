@@ -10,7 +10,7 @@ under `.claude/rules/` load when a matching file is read, and can be read direct
 | `.claude/rules/firmware.md` | `firmware/**` | layering constraints, `EXTRA_COMPONENT_DIRS`, startup consequences, boards, the vendored patch stack |
 | `.claude/rules/configurator.md` | `configurator/**` | the three-way split, where a new IPC channel goes, the debug application and branding, draft and stores, live telemetry, save to board, workspaces, templates, pnpm traps |
 | `.claude/rules/dashboard-editor.md` | `configurator/src/renderer/src/features/configuration/**` | the editor's five directories and what stays out of the document |
-| `.claude/rules/codegen.md` | generator sources and outputs | the five generators, their inputs and outputs |
+| `.claude/rules/codegen.md` | generator sources and outputs | the six generators, their inputs and outputs |
 | `.claude/rules/docs.md` | `docs/**`, root markdown | which document owns what, the anchors and ADR numbers to keep |
 
 Three cooperating pieces: **firmware** on the ESP32 device, a desktop **configurator** that authors
@@ -66,7 +66,7 @@ LED outputs like every other board.
 the OTA status.
 
 **CI** ([.github/workflows/build.yml](.github/workflows/build.yml)) runs on a push to `release` and
-on demand: `checks` (`check_pinned_dependencies.py` before anything is installed, the five
+on demand: `checks` (`check_pinned_dependencies.py` before anything is installed, the six
 generators with `--check`, `check_debug_isolation.py --check`, the configurator's typecheck and
 lint), `simhub-plugin` (the Release DLL built on `windows-latest` against
 a SimHub pinned by digest, and checked for the development build's `*.Debug.cs` types),
@@ -117,7 +117,7 @@ dependency, action, image or tool version not pinned to one exact version, on a 
 component no `idf_component.yml` pins, and on a pnpm workspace without the seven-day and trust
 rules (ADR 0042).
 
-Five generators own checked-in code, each run with `python3 -m` **from the repository root** and
+Six generators own checked-in code, each run with `python3 -m` **from the repository root** and
 each accepting `--check`; never hand-edit an output:
 
 ```bash
@@ -126,6 +126,7 @@ python3 -m tools.codegen.telemetry_catalog
 python3 -m tools.codegen.led_font
 python3 -m tools.codegen.font_catalog
 python3 -m tools.codegen.ui_strings
+python3 -m tools.codegen.control_protocol
 ```
 
 | Generator | Sources | Outputs |
@@ -135,6 +136,7 @@ python3 -m tools.codegen.ui_strings
 | `led_font` | `fonts/led_bitmap_font.json` | `firmware/components/led/include/led_font_generated.hpp`, `configurator/src/shared/led-font.ts` |
 | `font_catalog` | `fonts/google_fonts_snapshot.json`, `fonts/google_fonts_selection.json` (`--refresh` re-fetches) | `configurator/src/main/font-library/google-fonts-catalog.json` |
 | `ui_strings` | `i18n/en.json`, `uk.json`, `ko.json`, `pl.json` | `configurator/src/shared/ui-string-keys.ts` and one `ui-strings-<locale>.ts` each, read through `t()` in `ui-text.ts`; the `simhub.` keys as `simhub/plugin/Pitrig.SimHub/UiStrings.g.cs` (ADR 0031) |
+| `control_protocol` | `configuration/control_protocol.json` | the `@PR:` and `@PT:` prefixes as `firmware/services/control_protocol/include/control_protocol_generated.hpp`, `configurator/src/shared/control-protocol.ts` and `simhub/plugin/Pitrig.SimHub/ControlProtocol.g.cs`; its `--check` also fails on a prefix written by hand (ADR 0044) |
 
 ## Configuration is three documents
 

@@ -5,7 +5,10 @@ configuration documents and start an upload, over the serial link the
 `protocol` document selects. The documents themselves, their presence rules and
 the widget semantics are in [device-configuration.md](device-configuration.md);
 the property table is the generated [configuration-schema.md](configuration-schema.md),
-and the upload frames are in [font-assets.md](font-assets.md).
+and the upload frames are in [font-assets.md](font-assets.md). The prefix, like
+the plugin link's `@PT:`, is generated from `configuration/control_protocol.json`,
+and no program writes either by hand ([ADR 0044](adr/0044-generated-protocol-tokens.md)).
+
 ## Device information
 
 `INFO` reports immutable device metadata and configuration storage status:

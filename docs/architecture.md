@@ -112,8 +112,9 @@ What each directory holds:
   `font_asset_control`, `image_asset_control` and `firmware_update` as thin
   per-kind wrappers, `asset_package`, `asset_storage`, `binary_session`,
   `boot_guard`, `configuration`, `configuration_contract`,
-  `configuration_control`, `event_bus`, `font_assets`, `font_contract`,
-  `image_assets`, `image_contract`, `logger`, `telemetry` with
+  `configuration_control`, `control_protocol` — the generated `@PR:` and `@PT:`
+  prefixes every program reads (ADR 0044) — `event_bus`, `font_assets`,
+  `font_contract`, `image_assets`, `image_contract`, `logger`, `telemetry` with
   `telemetry/protocols/simhub`, `track_map` — the outline the plugin streams,
   assembled from its pieces (ADR 0043) — `value_conditions` — the LVGL-free rule
   resolver, a service so that a module may depend on it (ADR 0030) — and

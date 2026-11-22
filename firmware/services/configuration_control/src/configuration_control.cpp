@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "control_protocol_generated.hpp"
 #include "pitrig_features.hpp"
 #include "transport.hpp"
 #if PITRIG_DEBUG
@@ -86,8 +87,9 @@ void ConfigurationControl::stop() {
 void ConfigurationControl::consume(const std::span<const std::uint8_t> line,
                                    transport::ITransport& reply) {
   if (service_ == nullptr || task_ == nullptr || line.size() > io_buffer_.size() ||
-      line.size() < kControlPrefix.size() ||
-      !std::equal(kControlPrefix.begin(), kControlPrefix.end(), line.begin())) {
+      line.size() < protocol::kControlPrefix.size() ||
+      !std::equal(protocol::kControlPrefix.begin(), protocol::kControlPrefix.end(),
+                  line.begin())) {
     return;
   }
   RequestState expected = RequestState::idle;
@@ -134,13 +136,13 @@ void ConfigurationControl::release_line() {
 void ConfigurationControl::answer_while_busy(const std::span<const std::uint8_t> line,
                                              transport::ITransport& reply) {
   constexpr std::string_view kReboot = "REBOOT";
-  const std::span<const std::uint8_t> command = line.subspan(kControlPrefix.size());
+  const std::span<const std::uint8_t> command = line.subspan(protocol::kControlPrefix.size());
   if (command.size() != kReboot.size() ||
       !std::equal(kReboot.begin(), kReboot.end(), command.begin())) {
-    (void)write_text(reply, "@PR:ERR:busy\n");
+    (void)write_text(reply, PITRIG_CONTROL_PREFIX "ERR:busy\n");
     return;
   }
-  (void)write_text(reply, "@PR:OK:REBOOTING\n");
+  (void)write_text(reply, PITRIG_CONTROL_PREFIX "OK:REBOOTING\n");
   if (reboot_handler_ != nullptr) {
     reboot_handler_(reboot_context_);
   }

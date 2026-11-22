@@ -3,14 +3,16 @@
 #include <algorithm>
 #include <string_view>
 
+#include "control_protocol_generated.hpp"
+
 namespace pitrig::communication {
 namespace {
 
-using configuration::kControlPrefix;
+using protocol::kControlPrefix;
 
 constexpr std::string_view kOverlongReply =
-    "@PR:ERR:malformed:screen=-1,widget=-1,path=configuration\n";
-constexpr std::string_view kBusyReply = "@PR:ERR:busy\n";
+    PITRIG_CONTROL_PREFIX "ERR:malformed:screen=-1,widget=-1,path=configuration\n";
+constexpr std::string_view kBusyReply = PITRIG_CONTROL_PREFIX "ERR:busy\n";
 
 [[nodiscard]] bool starts_with(const std::span<const std::uint8_t> line,
                                const std::string_view prefix) {

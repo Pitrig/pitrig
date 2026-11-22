@@ -15,6 +15,7 @@ import {
 } from '@shared/configuration-schema'
 import { DeviceServiceError } from './device-errors'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 export function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {
   const fields = new Map<string, string>()
@@ -95,7 +96,7 @@ export function parseAssetStatus(line: string, limits: AssetStatusLimits): Asset
 }
 
 export function parseDeviceInfo(line: string): DeviceInfo {
-  const fields = parseFields(line, '@PR:OK:INFO:', t('device.protocolParsers.infoData'))
+  const fields = parseFields(line, `${CONTROL_PREFIX}OK:INFO:`, t('device.protocolParsers.infoData'))
   const board = fields.get('board') as PitrigBoardId | undefined
   if (board === undefined || !PITRIG_BOARD_IDS.includes(board)) {
     throw new DeviceServiceError(

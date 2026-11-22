@@ -19,6 +19,7 @@ import {
   requestResponse,
   type TrafficCallback
 } from './serial-request'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 export { requestResponse, sendControlCommand } from './serial-request'
 
@@ -46,7 +47,7 @@ async function readConfigurationDocument(
   const prefix = `${CONFIGURATION_RESPONSE_PREFIX}${document}:`
   const line = await requestResponse(
     port,
-    `@PR:GET:${document}\n`,
+    `${CONTROL_PREFIX}GET:${document}\n`,
     prefix,
     configurationTimeout(port, CONFIGURATION_DOCUMENTS[document].maxPayload),
     onTraffic,
@@ -91,8 +92,8 @@ export async function applyConfiguration(
 ): Promise<void> {
   await requestResponse(
     port,
-    `@PR:APPLY:${document}:${payload}\n`,
-    `@PR:OK:APPLIED:${document}`,
+    `${CONTROL_PREFIX}APPLY:${document}:${payload}\n`,
+    `${CONTROL_PREFIX}OK:APPLIED:${document}`,
     writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
     onTraffic,
     'configuration_rejected'
@@ -107,8 +108,8 @@ export async function validateConfiguration(
 ): Promise<void> {
   await requestResponse(
     port,
-    `@PR:VALIDATE:${document}:${payload}\n`,
-    `@PR:OK:VALID:${document}`,
+    `${CONTROL_PREFIX}VALIDATE:${document}:${payload}\n`,
+    `${CONTROL_PREFIX}OK:VALID:${document}`,
     writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
     onTraffic,
     'configuration_rejected'
@@ -123,8 +124,8 @@ export async function saveConfiguration(
 ): Promise<void> {
   await requestResponse(
     port,
-    `@PR:SET:${document}:${payload}\n`,
-    `@PR:OK:SAVED:${document}:`,
+    `${CONTROL_PREFIX}SET:${document}:${payload}\n`,
+    `${CONTROL_PREFIX}OK:SAVED:${document}:`,
     writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
     onTraffic,
     'configuration_rejected'
@@ -137,8 +138,8 @@ export async function resetConfiguration(
 ): Promise<void> {
   await requestResponse(
     port,
-    '@PR:RESET\n',
-    '@PR:OK:RESET:reboot_required=1',
+    `${CONTROL_PREFIX}RESET\n`,
+    `${CONTROL_PREFIX}OK:RESET:reboot_required=1`,
     writeTimeout(port, 0),
     onTraffic,
     'configuration_rejected'
@@ -152,8 +153,8 @@ export async function resetConfigurationDocument(
 ): Promise<void> {
   await requestResponse(
     port,
-    `@PR:RESET:${document}\n`,
-    `@PR:OK:RESET:${document}:`,
+    `${CONTROL_PREFIX}RESET:${document}\n`,
+    `${CONTROL_PREFIX}OK:RESET:${document}:`,
     writeTimeout(port, 0),
     onTraffic,
     'configuration_rejected'
@@ -166,8 +167,8 @@ export async function clearImageAssets(
 ): Promise<void> {
   await requestResponse(
     port,
-    '@PR:IMAGE:CLEAR\n',
-    '@PR:OK:IMAGE:CLEARED:reboot_required=1',
+    `${CONTROL_PREFIX}IMAGE:CLEAR\n`,
+    `${CONTROL_PREFIX}OK:IMAGE:CLEARED:reboot_required=1`,
     ASSET_CLEAR_TIMEOUT_MS,
     onTraffic,
     'serial_error'
@@ -180,8 +181,8 @@ export async function clearFontAssets(
 ): Promise<void> {
   await requestResponse(
     port,
-    '@PR:FONT:CLEAR\n',
-    '@PR:OK:FONT:CLEARED:reboot_required=1',
+    `${CONTROL_PREFIX}FONT:CLEAR\n`,
+    `${CONTROL_PREFIX}OK:FONT:CLEARED:reboot_required=1`,
     ASSET_CLEAR_TIMEOUT_MS,
     onTraffic,
     'serial_error'

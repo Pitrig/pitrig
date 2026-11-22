@@ -5,6 +5,7 @@ import { describeDeviceError } from '../../shared/device-error-message'
 import { crc32 } from './asset-crc'
 import { exchangeLines } from './line-exchange'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 const FRAME_MAGIC = Buffer.from('SCF1', 'ascii')
 const FRAME_HEADER_SIZE = 14
@@ -12,7 +13,7 @@ const MAXIMUM_CHUNK_SIZE = 4096
 const BEGIN_TIMEOUT_MS = 30_000
 const FRAME_TIMEOUT_MS = 5_000
 const RESPONSE_BUFFER_LIMIT = 8192
-const DEVICE_ERROR_PREFIX = '@PR:ERR:'
+const DEVICE_ERROR_PREFIX = `${CONTROL_PREFIX}ERR:`
 const BEGIN_BUSY_WINDOW_MS = 15_000
 const BEGIN_RETRY_INITIAL_MS = 500
 const BEGIN_RETRY_MAXIMUM_MS = 2_000
@@ -67,10 +68,10 @@ export async function uploadAssetPackage(
       message: t('device.assetUpload.preparingLabelStorage', { label: namespace.label })
     })
     const begin = Buffer.from(
-      `@PR:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`,
+      `${CONTROL_PREFIX}${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`,
       'utf8'
     )
-    const ready = `@PR:OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`
+    const ready = `${CONTROL_PREFIX}OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`
     const busyDeadline = Date.now() + BEGIN_BUSY_WINDOW_MS
     let retryMs = BEGIN_RETRY_INITIAL_MS
     for (;;) {
@@ -98,7 +99,7 @@ export async function uploadAssetPackage(
       const response = await exchangeLine(
         port,
         createFrame(1, sequence, payload),
-        `@PR:OK:${namespace.command}:ACK:`,
+        `${CONTROL_PREFIX}OK:${namespace.command}:ACK:`,
         sequence === 0 ? BEGIN_TIMEOUT_MS : FRAME_TIMEOUT_MS,
         callbacks,
         signal
@@ -127,7 +128,7 @@ export async function uploadAssetPackage(
     await exchangeLine(
       port,
       createFrame(2, sequence),
-      `@PR:OK:${namespace.command}:COMMITTED:reboot_required=1`,
+      `${CONTROL_PREFIX}OK:${namespace.command}:COMMITTED:reboot_required=1`,
       FRAME_TIMEOUT_MS,
       callbacks,
       signal
@@ -171,7 +172,7 @@ async function cancelSession(
     await exchangeLine(
       port,
       createFrame(3, sequence),
-      `@PR:OK:${namespace.command}:CANCELLED`,
+      `${CONTROL_PREFIX}OK:${namespace.command}:CANCELLED`,
       FRAME_TIMEOUT_MS,
       callbacks,
       new AbortController().signal
@@ -229,7 +230,7 @@ function parseAck(
   line: string
 ): { sequence: number; received: number } {
   const match = new RegExp(
-    `^@PR:OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
+    `^${CONTROL_PREFIX}OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
   ).exec(line)
   if (!match) {
     throw new Error(t('device.assetUpload.theDeviceReturnedAMalformed', { label: namespace.label }))

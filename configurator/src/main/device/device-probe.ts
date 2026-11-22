@@ -6,12 +6,13 @@ import { parseFirmwareUpdateInfo, parseFontAssetInfo, parseImageAssetInfo } from
 import { parseDeviceInfo } from './protocol-parsers'
 import { requestResponse, type TrafficCallback } from './serial-request'
 import { readConfiguration } from './pitrig-protocol'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 const PROBE_TIMEOUT_MS = 1_000
-const INFO_REQUEST = '\n@PR:INFO\n'
-const IMAGE_INFO_REQUEST = '@PR:IMAGE:INFO\n'
-const FONT_INFO_REQUEST = '@PR:FONT:INFO\n'
-const FIRMWARE_INFO_REQUEST = '@PR:FW:INFO\n'
+const INFO_REQUEST = `\n${CONTROL_PREFIX}INFO\n`
+const IMAGE_INFO_REQUEST = `${CONTROL_PREFIX}IMAGE:INFO\n`
+const FONT_INFO_REQUEST = `${CONTROL_PREFIX}FONT:INFO\n`
+const FIRMWARE_INFO_REQUEST = `${CONTROL_PREFIX}FW:INFO\n`
 
 export async function identifyPitrig(
   port: SerialPort,
@@ -20,7 +21,7 @@ export async function identifyPitrig(
   const infoLine = await requestResponse(
     port,
     INFO_REQUEST,
-    '@PR:OK:INFO:',
+    `${CONTROL_PREFIX}OK:INFO:`,
     PROBE_TIMEOUT_MS,
     onTraffic
   )
@@ -36,21 +37,21 @@ export async function probePitrig(
   const fontAssets = await probeCapability(
     port,
     FONT_INFO_REQUEST,
-    '@PR:OK:FONT:INFO:',
+    `${CONTROL_PREFIX}OK:FONT:INFO:`,
     parseFontAssetInfo,
     onTraffic
   )
   const imageAssets = await probeCapability(
     port,
     IMAGE_INFO_REQUEST,
-    '@PR:OK:IMAGE:INFO:',
+    `${CONTROL_PREFIX}OK:IMAGE:INFO:`,
     parseImageAssetInfo,
     onTraffic
   )
   const firmware = await probeCapability(
     port,
     FIRMWARE_INFO_REQUEST,
-    '@PR:OK:FW:INFO:',
+    `${CONTROL_PREFIX}OK:FW:INFO:`,
     parseFirmwareUpdateInfo,
     onTraffic
   )

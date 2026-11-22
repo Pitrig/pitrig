@@ -36,6 +36,7 @@ import {
 } from './device-uploads'
 import { requestResponse, sendControlCommand } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 export class DeviceService {
   private readonly connection: ConnectionManager
@@ -185,8 +186,8 @@ export class DeviceService {
       return await this.runner.withLock(async () => {
         await requestResponse(
           port,
-          '@PR:REBOOT\n',
-          '@PR:OK:REBOOTING',
+          `${CONTROL_PREFIX}REBOOT\n`,
+          `${CONTROL_PREFIX}OK:REBOOTING`,
           2_000,
           (direction, data) => {
             if (direction === 'tx') traffic?.write(direction, data)

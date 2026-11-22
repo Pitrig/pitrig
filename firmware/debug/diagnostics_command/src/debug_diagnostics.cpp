@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "control_protocol_generated.hpp"
 #include "esp_heap_caps.h"
 #include "performance.hpp"
 
@@ -81,7 +82,8 @@ int write(char* const out, const std::size_t size) {
   int written =
       append(out, size,
              std::snprintf(out, size,
-                           "@PR:OK:DIAG:internal_total=%u,internal_free=%u,internal_min=%u,"
+                           PITRIG_CONTROL_PREFIX
+                           "OK:DIAG:internal_total=%u,internal_free=%u,internal_min=%u,"
                            "internal_largest=%u,psram_total=%u,psram_free=%u,psram_min=%u,"
                            "psram_largest=%u",
                            static_cast<unsigned>(heap_caps_get_total_size(kInternal)),

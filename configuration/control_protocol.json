@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "prefixes": {
+    "control": {
+      "value": "@PR:",
+      "doc": "Starts every line of the board's control protocol, a host's command and the board's reply alike (docs/control-protocol.md)."
+    },
+    "plugin": {
+      "value": "@PT:",
+      "doc": "Starts the SimHub plugin's own lines to the configurator on their local link: its status and the PC inputs (ADR 0034)."
+    }
+  }
+}

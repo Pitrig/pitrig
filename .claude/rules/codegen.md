@@ -7,14 +7,14 @@ paths:
   - "i18n/**"
   - "simhub/**"
   - "**/*_generated.*"
-  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en,ui-strings-uk,ui-strings-ko,ui-strings-pl}.ts"
+  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en,ui-strings-uk,ui-strings-ko,ui-strings-pl,control-protocol}.ts"
   - "configurator/src/main/font-library/google-fonts-catalog.json"
   - "docs/{configuration-schema,telemetry-catalog}.md"
 ---
 
 # Generated contracts
 
-Five generators own checked-in code. Each is a package under `tools/codegen/`,
+Six generators own checked-in code. Each is a package under `tools/codegen/`,
 run as `python3 -m tools.codegen.<name>` **from the repository root**, and all
 accept `--check`. Never hand-edit an output: CI fails on a stale one, and
 `docs/configuration-schema.md` and `docs/telemetry-catalog.md` are byte-compared
@@ -71,3 +71,12 @@ banner.
   `en.json` fails the run. Keys under `simhub.` skip those tables and become the
   plugin's `simhub/plugin/Pitrig.SimHub/UiStrings.g.cs`; they may not be plural
   (ADR 0031).
+- `control_protocol` — `configuration/control_protocol.json` (the `@PR:` and
+  `@PT:` line prefixes) →
+  `firmware/services/control_protocol/include/control_protocol_generated.hpp`
+  (`PITRIG_CONTROL_PREFIX` to join with a literal, `protocol::kControlPrefix`
+  to compare), `configurator/src/shared/control-protocol.ts` and
+  `simhub/plugin/Pitrig.SimHub/ControlProtocol.g.cs`. A run also scans
+  `firmware/`, `configurator/src/` and `simhub/plugin/` and fails on a line
+  that holds a prefix or spells one in characters, so code never writes `@PR:`
+  itself (ADR 0044).

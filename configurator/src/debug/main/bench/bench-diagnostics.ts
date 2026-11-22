@@ -1,7 +1,8 @@
 import type { BenchDiagnostics } from '@debug-shared/bench'
 import { parseFields } from '@main/device/protocol-parsers'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
-const DIAGNOSTICS_PREFIX = '@PR:OK:DIAG:'
+const DIAGNOSTICS_PREFIX = `${CONTROL_PREFIX}OK:DIAG:`
 
 export function isDiagnosticsReply(line: string): boolean {
   return line.startsWith(DIAGNOSTICS_PREFIX)
