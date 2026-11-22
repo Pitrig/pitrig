@@ -17,7 +17,7 @@ import { InfoPage } from '@/features/device/InfoPage'
 import { reportLiveApply } from '@/features/device/live-apply-store'
 import { SafeModeBanner } from '@/features/device/SafeModeBanner'
 import { SchemaBanner } from '@/features/device/SchemaBanner'
-import { UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
+import { FirmwareBehindGate, UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
 import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import { useLiveApply } from '@/features/device/use-live-apply'
 import { useBoardPreview } from '@/features/modules/use-board-preview'
@@ -92,6 +92,7 @@ export function App(): React.JSX.Element {
       </main>
 
       <UnresolvedFontsGate />
+      <FirmwareBehindGate />
       <BoardSyncDialog />
       <ConfirmDialogHost />
 

@@ -304,6 +304,13 @@ done and the expensive one untouched. A document that matches the board is not
 written at all, which is why changing a baud rate no longer costs sixty
 kilobytes of dashboard.
 
+A board on older firmware than the configurator ships is asked first, with
+`@PR:VALIDATE`, whether it accepts the differing documents: its schema number can
+match while it lacks a newer widget type, field or limit, and `@PR:SET` would
+find that out only after the fonts and images had gone up. A refusal stops the
+save before anything is sent, and on a board that updates itself it offers
+Update board.
+
 How it ends depends on what it did. A face or an image the board did not have
 becomes usable only after a restart, so installing either ends in `@PR:REBOOT`
 and a reconnect — as does saving onto a board that already owes a restart for a

@@ -521,8 +521,10 @@ export type UiStringKey =
   | 'device.saveToBoardStore.savedButTheBoardDid'
   | 'device.saveToBoardStore.savedTheBoardIsRunning'
   | 'device.saveToBoardStore.savedTheBoardKeepsShowing'
+  | 'device.saveToBoardUi.needsNewerFirmware'
   | 'device.saveToBoardUi.saveToBoard'
   | 'device.saveToBoardUi.saving'
+  | 'device.saveToBoardUi.updateBoard'
   | 'device.saveToBoardUi.writeTheDashboardToThe'
   | 'device.schemaBanner.explanation'
   | 'device.schemaBanner.updateTheBoardFirmware'
@@ -1616,6 +1618,8 @@ export type UiStringKey =
   | 'protocol.transportSection.uARTPins'
   | 'protocol.transportSection.whateverThisBoardWasBuilt'
   | 'protocol.transportSection.whichLinkCarriesTelemetryAnd'
+  | 'save.firmwareCheck.checking'
+  | 'save.firmwareCheck.refused'
   | 'save.fontDelivery.building'
   | 'save.fontDelivery.noFaceCalled'
   | 'save.fontDelivery.noFaceForSome'
@@ -1636,6 +1640,7 @@ export type UiStringKey =
   | 'save.saveToBoardService.theConfigurationIsNotValid'
   | 'save.stage.applying'
   | 'save.stage.building'
+  | 'save.stage.checking'
   | 'save.stage.completed'
   | 'save.stage.preparing'
   | 'save.stage.rebooting'
@@ -2378,6 +2383,8 @@ export interface UiStringParameters {
   'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
   'protocol.bridgeService.portTaken': { port: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
+  'save.firmwareCheck.checking': { version: string | number }
+  'save.firmwareCheck.refused': { reason: string | number, released: string | number, running: string | number }
   'save.fontDelivery.noFaceCalled': { family: string | number }
   'save.fontDelivery.noFaceForSome': { count: number }
   'save.imageDelivery.boardOnly': { images: string | number, pending: string | number }

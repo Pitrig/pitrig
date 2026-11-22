@@ -18,7 +18,8 @@ import {
   applyDeviceConfiguration,
   readDeviceConfiguration,
   resetDeviceConfiguration,
-  saveDeviceConfiguration
+  saveDeviceConfiguration,
+  validateDeviceConfiguration
 } from './device-config-commands'
 import { ConnectionManager } from './device-connection'
 import { DeviceHeartbeat } from './device-heartbeat'
@@ -111,6 +112,13 @@ export class DeviceService {
     documents?: ConfigurationDocumentId[]
   ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
     return applyDeviceConfiguration(this.connection, this.runner, json, documents)
+  }
+
+  async validateConfiguration(
+    json: string,
+    documents: ConfigurationDocumentId[]
+  ): Promise<DeviceResult<ConfigurationDocumentId[]>> {
+    return validateDeviceConfiguration(this.runner, json, documents)
   }
 
   async saveConfiguration(

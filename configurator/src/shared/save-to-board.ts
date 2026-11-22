@@ -4,6 +4,7 @@ export const SAVE_TO_BOARD_CHANNEL = 'save:to-board' as const
 export const SAVE_PROGRESS_CHANNEL = 'save:progress' as const
 
 export type SaveStage =
+  | 'checking'
   | 'preparing'
   | 'building'
   | 'uploading'
@@ -50,6 +51,7 @@ export interface SaveToBoardError {
     | 'font_upload_failed'
     | 'image_upload_failed'
     | 'images_unavailable'
+    | 'firmware_behind'
   message: string
 }
 

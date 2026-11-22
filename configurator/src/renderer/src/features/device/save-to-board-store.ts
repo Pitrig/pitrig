@@ -12,12 +12,15 @@ interface SaveToBoardStore {
   running: boolean
   progress?: SaveProgress
   unresolvedFonts?: string[]
+  firmwareBehind?: string
   dismissUnresolvedFonts: () => void
+  dismissFirmwareBehind: () => void
 }
 
 export const useSaveToBoardStore = create<SaveToBoardStore>((set) => ({
   running: false,
-  dismissUnresolvedFonts: () => set({ unresolvedFonts: undefined })
+  dismissUnresolvedFonts: () => set({ unresolvedFonts: undefined }),
+  dismissFirmwareBehind: () => set({ firmwareBehind: undefined })
 }))
 
 export async function saveDraftToBoard(
@@ -32,7 +35,12 @@ export async function saveDraftToBoard(
   }
   const json = formatConfiguration(draft)
 
-  useSaveToBoardStore.setState({ running: true, progress: undefined, unresolvedFonts: undefined })
+  useSaveToBoardStore.setState({
+    running: true,
+    progress: undefined,
+    unresolvedFonts: undefined,
+    firmwareBehind: undefined
+  })
   device.setSaveFeedback(undefined)
   const stopProgress = window.pitrig.onSaveProgress((progress) =>
     useSaveToBoardStore.setState({ progress })
@@ -46,6 +54,8 @@ export async function saveDraftToBoard(
     if (!result.ok) {
       if (isUnresolvedFonts(result.error)) {
         useSaveToBoardStore.setState({ unresolvedFonts: result.error.families })
+      } else if (result.error.code === 'firmware_behind') {
+        useSaveToBoardStore.setState({ firmwareBehind: result.error.message })
       }
       device.setSaveFeedback({ kind: 'error', message: result.error.message })
       return

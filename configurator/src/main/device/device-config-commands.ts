@@ -26,7 +26,8 @@ import {
   readConfiguration,
   resetConfiguration,
   resetConfigurationDocument,
-  saveConfiguration
+  saveConfiguration,
+  validateConfiguration
 } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
 
@@ -69,6 +70,22 @@ export async function applyDeviceConfiguration(
       )
     }
     return success({ configuration: prepared.value.configuration, documents: selected })
+  })
+}
+
+export async function validateDeviceConfiguration(
+  runner: OperationRunner,
+  json: string,
+  documents: ConfigurationDocumentId[]
+): Promise<DeviceResult<ConfigurationDocumentId[]>> {
+  return runner.run(async ({ port, session, traffic }) => {
+    const prepared = prepareConfiguration(json, session)
+    if (!prepared.ok) return prepared
+    const onTraffic = runner.operationTraffic(traffic)
+    for (const document of documents) {
+      await validateConfiguration(port, document, prepared.value.payloads[document], onTraffic)
+    }
+    return success(documents)
   })
 }
 
