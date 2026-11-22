@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 329. Static limit: 350.
+Catalog version: 1. Fields: 330. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -85,6 +85,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.sector.3_status` | `66` | `uint32` | `status` | `changes` | `computed` | any | Sector three against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for five seconds after the line. |
 | `session.sector.delta` | `15` | `int32` | `millisecond` | `normal` | `computed` | any | Signed time gained or lost so far in the current sector against the best lap. |
 | `track.position_percent` | `16` | `float32` | `normalized` | `fast` | `common` | any | Vehicle position around the lap, from 0 to 1. |
+| `track.distance_remaining` | `TD` | `uint32` | `meter` | `normal` | `computed` | any | Distance from the car to the end of the lap, so to the finish on a rally stage. |
 ## Session and position
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |

@@ -21,6 +21,14 @@ board** does that for you, and nothing is erased. A partition table change needs
 a cable flash and erases the configuration, fonts and images. The first line of
 a release says when either applies.
 
+## Unreleased
+
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new field need this firmware.
+
+**Added**
+
+- **All boards, SimHub plugin.** New field: the distance left to the end of the lap or the rally stage.
+
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need firmware 0.4.1, and an older configurator cannot open a board that holds one.

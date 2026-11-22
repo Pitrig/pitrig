@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maximum_fields": 350,
-  "expected_field_count": 329,
+  "expected_field_count": 330,
   "wheels": ["front_left", "front_right", "rear_left", "rear_right"],
   "fields": [
     {"name":"vehicle.speed","wire_id":"S","type":"text","unit":"source","category":"speed_control","rate":"fast","availability":"common","description":"Vehicle speed formatted by the telemetry source."},
@@ -70,6 +70,7 @@
     {"name":"session.sector.3_status","wire_id":"66","type":"uint32","unit":"status","category":"laps_sectors","rate":"changes","availability":"computed","description":"Sector three against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for five seconds after the line."},
     {"name":"session.sector.delta","type":"int32","unit":"millisecond","category":"laps_sectors","rate":"normal","availability":"computed","description":"Signed time gained or lost so far in the current sector against the best lap."},
     {"name":"track.position_percent","type":"float32","unit":"normalized","category":"laps_sectors","rate":"fast","availability":"common","description":"Vehicle position around the lap, from 0 to 1."},
+    {"name":"track.distance_remaining","wire_id":"TD","type":"uint32","unit":"meter","category":"laps_sectors","rate":"normal","availability":"computed","description":"Distance from the car to the end of the lap, so to the finish on a rally stage."},
 
     {"name":"session.type","type":"text","unit":"source","category":"session_position","rate":"changes","availability":"common","description":"SimHub's session type in capitals with underscores as spaces and a first word of the game's initials, such as AC_, dropped: RACE or TIME ATTACK; empty when the game names none."},
     {"name":"session.name","type":"text","unit":"source","category":"session_position","rate":"changes","availability":"game_specific","description":"Session name."},

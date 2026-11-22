@@ -119,7 +119,8 @@ EVO track — shows the cars on a ring.
 
 The position comes from SimHub's leaderboard, the fuel time is SimHub's
 `Fuel_RemainingTime`, and the laps left in a race over laps SimHub's
-`RemainingLaps` (iRacing's own count there). A lap is invalid by ACC's and F1's
+`RemainingLaps` (iRacing's own count there). The distance remaining is the track
+length times the part of the lap still ahead, on a rally stage the distance to the finish. A lap is invalid by ACC's and F1's
 own flags, in iRacing from any moment off the track outside a race until the lap
 count changes, and elsewhere only when SimHub's flag says so; with no flag it is
 unknown. A finished lap is invalid when any moment of it was, judged before the

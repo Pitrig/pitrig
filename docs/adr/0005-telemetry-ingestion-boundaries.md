@@ -26,7 +26,7 @@ name, value type, and runtime slot. The checked-in
 `telemetry/telemetry_catalog.json` manifest is the source of truth for this
 bounded catalog. Generated firmware, SimHub protocol, the plugin's field table,
 the configurator's data and the documentation must agree with that manifest.
-The catalog contains 329 fields and reserves at most 350 runtime slots. Generic
+The catalog contains 330 fields and reserves at most 350 runtime slots. Generic
 SimHub property mappings live in the separate source-specific
 `telemetry/simhub_generic_mappings.json` manifest.
 

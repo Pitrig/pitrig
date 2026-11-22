@@ -118,6 +118,8 @@ namespace Pitrig.SimHub
                     return state.Validity.Invalid(state);
                 case FieldComputation.LapsRemaining:
                     return TimingComputations.LapsRemaining(state);
+                case FieldComputation.DistanceRemaining:
+                    return TimingComputations.DistanceRemaining(status);
                 case FieldComputation.TimedSession:
                     return SessionComputations.TimedSession(state);
                 case FieldComputation.SessionType:
