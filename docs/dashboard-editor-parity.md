@@ -206,11 +206,8 @@ and reading `render_us` back over `@PR:DIAG`.
 ## Recommended order
 
 The remaining items are tracked in [roadmap.md](roadmap.md). The order worth
-doing them in: the live-value preview first, because a rule, a ramp, a graph
-trace and a real string length cannot be judged against a placeholder; then the
-bounded value nodes, which more remaining items wait on than any other; then the
-bundle, because a dashboard nobody can install is not a dashboard anyone shares;
-then transparency and repeated structures; then images that survive a move
+doing them in: the bounded value nodes first, which more remaining items wait on
+than any other; then transparency and repeated structures; then images that survive a move
 together with reflow in the transfer; and last the table, which needs firmware
 work and the plugin frame of Phase 7.
 
