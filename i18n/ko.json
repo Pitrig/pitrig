@@ -2682,5 +2682,103 @@
       "scaled": "다른 화면 크기용으로 만들어져 크기를 조정했습니다. 이미지는 원래 크기를 유지합니다.",
       "next": "“보드에 저장”을 누르면 필요한 모든 것이 설치됩니다."
     }
+  },
+  "simhub": {
+    "tabs": {
+      "status": "상태",
+      "settings": "설정",
+      "buttons": "버튼",
+      "about": "정보"
+    },
+    "parts": {
+      "getConfigurator": "Configurator 받기",
+      "openConfigurator": "Pitrig Configurator 열기"
+    },
+    "status": {
+      "telemetry": "텔레메트리",
+      "boards": "보드",
+      "configurator": "Configurator",
+      "currentCar": "현재 차량",
+      "sendTelemetry": "보드로 텔레메트리 전송",
+      "switchOffHint": "끄면 보드 포트를 다른 프로그램이 사용할 수 있습니다.",
+      "notListeningFor": "Configurator의 요청을 받지 못하고 있습니다: {error}",
+      "leavesPortsAlone": "켜기 전까지 플러그인은 어떤 포트도 사용하지 않습니다.",
+      "shiftSource": "시프트 포인트 출처: {source}",
+      "switchedOff": "꺼짐",
+      "inConfigurator": "Pitrig Configurator가 사용 중이며 이 텔레메트리를 보드로 전달합니다.",
+      "portBusy": "다른 프로그램이 사용 중입니다. SimHub Custom Serial 장치일 수 있습니다. 그 장치를 제거하십시오.",
+      "noBoard": "Pitrig 보드를 찾지 못했습니다",
+      "noBoardHint": "USB로 보드를 연결하십시오. Guition ESP32-4848S040은 Configurator가 한 번 연결한 뒤에 찾을 수 있습니다.",
+      "streaming": "연결됨 · 펌웨어 {firmware} · 값 {values}개 · {speed} kB/s",
+      "safeMode": "안전 모드입니다. Configurator를 열어 보드를 복구하십시오.",
+      "connecting": "연결 중…",
+      "notListening": "수신 대기 안 함",
+      "cannotReach": "Configurator가 플러그인에 연결할 수 없습니다.",
+      "notConnected": "연결 안 됨",
+      "openToChange": "보드가 표시하는 내용을 바꾸려면 Configurator를 여십시오. 실행 중에는 Configurator가 보드를 맡습니다.",
+      "connected": "연결됨",
+      "nothingToSend": "아직 보낼 값이 없습니다",
+      "nothingToSendTo": "아직 {host}(으)로 보낼 값이 없습니다",
+      "sending": "값 {count}개 전송 중",
+      "sendingTo": "{host}(으)로 값 {count}개 전송 중"
+    },
+    "shifts": {
+      "noGame": "게임 없음",
+      "iracingGear": "iRacing, 현재 기어",
+      "iracingCar": "iRacing, 현재 차량",
+      "raceroomUpshift": "RaceRoom 업시프트",
+      "simhubCarSettings": "SimHub 차량 설정",
+      "maximumRpm": "최대 RPM",
+      "noShiftData": "시프트 데이터 없음",
+      "f1RevLights": "F1 RPM 라이트"
+    },
+    "buttons": {
+      "buttons": "버튼",
+      "switch": "스위치",
+      "lastPress": "마지막 입력",
+      "wiring": "버튼은 Pitrig Configurator의 “컨트롤” 페이지에서 연결하거나, SimHub의 Controls and events에서 PitrigPlugin.Button1~Button16과 SwitchPosition1~SwitchPosition12로 연결합니다.",
+      "notWired": "아직 연결된 버튼이 없습니다.",
+      "position": "위치 {position}",
+      "noPosition": "아직 위치가 없습니다.",
+      "nothingPressed": "아직 누른 버튼이 없습니다. 휠, 버튼 박스 또는 키보드의 버튼을 누르십시오.",
+      "button": "버튼 {number}",
+      "switchPosition": "스위치 위치 {position}",
+      "notWiredToButton": "버튼에 연결되지 않음"
+    },
+    "settings": {
+      "fuel": "연료",
+      "averages": "평균",
+      "advanced": "고급",
+      "fuelMargin": "연료 여유분, 리터 또는 갤런",
+      "averageLaps": "타이어·브레이크 평균 기간, 랩",
+      "fuelHint": "연료 여유분은 SimHub가 표시하는 연료 단위로 보충할 연료에 더해집니다. 음수이면 연료를 줄입니다.",
+      "averagesHint": "평균은 피트 밖에서 3초마다 표본을 하나 수집하며 SimHub를 다시 시작할 때까지 유지됩니다.",
+      "listenPort": "수신 포트",
+      "listenPortHint": "Configurator는 이 포트로 요청을 보냅니다. Configurator의 플러그인 포트와 같아야 합니다.",
+      "portRange": "포트는 {minimum}에서 {maximum} 사이의 숫자여야 합니다.",
+      "thisMachine": "이 컴퓨터: {addresses}"
+    },
+    "about": {
+      "title": "SimHub용 Pitrig 텔레메트리",
+      "version": "버전 {version}",
+      "intro": "Pitrig는 보드를 스스로 찾아 각 보드의 대시보드가 사용하는 텔레메트리를 보냅니다. Pitrig Configurator가 보드에 연결되어 있는 동안에는 Configurator가 보드를 맡아 이 텔레메트리를 전달하고, 연결을 놓으면 보드가 다시 여기로 돌아옵니다.",
+      "updates": "업데이트",
+      "updatesText": "업데이트는 Pitrig Configurator와 함께 제공됩니다. Configurator가 새 버전을 확인하고 SimHub의 이 플러그인을 교체합니다.",
+      "links": "링크",
+      "website": "웹사이트",
+      "guides": "가이드",
+      "sourceCode": "소스 코드",
+      "reportProblem": "문제 보고",
+      "contact": "문의",
+      "contactText": "질문, 시작되지 않는 보드, 아이디어는 개발자에게 바로 전달됩니다.",
+      "contactForm": "문의 양식",
+      "statistics": "통계",
+      "statisticsText": "Pitrig는 익명 사용 통계를 보냅니다: 무작위 설치 번호, 이 컴퓨터에서 Pitrig를 사용한 적이 있는지, 플러그인과 SimHub 버전, 보드 모델, 실행 중인 게임. 이름이나 파일은 보내지 않습니다. 스위치는 Pitrig Configurator의 “정보” 페이지에 있습니다.",
+      "license": "라이선스",
+      "licenseText": "이 플러그인은 Apache License 2.0에 따른 오픈 소스입니다.",
+      "readLicense": "라이선스 읽기",
+      "technical": "기술 정보",
+      "technicalText": "업데이트당 {cost} ms, 초당 {rate}회. Configurator 연결: 패킷 {packets}개, 오류 {errors}개."
+    }
   }
 }

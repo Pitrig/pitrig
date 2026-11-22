@@ -12,7 +12,7 @@ namespace Pitrig.SimHub
     internal sealed class StatusTab
     {
         private readonly PitrigPlugin plugin;
-        private readonly SHToggleCheckbox enabled = new SHToggleCheckbox { Content = "Send telemetry to boards" };
+        private readonly SHToggleCheckbox enabled = new SHToggleCheckbox { Content = UiText.StatusSendTelemetry };
         private readonly SHInlineInfo notice = new SHInlineInfo { Margin = PageParts.BlockMargin };
         private readonly StackPanel boards = new StackPanel();
         private readonly StackPanel configurator = new StackPanel();
@@ -26,13 +26,13 @@ namespace Pitrig.SimHub
             enabled.IsChecked = plugin.Settings.Enabled;
             enabled.Click += (sender, arguments) => change(settings => settings.Enabled = enabled.IsChecked == true);
             Content = PageParts.Stack(
-                PageParts.Section("TELEMETRY",
+                PageParts.Section(UiText.StatusTelemetry,
                     enabled,
-                    PageParts.Caption("Switch it off to leave the boards' ports to other programs."),
+                    PageParts.Caption(UiText.StatusSwitchOffHint),
                     notice),
-                PageParts.Section("BOARDS", boards),
-                PageParts.Section("CONFIGURATOR", configurator),
-                PageParts.Section("CURRENT CAR", shifts));
+                PageParts.Section(UiText.StatusBoards, boards),
+                PageParts.Section(UiText.StatusConfigurator, configurator),
+                PageParts.Section(UiText.StatusCurrentCar, shifts));
         }
 
         public UIElement Content { get; }
@@ -41,17 +41,16 @@ namespace Pitrig.SimHub
         {
             var hub = plugin.Hub;
             var on = plugin.Settings.Enabled;
-            notice.Text = hub.Error == null ? string.Empty : "Not listening for the configurator: " + hub.Error;
+            notice.Text = hub.Error == null ? string.Empty : UiText.StatusNotListeningFor(hub.Error);
             notice.Visibility = hub.Error == null ? Visibility.Collapsed : Visibility.Visible;
-            Replace(boards, ref boardsShown,
-                on ? BoardLines(hub) : SwitchedOff("The plugin leaves every port alone until you switch it on."));
+            Replace(boards, ref boardsShown, on ? BoardLines(hub) : SwitchedOff(UiText.StatusLeavesPortsAlone));
             Replace(configurator, ref configuratorShown, on ? ConfiguratorLines(hub.Link) : SwitchedOff(null));
-            shifts.Text = "Shift points come from: " + hub.ShiftSource + ".";
+            shifts.Text = UiText.StatusShiftSource(hub.ShiftSource);
         }
 
         private static List<StatusLine> SwitchedOff(string detail)
         {
-            return new List<StatusLine> { new StatusLine(Tone.Idle, "Switched off", detail) };
+            return new List<StatusLine> { new StatusLine(Tone.Idle, UiText.StatusSwitchedOff, detail) };
         }
 
         private static List<StatusLine> BoardLines(PluginHub hub)
@@ -60,12 +59,10 @@ namespace Pitrig.SimHub
             var lines = described.Select(Describe).ToList();
             var fed = new HashSet<string>(described.Select(board => board.Port), StringComparer.OrdinalIgnoreCase);
             lines.AddRange(hub.Link.HeldPorts().Where(port => !fed.Contains(port)).Select(port =>
-                new StatusLine(Tone.Elsewhere, port, "In the Pitrig configurator, which passes this telemetry on.")));
-            lines.AddRange(hub.Boards.BusyPorts().Select(port => new StatusLine(Tone.Problem, port,
-                "Used by another program, perhaps a SimHub Custom Serial device. Remove that device.")));
+                new StatusLine(Tone.Elsewhere, port, UiText.StatusInConfigurator)));
+            lines.AddRange(hub.Boards.BusyPorts().Select(port => new StatusLine(Tone.Problem, port, UiText.StatusPortBusy)));
             if (lines.Count > 0) return lines;
-            lines.Add(new StatusLine(Tone.Idle, "No Pitrig board found",
-                "Connect one by USB. A Guition ESP32-4848S040 is found after the configurator has connected to it once."));
+            lines.Add(new StatusLine(Tone.Idle, UiText.StatusNoBoard, UiText.StatusNoBoardHint));
             return lines;
         }
 
@@ -75,13 +72,14 @@ namespace Pitrig.SimHub
             switch (board.State)
             {
                 case BoardState.Streaming:
-                    return new StatusLine(Tone.Good, name, string.Format(CultureInfo.InvariantCulture,
-                        "Connected · firmware {0} · {1} values · {2:0.0} kB/s", board.Firmware, board.Fields,
-                        board.BytesPerSecond / 1000));
+                    return new StatusLine(Tone.Good, name, UiText.StatusStreaming(
+                        firmware: board.Firmware,
+                        values: board.Fields,
+                        speed: (board.BytesPerSecond / 1000).ToString("0.0", CultureInfo.InvariantCulture)));
                 case BoardState.SafeMode:
-                    return new StatusLine(Tone.Problem, name, "In safe mode. Open the configurator to repair it.", true);
+                    return new StatusLine(Tone.Problem, name, UiText.StatusSafeMode, true);
                 default:
-                    return new StatusLine(Tone.Waiting, name, "Connecting…");
+                    return new StatusLine(Tone.Waiting, name, UiText.StatusConnecting);
             }
         }
 
@@ -89,22 +87,20 @@ namespace Pitrig.SimHub
         {
             var target = link.Target;
             StatusLine line;
-            if (!link.IsOpen) line = new StatusLine(Tone.Problem, "Not listening", "The configurator cannot reach the plugin.");
-            else if (target.Length == 0) line = new StatusLine(Tone.Idle, "Not connected",
-                "Open it to change what a board shows. It takes the board over while it runs.", true);
-            else line = new StatusLine(Tone.Good, "Connected", Sending(target, link.FieldCount));
+            if (!link.IsOpen) line = new StatusLine(Tone.Problem, UiText.StatusNotListening, UiText.StatusCannotReach);
+            else if (target.Length == 0) line = new StatusLine(Tone.Idle, UiText.StatusNotConnected, UiText.StatusOpenToChange, true);
+            else line = new StatusLine(Tone.Good, UiText.StatusConnected, Sending(target, link.FieldCount));
             return new List<StatusLine> { line };
         }
 
         private static string Sending(string target, int fields)
         {
-            var values = fields == 0
-                ? "Nothing to send yet"
-                : string.Format(CultureInfo.InvariantCulture, "Sending {0} values", fields);
             var colon = target.LastIndexOf(':');
             var local = colon > 0 && IPAddress.TryParse(target.Substring(0, colon), out var address) &&
                         IPAddress.IsLoopback(address);
-            return local || colon <= 0 ? values : values + " to " + target.Substring(0, colon);
+            var host = local || colon <= 0 ? null : target.Substring(0, colon);
+            if (fields == 0) return host == null ? UiText.StatusNothingToSend : UiText.StatusNothingToSendTo(host);
+            return host == null ? UiText.StatusSending(fields) : UiText.StatusSendingTo(count: fields, host: host);
         }
 
         private static void Replace(Panel panel, ref string shown, List<StatusLine> lines)

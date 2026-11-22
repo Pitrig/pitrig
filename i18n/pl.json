@@ -2748,5 +2748,103 @@
       "scaled": "Dashboard utworzono dla innego rozmiaru ekranu, więc go przeskalowano; obrazy zachowują swój rozmiar.",
       "next": "„Zapisz na płytce” zainstaluje wszystko, czego potrzebuje."
     }
+  },
+  "simhub": {
+    "tabs": {
+      "status": "Stan",
+      "settings": "Ustawienia",
+      "buttons": "Przyciski",
+      "about": "O wtyczce"
+    },
+    "parts": {
+      "getConfigurator": "Pobierz konfigurator",
+      "openConfigurator": "Otwórz konfigurator Pitrig"
+    },
+    "status": {
+      "telemetry": "TELEMETRIA",
+      "boards": "PŁYTKI",
+      "configurator": "KONFIGURATOR",
+      "currentCar": "BIEŻĄCY SAMOCHÓD",
+      "sendTelemetry": "Wysyłaj telemetrię do płytek",
+      "switchOffHint": "Wyłącz, aby zostawić porty płytek innym programom.",
+      "notListeningFor": "Wtyczka nie nasłuchuje konfiguratora: {error}",
+      "leavesPortsAlone": "Wtyczka nie używa żadnego portu, dopóki jej nie włączysz.",
+      "shiftSource": "Źródło punktów zmiany biegów: {source}.",
+      "switchedOff": "Wyłączono",
+      "inConfigurator": "W konfiguratorze Pitrig, który przekazuje tę telemetrię dalej.",
+      "portBusy": "Używany przez inny program, może urządzenie SimHub Custom Serial. Usuń to urządzenie.",
+      "noBoard": "Nie znaleziono płytki Pitrig",
+      "noBoardHint": "Podłącz ją przez USB. Płytka Guition ESP32-4848S040 zostanie znaleziona, gdy konfigurator połączy się z nią choć raz.",
+      "streaming": "Połączono · firmware {firmware} · wartości: {values} · {speed} kB/s",
+      "safeMode": "Tryb awaryjny. Otwórz konfigurator, aby naprawić płytkę.",
+      "connecting": "Łączenie…",
+      "notListening": "Nie nasłuchuje",
+      "cannotReach": "Konfigurator nie może połączyć się z wtyczką.",
+      "notConnected": "Nie połączono",
+      "openToChange": "Otwórz go, aby zmienić to, co pokazuje płytka. Gdy działa, przejmuje płytkę.",
+      "connected": "Połączono",
+      "nothingToSend": "Na razie nic do wysłania",
+      "nothingToSendTo": "Na razie nic do wysłania do {host}",
+      "sending": "Wysyłane wartości: {count}",
+      "sendingTo": "Wysyłane wartości: {count}, do {host}"
+    },
+    "shifts": {
+      "noGame": "Brak gry",
+      "iracingGear": "iRacing, ten bieg",
+      "iracingCar": "iRacing, ten samochód",
+      "raceroomUpshift": "RaceRoom, sygnał zmiany biegu",
+      "simhubCarSettings": "Ustawienia samochodu w SimHub",
+      "maximumRpm": "Maksymalne obroty",
+      "noShiftData": "Brak danych o zmianie biegów",
+      "f1RevLights": "Kontrolki obrotów F1"
+    },
+    "buttons": {
+      "buttons": "PRZYCISKI",
+      "switch": "PRZEŁĄCZNIK",
+      "lastPress": "OSTATNIE NACIŚNIĘCIE",
+      "wiring": "Przyciski przypisuje się na stronie „Sterowanie” konfiguratora Pitrig albo w SimHub w sekcji Controls and events jako PitrigPlugin.Button1–Button16 i SwitchPosition1–SwitchPosition12.",
+      "notWired": "Nie przypisano jeszcze żadnego przycisku.",
+      "position": "Pozycja {position}",
+      "noPosition": "Brak pozycji.",
+      "nothingPressed": "Nic jeszcze nie naciśnięto. Naciśnij przycisk na kierownicy, panelu przycisków lub klawiaturze.",
+      "button": "przycisk {number}",
+      "switchPosition": "pozycja przełącznika {position}",
+      "notWiredToButton": "nieprzypisane do przycisku"
+    },
+    "settings": {
+      "fuel": "PALIWO",
+      "averages": "ŚREDNIE",
+      "advanced": "ZAAWANSOWANE",
+      "fuelMargin": "Zapas paliwa, litry lub galony",
+      "averageLaps": "Średnie opon i hamulców, okrążenia",
+      "fuelHint": "Zapas dodaje się do paliwa do zatankowania, w jednostce, którą pokazuje SimHub; ujemny zapas odejmuje paliwo.",
+      "averagesHint": "Średnie pobierają próbkę co trzy sekundy poza aleją serwisową i obowiązują do ponownego uruchomienia SimHub.",
+      "listenPort": "Port nasłuchu",
+      "listenPortHint": "Konfigurator wysyła żądania na ten port; jego „Port wtyczki” musi się zgadzać.",
+      "portRange": "Port musi być liczbą od {minimum} do {maximum}.",
+      "thisMachine": "Ten komputer: {addresses}"
+    },
+    "about": {
+      "title": "Telemetria Pitrig dla SimHub",
+      "version": "Wersja {version}",
+      "intro": "Pitrig sam znajduje swoje płytki i wysyła każdej telemetrię, której używa jej dashboard. Gdy konfigurator Pitrig jest połączony z płytką, przejmuje ją i przekazuje tę telemetrię dalej, a płytka wraca tutaj, gdy ją zwolni.",
+      "updates": "AKTUALIZACJE",
+      "updatesText": "Aktualizacje przychodzą z konfiguratorem Pitrig: sprawdza on nową wersję i wymienia tę wtyczkę w SimHub.",
+      "links": "LINKI",
+      "website": "Strona internetowa",
+      "guides": "Poradniki",
+      "sourceCode": "Kod źródłowy",
+      "reportProblem": "Zgłoś problem",
+      "contact": "KONTAKT",
+      "contactText": "Pytanie, płytka, która się nie uruchamia, albo pomysł trafia prosto do twórcy.",
+      "contactForm": "Formularz kontaktowy",
+      "statistics": "STATYSTYKI",
+      "statisticsText": "Pitrig wysyła anonimowe statystyki użycia: losowy numer instalacji, czy Pitrig był już używany na tym komputerze, wersje wtyczki i SimHub, model płytki oraz uruchomioną grę. Bez nazw i plików. Przełącznik jest na stronie „Informacje” konfiguratora Pitrig.",
+      "license": "LICENCJA",
+      "licenseText": "Wtyczka ma otwarty kod na licencji Apache License 2.0.",
+      "readLicense": "Przeczytaj licencję",
+      "technical": "DANE TECHNICZNE",
+      "technicalText": "Aktualizacja: {cost} ms, {rate} na sekundę. Połączenie z konfiguratorem: pakiety — {packets}, błędy — {errors}."
+    }
   }
 }

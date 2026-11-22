@@ -26,7 +26,7 @@ namespace Pitrig.SimHub
         private double? progress;
         private bool? reached;
 
-        public string Source { get; private set; } = "No game";
+        public string Source { get; private set; } = UiText.ShiftsNoGame;
 
         public double? Rpm => shiftRpm;
 
@@ -52,14 +52,14 @@ namespace Pitrig.SimHub
             reached = null;
             if (status == null)
             {
-                Source = "No game";
+                Source = UiText.ShiftsNoGame;
                 return;
             }
             var rpm = status.Rpms;
             var redline = Positive(status.CarSettings_CurrentGearRedLineRPM);
             if (string.Equals(game, IRacing, StringComparison.OrdinalIgnoreCase) &&
-                (Ladder(IRacingGearLadder, rpm, "iRacing, this gear") ||
-                 Ladder(IRacingCarLadder, rpm, "iRacing, this car")))
+                (Ladder(IRacingGearLadder, rpm, UiText.ShiftsIracingGear) ||
+                 Ladder(IRacingCarLadder, rpm, UiText.ShiftsIracingCar)))
             {
                 return;
             }
@@ -69,22 +69,22 @@ namespace Pitrig.SimHub
                 var upshift = Positive(manager.GetPropertyValue(RaceRoomUpshift));
                 if (upshift != null)
                 {
-                    Band(upshift.Value * RpmPerRadianPerSecond, rpm, "RaceRoom upshift");
+                    Band(upshift.Value * RpmPerRadianPerSecond, rpm, UiText.ShiftsRaceroomUpshift);
                     return;
                 }
             }
             if (redline != null)
             {
-                Band(redline.Value, rpm, "SimHub car settings");
+                Band(redline.Value, rpm, UiText.ShiftsSimhubCarSettings);
                 return;
             }
             var maximum = Positive(CarComputations.MaximumRpm(status));
             if (maximum != null)
             {
-                Band(maximum.Value * GenericShare, rpm, "Maximum RPM");
+                Band(maximum.Value * GenericShare, rpm, UiText.ShiftsMaximumRpm);
                 return;
             }
-            Source = "No shift data";
+            Source = UiText.ShiftsNoShiftData;
         }
 
         private bool Ladder(string prefix, double rpm, string source)
@@ -105,7 +105,7 @@ namespace Pitrig.SimHub
             percent = redline == null ? (double?)null : rpm / redline.Value * Full;
             progress = Math.Max(0, Math.Min(Full, lights.Value));
             reached = lights.Value >= Full;
-            Source = "F1 rev lights";
+            Source = UiText.ShiftsF1RevLights;
             return true;
         }
 

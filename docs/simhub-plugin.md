@@ -17,6 +17,8 @@ uninstall entry, asks for administrator rights once when that folder needs them,
 and closes and restarts SimHub when it holds an older copy. On its next start
 SimHub asks to enable **Pitrig telemetry**; the plugin then appears in the left
 menu as **Pitrig**. Uninstalling the configurator leaves the plugin in SimHub.
+Its pages speak the language chosen on the configurator's Info page, else the
+Windows display language, and change after SimHub restarts.
 
 By hand: close SimHub, copy the DLL attached to the release next to
 `SimHubWPF.exe`, and unblock it under the file's properties.

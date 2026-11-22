@@ -2715,5 +2715,104 @@
       "scaled": "It was made for another screen size, so it was scaled; images keep their size.",
       "next": "Save to board installs everything it needs."
     }
+  },
+  "simhub": {
+    "$note": "Text of the SimHub plugin's pages. Section titles are written in capitals. Messages here cannot be plural: put a number after a colon where the language inflects. {host} and {addresses} are IP addresses; {speed} and {cost} are numbers already formatted.",
+    "tabs": {
+      "status": "Status",
+      "settings": "Settings",
+      "buttons": "Buttons",
+      "about": "About"
+    },
+    "parts": {
+      "getConfigurator": "Get the configurator",
+      "openConfigurator": "Open Pitrig configurator"
+    },
+    "status": {
+      "telemetry": "TELEMETRY",
+      "boards": "BOARDS",
+      "configurator": "CONFIGURATOR",
+      "currentCar": "CURRENT CAR",
+      "sendTelemetry": "Send telemetry to boards",
+      "switchOffHint": "Switch it off to leave the boards' ports to other programs.",
+      "notListeningFor": "Not listening for the configurator: {error}",
+      "leavesPortsAlone": "The plugin leaves every port alone until you switch it on.",
+      "shiftSource": "Shift points come from: {source}.",
+      "switchedOff": "Switched off",
+      "inConfigurator": "In the Pitrig configurator, which passes this telemetry on.",
+      "portBusy": "Used by another program, perhaps a SimHub Custom Serial device. Remove that device.",
+      "noBoard": "No Pitrig board found",
+      "noBoardHint": "Connect one by USB. A Guition ESP32-4848S040 is found after the configurator has connected to it once.",
+      "streaming": "Connected · firmware {firmware} · {values} values · {speed} kB/s",
+      "safeMode": "In safe mode. Open the configurator to repair it.",
+      "connecting": "Connecting…",
+      "notListening": "Not listening",
+      "cannotReach": "The configurator cannot reach the plugin.",
+      "notConnected": "Not connected",
+      "openToChange": "Open it to change what a board shows. It takes the board over while it runs.",
+      "connected": "Connected",
+      "nothingToSend": "Nothing to send yet",
+      "nothingToSendTo": "Nothing to send yet to {host}",
+      "sending": "Sending {count} values",
+      "sendingTo": "Sending {count} values to {host}"
+    },
+    "shifts": {
+      "noGame": "No game",
+      "iracingGear": "iRacing, this gear",
+      "iracingCar": "iRacing, this car",
+      "raceroomUpshift": "RaceRoom upshift",
+      "simhubCarSettings": "SimHub car settings",
+      "maximumRpm": "Maximum RPM",
+      "noShiftData": "No shift data",
+      "f1RevLights": "F1 rev lights"
+    },
+    "buttons": {
+      "buttons": "BUTTONS",
+      "switch": "SWITCH",
+      "lastPress": "LAST PRESS",
+      "wiring": "Buttons are wired on the Controls page of the Pitrig configurator, or in SimHub under Controls and events as PitrigPlugin.Button1 to Button16 and SwitchPosition1 to SwitchPosition12.",
+      "notWired": "No buttons are wired yet.",
+      "position": "Position {position}",
+      "noPosition": "No position yet.",
+      "nothingPressed": "Nothing pressed yet. Press a button on the wheel, a button box or the keyboard.",
+      "button": "button {number}",
+      "switchPosition": "switch position {position}",
+      "notWiredToButton": "not wired to a button"
+    },
+    "settings": {
+      "fuel": "FUEL",
+      "averages": "AVERAGES",
+      "advanced": "ADVANCED",
+      "fuelMargin": "Fuel margin, litres or gallons",
+      "averageLaps": "Tyre and brake averages over, laps",
+      "fuelHint": "The fuel margin is added to the fuel to add, in the fuel unit SimHub shows, and a negative one takes fuel off.",
+      "averagesHint": "The averages take a sample every three seconds outside the pits and last until SimHub restarts.",
+      "listenPort": "Listen port",
+      "listenPortHint": "The configurator sends its requests to this port; its Plugin port must match.",
+      "portRange": "The port must be a number between {minimum} and {maximum}.",
+      "thisMachine": "This machine: {addresses}"
+    },
+    "about": {
+      "title": "Pitrig telemetry for SimHub",
+      "version": "Version {version}",
+      "intro": "Pitrig finds its boards by itself and sends each one the telemetry its dashboard uses. While the Pitrig configurator is connected to a board it takes the board over and passes this telemetry on, and the board comes back here when it lets go.",
+      "updates": "UPDATES",
+      "updatesText": "Updates come with the Pitrig configurator: it checks for a new version and replaces this plugin in SimHub.",
+      "links": "LINKS",
+      "website": "Website",
+      "guides": "Guides",
+      "sourceCode": "Source code",
+      "reportProblem": "Report a problem",
+      "contact": "CONTACT",
+      "contactText": "A question, a board that will not start or an idea goes straight to the developer.",
+      "contactForm": "Contact form",
+      "statistics": "STATISTICS",
+      "statisticsText": "Pitrig sends anonymous usage statistics: a random install number, whether Pitrig was used on this computer before, the plugin and SimHub versions, the board model and the game that runs. No names or files. The switch is on the Info page of the Pitrig configurator.",
+      "license": "LICENSE",
+      "licenseText": "The plugin is open source under the Apache License 2.0.",
+      "readLicense": "Read the license",
+      "technical": "TECHNICAL",
+      "technicalText": "{cost} ms per update, {rate} updates a second. Configurator link: {packets} packets, {errors} errors."
+    }
   }
 }

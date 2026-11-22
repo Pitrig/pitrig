@@ -17,10 +17,6 @@ namespace Pitrig.SimHub
         private const double NumberSize = 16;
         private const double NameSize = 11;
 
-        private const string Wiring =
-            "Buttons are wired on the Controls page of the Pitrig configurator, or in SimHub under Controls and events " +
-            "as PitrigPlugin.Button1 to Button16 and SwitchPosition1 to SwitchPosition12.";
-
         private static readonly Brush IdleBorder = Frozen(new SolidColorBrush(Color.FromArgb(0x60, 0x9E, 0x9E, 0x9E)));
 
         private readonly InputState inputs;
@@ -40,9 +36,9 @@ namespace Pitrig.SimHub
             frame.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             frame.Children.Add(grid);
             Content = PageParts.Stack(
-                PageParts.Section("BUTTONS", frame, wiring),
-                PageParts.Section("SWITCH", position),
-                PageParts.Section("LAST PRESS", last));
+                PageParts.Section(UiText.ButtonsButtons, frame, wiring),
+                PageParts.Section(UiText.ButtonsSwitch, position),
+                PageParts.Section(UiText.ButtonsLastPress, last));
         }
 
         public UIElement Content { get; }
@@ -56,11 +52,9 @@ namespace Pitrig.SimHub
                 Light(tiles[index], ((snapshot.Held | recent) & (1u << index)) != 0);
                 names[index].Text = snapshot.Names[index] ?? string.Empty;
             }
-            position.Text = snapshot.Position > 0
-                ? "Position " + snapshot.Position.ToString(CultureInfo.InvariantCulture)
-                : "No position yet.";
+            position.Text = snapshot.Position > 0 ? UiText.ButtonsPosition(snapshot.Position) : UiText.ButtonsNoPosition;
             last.Text = LastPress(snapshot);
-            wiring.Text = snapshot.Wired ? Wiring : "No buttons are wired yet. " + Wiring;
+            wiring.Text = snapshot.Wired ? UiText.ButtonsWiring : UiText.ButtonsNotWired + " " + UiText.ButtonsWiring;
         }
 
         private UIElement Tile(int index)
@@ -101,20 +95,17 @@ namespace Pitrig.SimHub
 
         private static string LastPress(InputSnapshot snapshot)
         {
-            if (snapshot.LastInput.Length == 0) return "Nothing pressed yet. Press a button on the wheel, a button box or the keyboard.";
+            if (snapshot.LastInput.Length == 0) return UiText.ButtonsNothingPressed;
             var targets = new List<string>();
             for (var index = 0; index < InputState.ButtonCount; index += 1)
             {
                 if ((snapshot.LastButtons & (1u << index)) == 0) continue;
                 var name = snapshot.Names[index];
-                var button = "button " + (index + 1).ToString(CultureInfo.InvariantCulture);
+                var button = UiText.ButtonsButton(index + 1);
                 targets.Add(string.IsNullOrEmpty(name) ? button : button + " (" + name + ")");
             }
-            if (snapshot.LastPosition > 0)
-            {
-                targets.Add("switch position " + snapshot.LastPosition.ToString(CultureInfo.InvariantCulture));
-            }
-            var pressed = targets.Count == 0 ? "not wired to a button" : string.Join(", ", targets);
+            if (snapshot.LastPosition > 0) targets.Add(UiText.ButtonsSwitchPosition(snapshot.LastPosition));
+            var pressed = targets.Count == 0 ? UiText.ButtonsNotWiredToButton : string.Join(", ", targets);
             return snapshot.LastInput + " → " + pressed;
         }
 

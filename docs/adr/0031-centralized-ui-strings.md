@@ -71,6 +71,14 @@ is missing at runtime. Terms and style follow `i18n/glossary.md`. The `ko` and
 `pl` text is a machine translation no native speaker has checked, and the Info
 page says so in those two languages.
 
+**The SimHub plugin reads the same catalog.** Keys under `simhub.` are its text:
+the generator leaves them out of the configurator's tables and writes them to
+`simhub/plugin/Pitrig.SimHub/UiStrings.g.cs` as members of `UiText`. They cannot
+be plural messages, because .NET Framework has no CLDR plural rules. The plugin
+takes the language the configurator saved in `%APPDATA%\Pitrig\language.json`,
+else the Windows display language, once per SimHub run; its name and
+description in SimHub's plugin list are attribute constants and stay English.
+
 **Out of scope, deliberately.** The debug application keeps its own inline text.
 Enum members drawn directly as select-option text stay untranslated: they are
 the same tokens the user reads and edits in the JSON editor and in

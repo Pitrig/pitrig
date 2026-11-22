@@ -68,4 +68,6 @@ banner.
   object of CLDR categories selected by `Intl.PluralRules`, exactly the ones
   `PLURAL_CATEGORIES` in `catalog.py` lists for its locale; placeholders are
   `{name}`, and `$note` is data for the translator. A locale lacking a key of
-  `en.json` fails the run (ADR 0031).
+  `en.json` fails the run. Keys under `simhub.` skip those tables and become the
+  plugin's `simhub/plugin/Pitrig.SimHub/UiStrings.g.cs`; they may not be plural
+  (ADR 0031).

@@ -134,7 +134,7 @@ python3 -m tools.codegen.ui_strings
 | `telemetry_catalog` | `telemetry/telemetry_catalog.json`, `telemetry/simhub_generic_mappings.json` | the firmware catalog headers, `configurator/src/shared/telemetry-catalog.ts` and `simhub-data.ts`, `docs/telemetry-catalog.md`, `simhub/plugin/Pitrig.SimHub/TelemetryCatalog.g.cs` |
 | `led_font` | `fonts/led_bitmap_font.json` | `firmware/components/led/include/led_font_generated.hpp`, `configurator/src/shared/led-font.ts` |
 | `font_catalog` | `fonts/google_fonts_snapshot.json`, `fonts/google_fonts_selection.json` (`--refresh` re-fetches) | `configurator/src/main/font-library/google-fonts-catalog.json` |
-| `ui_strings` | `i18n/en.json`, `uk.json`, `ko.json`, `pl.json` | `configurator/src/shared/ui-string-keys.ts` and one `ui-strings-<locale>.ts` each, read through `t()` in `ui-text.ts` (ADR 0031) |
+| `ui_strings` | `i18n/en.json`, `uk.json`, `ko.json`, `pl.json` | `configurator/src/shared/ui-string-keys.ts` and one `ui-strings-<locale>.ts` each, read through `t()` in `ui-text.ts`; the `simhub.` keys as `simhub/plugin/Pitrig.SimHub/UiStrings.g.cs` (ADR 0031) |
 
 ## Configuration is three documents
 

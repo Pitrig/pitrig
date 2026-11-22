@@ -128,7 +128,7 @@ namespace Pitrig.SimHub
                 Margin = new Thickness(12, 0, 0, 0)
             };
             button.Loaded += (sender, arguments) =>
-                button.Content = ConfiguratorApp.Find() == null ? "Get the configurator" : "Open Pitrig configurator";
+                button.Content = ConfiguratorApp.Find() == null ? UiText.PartsGetConfigurator : UiText.PartsOpenConfigurator;
             button.Click += (sender, arguments) => ConfiguratorApp.Open(ConfiguratorApp.Find());
             return button;
         }
