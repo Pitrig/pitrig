@@ -7,7 +7,7 @@ paths:
   - "i18n/**"
   - "simhub/**"
   - "**/*_generated.*"
-  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en,ui-strings-uk,ui-strings-ko,ui-strings-pl,control-protocol}.ts"
+  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en,ui-strings-uk,ui-strings-ko,ui-strings-pl,ui-strings-de,ui-strings-es,control-protocol}.ts"
   - "configurator/src/main/font-library/google-fonts-catalog.json"
   - "docs/{configuration-schema,telemetry-catalog}.md"
 ---
@@ -60,7 +60,7 @@ banner.
   id implementation; the generator only checks that every derivable id is valid
   and unique.
 - `ui_strings` — `i18n/en.json` and its translations `uk.json`, `ko.json`,
-  `pl.json` → `configurator/src/shared/ui-string-keys.ts` (the `UiStringKey`
+  `pl.json`, `de.json`, `es.json` → `configurator/src/shared/ui-string-keys.ts` (the `UiStringKey`
   union and the parameter types) and one `ui-strings-<locale>.ts` table per
   locale (an explicit `Readonly<Record<string, string>>` so no project builds a
   literal type over the catalog). Code reads them through `t()` in

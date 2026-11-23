@@ -9,7 +9,9 @@ from .errors import fail
 
 PLURAL_FORMS = ("zero", "one", "two", "few", "many", "other")
 PLURAL_CATEGORIES = {
+    "de": ("one", "other"),
     "en": ("one", "other"),
+    "es": ("one", "many", "other"),
     "ko": ("other",),
     "pl": ("one", "few", "many", "other"),
     "uk": ("one", "few", "many", "other"),

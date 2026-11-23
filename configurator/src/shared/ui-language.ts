@@ -1,4 +1,4 @@
-export const UI_LANGUAGES = ['en', 'uk', 'ko', 'pl'] as const
+export const UI_LANGUAGES = ['en', 'uk', 'ko', 'pl', 'de', 'es'] as const
 
 export type UiLanguage = (typeof UI_LANGUAGES)[number]
 
@@ -6,10 +6,17 @@ export const UI_LANGUAGE_NAMES: Readonly<Record<UiLanguage, string>> = {
   en: 'English',
   uk: 'Українська',
   ko: '한국어',
-  pl: 'Polski'
+  pl: 'Polski',
+  de: 'Deutsch',
+  es: 'Español'
 }
 
-export const MACHINE_TRANSLATED_LANGUAGES: ReadonlySet<UiLanguage> = new Set<UiLanguage>(['ko', 'pl'])
+export const MACHINE_TRANSLATED_LANGUAGES: ReadonlySet<UiLanguage> = new Set<UiLanguage>([
+  'ko',
+  'pl',
+  'de',
+  'es'
+])
 
 export const UI_LANGUAGE_GLOBAL = 'pitrigUiLanguage'
 export const UI_LANGUAGE_ARGUMENT = '--pitrig-ui-language='

@@ -1,0 +1,2828 @@
+{
+  "device": {
+    "connection": {
+      "baudRateLabel": "Baudios",
+      "portLabel": "Puerto serie",
+      "autoPort": "Auto — detectar puerto y velocidad",
+      "refresh": "Actualizar",
+      "connect": "Conectar",
+      "cancel": "Cancelar",
+      "disconnect": "Desconectar",
+      "disconnecting": "Desconectando…",
+      "connectedAt": "{displayName} a {baudRate}",
+      "scanningAt": "Buscando en {displayName} a {baudRate}",
+      "disconnected": "Dispositivo desconectado"
+    },
+    "status": {
+      "disconnected": "desconectado",
+      "scanning": "buscando",
+      "connecting": "conectando",
+      "connected": "conectado",
+      "disconnecting": "desconectando",
+      "error": "error"
+    },
+    "health": {
+      "cause": {
+        "power_on": "Se encendió",
+        "software": "Se reinició a petición",
+        "panic": "Sufrió un fallo",
+        "task_watchdog": "Dejó de responder",
+        "brownout": "Bajó el voltaje de alimentación",
+        "other": "Se reinició"
+      },
+      "phase": {
+        "configuration": "mientras leía su configuración",
+        "link": "mientras iniciaba la conexión serie",
+        "display": "mientras activaba la pantalla",
+        "assets": "mientras cargaba fuentes e imágenes",
+        "composition": "mientras construía el dashboard",
+        "complete": "después de terminar de arrancar"
+      },
+      "lastBoot": "{cause} {phase}",
+      "noFailures": "Ninguno desde el último encendido o la última escritura de configuración",
+      "crashCount": {
+        "$plural": {
+          "one": "{count} arranque terminó con un fallo",
+          "many": "{count} de arranques seguidos terminaron con un fallo",
+          "other": "{count} arranques seguidos terminaron con un fallo"
+        }
+      }
+    },
+    "boardSyncDialog": {
+      "theBoardAndTheDraft": "La placa y el borrador no coinciden",
+      "boardAndDraftDiffer": "Placa y borrador no coinciden",
+      "showTheDraftOnThe": "Mostrar el borrador en la placa",
+      "saveTheDraftToThe": "Guardar el borrador en la placa",
+      "decideLaterTheBoardKeeps": "Decidir más tarde: la placa sigue ejecutando lo que tiene",
+      "onBoardid": " en {boardId}",
+      "takeTheBoardSConfiguration": "Usar la configuración de la placa",
+      "explanation": "{reason} Aún no se ha escrito ni aplicado nada{board}. Elige cuál deben seguir ambos lados.",
+      "documentDiffers": "{label}: hay diferencias",
+      "mirrorTheDraftOnThe": "Reflejar el borrador en la placa sin escribirlo",
+      "writeTheDraftToThe": "Escribir el borrador en la placa y conservarlo allí"
+    },
+    "infoPage": {
+      "info": "Info",
+      "board": "Placa",
+      "display": "Pantalla",
+      "firmware": "Firmware",
+      "firmwareSlots": "Ranuras de firmware",
+      "lastBoot": "Último arranque",
+      "recentFailures": "Fallos recientes",
+      "port": "Puerto",
+      "speed": "Velocidad",
+      "name": "Nombre",
+      "version": "Versión",
+      "displaySize": "{width} × {height}",
+      "singlePartition": "Partición de aplicación única",
+      "firmwareSlotsValue": "{running} en ejecución · se instala en {target}",
+      "versionsUpdatesAndWhat": "Versiones, actualizaciones y qué enviar cuando pidas ayuda."
+    },
+    "liveApplyIndicator": {
+      "theBoardRunsItsOwn": "La placa ejecuta su propia configuración.",
+      "resolve": "Resolver",
+      "applyingToTheBoard": "Aplicando en la placa…",
+      "sendingToTheBoard": "Enviando a la placa…",
+      "livePreviewFailedError": "Falló la vista previa en vivo: {error}",
+      "theBoardIsNotFollowing": "La placa no está siguiendo el borrador. {liveApplyBlockedReason}"
+    },
+    "schemaBanner": {
+      "updateTheBoardFirmware": "Actualizar el firmware de la placa",
+      "explanation": "Su firmware lee el esquema de configuración {schema} y este configurador escribe el esquema {expected}, así que aquí se puede leer su configuración, pero no guardarla en la placa. «Actualizar placa», en la página «Firmware», instala el firmware nuevo y restaura la configuración de la placa."
+    },
+    "safeModeBanner": {
+      "boardIsInSafeMode": "La placa está en modo seguro",
+      "theLastOnePhase": ", el último {phase}",
+      "explanation": "{failures}{phase}, así que la placa solo activó la conexión serie: sin dashboard, sin módulos y sin envío de fuentes ni imágenes. La vista previa en vivo está desactivada. Guarda una configuración en la placa: eso pone a cero el contador y la reinicia con un arranque normal."
+    },
+    "assetInfoParsers": {
+      "imageStatus": "estado de imágenes",
+      "fontStatus": "estado de fuentes",
+      "theDeviceReturnedMalformedFirmware": "El dispositivo devolvió un estado de firmware con formato incorrecto.",
+      "theDeviceReturnedMalformedImage": "El dispositivo devolvió un estado de imágenes con formato incorrecto.",
+      "theDeviceReturnedMalformedFont": "El dispositivo devolvió un estado de fuentes con formato incorrecto.",
+      "theDeviceReturnedMalformedFont2": "El dispositivo devolvió entradas de fuentes con formato incorrecto.",
+      "firmwareStatus": "estado de firmware"
+    },
+    "assetUpload": {
+      "preparingLabelStorage": "Preparando el almacenamiento de {label}",
+      "uploadedReceivedOfBytelengthBytes": "Enviados {received} de {byteLength} bytes",
+      "validatingAndCommittingTheLabel": "Validando y confirmando el paquete de {label}",
+      "theDeviceReturnedAnInvalid": "El dispositivo devolvió una confirmación de envío de {label} no válida.",
+      "theDeviceDidNotAnswer": "El dispositivo no respondió con {responsePrefix}.",
+      "theSerialPortClosedDuring": "El puerto serie se cerró durante el envío.",
+      "theUploadWasCancelled": "Se canceló el envío.",
+      "theDeviceReturnedAMalformed": "El dispositivo devolvió una confirmación de {label} con formato incorrecto.",
+      "theDeviceReturnedAnInvalid2": "El dispositivo devolvió una confirmación de {label} no válida."
+    },
+    "deviceConnection": {
+      "aDeviceIsAlreadyConnected": "Ya hay un dispositivo conectado.",
+      "theSelectedSerialPortIs": "El puerto serie seleccionado ya no está disponible. Actualiza la lista de puertos.",
+      "theSerialDeviceWasDisconnected": "El dispositivo serie se desconectó.",
+      "deviceScanWasCancelled": "Se canceló la búsqueda de dispositivos."
+    },
+    "deviceErrors": {
+      "theSerialPortIsBusy": "El puerto serie está ocupado. Cierra el programa que lo usa: un dispositivo Custom Serial de SimHub, un monitor serie o la otra aplicación de Pitrig.",
+      "permissionToOpenTheSerial": "Se denegó el permiso para abrir el puerto serie.",
+      "theSerialPortIsNo": "El puerto serie ya no está disponible."
+    },
+    "deviceOperation": {
+      "noPitrigDeviceIsConnected": "No hay ningún dispositivo Pitrig conectado.",
+      "anotherDeviceOperationIsAlready": "Ya hay otra operación en curso en el dispositivo.",
+      "theBoardIsBusyWith": "La placa está ocupada con una operación de varios pasos. Vuelve a intentarlo cuando termine."
+    },
+    "deviceScan": {
+      "theBoardRestartedButDid": "La placa se reinició, pero no volvió a aparecer en su puerto. Vuelve a conectarla a mano.",
+      "noUsbSerialPortsWere": "No se encontró ningún puerto serie USB.",
+      "noCompatiblePitrigDeviceResponded": "No respondió ninguna placa Pitrig compatible.",
+      "multiplePitrigDevicesWereFound": "Se encontraron varios dispositivos Pitrig. Selecciona un puerto manualmente.",
+      "noPitrigDeviceWasFound": "No se encontró ningún dispositivo Pitrig."
+    },
+    "deviceService": {
+      "cancelTheActiveDeviceOperation": "Cancela la operación en curso en el dispositivo antes de desconectar.",
+      "aSaveIsRunningOn": "Hay un guardado en curso en el dispositivo conectado.",
+      "theConnectedDeviceIsBusy": "El dispositivo conectado está ocupado o no disponible.",
+      "font": "fuentes",
+      "image": "imágenes",
+      "firmware": "firmware"
+    },
+    "deviceConfigCommands": {
+      "theConnectedDeviceChangedDuring": "La placa conectada cambió mientras se leía su configuración."
+    },
+    "deviceProbe": {
+      "theDeviceConfigurationBoardDoes": "La configuración de la placa indica una placa distinta del hardware conectado."
+    },
+    "protocolParsers": {
+      "theDeviceReturnedMalformedFieldname": "El dispositivo devolvió datos con formato incorrecto: {fieldName}.",
+      "theDeviceReturnedMalformedLabel": "El dispositivo devolvió datos con formato incorrecto: {label}.",
+      "theDeviceReturnedMalformedInfo": "El dispositivo devolvió datos INFO con formato incorrecto.",
+      "infoData": "datos INFO",
+      "unsupportedConfigurationSchemaSchema": "Esquema de configuración no compatible: {schema}."
+    },
+    "serialRequest": {
+      "theDeviceDidNotAnswer": "El dispositivo no respondió a {trim}.",
+      "serialPortClosedDuringRequest": "El puerto serie se cerró durante la solicitud.",
+      "serialPortClosedDuringThe": "El puerto serie se cerró durante el comando.",
+      "theSerialPortIsClosed": "El puerto serie está cerrado."
+    },
+    "error": {
+      "validation": {
+        "none": "El dispositivo no informó de ningún error.",
+        "malformed": "El dispositivo no pudo leer la configuración. O no es un JSON válido o es más grande de lo que acepta el dispositivo.",
+        "unsupported_schema": "Esta configuración usa una versión de esquema que el firmware del dispositivo no acepta. Actualiza el firmware o el configurador para que ambos coincidan.",
+        "invalid_board": "La configuración no indica una placa que el dispositivo reconozca.",
+        "board_mismatch": "Esta configuración se creó para una placa distinta del dispositivo conectado.",
+        "invalid_hardware": "La sección de hardware tiene un formato incorrecto, declara más periféricos de los que controla la placa o indica un periférico para el que este firmware no tiene controlador.",
+        "invalid_led_pin": "Una salida LED indica un pin que esta placa no ofrece, o dos salidas están conectadas al mismo pin.",
+        "invalid_led_sprite": "La geometría, la paleta y los píxeles de un sprite LED no concuerdan, o un efecto dibuja un sprite que la salida no contiene.",
+        "invalid_transport": "Esta placa no admite el transporte de telemetría seleccionado.",
+        "invalid_uart": "Los pines UART o la velocidad en baudios no son válidos para esta placa.",
+        "invalid_module": "Un segmento o efecto LED está fuera de rango, indica un segmento que su cadena no tiene o lleva una propiedad que su tipo no tiene.",
+        "invalid_screen": "Una pantalla tiene un formato incorrecto, la configuración tiene más pantallas de las que permite el dispositivo o dos pantallas comparten un ID.",
+        "invalid_dashboard": "El dashboard tiene un formato incorrecto o usa un módulo que no está activado.",
+        "invalid_widget": "Un widget tiene una propiedad con formato incorrecto o fuera de rango, queda totalmente fuera de la pantalla, está anidado a demasiada profundidad o usa un ID que ya tiene otro widget.",
+        "invalid_slot": "Un slot lleva un aspecto que no admite, se creó dentro de un contenedor en lugar de en una pantalla o no tiene ninguna página a la que pueda llegar el toque.",
+        "invalid_slot_page": "Una página de slot tiene un formato incorrecto, o su disparador no concuerda con la telemetría, las reglas y la duración que lleva.",
+        "unknown_property": "La configuración contiene una propiedad que esta versión del firmware no conoce.",
+        "duplicate_property": "La misma propiedad aparece dos veces en un mismo objeto.",
+        "out_of_range": "Un valor de la configuración está fuera de rango, es un texto más largo de lo permitido o tiene más entradas de las que admite la propiedad.",
+        "unknown_value": "Un valor de la configuración no corresponde a ninguna de las opciones que acepta la propiedad.",
+        "invalid_control": "Una acción de botón, el selector, una regla de control o la pantalla de inicio indica una pantalla, un slot o una página que el dashboard no tiene, o lleva un destino que su acción no usa."
+      },
+      "request": {
+        "storage": "El dispositivo no pudo escribir en su almacenamiento de configuración.",
+        "unsupported": "El dispositivo no puede atender esta solicitud en su estado actual.",
+        "unknown_command": "El dispositivo no reconoció la solicitud.",
+        "busy": "El dispositivo todavía se está iniciando y aún no tiene nada a lo que aplicar esto."
+      },
+      "upload": {
+        "busy": "La conexión con el dispositivo está ocupada: o la está usando otro envío, o la placa aún está terminando de arrancar y no ha liberado el almacenamiento que esto sobrescribiría. Espera un momento y vuelve a intentarlo.",
+        "timeout": "Se agotó el tiempo de espera del envío.",
+        "frame_crc": "Una trama del envío no superó la suma de comprobación. Puede que la conexión no sea fiable.",
+        "sequence": "Una trama del envío llegó fuera de orden.",
+        "protocol_overrun": "El dispositivo recibió los datos del envío más rápido de lo que podía procesarlos.",
+        "invalid_frame": "Una trama del envío tenía un formato incorrecto.",
+        "incomplete_package": "El envío se confirmó antes de que llegara el paquete completo.",
+        "invalid_size": "El paquete no cabe en el espacio que el dispositivo le reserva.",
+        "invalid_package": "El contenido del paquete no es válido.",
+        "invalid_state": "El dispositivo no está listo para este paso del envío.",
+        "reboot_required": "Hay que reiniciar el dispositivo antes de poder hacer esto.",
+        "storage_failure": "El dispositivo no pudo escribir en su almacenamiento de recursos.",
+        "unavailable": "El almacenamiento de recursos no está disponible en este dispositivo.",
+        "unknown": "El dispositivo informó de un error que no pudo describir.",
+        "unknown_command": "El dispositivo no reconoció el comando de envío."
+      },
+      "dependency": {
+        "font": "El dashboard usa una familia de fuentes que la placa no tiene. «Guardar en la placa» la instala, o elige una familia que la placa ya tenga. Recuerda que los rótulos de los widgets llevan su propia fuente.",
+        "image": "El dashboard usa una imagen que no está instalada en el dispositivo. Envíala o elige una que el dispositivo ya tenga."
+      },
+      "uploadKind": {
+        "FONT": "el paquete de fuentes",
+        "IMAGE": "la imagen",
+        "FW": "la imagen de firmware"
+      },
+      "noReason": "El dispositivo rechazó la solicitud sin dar ningún motivo.",
+      "noReasonGiven": "sin motivo indicado",
+      "uploadFailed": "No se pudo enviar {kind}. {reason}",
+      "uploadFailedRaw": "No se pudo enviar {kind}: {reason}.",
+      "locationScreen": "pantalla {number}",
+      "locationWidget": "widget {number}",
+      "location": " ({parts})",
+      "property": " Propiedad: {path}.",
+      "validationDetail": "{message}{location}{property}",
+      "rejected": "El dispositivo rechazó la solicitud: {text}"
+    },
+    "saveToBoardUi": {
+      "saving": "Guardando…",
+      "saveToBoard": "Guardar en la placa",
+      "writeTheDashboardToThe": "Escribir el dashboard en la placa (las fuentes se instalan con él)",
+      "needsNewerFirmware": "Esta configuración necesita un firmware más reciente",
+      "updateBoard": "Actualizar placa"
+    },
+    "draftState": {
+      "theBoardFirmwareReadsSchema": "El firmware de la placa lee el esquema de configuración {schema} y este configurador escribe el esquema {expected}. Primero actualiza su firmware en la página «Firmware».",
+      "connectAPitrigBoardTo": "Conecta una placa Pitrig para reflejar en ella el borrador.",
+      "theBoardIsInSafe": "La placa está en modo seguro. No dibuja nada hasta que se repare y se reinicie.",
+      "theDraftIsNotValid": "El borrador no es válido, así que la placa mantiene lo que ejecuta. {error}",
+      "theDraftTargetsBoardThe": "El borrador es para {board}; la placa es {boardId}.",
+      "theBoardLacksJoinSaving": "La placa no tiene: {join}. Al guardar se instalan las fuentes.",
+      "noLocalConfiguration": "No hay configuración local.",
+      "theBoardLacksImages": "La placa aún no tiene {images}. Al guardar se instalan las imágenes."
+    },
+    "documentStatus": {
+      "refused": "{label}: configuración rechazada",
+      "notOnBoard": "{label}: la configuración no está en la placa",
+      "shownNotSaved": "{label}: configuración mostrada, sin guardar",
+      "inSync": "{label}: configuración sincronizada"
+    },
+    "saveToBoardStore": {
+      "savedButTheBoardDid": "Guardado, pero la placa no volvió a aparecer en su puerto. Vuelve a conectarla a mano.",
+      "savedTheBoardKeepsShowing": "Guardado. La placa sigue mostrando el dashboard anterior hasta que se reinicie: {applyFailed}",
+      "fontsInstalledAndConfigurationSaved": "Fuentes instaladas y configuración guardada. La placa se reinició y ya ejecuta el dashboard nuevo.",
+      "savedTheBoardIsRunning": "Guardado. La placa ya ejecuta la configuración nueva; no hace falta reiniciar.",
+      "fontsAndImagesInstalled": "Fuentes e imágenes instaladas y configuración guardada. La placa se reinició y ya ejecuta el dashboard nuevo.",
+      "imagesInstalled": "Imágenes instaladas y configuración guardada. La placa se reinició y ya ejecuta el dashboard nuevo.",
+      "keptBoardImages": "La placa conservó su propia copia de {images}, porque este PC no tiene ninguna."
+    },
+    "configurationJson": {
+      "configurationJsonIsMalformed": "El JSON de la configuración tiene un formato incorrecto.",
+      "theFragmentHoldsNoWidget": "El fragmento no contiene ningún widget.",
+      "configurationBoardMustRemainBoard": "La placa de la configuración debe seguir siendo {board}."
+    },
+    "deviceUploads": {
+      "theConnectedFirmwareDoesNot": "El firmware del dispositivo conectado no admite la gestión de imágenes.",
+      "theConnectedDeviceChangedDuring": "El dispositivo conectado cambió durante la limpieza de imágenes.",
+      "theConnectedFirmwareDoesNot2": "El firmware del dispositivo conectado no admite la gestión de recursos de fuentes.",
+      "theConnectedDeviceChangedDuring2": "El dispositivo conectado cambió durante la limpieza de fuentes."
+    },
+    "lineExchange": {
+      "theRequestWasCancelled": "Se canceló la solicitud."
+    },
+    "pitrigProtocol": {
+      "theDeviceConfigurationBoardDoes": "La placa indicada en la configuración del dispositivo no coincide con el hardware conectado."
+    },
+    "bridgeErrors": {
+      "theConfigurationBridgeIsNot": "El puente de configuración no está cargado. Reinicia Pitrig Configurator por completo y vuelve a conectar la placa.",
+      "theElectronBridgeIsOutdated": "El puente de Electron está desactualizado. Reinicia Pitrig Configurator por completo.",
+      "theConfigurationOperationFailed": "Falló la operación de configuración.",
+      "theConfigurationFileOperationFailed": "Falló la operación con el archivo de configuración."
+    },
+    "boardHealth": {
+      "boardHealth": "Estado de la placa:",
+      "startedNormally": "arrancó con normalidad. Sin fallos desde el encendido.",
+      "safeMode": "Modo seguro",
+      "crashedWhile": {
+        "$plural": {
+          "one": "La placa sufrió un fallo {phase}.",
+          "many": "La placa sufrió {count} de fallos {phase}.",
+          "other": "La placa sufrió {count} fallos {phase}."
+        }
+      },
+      "crashed": {
+        "$plural": {
+          "one": "La placa sufrió un fallo.",
+          "many": "La placa sufrió {count} de fallos.",
+          "other": "La placa sufrió {count} fallos."
+        }
+      },
+      "startedInSafeMode": "La placa arrancó en modo seguro.",
+      "loadAnotherSetup": "Carga otra configuración o restablécela en la página «Firmware».",
+      "crashedTitle": "Sufrió un fallo",
+      "recovered": "{lastBoot} y luego volvió a arrancar.",
+      "earlierCrashes": {
+        "$plural": {
+          "one": "{count} arranque anterior terminó con un fallo.",
+          "many": "{count} de arranques anteriores terminaron con un fallo.",
+          "other": "{count} arranques anteriores terminaron con un fallo."
+        }
+      }
+    },
+    "supportDetails": {
+      "detailsForSupport": "Detalles para el soporte",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "board": "Placa",
+      "boardValue": "{board} · {display}",
+      "noDisplay": "sin pantalla",
+      "setupOnBoard": "Configuración en la placa",
+      "documentStored": "{document}: guardado ({generation})",
+      "documentState": "{document}: {state}",
+      "state": {
+        "absent": "de fábrica",
+        "valid": "guardado",
+        "malformed_record": "con formato incorrecto",
+        "unsupported_schema": "otro esquema",
+        "corrupt_payload": "dañado",
+        "rejected": "rechazado"
+      },
+      "schema": "Esquema",
+      "schemaValue": "{schema} · {storage}",
+      "storageAvailable": "almacenamiento disponible",
+      "noStorage": "sin almacenamiento",
+      "link": "Conexión",
+      "linkValue": "{path} · {baudRate} baudios",
+      "notConnected": "sin conexión",
+      "system": "Sistema"
+    }
+  },
+  "fonts": {
+    "catalog": {
+      "weightCount": {
+        "$plural": {
+          "one": "{count} variante",
+          "many": "{count} de variantes",
+          "other": "{count} variantes"
+        }
+      }
+    },
+    "catalogSection": {
+      "addFromGoogleFonts": "Añadir desde Google Fonts",
+      "downloadedIntoTheLibraryOn": "Se descargan en la biblioteca cuando las pides; nada llega a la placa hasta que guardas.",
+      "searchGoogleFonts": "Buscar en Google Fonts",
+      "orbitronInter": "Orbitron, Inter…",
+      "readingTheCatalog": "Leyendo el catálogo…",
+      "tryAShorterWord": "Prueba con una palabra más corta.",
+      "noFamilyMatches": "Ninguna familia coincide",
+      "theFontCouldNotBe": "No se pudo descargar la fuente.",
+      "addedNameToTheLibrary": "Se añadió {name} a la biblioteca."
+    },
+    "fontPicker": {
+      "chooseAFont": "Elegir una fuente",
+      "searchFonts": "Buscar fuentes",
+      "inThisDashboard": "En este dashboard",
+      "alreadyUsedSoItCosts": "Ya está en uso, así que no cuenta como una familia más.",
+      "library": "Biblioteca",
+      "bundledWithTheAppImported": "Incluidas con la aplicación, importadas o descargadas.",
+      "googleFonts": "Google Fonts",
+      "importing": "Importando…",
+      "downloadedWhenYouPickA": "Se descargan al elegir una variante.",
+      "mostUsedFirstSearchTo": "Primero las más usadas; busca para ver el resto de las {length}.",
+      "nothingMatches": "Nada coincide con «{query}». Importa un archivo para añadir la tuya.",
+      "theBoardHoldsMaximumFont": "La placa admite {maximum} familias de fuentes a la vez.",
+      "addingThisFaceWouldPush": "Añadir esta variante haría que el paquete de fuentes superara los 2 MiB.",
+      "aWeightIsItsOwn": "Aquí cada variante es una fuente aparte, porque la placa guarda una sola variante por familia.",
+      "downloading": "Descargando…"
+    },
+    "fontsPage": {
+      "fonts": "Fuentes",
+      "importFont": "Importar fuente…",
+      "eraseOnBoard": "Borrar de la placa",
+      "eraseThePackageInstalledOn": "Borrar el paquete instalado en la placa conectada",
+      "usedByThisDashboard": "Usadas en este dashboard",
+      "fontsInstallThemselvesWhenYou": "Las fuentes se instalan solas al guardar en la placa.",
+      "everyTextWidgetCarriesA": "Cada widget de texto tiene una familia y un tamaño. Elige una en el inspector y aparecerá aquí.",
+      "noFontsNamed": "No hay fuentes en uso",
+      "notInLibrary": "No está en la biblioteca",
+      "onBoard": "En la placa",
+      "installsOnSave": "Se instala al guardar",
+      "facesThisApplicationCanInstall": "Variantes que esta aplicación puede instalar. Cada variante es una entrada propia, porque la placa guarda una sola variante por familia.",
+      "importATtfOrOtf": "Importa un archivo TTF u OTF, o añade una fuente de Google Fonts más abajo.",
+      "theLibraryIsEmpty": "La biblioteca está vacía",
+      "bundled": "Incluida",
+      "familiesOfMaximumFontFamilies": "{families} de {mAXIMUM_FONT_FAMILIES} familias · {bytes} de 3 MiB. Los tamaños nunca requieren un envío: la placa genera cada tamaño a partir de la variante instalada.",
+      "removeName": "Quitar {name}",
+      "unresolvedFamilies": {
+        "$plural": {
+          "one": "Una familia no está en la biblioteca. Importa la variante o elige otra fuente en el inspector: no se podrá guardar hasta que se encuentren todas las familias.",
+          "many": "{count} de familias no están en la biblioteca. Importa las variantes o elige otras fuentes en el inspector: no se podrá guardar hasta que se encuentren todas las familias.",
+          "other": "{count} familias no están en la biblioteca. Importa las variantes o elige otras fuentes en el inspector: no se podrá guardar hasta que se encuentren todas las familias."
+        }
+      },
+      "unreadableEntries": {
+        "$plural": {
+          "one": "{count} entrada de la biblioteca ya no tiene su archivo de variante.",
+          "many": "{count} de entradas de la biblioteca ya no tienen su archivo de variante.",
+          "other": "{count} entradas de la biblioteca ya no tienen su archivo de variante."
+        }
+      },
+      "removeNameFromTheLibrary": "¿Quitar {name} de la biblioteca?",
+      "eraseTheFontPackageInstalled": "¿Borrar el paquete de fuentes instalado en la placa?",
+      "theFontCouldNotBe": "No se pudo importar la fuente.",
+      "importedName": "Se importó {name}.",
+      "nameIsUsedByThis": "Este dashboard usa {name}. Cambia primero esos widgets.",
+      "theFaceCouldNotBe": "No se pudo quitar la variante.",
+      "theBoardCouldNotBe": "No se pudo contactar con la placa.",
+      "nameRemovedFromTheLibrary": "Se quitó {name} de la biblioteca.",
+      "boardFontPackageErasedRestart": "Paquete de fuentes de la placa borrado. Reinicia la placa y luego guarda para reinstalarlo."
+    },
+    "unresolvedFontsDialog": {
+      "fontsThisDashboardNeeds": "Fuentes que necesita este dashboard",
+      "nothingWasWrittenToThe": "No se escribió nada en la placa. Sigue ejecutando lo mismo que antes.",
+      "found": "Encontrada",
+      "orPickADifferentFont": "O elige otra fuente para esos widgets en el inspector: cualquier fuente de la biblioteca se encuentra automáticamente.",
+      "saveAgain": "Guardar de nuevo",
+      "opening": "Abriendo…",
+      "chooseTtfOtf": "Elegir .ttf/.otf…"
+    },
+    "fontAssetService": {
+      "buildingOneFontPackageFrom": "Creando un solo paquete de fuentes (familias: {length})",
+      "builtFontPackageBytelengthBytes": "Paquete de fuentes creado: {byteLength} bytes",
+      "fontPackageCommittedRestartThe": "Paquete de fuentes guardado. Reinicia el dispositivo para activarlo.",
+      "fontUploadCancelled": "Envío de fuentes cancelado.",
+      "atMostMaximumFontFamilies": "Se pueden instalar como máximo {mAXIMUM_FONT_FAMILIES} familias de fuentes.",
+      "invalidFontFamilyIdentifierFamily": "Identificador de familia de fuentes no válido: {family}",
+      "duplicateFontFamilyFamily": "Familia de fuentes duplicada: {family}",
+      "theFontLibraryHoldsNo": "La biblioteca de fuentes no tiene ninguna variante llamada «{family}».",
+      "fontUploadWasCancelled": "Se canceló el envío de fuentes.",
+      "selectFontSource": "Seleccionar archivo de fuente",
+      "selectFont": "Seleccionar fuente",
+      "aFontUploadIsAlready": "Ya hay un envío de fuentes en curso.",
+      "theConnectedFirmwareDoesNot": "El firmware del dispositivo conectado no admite el envío de fuentes.",
+      "fontAssetStorageIsUnavailable": "El almacenamiento de fuentes no está disponible en este dispositivo.",
+      "restartTheDeviceBeforeUploading": "Reinicia el dispositivo antes de enviar otro paquete de fuentes.",
+      "packageBuildFailed": "No se pudo crear el paquete de fuentes.",
+      "theConnectedDeviceChangedWhile": "El dispositivo conectado cambió mientras se creaba el paquete."
+    },
+    "fontLibraryService": {
+      "idIsNotAValid": "«{id}» no es un identificador de familia de fuentes válido.",
+      "theLibraryAlreadyHoldsA": "La biblioteca ya tiene una fuente llamada «{id}».",
+      "theLibraryHoldsAtMost": "La biblioteca admite como máximo {mAXIMUM_USER_FACES} variantes importadas.",
+      "selectATtfOrOtf": "Selecciona un archivo de fuente TTF u OTF.",
+      "theFontFileCouldNot": "No se pudo leer el archivo de fuente.",
+      "nameDoesNotReduceTo": "«{name}» no se puede convertir en un identificador de familia de fuentes.",
+      "theLibraryAlreadyHoldsA2": "La biblioteca ya tiene una fuente llamada «{resolved}».",
+      "familyDoesNotReduceTo": "«{family}» no se puede convertir en un identificador de familia de fuentes.",
+      "aBundledFontCannotBe": "Una fuente incluida no se puede quitar.",
+      "theLibraryHoldsNoFont": "La biblioteca no tiene ninguna fuente llamada «{id}».",
+      "theLibraryCouldNotBe": "No se pudo actualizar la biblioteca.",
+      "theFontCouldNotBe": "No se pudo añadir la fuente a la biblioteca."
+    },
+    "faceSpecimen": {
+      "fixedWidth": "ancho fijo",
+      "varyingWidth": "ancho variable"
+    },
+    "fontCatalogRow": {
+      "previewUnavailable": " · vista previa no disponible"
+    },
+    "fontPackage": {
+      "theFontPackageExceedsThe": "El paquete de fuentes supera el límite de 3 MiB del dispositivo.",
+      "aFontPackageSupportsAt": "Un paquete de fuentes admite como máximo {mAXIMUM_FONT_FAMILIES} familias.",
+      "theFontPackageManifestExceeds": "El manifiesto del paquete de fuentes supera el área reservada para él.",
+      "invalidFontFamilyFamily": "Familia de fuentes no válida: {family}",
+      "familyIsNotATtf": "{family} no es un archivo de fuente TTF u OTF.",
+      "duplicateFontFamilyFamily": "Familia de fuentes duplicada: {family}."
+    },
+    "fontLibraryFiles": {
+      "notAnObject": "no es un objeto",
+      "notAFontLibrary": "no es una biblioteca de fuentes",
+      "thatFileIsTooSmall": "Ese archivo es demasiado pequeño para ser una variante de fuente.",
+      "thatFaceIsLargerThan": "Esa variante ocupa más que toda la partición de fuentes de 2 MiB."
+    },
+    "footprint": "{families} de {maximum} familias · {kilobytes} de 3 MiB",
+    "dialog": {
+      "filter": "Fuentes OpenType"
+    }
+  },
+  "inspector": {
+    "hints": {
+      "geometry": {
+        "position": "La esquina superior izquierda, en píxeles lógicos de la pantalla. Dentro de un contenedor se mide desde el recuadro del contenedor y no desde la pantalla.",
+        "size": "Ancho y alto en píxeles lógicos de la pantalla.",
+        "z": "Orden de dibujo entre widgets del mismo nivel: un valor más alto se dibuja después, así que tapa a uno más bajo. Los widgets con el mismo valor mantienen el orden de la lista de capas."
+      },
+      "data": {
+        "binding": "El campo de telemetría que lee este widget. Los nombres salen del catálogo, así que el dispositivo los vincula al construir el dashboard y nunca busca ninguno mientras dibuja.",
+        "modifier": "Una lectura del campo que conserva estado, calculada en el dispositivo. El cronómetro de vuelta convierte el tiempo de la vuelta actual en uno que sigue corriendo entre las actualizaciones que envía SimHub.",
+        "range": "La ventana en la que se lee el valor: el widget muestra dónde queda el valor entre los dos extremos, sin salirse de ellos. La unidad es la que usa el campo vinculado."
+      },
+      "text": {
+        "sources": "Los orígenes se componen en orden en un solo texto, cada uno con su propia conversión. El prefijo y el sufijo son lo que separa uno del siguiente, así que «P 3/24» es un origen de posición seguido de un origen de participantes con el prefijo «/».",
+        "transform": "Cómo se convierte en texto el valor en bruto. A un número se le aplican la escala, el desfase y el redondeo; un tiempo se formatea como tiempo de vuelta, como reloj o como diferencia con signo. Solo se ofrecen las conversiones que admite el campo vinculado.",
+        "units": "La unidad en la que se dibuja el valor. La placa siempre recibe la unidad propia del campo; esto elige la escala y el desfase que la convierten, y cambia también el sufijo de unidad. Para la presión de los neumáticos, la unidad inicial es psi.",
+        "scale": "Se aplica antes del desfase: el número dibujado es valor × escala + desfase, redondeado a los decimales indicados al lado.",
+        "affix": "Texto literal que se dibuja justo antes y después de este origen. Con varios orígenes, es el único separador entre ellos.",
+        "alignment": "Dónde se coloca el texto dentro del recuadro del widget, una vez descontado el margen interior.",
+        "fallback": "Se dibuja cuando ya llega telemetría, para un campo que el juego no proporciona. Antes del primer paquete de telemetría, y cuando esto está vacío, se dibuja en su lugar el cero del valor.",
+        "fallbackColour": "Pinta lo que dibuja el widget mientras el juego no proporciona ninguno de sus campos (el texto de reserva, o el cero si no lo hay), diga lo que diga una regla. Si no se define, se mantiene el color del valor."
+      },
+      "title": {
+        "fallback": "Una segunda familia instalada que se usa para los glifos que no tiene la primera: una familia de iconos junto a una de texto, que es como un valor lleva un icono y su número en un solo widget. Se genera con el mismo tamaño, así que cuesta una fuente más.",
+        "text": "Un rótulo dibujado en el recuadro del widget. Al borrar el texto se quita el rótulo por completo, que es lo que suele necesitar un panel usado como contenedor o como zona táctil.",
+        "source": "Telemetría que lee el rótulo en lugar del texto, para que una etiqueta pueda nombrar lo que muestra el widget. El texto sigue siendo la reserva: es lo que muestra el rótulo hasta que llega el campo y la referencia con la que se dimensiona el recuadro del widget.",
+        "font": "La familia viene de la biblioteca de fuentes y el tamaño es solo de este rótulo: la placa guarda una variante por familia y genera cualquier tamaño a partir de ella.",
+        "alignment": "El punto del recuadro del widget en el que se ancla el rótulo. Las filas superior e inferior quedan centradas sobre su línea de borde; la fila central queda dentro del recuadro.",
+        "offset": "Mueve el rótulo desde su anclaje, en píxeles. Los valores positivos lo llevan a la derecha y hacia abajo.",
+        "cut": "Un rótulo en la fila superior o inferior interrumpe la línea de borde sobre la que está, en lugar de dibujarse encima. Desactívalo para dibujar el borde sin cortes.",
+        "gap": "Cuánto espacio libre deja el corte a cada lado del rótulo."
+      },
+      "box": {
+        "fillCorners": "Cómo se unen el fondo y el relleno de un valor con las esquinas redondeadas. Con rounded siguen la misma curva; con square quedan rectos y se recortan en el contorno del recuadro, así que una barra mantiene recto su borde delantero mientras sus extremos siguen el redondeo.",
+        "background": "El relleno detrás del widget. Si no se define, no se dibuja nada y se ve el fondo de la pantalla.",
+        "gradient": "El extremo lejano del relleno del fondo. Si no se define, el fondo se pinta liso.",
+        "axis": "La dirección en la que avanza el degradado del fondo.",
+        "padding": "Mantiene el contenido a esta distancia hacia dentro del recuadro, en cada lado. No mueve el recuadro en sí, ni tampoco los widgets que hay dentro de un contenedor.",
+        "border": "La línea que se dibuja en el contorno del recuadro. Con un ancho cero no se dibuja.",
+        "radius": "Redondea las esquinas del recuadro, tanto el borde como el fondo.",
+        "inset": "Reduce el relleno del fondo dentro del borde en esta medida, para que un borde grueso y su relleno no se solapen en la curva."
+      },
+      "conditions": {
+        "source": "El campo con el que se evalúan las reglas. Es independiente de lo que muestra el widget, así que el texto de la marcha puede ponerse rojo según las revoluciones del motor.",
+        "ramp": "Cambia el color de forma gradual con el valor, entre los puntos. Las reglas pintan por encima; una escala de colores, por sí sola, necesita al menos dos puntos.",
+        "rampTarget": "Qué parte del widget colorea la escala de colores.",
+        "rule": "Gana la primera regla que se cumple. Lo que una regla deja sin definir se queda como se diseñó, así que una regla puede cambiar solo el color y nada más.",
+        "blink": "Muestra y oculta el widget de forma alterna mientras se cumple la regla. Con cero queda fijo.",
+        "hold": "Mantiene la regla aplicada durante este tiempo después de que deje de cumplirse, para que un evento momentáneo se pueda leer. Con cero solo se aplica mientras se cumple."
+      },
+      "action": {
+        "tap": "Qué hace un toque en este widget en una placa con panel táctil. Una forma vacía y transparente con una acción es una zona táctil invisible.",
+        "screen": "La pantalla a la que lleva un toque, por su nombre y no por su número: al cambiar el nombre de una pantalla, se actualizan todas las acciones que la nombran."
+      },
+      "container": {
+        "clip": "Si el contenido se corta en el límite de este recuadro. Si se desactiva, un widget de dentro se dibuja donde quede, aunque se salga del recuadro, que es lo que necesita un rótulo centrado sobre el borde superior de un widget interior."
+      },
+      "ring": {
+        "centreAngle": "El centro del sector. Cero grados son las tres en punto y el ángulo crece en el sentido de las agujas del reloj, así que 270 apunta hacia arriba y un sector de 270 alrededor de ese ángulo es el indicador típico de un auto.",
+        "sector": "La amplitud del sector. La mitad queda a cada lado del ángulo central.",
+        "thickness": "El grosor de la banda. Crece a ambos lados del radio, así que el radio se queda donde está.",
+        "radius": "El radio de la línea central de la banda. Con cero se toma del recuadro, como ha hecho siempre un arco. Un radio propio puede ser mayor que el recuadro: el widget sigue recortado a su recuadro, así que solo se dibuja la parte de la banda que lo cruza.",
+        "length": "Hasta dónde llega la aguja desde el eje sobre el que gira. Con cero se toma del recuadro, el mismo alcance que tendría el anillo. Una longitud propia puede pasar del borde del recuadro, que sigue recortando lo que se dibuja.",
+        "centering": "Qué centra el recuadro. Con circle, el centro del círculo del anillo queda en el centro del recuadro. Con figure se centra lo que se dibuja (la banda entre los extremos del sector, grosor incluido), así que al aumentar el radio la banda sigue en el centro del recuadro y es el centro del círculo el que se sale de él.",
+        "offset": "Aleja el círculo del centro del recuadro sin cambiar nunca su radio. Sacarlo del recuadro, con un radio acorde, es la forma de diseñar una banda poco curvada que cruza la parte superior de una pantalla redonda."
+      },
+      "arc": {
+        "track": "La parte sin rellenar del arco. Si no se define, no se dibuja.",
+        "mark": "Lo que dibuja el valor en su ángulo. Un anillo llena el sector hasta ese ángulo; una aguja traza una línea desde el centro hacia él, tan gruesa como sería el anillo, y deja la pista detrás como escala.",
+        "gradient": "Reparte hasta tres colores por todo el sector (el color de relleno en el extremo del mínimo, un color intermedio opcional y el color final), que el anillo va descubriendo a medida que se llena. La placa lo prepara como un mapa de bits del tamaño del anillo al aplicar el dashboard, así que una regla o una escala de colores que cambie el color del relleno lo pinta liso, y un anillo con radio propio tiene que caber en la pantalla.",
+        "inverted": "Rellena desde el extremo lejano del sector en lugar del cercano."
+      },
+      "bar": {
+        "origin": "El relleno va desde este valor hasta el actual, en lugar de empezar en el mínimo, así que una ventana con valores negativos y positivos y base cero se lee como un medidor centrado.",
+        "fill": "El color de la parte rellena. El fondo del recuadro, por debajo, es la pista por la que avanza el relleno.",
+        "gradient": "Reparte hasta tres colores a lo largo de toda la pista (el color de relleno en el extremo del mínimo, un color intermedio opcional y el color final). El relleno lo va descubriendo a medida que crece, en lugar de estirarlo, así que una barra a medio llenar muestra la primera mitad del degradado.",
+        "inverted": "Rellena desde el extremo lejano de la barra en lugar de desde el cercano."
+      },
+      "fill": {
+        "gradientMiddle": "Un tercer color a mitad del degradado. Si no se define, el degradado va directamente del color de relleno al final."
+      },
+      "strip": {
+        "segments": "Cada luz se enciende en su propia fracción del rango, así que una misma fila de luces sirve para cualquier motor. Los umbrales no deben bajar a lo largo de la lista.",
+        "gap": "El espacio entre luces y el radio de las esquinas de cada una. Un arco reparte el espacio a lo largo de su propio anillo, y cualquier radio distinto de cero redondea en cambio los extremos de las luces.",
+        "shape": "Una fila coloca las luces a lo largo de su orientación. Un arco las reparte alrededor de un sector, que es el anillo de revoluciones en el que se basa un dashboard redondo.",
+        "blink": "El parpadeo empieza en esta fracción del rango. Con un umbral por encima de 1 no parpadea nunca, y tampoco con un periodo de cero.",
+        "off": "El color de una luz apagada. Si no se define, no se dibuja.",
+        "inverted": "Enciende desde el extremo lejano en lugar del cercano, que es como se obtiene un par de barras de revoluciones en espejo a partir de una sola fila de luces. No cambia qué luz se enciende ni cuándo."
+      },
+      "graph": {
+        "points": "Cuántas muestras guarda cada curva y cada cuánto se toma una: juntas forman la ventana que muestra el trazado. Hay un solo reloj para todo el widget, así que varias curvas quedan alineadas en él. El gráfico es el widget más costoso de dibujar, así que no uses más muestras de las necesarias.",
+        "traces": "Orígenes adicionales que se dibujan sobre el mismo trazado, hasta tres en total contando el del propio widget. Cada uno tiene su propio rango, que es lo que permite que la velocidad y el acelerador compartan un trazado sin que ninguno quede aplastado contra un borde.",
+        "width": "El grosor de todas las curvas. La mitad se deja libre dentro del trazado en cada lado (más lo que necesite un marco redondeado para que las esquinas no toquen la curva), así que un valor en lo más alto o lo más bajo de su rango se dibuja entero en lugar de quedar cortado por el marco."
+      },
+      "image": {
+        "image": "Las imágenes están en la biblioteca de imágenes de este PC, convertidas al tamaño con el que se dibujan, y «Guardar en la placa» instala las que dibuja el dashboard. El dispositivo no escala ni gira, así que ajusta el recuadro del widget al mapa de bits.",
+        "frame": "Qué imagen de una hoja de sprites se dibuja. Una hoja son varias imágenes enviadas como una sola, así que cambiar entre ellas no le cuesta nada a la placa y ocupa una de sus 32 entradas en lugar de una por imagen.",
+        "frameSource": "Elige la imagen a partir de la telemetría en lugar de fijarla: el valor se redondea a un número entero y se limita a los fotogramas que tiene la hoja, así que 0 es el primero y todo lo que pase del último se queda en el último. Así se dibuja una marcha, una bandera o un conjunto de luces con un solo widget en lugar de con una pila de ellos.",
+        "recolor": "Tiñe el mapa de bits hacia este color, que es como un solo icono blanco sirve para todos los estados. Una imagen alpha8 es el color en lugar de teñirse con él: solo lleva cobertura y se dibuja en blanco hasta que esto indique otra cosa.",
+        "strength": "Hasta dónde llega el tinte, desde sin cambios en 0 hasta el color del tinte por completo en 255. Una imagen alpha8 lo ignora: en ella el color es la imagen, no un tinte encima."
+      },
+      "trackMap": {
+        "track": "El plugin de SimHub envía el contorno del circuito en el que se corre y la posición de cada auto en la vuelta, así que el widget no vincula telemetría propia. Hasta que llega un contorno, los autos giran en el sentido de las agujas del reloj alrededor de un anillo, con la línea de salida y meta arriba. Sin telemetría, el lienzo dibuja un circuito de ejemplo inventado.",
+        "line": "El color del circuito. Una regla de estilo que define un color lo vuelve a pintar.",
+        "width": "Con qué grosor se dibuja el circuito. La calle de boxes tiene la mitad de grosor, y nunca menos de un píxel. El circuito se ajusta dentro del recuadro descontando la mitad de lo más ancho entre la línea, un auto y el punto del jugador, para que nada quede cortado en el borde.",
+        "sectorMarks": "Una marca fina que cruza el circuito donde empieza cada sector después del primero. Si no se define, no se dibujan marcas.",
+        "pitLane": "Se dibuja cuando el plugin ha visto a un auto recorrer la calle de boxes. Si no se define, la calle de boxes no se dibuja, y un auto que esté en ella se dibuja en el circuito en su posición de la vuelta.",
+        "finishLine": "Una marca corta que cruza el circuito en la línea de salida y meta. Si no se define, no se dibuja ninguna marca.",
+        "car": "El color de un auto al que no se aplica ningún color de rol ni de clase.",
+        "carSize": "El diámetro del punto con el que se dibuja cada uno de los demás autos. Un anillo de un píxel del color de fondo lo separa del circuito.",
+        "player": "El color del punto del propio jugador, que se dibuja por encima de todos los demás autos.",
+        "playerSize": "El diámetro del punto del jugador, dentro de su anillo de un píxel.",
+        "playerRing": "El color del anillo de un píxel alrededor del punto del jugador. Si no se define, el anillo es del color de fondo, como en todos los demás autos.",
+        "ahead": "El auto que va una posición por delante del jugador en su clase. Si no se define, se dibuja como cualquier otro auto.",
+        "behind": "El auto que va una posición por detrás del jugador en su clase. Si no se define, se dibuja como cualquier otro auto.",
+        "lapping": "Un auto que va una vuelta o más por delante del jugador en distancia recorrida. Si no se define, se dibuja como cualquier otro auto.",
+        "lapped": "Un auto que va una vuelta o más por detrás del jugador en distancia recorrida. Si no se define, se dibuja como cualquier otro auto.",
+        "pitCar": "Un auto en la calle de boxes que no es el del jugador. Si no se define, se dibuja con el color que tendría en el circuito, a media intensidad.",
+        "classes": "Con más de una clase en el circuito, el plugin ordena las clases por su mejor vuelta: la clase 1 es la más rápida, y la cuarta y todas las más lentas comparten la clase 4. Con una sola clase en el circuito no se aplica ningún color de clase.",
+        "classColor": "El color de los autos de esta clase. Un color de rol tiene prioridad sobre él y, si no se define, se mantiene el color de auto.",
+        "fitRotation": "Gira el circuito hasta el ángulo en el que mejor llena el recuadro, probando cada 5° de 0 a 175. Desactivado, se mantienen los ejes del propio juego.",
+        "rotation": "Un giro adicional en el sentido de las agujas del reloj después del ajuste. Después del giro, el circuito se vuelve a ajustar al recuadro.",
+        "refresh": "El tiempo mínimo entre dos redibujados de los autos en la placa. Cada auto se desliza por la vuelta entre dos actualizaciones del plugin, así que un intervalo más corto mueve los autos con más suavidad; cada redibujado vuelve a pintar la zona que ocupan los autos, así que un intervalo más largo consume menos tiempo de fotograma en una pantalla cargada."
+      },
+      "shape": {
+        "kind": "Una línea es un rectángulo fino: dale poca altura o poca anchura. Una forma también es el contenedor en el que se colocan otros widgets."
+      },
+      "slot": {
+        "pages": "Un toque en la placa recorre las páginas que están en el ciclo. El orden de las páginas es su prioridad: cuando dos se activan a la vez, el dispositivo muestra la que va antes.",
+        "loop": "Si un toque en el slot puede llegar a esta página. Una página fuera del ciclo solo aparece por su disparador.",
+        "trigger": "Lo que hace aparecer esta página automáticamente, por encima del ciclo. Sin disparador, solo se llega a la página tocando el slot.",
+        "duration": "Cuánto tiempo se queda visible la página. Un disparador de cambio de valor la necesita; con reglas, cero muestra la página solo mientras se cumple una regla.",
+        "homeAfter": "Cuánto tiempo sin toques ni botones que actúen sobre este slot antes de que vuelva a su primera página del ciclo. Con 0 no vuelve nunca.",
+        "dismiss": "Cuánto tiempo se mantiene oculta esta página cuando un botón la descarta: hasta que su disparador se vuelve a activar (next_event), durante un tiempo fijo (timed) o hasta que vuelve a empezar la sesión (session)."
+      },
+      "dashboard": {
+        "transition": "Cómo cambia la placa de una pantalla a otra, tanto si se pide deslizando el dedo como con un toque. Con slide se usa la animación de deslizamiento; con none, la pantalla se sustituye en un solo fotograma. El deslizamiento dibuja ambas pantallas en cada uno de sus fotogramas, así que se nota en una pantalla llena de widgets: elige none si al deslizar el dedo el cambio va a saltos.",
+        "smoothing": "Si las barras, los arcos, las agujas, las curvas de los gráficos y el texto con formato numérico se mueven entre paquetes de telemetría en lugar de avanzar a saltos con ellos. Con interpolate se desliza hacia cada paquete para llegar justo cuando toca el siguiente: totalmente fluido, con un periodo de paquete de retraso (16 ms a 60 Hz, 50 ms a 20 Hz). Con predict sigue moviéndose al ritmo medido y se corrige cuando llega el paquete: sin retraso de media, con un pequeño exceso en los cambios de sentido. Una pausa de más de 250 ms entre paquetes se dibuja como un salto, así que los valores que cambian con eventos nunca se deslizan. Los widgets Luces, las condiciones y los rótulos siempre leen el propio paquete.",
+        "font": "La familia que toman los widgets nuevos. Es un ajuste propio del editor: el dispositivo resuelve una fuente por widget, así que el documento no lleva ninguna para todo el dashboard.",
+        "budget": "Lo que cuestan en la placa las familias elegidas. Las variantes se envían completas y la partición admite 3 MiB de ellas."
+      },
+      "screen": {
+        "name": "A lo que apunta una acción «ir a la pantalla». Al cambiar el nombre, se actualizan todas las acciones que nombran esta pantalla.",
+        "background": "El color detrás de todos los widgets de esta pantalla."
+      },
+      "widget": {
+        "id": "El nombre con el que se conoce este widget en la lista de capas, en el JSON y en todo lo que se refiere a él. El dispositivo lo guarda y nunca lo dibuja."
+      },
+      "screenChanges": {
+        "group": "Muestra una pantalla mientras un valor cumple la condición, como la pantalla de boxes en la calle de boxes. El dashboard vuelve atrás cuando deja de cumplirse, salvo que un botón haya cambiado de pantalla mientras tanto.",
+        "watch": "El valor de telemetría que vigila la regla.",
+        "homeScreen": "La pantalla que muestran la acción de inicio y el regreso por inactividad.",
+        "homeAfter": "Cuánto tiempo sin cambiar de pantalla antes de que el dashboard vuelva al inicio. Con 0 no vuelve nunca."
+      }
+    },
+    "actionEditor": {
+      "action": "Acción",
+      "onTap": "Al tocar",
+      "screen": "Pantalla",
+      "followThisAction": "Seguir esta acción",
+      "thisDashboardAlreadyUsesAll": "Este dashboard ya usa los {mAXIMUM_ACTIONS} elementos táctiles disponibles.",
+      "goToScreen": "Ir a {screen}"
+    },
+    "colorPicker": {
+      "pickAColourFromThe": "Tomar un color de la pantalla",
+      "onThisDashboard": "En este dashboard",
+      "colorsAlreadyOnTheDashboard": "Colores que ya están en el dashboard",
+      "labelPicker": "Selector de {label}"
+    },
+    "conditionsEditor": {
+      "conditions": "Condiciones",
+      "watch": "Vigilar",
+      "modifier": "Modificador",
+      "removeThisRule": "Quitar esta regla",
+      "when": "Cuando",
+      "value": "Valor",
+      "border": "Borde",
+      "title": "Título",
+      "hide": "Ocultar",
+      "blinkPeriodInMilliseconds0": "Periodo de parpadeo en milisegundos; 0 es fijo",
+      "holdInMillisecondsAfterThe": "Retención en milisegundos tras dejar de cumplirse la regla",
+      "removeTheColourRamp": "Quitar la escala de colores",
+      "removeThisStop": "Quitar este punto",
+      "aRampNeedsAtLeast": "Una escala de colores necesita al menos dos puntos entre los que interpolar.",
+      "lengthRuleS": "Reglas: {length}",
+      "thresholdInUnit": "Umbral en {unit}",
+      "blinkHold": "{blink} {hold}",
+      "atInUnit": "Valor en {unit}",
+      "at": "En",
+      "addStop": "Añadir punto",
+      "addAColourRamp": "Añadir una escala de colores",
+      "ruleNumber": "Regla {number}",
+      "removeRuleNumber": "Quitar la regla {number}",
+      "removeStopNumber": "Quitar el punto {number}",
+      "stopNumber": "Punto {number}",
+      "stopNumberColour": "Color del punto {number}"
+    },
+    "group": {
+      "advanced": "Avanzado",
+      "set": "definido"
+    },
+    "iconPicker": {
+      "anIconIsAGlyph": "Un icono es un glifo de la familia Material Icons: úsala como fuente del texto en el que va, o como reserva junto a una familia de texto.",
+      "insertAnIcon": "Insertar un icono",
+      "insertAnIconGlyph": "Insertar un glifo de icono",
+      "insertTheNameIcon": "Insertar el icono {name}",
+      "searchAllIcons": "Buscar en todos los iconos",
+      "nothingMatches": "Ningún icono coincide con «{query}».",
+      "firstShownOfTotal": "Se muestran los primeros {shown} de {total}: escribe más para acotar la búsqueda."
+    },
+    "slotPagesEditor": {
+      "pages": "Páginas",
+      "addPage": "Añadir página",
+      "inLoop": "En el ciclo",
+      "trigger": "Disparador",
+      "duration": "Duración",
+      "threshold": "Umbral",
+      "closeThisSlot": "Cerrar este slot",
+      "editPagesOnTheCanvas": "Editar las páginas en el lienzo",
+      "lengthPageS": "Páginas: {length}",
+      "addActivationRule": "Añadir regla de activación",
+      "deletePageNumber": "Eliminar la página {number}"
+    },
+    "sourceEditor": {
+      "removeThisSource": "Quitar este origen",
+      "transform": "Conversión",
+      "units": "Unidades",
+      "number": "Número",
+      "decimals": "Decimales",
+      "scale": "Escala",
+      "offset": "Desfase",
+      "affixes": "Afijos",
+      "prefix": "Prefijo",
+      "suffix": "Sufijo",
+      "sourceNumber": "Origen {number}",
+      "removeSourceNumber": "Quitar el origen {number}"
+    },
+    "telemetryBindingField": {
+      "unknownTelemetryBinding": "Vínculo de telemetría desconocido",
+      "fieldSummary": "{category} · {type} · {unit} · {rate} · ID {wireId}"
+    },
+    "widgetInspector": {
+      "selectAnExistingWidgetOn": "Selecciona un widget existente en la pantalla.",
+      "widgetName": "Nombre del widget"
+    },
+    "colorPickerControls": {
+      "hue": "Tono"
+    },
+    "documentSections": {
+      "transition": "Transición",
+      "smoothing": "Suavizado",
+      "newWidgets": "Widgets nuevos",
+      "applyToEveryWidget": "Aplicar a todos los widgets",
+      "fontBudget": "Cupo de fuentes",
+      "idNotInTheLibrary": "{id}: no está en la biblioteca"
+    },
+    "fields": {
+      "notSet": "Sin definir",
+      "labelInSuffix": "{label} en {suffix}",
+      "labelSet": "{label}: valor definido"
+    },
+    "fontFields": {
+      "font": "Fuente",
+      "sizeInPixels": "Tamaño en píxeles",
+      "fallbackFamily": "+ Familia de reserva",
+      "removeTheFallbackFamily": "Quitar la familia de reserva",
+      "drawMissingGlyphsAsNothing": "Quitar la reserva: los glifos que faltan vuelven a dibujarse como cuadros vacíos",
+      "unresolvedFamily": "Sin resolver: {family}",
+      "chooseFont": "Elegir fuente…"
+    },
+    "gaugeEditors": {
+      "arc": "Arco",
+      "mark": "Marca",
+      "fill": "Relleno",
+      "track": "Pista",
+      "removeThisTrace": "Quitar esta curva",
+      "line": "Línea",
+      "moreTraces": "Más curvas",
+      "addTrace": "Añadir curva",
+      "plot": "Trazado",
+      "window": "Ventana",
+      "howManySamplesEachTrace": "Cuántas muestras guarda cada curva",
+      "millisecondsBetweenSamples": "Milisegundos entre muestras",
+      "points": "Muestras",
+      "intervalMs": "Intervalo (ms)",
+      "lineWidth": "Ancho de línea",
+      "fromOrigin": "Desde la base",
+      "origin": "Base",
+      "bar": "Barra",
+      "orientation": "Orientación",
+      "gradientTo": "Degradado hasta",
+      "gradient": "Degradado",
+      "gradientMiddle": "Medio",
+      "gradientEnd": "Final",
+      "aGraphDrawsAtMost": "Un gráfico dibuja como máximo {mAXIMUM_GRAPH_SOURCES} orígenes en un mismo trazado.",
+      "showsTheLastTofixedS": "Muestra los últimos {toFixed} s.",
+      "toFixedS": "{toFixed} s",
+      "removeTraceNumber": "Quitar la curva {number}",
+      "lengthOfMaximum": "{length} de {maximum}"
+    },
+    "indicatorEditor": {
+      "strip": "Fila",
+      "shape": "Forma",
+      "gapBetweenLampsInPixels": "Espacio entre luces en píxeles",
+      "gap": "Espacio",
+      "radius": "Radio",
+      "unlit": "Apagada",
+      "blinkFromThisFractionOf": "Parpadear desde esta fracción del rango",
+      "blinkPeriodInMilliseconds": "Periodo de parpadeo en milisegundos",
+      "periodMs": "Periodo (ms)",
+      "segments": "Segmentos",
+      "addLamp": "Añadir luz",
+      "aStripHoldsAtMost": "Una fila admite como máximo {mAXIMUM_INDICATOR_SEGMENTS} luces.",
+      "arcWidget": "arco {widget}",
+      "nonZeroRoundsTheLamp": "Si no es cero, redondea los extremos de las luces",
+      "lampCornerRadiusInPixels": "Radio de esquina de las luces en píxeles",
+      "lengthLampS": "Luces: {length}",
+      "lampNumber": "Luz {number}",
+      "lampNumberLightsAtThis": "La luz {number} se enciende en esta fracción del rango",
+      "lampNumberColour": "Color de la luz {number}",
+      "removeLampNumber": "Quitar la luz {number}"
+    },
+    "ringEditor": {
+      "centreAngle": "Ángulo central",
+      "sector": "Sector",
+      "thickness": "Grosor",
+      "length": "Longitud",
+      "centreOn": "Centrar en",
+      "xOffset": "Desfase X",
+      "yOffset": "Desfase Y",
+      "followingTheBoxFittedPx": "Sigue al recuadro: {fitted} px. Si escribes un valor, se fija un radio propio.",
+      "followingTheBoxFittedPxLength": "Sigue al recuadro: {fitted} px. Si escribes un valor, se fija una longitud propia."
+    },
+    "sectionEditors": {
+      "data": "Datos",
+      "range": "Rango",
+      "container": "Contenedor",
+      "clipContents": "Recortar contenido",
+      "geometry": "Geometría",
+      "position": "Posición",
+      "minimumUnit": "Mínimo{unit}",
+      "maximumUnit": "Máximo{unit}",
+      "empty": "Vacío",
+      "countWidgetS": "Widgets: {count}"
+    },
+    "stylingEditors": {
+      "title": "Título",
+      "textFrom": "Texto según",
+      "color": "Color",
+      "anchor": "Anclaje",
+      "xOffset": "Desfase X",
+      "yOffset": "Desfase Y",
+      "cutBorder": "Cortar borde",
+      "cutPadding": "Margen de corte",
+      "theCutIsAStraight": "El corte es una franja recta, así que un rótulo empujado hacia una esquina redondeada le quita un trozo. Aplícale un desfase de aproximadamente el radio más el ancho del borde para que quede fuera de la curva.",
+      "box": "Recuadro",
+      "borderWidth": "Ancho del borde",
+      "cornerRadius": "Radio de esquina",
+      "fillCorners": "Esquinas del relleno",
+      "borderColor": "Color del borde",
+      "paddingX": "Margen X",
+      "paddingLeft": "Margen izquierdo",
+      "paddingRight": "Margen derecho",
+      "left": "Izquierda",
+      "right": "Derecha",
+      "paddingY": "Margen Y",
+      "paddingTop": "Margen superior",
+      "paddingBottom": "Margen inferior",
+      "top": "Arriba",
+      "bottom": "Abajo",
+      "inset": "Reducción",
+      "axis": "Eje",
+      "borderRadius": "{border} {radius}"
+    },
+    "widgetEditors": {
+      "bitmap": "Mapa de bits",
+      "frameFrom": "Fotograma según",
+      "recolor": "Tinte",
+      "strength": "Intensidad",
+      "kind": "Tipo",
+      "theSlotDrawsNothingItself": "El slot no dibuja nada por sí mismo: pon una forma detrás para tener un fondo. Cada página es este recuadro, y sus widgets se colocan en relación con él.",
+      "addSource": "Añadir origen",
+      "alignment": "Alineación",
+      "fallback": "Reserva",
+      "fallbackColour": "Color de reserva",
+      "imageHasASingleFrame": "«{image}» tiene un solo fotograma, así que el dispositivo rechazará que se le indique un fotograma o un origen de fotograma.",
+      "thisShapeHoldsNoWidgets": "Esta forma no contiene widgets. Arrastra widgets sobre ella para convertirla en un contenedor; una forma vacía con una acción es una zona táctil invisible.",
+      "holdsHeldWidgetSPlaced": "Widgets dentro: {held}. Se colocan en relación con este recuadro.",
+      "lengthSources": "Orígenes: {length}",
+      "unassigned": "Sin asignar",
+      "unbound": "Sin vincular",
+      "addImagesFirst": "Añade imágenes en la página «Imágenes» para elegir una aquí.",
+      "imageIsNowhere": "«{image}» no está ni en este PC ni en la placa, así que la placa rechazará este dashboard. Añádela en la página «Imágenes».",
+      "imageNotOnBoardYet": "«{image}» todavía no está en la placa. «Guardar en la placa» la instala.",
+      "imageOnlyOnBoard": "Solo la placa tiene «{image}». Este PC no tiene ninguna copia, así que un archivo de dashboard compartido no la incluirá."
+    },
+    "trackMapEditor": {
+      "track": "Circuito",
+      "line": "Línea",
+      "lineWidth": "Ancho de línea",
+      "sectorMarks": "Marcas de sector",
+      "pitLane": "Calle de boxes",
+      "finishLine": "Línea de meta",
+      "widthPx": "{width} px",
+      "cars": "Autos",
+      "car": "Auto",
+      "carSize": "Tamaño de auto",
+      "player": "Jugador",
+      "playerSize": "Tamaño del jugador",
+      "playerRing": "Anillo del jugador",
+      "ahead": "Delante",
+      "behind": "Detrás",
+      "lapping": "Doblando",
+      "lapped": "Doblado",
+      "pitCar": "En boxes",
+      "carsSummary": "{car} px · jugador {player} px",
+      "classes": "Clases",
+      "classNumber": "Clase {number}",
+      "classesSummary": "Definidas: {count} de {maximum}",
+      "layout": "Diseño",
+      "fitRotation": "Ajustar giro",
+      "rotation": "Giro",
+      "refresh": "Refresco",
+      "fitted": "Ajustado",
+      "fittedRotation": "Ajustado y luego {rotation}°",
+      "fixedRotation": "{rotation}°"
+    },
+    "infoHint": {
+      "aboutLabel": "Acerca de {label}",
+      "aboutThisProperty": "Acerca de esta propiedad"
+    },
+    "propertyRow": {
+      "labelIsSetInThis": "{label} no tiene el valor predeterminado del dispositivo: haz clic para restablecerlo",
+      "clearLabel": "Borrar {label}"
+    },
+    "valueColorList": {
+      "positionColour": "Color de {position}",
+      "removeNounPosition": "Quitar {noun} {position}"
+    },
+    "slotControls": {
+      "firstPageAfter": "Primera página tras",
+      "dismissedUntil": "Descartada hasta",
+      "dismissedFor": "Descartada durante"
+    },
+    "screenChanges": {
+      "automaticScreenChanges": "Cambios automáticos de pantalla",
+      "show": "Mostrar",
+      "screen": "Pantalla",
+      "while": "Mientras",
+      "value": "Valor",
+      "removeRuleNumber": "Quitar la regla {number}",
+      "moreConditions": {
+        "$plural": {
+          "one": "y {count} condición más, que se conserva tal como está escrita",
+          "many": "y {count} de condiciones más, que se conservan tal como están escritas",
+          "other": "y {count} condiciones más, que se conservan tal como están escritas"
+        }
+      },
+      "addRule": "Añadir regla",
+      "homeScreen": "Pantalla de inicio",
+      "theFirstScreen": "La primera pantalla",
+      "returnHomeAfter": "Volver al inicio tras",
+      "seconds": "s",
+      "ruleCount": {
+        "$plural": {
+          "one": "{count} regla",
+          "many": "{count} de reglas",
+          "other": "{count} reglas"
+        }
+      }
+    }
+  },
+  "modules": {
+    "hints": {
+      "output": {
+        "pin": "GPIO al que va conectada la línea de datos de la cadena. Solo se ofrecen los pines que la placa deja libres: la pantalla, la memoria flash, la PSRAM y la conexión serie ocupan el resto, y el firmware rechaza cualquiera de ellos.",
+        "chip": "A qué familia pertenecen las luces. ws2812b también cubre WS2812, WS2813 y WS2815: leen los mismos tres bytes y solo se diferencian en la alimentación y la redundancia. sk6812_rgbw lleva una cuarta luz, blanca, en cada encapsulado, así que los colores neutros pasan a esa luz y enviar los datos de la cadena tarda un tercio más.",
+        "brightness": "Escala todos los colores de esta salida al enviarlos al cable, antes de aplicar el límite de corriente. Es el único brillo que tiene el dispositivo: las capas no tienen brillo propio.",
+        "gamma": "Corrige la respuesta perceptiva de las luces. Sin ella, la parte baja del rango de brillo se ve como unos pocos saltos bien diferenciados en lugar de una transición suave.",
+        "current": "Límite de lo que puede consumir esta salida. Cuando la estimación lo supera, se atenúa todo el fotograma, para que el brillo baje por igual en lugar de que caiga la tensión de la alimentación y los colores se desvíen. Una luz en blanco total consume unos 60 mA, así que un solo panel de ocho por ocho ya supera lo que puede dar un puerto USB. Déjalo en 0 solo si conoces bien tu alimentación."
+      },
+      "device": {
+        "count": "Luces de esta tira. Si describes una disposición abajo, es la suma de sus tramos.",
+        "segments": "Cómo está montada físicamente la tira, en tramos rectos en el orden del cableado: por ejemplo, 8 luces subiendo por el lado izquierdo, 16 por la parte superior y 8 bajando por la derecha. La placa envía los datos a la cadena igual en cualquier caso; los tramos doblan las vistas previas para que coincidan con el montaje y ofrecen a los perfiles zonas ya preparadas. La suma de sus luces debe ser la de toda la tira.",
+        "size": "Columnas y filas del panel tal como está fabricado, no como está montado.",
+        "wiring": "Cómo está cableado el panel y cómo está montado. «Filas» indica si las filas alternas van al revés, como ocurre en la mayoría de los paneles comerciales. «Primera luz» indica la esquina por la que entra la línea de datos. «Giro» rota todo lo que se dibuja en el panel, para que uno montado de lado se siga viendo derecho."
+      },
+      "sprite": {
+        "pictures": "Dibujos que puede mostrar este panel: cada uno es una cuadrícula de píxeles indexados por paleta, con hasta dieciséis fotogramas. Viajan dentro del documento de módulos en lugar de enviarse aparte, así que no ocupan ninguna partición ni necesitan envío ni reinicio, y una configuración guardada lleva sus propios dibujos.",
+        "name": "El nombre con el que las capas se refieren a este dibujo. Si lo cambias, el cambio llega a todas las capas que lo muestran. Dos dibujos de un mismo panel no pueden tener el mismo nombre.",
+        "size": "Columnas y filas del propio dibujo, que no tienen por qué coincidir con las del panel: un dibujo más pequeño se muestra centrado en la zona en la que pinta la capa. Cuanto más grande es, menos fotogramas caben, porque cada dibujo tiene su propio límite de 1024 dígitos.",
+        "palette": "Colores con los que está hecho este dibujo, quince como máximo. Elige uno para pintar, o «Transparente» para dejar un píxel sin pintar y que se sigan viendo las capas de debajo: es un dígito más allá del final de la paleta, no un color, y por eso el último se deja libre. Por convención, y no por regla, la entrada 1 es la luz apagada: pinta de negro lo que haya debajo.",
+        "stripSize": "Luces que abarca un fotograma de esta animación. Una capa la reproduce desde la primera luz que cubre, en su propia dirección, así que el mismo dibujo sirve para los dos extremos de un volante. Cuanto más larga es la fila, menos fotogramas caben, porque cada dibujo tiene su propio límite de 1024 dígitos.",
+        "frames": "Fotogramas de la animación, que reproduce en orden una capa con «Reproducir fotogramas» activado. Cuántos caben depende del tamaño: dieciséis de ocho por ocho, cuatro de dieciséis por dieciséis. Duplica un fotograma para dibujar el siguiente a partir de él.",
+        "mirror": "Reproduce solo este dibujo en la placa conectada mientras dibujas, igual que la vista previa de una capa. Necesita una placa conectada que esté siguiendo el borrador; al desactivarlo, el panel vuelve a mostrar toda la configuración."
+      },
+      "effect": {
+        "stack": "Todas las capas cuya condición de activación se cumple pintan a la vez. Si dos cubren la misma luz, se la queda la que se encendió más recientemente (así una bandera aparece sobre las shift lights sin importar en qué orden estén las dos en la lista), y las capas que se encendieron a la vez mantienen el orden que tienen aquí. Es lo contrario de las reglas de estilo de un widget, donde gana la primera coincidencia: un widget resuelve una sola apariencia, mientras que una salida compone una imagen a partir de muchas cosas que se cumplen a la vez.",
+        "type": "Lo que pinta esta capa. steps es el clásico de las shift lights: umbrales repartidos entre las luces que cubre. gauge se llena en proporción al valor. gradient extiende una escala de colores por las luces. animation se mueve con su propia base de tiempo. sprite reproduce un dibujo (una cuadrícula en una matriz o una fila de luces en una tira) y text dibuja texto en una matriz.",
+        "panel": "En qué píxeles del panel pinta esta capa. Haz clic en uno para desactivarlo o activarlo, o arrastra sobre varios; «Todo» e «Invertir» actúan sobre toda la cuadrícula a la vez. El valor predeterminado es «todos los píxeles», que no ocupa nada en el documento. La capa trabaja sobre el recuadro más pequeño que contiene lo que elegiste, así que el texto y los dibujos se siguen centrando en esa forma y no en el panel.",
+        "sprite": "Qué dibujo del dispositivo muestra esta capa. Los dibujos se crean en la pestaña «Dibujos», y un perfil trae los suyos (las banderas llevan consigo sus dibujos); una capa cuyo dibujo no está en el panel es un error de composición, no un panel en blanco.",
+        "loop": "Recorre los fotogramas del dibujo con el reloj propio de esta capa, uno por cada intervalo de «Duración de fotograma»; así los dibujos se mueven sin que los controle la telemetría. Si se deja desactivado, la capa mantiene fijo el fotograma indicado abajo.",
+        "gate": "Cuándo pinta esta capa. always pinta en cada fotograma; conditions pinta mientras se cumple una regla sobre su propio valor vigilado; telemetry idle pinta solo tras dos segundos de silencio, que es lo que necesitan tanto una animación de reposo como un aviso de conexión perdida.",
+        "hold": "Mantiene la capa pintando durante este tiempo después de que su condición de activación deje de cumplirse, para que un evento momentáneo, como el control de tracción, siga produciendo un destello visible.",
+        "background": "Rellena las luces de esta capa antes de que dibuje y las mantiene rellenas mientras parpadea, para que nunca se vean a través de ella las capas de debajo. El negro las oculta; otro color pasa a ser el fondo sobre el que dibuja la capa. Si está desactivado, se ven las capas de debajo allí donde esta capa no dibuja nada: entre parpadeos, entre los puntos de una animación, en los pasos aún no encendidos.",
+        "ruleTiming": "«Parpadeo» es el periodo con el que parpadea toda la capa mientras se cumple esta regla, para que una franja de valores pueda parpadear sin otra capa encima; sustituye al parpadeo propio de la capa. «Retención» mantiene la regla aplicada durante ese tiempo después de que deje de coincidir, para que un disparo momentáneo siga dejando un destello de color visible.",
+        "colors": "Colores que toma esta capa mientras el valor vigilado coincide, y gana la primera regla que coincida (por ejemplo, una marcha que se vuelve ámbar y luego roja al subir las revoluciones). Describen, no seleccionan: la condición de activación dice si la capa pinta o no, y estos colores dicen de qué color pinta. En un dibujo, el color repinta cada píxel encendido, así que un mismo dibujo sirve para todos los estados; los píxeles que pinta de negro siguen negros.",
+        "blink": "Periodo completo de parpadeo de lo que dibuja esta capa. 0 pinta fijo. Entre destellos se ven las capas de debajo, salvo que esté marcada la casilla «Cubre».",
+        "lamps": "Qué luces cubre esta capa, numeradas desde 1 en el orden del cableado. Separa los tramos con comas; un tramo escrito de mayor a menor, como 30-27, va al revés, y el orden en que los escribes es el que sigue el relleno. Haz clic en las luces del mapa para añadirlas o quitarlas, o arrastra sobre un tramo.",
+        "spread": "«Como una línea» coloca las partes una tras otra, así que un relleno pasa de una a la siguiente. «Cada parte por separado» pinta el efecto completo en todas las partes a la vez, así que las banderas de los dos extremos de un volante parpadean como una sola.",
+        "hysteresis": "Cuando la condición de activación ya se cumple, el valor vigilado tiene que retroceder esta cantidad más allá del umbral de una regla antes de que la capa se desactive, para que unas revoluciones que rondan el punto de cambio no la enciendan y apaguen en cada fotograma. 0 la desactiva al instante.",
+        "span": "Cuántas luces abarca el movimiento: la cola en comet, el hueco en theater, el bloque que rebota en bounce, los destellos de una pasada en sparkle.",
+        "scaled": "Asigna el valor vinculado a los fotogramas del dibujo mediante «Mínimo» y «Máximo»: el primer fotograma en el mínimo y el último en el máximo, para que un dibujo hecho como secuencia siga las revoluciones. Si está desactivado, el valor es directamente el número de fotograma.",
+        "shape": "En qué sentido rellena la capa las luces que cubre. A lo largo del tramo empieza en la primera luz; al revés, en la última. Desde el centro pinta hacia ambos lados a la vez, que es lo que pide una barra de revoluciones centrada; desde los extremos hace lo contrario y se cierra hacia el centro."
+      }
+    },
+    "effectEditor": {
+      "paints": "Pinta",
+      "from": "Desde",
+      "colour": "Color",
+      "picture": "Dibujo",
+      "playFrames": "Reproducir fotogramas",
+      "frameHolds": "Duración de fotograma",
+      "frame": "Fotograma",
+      "framesFollowTheRange": "Fotogramas según el rango",
+      "span": "Extensión",
+      "whichFrameToHoldStill": "Qué fotograma mantener fijo. Con telemetría vinculada, lo elige el valor.",
+      "text": "Texto",
+      "drawnAsAuthoredWithA": "Se dibuja con la variante integrada, que solo incluye los dígitos, la N y la R; los demás caracteres quedan apagados. Con un origen vinculado, esto pasa a ser el prefijo y el origen aporta el resto.",
+      "face": "Variante",
+      "scrollStep": "Paso de desplazamiento",
+      "howLongOneColumnOf": "Cuánto tiempo se queda quieta cada columna de un texto que se desplaza. El texto que cabe en el panel se centra y no se desplaza.",
+      "motion": "Movimiento",
+      "pass": "Pasada",
+      "direction": "Dirección"
+    },
+    "effectList": {
+      "layers": "Capas",
+      "allPaintedAtOnceWhere": "Todas se pintan a la vez; si dos comparten una luz, se la queda la que se encendió la última.",
+      "playsThisLayerInThe": "Reproduce esta capa en la vista previa de arriba, junto con lo que ya se esté reproduciendo, hasta que se vuelva a pulsar",
+      "lengthLayerS": "Capas: {length}",
+      "stopPreviewingIndex": "Detener la vista previa de {index}",
+      "previewIndex": "Vista previa de {index}",
+      "moveLayerNumberDownThe": "Bajar la capa {number} en la pila",
+      "moveLayerNumberUpThe": "Subir la capa {number} en la pila",
+      "removeLayerNumber": "Quitar la capa {number}",
+      "ctrlClickOrShiftClick": "Ctrl+clic o Shift+clic selecciona varias capas para cambiarlas a la vez.",
+      "pickAll": "Seleccionar todas",
+      "groupsDifferOnlyInLamps": "Grupos de capas que solo difieren en sus luces: {count}. Con una capa por grupo se lograría lo mismo.",
+      "merge": "Combinar",
+      "mergesNames": "Combina las copias de {names} en una sola capa por grupo; cada parte sigue pintando por separado, como antes",
+      "picksEveryLayerInThis": "Selecciona todas las capas de este grupo para cambiarlas a la vez"
+    },
+    "effectRow": {
+      "lampsOfName": "{name}: luces {lamps}. Haz clic para editarla; Ctrl+clic o Shift+clic selecciona varias.",
+      "duplicateName": "Duplicar {name}"
+    },
+    "layerGroups": {
+      "whenTelemetryStops": "Sin telemetría",
+      "alwaysOn": "Siempre activas"
+    },
+    "layerWarnings": {
+      "coversNoLamps": "No cubre ninguna luz: su primera luz está más allá del final de la tira.",
+      "sameAsLayer": "Igual que {name}, así que una de las dos no hace nada.",
+      "alwaysHiddenUnder": "Nunca se ve: {name} siempre pinta encima de todas las luces que cubre.",
+      "showsThroughBetweenFlashes": "Entre destellos se ven las capas de debajo: {names}. Si marcas «Cubre», quedan a oscuras."
+    },
+    "multiEffectEditor": {
+      "countLayers": "Capas: {count}",
+      "labelMixed": "{label} (varía)",
+      "whatYouChangeHere": "Lo que cambies aquí se escribe en todas las capas seleccionadas. Un campo marcado con «varía» es distinto entre ellas y muestra el valor de la primera capa.",
+      "duplicateCount": "Duplicar {count}",
+      "removeCount": "Quitar {count}"
+    },
+    "simulator": {
+      "drivenBy": "Valores de",
+      "simHub": "SimHub",
+      "simulator": "Simulador",
+      "theLampsFollowTheGame": "Las luces siguen el juego, igual que en la placa.",
+      "simHubIsSendingTelemetry": "SimHub está enviando telemetría, pero la vista previa usa estos valores en su lugar.",
+      "noTelemetryFromSimHub": "No llega telemetría de SimHub, así que la vista previa usa estos valores.",
+      "simHubSendsNoValues": "SimHub no envía valores hasta que se ejecuta un juego o una repetición, así que la vista previa usa estos valores.",
+      "simHubSendsNoValuesDark": "SimHub no envía valores hasta que se ejecuta un juego o una repetición, así que las luces siguen apagadas.",
+      "startAGameOrA": "Inicia un juego o una repetición en SimHub para seguirlo aquí",
+      "reset": "Restablecer",
+      "resetEveryValue": "Devuelve todos los valores a su punto de partida",
+      "showOnTheBoard": "Mostrar en la placa",
+      "feedsTheseValuesToTheBoard": "Envía estos valores a la placa conectada en lugar de los de SimHub, para que también los muestren sus luces y su pantalla. Al desactivarlo, se borran y vuelven a pasar los valores de SimHub.",
+      "connectABoardToDrive": "Conecta una placa para controlar sus luces desde aquí",
+      "theBoardFollowsTheseValues": "Mientras esta página esté abierta, la placa sigue estos valores, no los de SimHub.",
+      "sweep": "Barrido",
+      "stopSweeping": "Detener el barrido",
+      "sweepsTheValueUpAnd": "Sube y baja el valor automáticamente",
+      "telemetryLost": "Telemetría perdida",
+      "layersGatedOnTelemetryIdle": "Enciende las capas que esperan a que se detenga la telemetría, como un aviso de conexión perdida",
+      "noLayerReadsTelemetry": "Ninguna capa lee telemetría, así que no hay nada que simular."
+    },
+    "ledPreview": {
+      "preview": "Vista previa",
+      "everyLampAsTheBoard": "Cada luz aparece numerada y colocada como está montada, y encendida como la enciende la placa: con SimHub mientras envía telemetría y, si no, con el simulador de abajo. El botón de reproducir de una capa la muestra sola.",
+      "dragAcrossLampsToSet": "Haz clic en las luces para añadirlas a {name} o quitárselas, o arrastra sobre un tramo. Alt+clic selecciona la capa superior.",
+      "clickALampToPick": "Haz clic en una luz para seleccionar la capa que tiene encima.",
+      "clickLampsForTheNewLayer": "Haz clic en las luces para elegir dónde va la nueva capa, o arrastra sobre un tramo; el primer clic empieza de cero. Alt+clic selecciona la capa superior.",
+      "clickPixelsToShowName": "Haz clic en los píxeles para mostrar {name} en ellos o dejar de mostrarla, o arrastra sobre varios. Alt+clic selecciona la capa superior.",
+      "lampNumberNoLayer": "Luz {number}: ninguna capa la cubre.",
+      "lampNumberLayers": "Luz {number}: {names}. Ahora no está encendida ninguna.",
+      "lampNumberLayersOnTop": "Luz {number}: {names}. Ahora encima: {top}.",
+      "nameOnItsOwnOver": "Solo {name}, en bucle.{note} Pulsa de nuevo su botón para detener la reproducción.",
+      "namesTogetherOverAndOver": "{names} a la vez, en bucle. Donde comparten una luz, gana la última que se reprodujo, igual que lo resuelve la placa.",
+      "pictureSprite": "Dibujo {sprite}"
+    },
+    "modulesPage": {
+      "peripheralsBeyondTheDisplayEach": "Periféricos aparte de la pantalla, cada uno en su propio pin de datos.",
+      "modulesView": "Vista de módulos",
+      "deviceView": "Vista del dispositivo",
+      "wiring": "Cableado",
+      "thePinTheShapeAnd": "El pin, la forma y los límites de este dispositivo.",
+      "whatItShows": "Qué muestra",
+      "layersComposedOntoThisDevice": "Capas que se componen sobre este dispositivo, o un perfil que añade una ya preparada.",
+      "pickALayerToEdit": "Selecciona una capa para editar lo que pinta.",
+      "pictures": "Dibujos",
+      "artworkThisPanelDrawsDrawn": "Dibujos que muestra este panel, creados aquí e incluidos en el documento de módulos.",
+      "animations": "Animaciones",
+      "animationsThisStripPlays": "Animaciones que reproduce esta tira, dibujadas aquí luz a luz y fotograma a fotograma, e incluidas en el documento de módulos. Una capa sprite reproduce una en las luces que cubre.",
+      "pickAPictureToDraw": "Elige un dibujo para editarlo o crea uno nuevo.",
+      "lEDs": "LED",
+      "matrix": "Matriz",
+      "addNoun": "Añadir {noun}",
+      "boardPublishesNoFreePins": "La placa {board} aún no ofrece pines libres para LED, así que el firmware rechazaría cualquier dispositivo en ella.",
+      "nothingIsWiredYetAdd": "Todavía no hay nada conectado. Añade una {noun} para indicar su pin y lo que muestra.",
+      "matrices": "Matrices",
+      "strips": "Tiras",
+      "eachNounOwnsOneData": "Cada {noun} ocupa un pin de datos y un canal de transmisión; una placa controla un dispositivo por cada pin de LED que ofrece.",
+      "noMatrices": "No hay matrices",
+      "noStrips": "No hay tiras",
+      "pinNumber": "pin {pin}",
+      "removeDeviceNumber": "Quitar el dispositivo {number}"
+    },
+    "noConfiguration": {
+      "peripheralsLiveInTheSame": "Los periféricos están en el mismo borrador que usa el dashboard, así que no hace falta tener una placa conectada.",
+      "nothingToConfigureYet": "Todavía no hay nada que configurar",
+      "thisBoardPublishesNoFree": "Esta placa aún no ofrece pines libres para LED, así que el firmware rechazará cualquier salida en ella. Aun así, puedes crear una y pasar el borrador a otra placa más adelante.",
+      "newConfiguration": "Nueva configuración",
+      "openFile": "Abrir archivo…"
+    },
+    "outputEditor": {
+      "device": "Dispositivo",
+      "pin": "Pin",
+      "noPinYetTheBoard": "Todavía no hay pin: la placa rechaza el documento hasta que se elija uno.",
+      "thisBoardPublishesNoFree": "Esta placa aún no ofrece pines libres para LED.",
+      "size": "Tamaño",
+      "columns": "Columnas",
+      "rows": "Filas",
+      "firstLamp": "Primera luz",
+      "turn": "Giro",
+      "lamps": "Luces",
+      "chip": "Chip",
+      "brightness": "Brillo",
+      "gamma": "Gamma",
+      "currentCap": "Límite de corriente",
+      "lampsSummedOverTheRuns": "{lamps}, sumando los tramos de la disposición de abajo.",
+      "theCapHoldsItTo": " El límite lo mantiene en {current_limit_ma} mA.",
+      "currentEstimate": "Luces: {lamps}. En blanco total y con este brillo podrían consumir unos {peak} mA.",
+      "pinPinLampsLamps": "pin {pin} · luces: {lamps}"
+    },
+    "lampsField": {
+      "lamps": "Luces",
+      "writeLampsLike": "Escribe las luces así: 3-6, 30-27. Del 1 al {lamps}, como máximo {parts} partes.",
+      "clickToRunThisPart": "Haz clic para que esta parte vaya en sentido contrario",
+      "wholeStrip": "Toda la tira",
+      "mirror": "Reflejar en el otro lado",
+      "addsTheMirrorImage": "Añade las mismas luces en el otro lado de la tira, en sentido contrario",
+      "spread": "Reparto",
+      "asOneLine": "Como una línea",
+      "eachPartOnItsOwn": "Cada parte por separado"
+    },
+    "panelArea": {
+      "showsOn": "Se muestra en",
+      "all": "Todo",
+      "invert": "Invertir",
+      "everyPixel": "todos los píxeles",
+      "countOfPixelsPixels": "{count} de {pixels} píxeles",
+      "everyPixelIsChosenSo": "Están elegidos todos los píxeles, así que al invertir la capa se quedaría sin nada donde pintar",
+      "choosesThePixelsThisLayer": "Elige los píxeles en los que esta capa no se muestra",
+      "aLayerKeepsAtLeast": "Una capa conserva al menos un píxel"
+    },
+    "profilePicker": {
+      "addLayer": "Añadir capa…",
+      "closeTheLayerPicker": "Cerrar el selector de capas",
+      "customLayer": "Capa personalizada",
+      "aBlankLayerWithEvery": "Una capa en blanco con todos los controles disponibles.",
+      "theCoveredLampsGlowIn": "Haz clic en las luces de la vista previa de arriba para elegir dónde va la nueva capa, o arrastra sobre un tramo; el primer clic empieza de cero. Si escribes como texto varios tramos, por ejemplo 3-6, 27-30, la capa se coloca en cada uno de ellos a la vez.",
+      "addToThisDevice": "Añadir a este dispositivo",
+      "whatShouldTheNewLayer": "¿Qué debe hacer la nueva capa?",
+      "runNumberRange": "Tramo {number} · {from}–{to}"
+    },
+    "segmentEditor": {
+      "arrangement": "Disposición",
+      "drawnAsAStraightLine": "Se dibuja como una línea recta. Describe la tira en tramos (por ejemplo, 8 luces hacia arriba, 16 a la derecha y 8 hacia abajo) y las vistas previas se doblarán según el montaje.",
+      "lampsInThisRun": "Luces de este tramo",
+      "addRun": "Añadir tramo",
+      "anArrangementHoldsAtMost": "Una disposición admite como máximo {mAXIMUM_LED_SEGMENTS} tramos.",
+      "straightLine": "línea recta",
+      "lengthRunS": "Tramos: {length}",
+      "removeRunNumber": "Quitar el tramo {number}",
+      "runNumber": "Tramo {number}"
+    },
+    "spriteEditor": {
+      "fitPanel": "Ajustar al panel",
+      "fitStrip": "Ajustar a la tira",
+      "matchesTheStripLamps": "Igual que la tira (luces: {lamps})",
+      "showOnStrip": "Mostrar en la tira",
+      "showingOnStrip": "Mostrando en la tira",
+      "paintsEveryPixelOfThis": "Pinta todos los píxeles de este fotograma con la tinta elegida",
+      "clearsThisFrameLeavingThe": "Borra este fotograma y deja visibles las capas de debajo",
+      "valueMs": "{value} ms",
+      "addAnotherLayer": "Añadir otra capa",
+      "addALayer": "Añadir una capa",
+      "showingOnPanel": "Mostrando en el panel",
+      "showOnPanel": "Mostrar en el panel",
+      "spriteOfSpriteDigitBudget": "{sprite} de {sPRITE_DIGIT_BUDGET} dígitos de píxel, incluidos en el documento de módulos.",
+      "widthHeightFramesFrameS": "{width}×{height} · fotogramas: {frames}",
+      "matchesThePanelWidthBy": "Igual que el panel: {width} por {height}",
+      "addsAnotherLayerDrawingThis": "Añade otra capa que muestra este dibujo",
+      "addsALayerThatDraws": "Añade una capa que muestra este dibujo, que es lo que lo lleva al panel",
+      "ghostPreviousFrame": "Fotograma anterior atenuado",
+      "fillFrame": "Rellenar fotograma",
+      "clearFrame": "Borrar fotograma"
+    },
+    "stripTimeline": {
+      "frameLamp": "Fotograma {frame}, luz {lamp}"
+    },
+    "spriteFrames": {
+      "frames": "Fotogramas",
+      "moveThisFrameEarlier": "Mover este fotograma antes",
+      "moveThisFrameLater": "Mover este fotograma después",
+      "duplicateThisFrame": "Duplicar este fotograma",
+      "copiesThisFrameAfterIt": "Copia este fotograma justo después, que es como un dibujo se convierte en el siguiente",
+      "addAnEmptyFrame": "Añadir un fotograma vacío",
+      "removeThisFrame": "Quitar este fotograma",
+      "framesOfCeilingThisSize": "{frames} de {ceiling}, el máximo para este tamaño",
+      "stopPlayingTheFrames": "Detener la reproducción",
+      "playTheFrames": "Reproducir los fotogramas",
+      "aWidthByHeightPicture": "Fotogramas que admite un dibujo de {width} por {height}: {ceiling}",
+      "frameNumber": "Fotograma {number}"
+    },
+    "spriteList": {
+      "sweep": "Barrido",
+      "orStartFrom": "o parte de",
+      "noneYetDrawOneOr": "Todavía no hay ninguno. Dibuja uno o parte de un patrón: un dibujo son píxeles indexados por paleta que viajan dentro del documento de módulos, así que no necesita envío ni reinicio.",
+      "inUse": "en uso",
+      "playsThisPictureInThe": "Reproduce este dibujo en la vista previa de arriba y también en el panel mientras «Mostrar en el panel» esté activado",
+      "disc": "Disco",
+      "chequer": "Cuadros",
+      "widthHeightFramesFrameS": "{width}×{height} · fotogramas: {frames} · dígitos: {sprite}",
+      "lengthOfMaximumLedSprites": "{length} de {mAXIMUM_LED_SPRITES}",
+      "drawsANewPictureAt": "Crea un dibujo nuevo del tamaño de este panel",
+      "aPanelCarriesMaximumLed": "Un panel admite como máximo {mAXIMUM_LED_SPRITES} dibujos",
+      "stopShowingId": "Dejar de mostrar {id}",
+      "showIdOnItsOwn": "Mostrar solo {id}",
+      "duplicateId": "Duplicar {id}",
+      "removePictureId": "Quitar el dibujo {id}",
+      "newPicture": "Nuevo dibujo",
+      "aDiagonalBandTravellingAcross": "Una franja diagonal que recorre el panel, con tantos fotogramas como permita el tamaño",
+      "aFilledCircleOnOne": "Un círculo relleno en un solo fotograma, listo para que su capa le cambie el color o lo haga parpadear",
+      "aRipplingChequerboardTheArtwork": "Un tablero a cuadros que ondula: el dibujo que usa la bandera a cuadros"
+    },
+    "spritePalette": {
+      "inks": "Tintas",
+      "clear": "Transparente",
+      "colorEntry1IsThe": "{color}: por convención, la entrada 1 es la luz apagada",
+      "aPictureNamesUsablePalette": "Un dibujo admite {uSABLE_PALETTE} colores; el último dígito se reserva para «Transparente»",
+      "addsAnotherColourToThis": "Añade otro color a este dibujo",
+      "thisPictureNamesAllSixteen": "Este dibujo usa los dieciséis colores, así que no queda ningún dígito para «Transparente»",
+      "clearsAPixelLeavingThe": "Borra un píxel y deja visibles las capas de debajo",
+      "ink": "Tinta",
+      "inkNumber": "Tinta {number}",
+      "removeInkNumber": "Quitar la tinta {number}",
+      "inkNumberColour": "Tinta {number}, {color}"
+    },
+    "effectColors": {
+      "colourWhen": "Color cuando",
+      "background": "Fondo",
+      "watches": "Vigila",
+      "timing": "Tiempos",
+      "blinkPeriodInMillisecondsWhile": "Periodo de parpadeo en milisegundos mientras se cumple esta regla; 0 es fijo",
+      "holdInMillisecondsAfterThis": "Retención en milisegundos después de que esta regla deje de cumplirse",
+      "blinkMs": "Parpadeo (ms)",
+      "holdMs": "Retención (ms)",
+      "addColourRule": "Añadir regla de color",
+      "removeColourRuleNumber": "Quitar la regla de color {number}"
+    },
+    "effectGate": {
+      "whenItPaints": "Cuándo pinta",
+      "gate": "Condición de activación",
+      "addRule": "Añadir regla",
+      "hold": "Retención",
+      "blink": "Parpadeo",
+      "switchOffMargin": "Margen de apagado",
+      "coversLayersBelow": "Cubre",
+      "noTheyShowThrough": "No: se ven las capas de debajo",
+      "betweenFlashesNamesShowThrough": "Entre destellos se ven las capas de debajo: {names}.",
+      "coverThem": "Cubrirlas"
+    },
+    "effectPayload": {
+      "thresholds": "Umbrales",
+      "colourRamp": "Escala de colores",
+      "lightsAtThisFractionOf": "Se enciende en esta fracción del rango",
+      "aLayerHoldsAtMost": "Una capa admite como máximo {maximum} pasos.",
+      "positionAlongTheLamps0": "Posición a lo largo de las luces, de 0 a 1",
+      "valueThisColourSitsAt": "Valor en el que se sitúa este color",
+      "aRampHoldsAtMost": "Una escala de colores admite como máximo {maximum} puntos.",
+      "step": "paso",
+      "stop": "punto"
+    },
+    "previewStatus": {
+      "boardRefusedThePreview": "La placa rechazó la vista previa",
+      "previewingHereOnly": "Vista previa solo aquí",
+      "previewingOnTheBoard": "Vista previa en la placa",
+      "theBoardIsLitBy": "Esta salida muestra lo que se está reproduciendo y nada más. Una capa vinculada a la telemetría sigue allí el juego, no el barrido que ves aquí."
+    },
+    "flags": {
+      "raceFlags": "Banderas de carrera",
+      "allEightFlagsAtOnce": "Las ocho banderas a la vez. En un panel, la blanca y negra lo barre con una franja diagonal, la negra y naranja hace parpadear su disco naranja y la de cuadros ondula como un tablero de verdad; en una tira se reducen a una mancha que parpadea y una luz que corre. Si dos banderas comparten una luz, gana la última que se mostró; las que se muestran a la vez siguen el orden de la lista, que termina con la roja."
+    },
+    "profiles": {
+      "shiftLights": "Shift lights",
+      "oneStepPerLampFrom": "Hasta dieciséis pasos repartidos por las luces, que se llenan según los puntos de cambio del propio auto en la marcha actual (del juego si los indica y, si no, de los ajustes del auto en SimHub), de verde a rosa pasando por amarillo; después todo el tramo parpadea en rojo cuando toca cambiar.",
+      "gear": "Marcha",
+      "theSelectedGearDrawnIn": "La marcha seleccionada, dibujada con la variante integrada más grande que quepa en el panel, que se vuelve ámbar y luego roja cuando las revoluciones se acercan al punto de cambio de la marcha actual. Cambia la variante en la capa si la quieres más pequeña. Solo para paneles, porque una tira no tiene dónde dibujar un carácter.",
+      "aBS": "ABS",
+      "redFlashWhileAbsIs": "Destello rojo mientras actúa el ABS.",
+      "tractionControl": "Control de tracción",
+      "orangeFlashWhileTractionControl": "Destello naranja mientras actúa el control de tracción.",
+      "pitLimiter": "Limitador de pit",
+      "steadyBlueWhileTheLimiter": "Azul fijo mientras el limitador está activado, para que nunca se confunda con una bandera azul.",
+      "dRS": "DRS",
+      "dimGreenWhenAvailableBright": "Verde tenue cuando está disponible y verde brillante mientras está abierto.",
+      "linkLost": "Conexión perdida",
+      "aSlowRainbowOnceTelemetry": "Un arcoíris lento cuando la telemetría lleva dos segundos en silencio."
+    },
+    "previewValues": {
+      "liveValues": " Los valores vienen de la telemetría en vivo.",
+      "theGearStepsFromReverse": " La marcha va de la marcha atrás a la novena, y cada regla de color se activa por turnos.",
+      "theGearStepsFromReverse2": " La marcha va de la marcha atrás a la novena.",
+      "everyColourRuleIsHeld": " Cada regla de color se activa por turnos, y luego ninguna."
+    },
+    "spriteCanvas": {
+      "pixelXY": "Píxel {x}, {y}",
+      "xYClear": "{x}, {y}: transparente"
+    },
+    "devicePreview": {
+      "lampNumber": "luz {number}"
+    }
+  },
+  "documents": {
+    "label": {
+      "dashboard": "Dashboard",
+      "modules": "Módulos",
+      "protocol": "Protocolo"
+    },
+    "labelLower": {
+      "dashboard": "dashboard",
+      "modules": "módulos",
+      "protocol": "protocolo"
+    }
+  },
+  "boards": {
+    "noDisplay": "sin pantalla"
+  },
+  "images": {
+    "format": {
+      "rgb565a8": "Color + transparencia",
+      "rgb565": "Color sin transparencia",
+      "alpha8": "Máscara (solo alfa)"
+    },
+    "imagesPage": {
+      "images": "Imágenes",
+      "addImage": "Añadir imagen…",
+      "onTheBoard": "En la placa",
+      "whatTheInstalledPackageHolds": "Lo que tiene ahora la placa. «Guardar en la placa» lo reemplaza por las imágenes que dibuja el dashboard.",
+      "installed": "Instaladas",
+      "addingAnImageConvertsIt": "Al añadir una imagen, se convierte aquí al tamaño con el que la placa la dibujará: el dispositivo no la escala ni la gira.",
+      "aNameUsesLowerCase": "Un nombre usa letras minúsculas, dígitos, guion y guion bajo, hasta 31 caracteres.",
+      "twoImagesShareAName": "Dos imágenes tienen el mismo nombre.",
+      "widthHeightFormat": "{width}×{height} · {format}",
+      "frameCountFrames": " · fotogramas: {frameCount}",
+      "connectABoardWhoseFirmware": "Conecta una placa cuyo firmware tenga una partición de imágenes.",
+      "noImagesInstalled": "No hay imágenes instaladas",
+      "noImageSupport": "Sin soporte de imágenes",
+      "eraseEveryImageInstalledOn": "¿Borrar todas las imágenes instaladas en la placa?",
+      "boardImagePackageErasedRestart": "Paquete de imágenes de la placa borrado. Reinicia la placa; el próximo «Guardar en la placa» volverá a instalar las imágenes del dashboard.",
+      "description": "Las imágenes se convierten aquí y se guardan en este PC. «Guardar en la placa» instala las que dibuja el dashboard, en un solo paquete, y reinicia la placa si han cambiado.",
+      "saveInstallsThem": "«Guardar en la placa» instala las imágenes que dibuja el dashboard.",
+      "restartTheBoardToUse": "La placa se reinicia para usar las imágenes nuevas."
+    },
+    "stagedImageCard": {
+      "nameAWidgetRefersTo": "Nombre para los widgets",
+      "format": "Formato",
+      "width": "Ancho",
+      "height": "Alto",
+      "addFrameLength": "Añadir fotograma ({length})",
+      "makeASpriteSheet": "Crear una hoja de sprites…",
+      "removeFrameIndex": "Quitar el fotograma {index}",
+      "unlockProportions": "Desbloquear proporciones",
+      "lockProportions": "Bloquear proporciones",
+      "proportionsLockedChangingOneSide": "Proporciones bloqueadas: al cambiar un lado cambia también el otro",
+      "proportionsFreeEachSideIs": "Proporciones libres: cada lado se ajusta por separado"
+    },
+    "imagePageParts": {
+      "noCopy": "Sin vista previa",
+      "framesFramesAllConvertedTo": "Fotogramas: {frames}, todos convertidos a {width}×{height}. ",
+      "sourceIsWidthHeightConverted": "La imagen de origen mide {width}×{height}; convertida a {width2}×{height2} ocupa {bytes} en lugar de {sourceBytes}.",
+      "sourceIsWidthHeightUploaded": "La imagen de origen mide {width}×{height} y se mantiene a ese tamaño: {bytes}. La placa la dibuja a este tamaño, así que también es el tamaño del widget.",
+      "unavailable": "No disponible",
+      "usedOfLimit": "{used} de {limit} · {rest}",
+      "bytesOver": "{bytes} de más",
+      "bytesFree": "{bytes} libres"
+    },
+    "imageAssetService": {
+      "readingImageSources": "Leyendo las imágenes de origen",
+      "buildingTheImagePackage": "Creando el paquete de imágenes",
+      "imagesInstalledRestartTheDevice": "Imágenes instaladas; reinicia el dispositivo para usarlas",
+      "selectAtLeastOneImage": "Selecciona al menos una imagen para enviar.",
+      "theDeviceStoresAtMost": "El dispositivo guarda como máximo {mAXIMUM_IMAGES} imágenes.",
+      "nameIsNotAValid": "«{name}» no es un nombre de imagen válido.",
+      "imageNameIsListedTwice": "La imagen «{name}» aparece dos veces.",
+      "pathCouldNotBeRead": "No se pudo leer «{path}» como imagen.",
+      "selectTheImageFileAgain": "Vuelve a seleccionar el archivo de imagen e inténtalo de nuevo.",
+      "theConnectedDeviceChangedDuring": "El dispositivo conectado cambió durante el envío.",
+      "selectImageSource": "Seleccionar imagen de origen",
+      "selectAPngJpegOr": "Selecciona una imagen PNG, JPEG o BMP.",
+      "anImageUploadIsAlready": "Ya hay un envío de imágenes en curso.",
+      "theConnectedFirmwareDoesNot": "El firmware del dispositivo conectado no admite el envío de imágenes.",
+      "imageStorageIsUnavailableOn": "El almacenamiento de imágenes no está disponible en este dispositivo.",
+      "restartTheDeviceBeforeUploading": "Reinicia el dispositivo antes de enviar otro paquete de imágenes."
+    },
+    "imagePackage": {
+      "nameHasNoImageFile": "«{name}» no tiene archivo de imagen.",
+      "nameHasLengthFramesAn": "«{name}» tiene {length} fotogramas; una imagen admite como máximo {mAXIMUM_SPRITE_FRAMES}.",
+      "pathIsNotAReadable": "«{path}» no es una imagen legible.",
+      "nameDecodedToAnUnexpected": "«{name}» se decodificó con un tamaño inesperado.",
+      "nameCouldNotBeResized": "No se pudo redimensionar «{name}» a {width} × {height}.",
+      "theImagePackageIsPackagesize": "El paquete de imágenes ocupa {packageSize} bytes; el dispositivo guarda como máximo {mAXIMUM_IMAGE_PACKAGE_SIZE}.",
+      "anImagePackageNeedsAt": "Un paquete de imágenes necesita al menos una imagen.",
+      "theImageManifestDoesNot": "El manifiesto de imágenes no cabe antes de los datos de píxeles.",
+      "nameIsNotAValid": "«{name}» no es un nombre de imagen válido: letras minúsculas, dígitos, guion y guion bajo, hasta 31 caracteres.",
+      "nameIsWidthHeightThe": "«{name}» mide {width}×{height}; el dispositivo acepta hasta {mAXIMUM_IMAGE_DIMENSION} por lado.",
+      "nameHasFramecountFramesThe": "«{name}» tiene {frameCount} fotogramas; el dispositivo acepta de 1 a {mAXIMUM_SPRITE_FRAMES}.",
+      "nameIsBytelengthBytesIts": "«{name}» ocupa {byteLength} bytes; su geometría implica {expected}."
+    },
+    "dialog": {
+      "filter": "Imágenes"
+    },
+    "imageLibrary": {
+      "notOnThisPc": "La imagen «{id}» no está en este PC. Añádela en la página «Imágenes».",
+      "damaged": "La copia de la imagen «{id}» en este PC está dañada. Vuelve a añadir la imagen en la página «Imágenes».",
+      "tooLarge": "La imagen «{id}» necesita {size} KB en una placa, y una placa admite {limit} KB de imágenes.",
+      "notAdded": "No se pudo añadir la imagen.",
+      "notRemoved": "No se pudo quitar la imagen."
+    },
+    "library": {
+      "title": "En este PC",
+      "description": "Todas las imágenes instaladas desde este PC o abiertas con un archivo de dashboard: {size} en total. «Guardar en la placa» instala las que dibuja el dashboard abierto.",
+      "dashboardDraws": {
+        "$plural": {
+          "one": "El dashboard abierto dibuja {count} imagen.",
+          "many": "El dashboard abierto dibuja {count} de imágenes.",
+          "other": "El dashboard abierto dibuja {count} imágenes."
+        }
+      },
+      "notOnThisPc": "No están en este PC: {images}. Añádelas aquí o se conservarán las copias de la propia placa.",
+      "empty": "Todavía no hay imágenes en este PC",
+      "emptyHint": "Añade un PNG, JPEG o BMP con «Añadir imagen…» o abre un archivo de dashboard que contenga imágenes.",
+      "inDashboard": "En el dashboard",
+      "board": {
+        "same": "En la placa",
+        "differs": "Copia distinta en la placa",
+        "absent": "No está en la placa"
+      },
+      "remove": "¿Quitar «{id}» de este PC? La placa conserva su copia hasta el próximo guardado que la reemplace.",
+      "removeUsed": "El dashboard abierto dibuja «{id}». ¿Quitarla de este PC de todos modos? La placa conserva su copia, pero este PC ya no podrá instalarla ni compartirla.",
+      "unreadable": {
+        "$plural": {
+          "one": "{count} imagen guardada no se pudo leer y se omite.",
+          "many": "{count} de imágenes guardadas no se pudieron leer y se omiten.",
+          "other": "{count} imágenes guardadas no se pudieron leer y se omiten."
+        }
+      }
+    },
+    "staged": {
+      "title": "Listas para añadir",
+      "add": "Añadir {count} a este PC",
+      "added": {
+        "$plural": {
+          "one": "Se añadió {count} imagen a este PC.",
+          "many": "Se añadieron {count} de imágenes a este PC.",
+          "other": "Se añadieron {count} imágenes a este PC."
+        }
+      },
+      "replace": "Este PC ya tiene {images}. ¿Reemplazarlas? Los dashboards que las dibujan pasarán a mostrar las imágenes nuevas, y el próximo «Guardar en la placa» las instalará."
+    }
+  },
+  "save": {
+    "stage": {
+      "checking": "Comprobando el firmware de la placa",
+      "preparing": "Comprobando fuentes e imágenes",
+      "building": "Preparando fuentes e imágenes",
+      "uploading": "Instalando en la placa",
+      "saving": "Guardando la configuración",
+      "applying": "Aplicando en la placa",
+      "rebooting": "Reiniciando la placa",
+      "reconnecting": "Reconectando",
+      "completed": "Guardado"
+    },
+    "saveToBoardService": {
+      "noPitrigBoardIsConnected": "No hay ninguna placa Pitrig conectada.",
+      "theConfigurationIsNotValid": "La configuración no es válida.",
+      "checkingTheFontsThisDashboard": "Comprobando las fuentes e imágenes que necesita este dashboard",
+      "savingTheAndConfiguration": "Guardando la configuración de {and}",
+      "savedTheBoardIsRestarting": "Guardado. La placa se está reiniciando para salir del modo seguro.",
+      "savedTheBoardIsRunning": "Guardado. La placa ya ejecuta el dashboard nuevo.",
+      "nothingToSaveTheBoard": "No hay nada que guardar: la placa ya tiene esta configuración."
+    },
+    "firmwareCheck": {
+      "checking": "Comprobando que el firmware {version} de la placa acepta esta configuración",
+      "refused": "La placa ejecuta el firmware {running}, que no acepta esta configuración: necesita el firmware {released}. No ha cambiado nada en la placa. Actualiza la placa y vuelve a guardar. La placa respondió: {reason}"
+    },
+    "fontDelivery": {
+      "building": "Creando el paquete de fuentes",
+      "noFaceCalled": "La biblioteca de fuentes no tiene ninguna variante llamada «{family}».",
+      "noFaceForSome": "La biblioteca de fuentes no tiene variante para {count} de las familias de este dashboard."
+    },
+    "imageDelivery": {
+      "building": "Creando el paquete de imágenes",
+      "failed": "No se pudieron instalar las imágenes.",
+      "noStorage": "Este dashboard dibuja imágenes, pero la placa no tiene almacenamiento de imágenes.",
+      "unavailable": "Este dashboard dibuja imágenes que no están ni en este PC ni en la placa: {images}. Añádelas en la página «Imágenes».",
+      "tooMany": "Imágenes que dibuja este dashboard: {count}. Una placa admite como máximo {maximum}.",
+      "tooLarge": "Las imágenes de este dashboard necesitan {size} KB, y una placa admite {limit} KB de imágenes.",
+      "boardOnly": "Solo la placa tiene {images} y este PC no tiene ninguna copia, así que no se puede instalar {pending} sin quitarlas. Primero añade {images} en la página «Imágenes».",
+      "fontsWithoutImages": "Las fuentes se instalaron, pero las imágenes no: {error} Vuelve a guardar en la placa antes de que se reinicie, o arrancará sin sus imágenes."
+    }
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "ok": "Aceptar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "open": "Abrir",
+    "delete": "Eliminar",
+    "none": "Ninguno",
+    "listAndMore": "{shown} y {rest} más",
+    "add": "Añadir",
+    "select": "Seleccionar",
+    "screenNumber": "Pantalla {number}",
+    "pageNumber": "Página {number}",
+    "traceNumber": "Curva {number}"
+  },
+  "firmware": {
+    "firmwarePage": {
+      "keepTheBoardsFirmware": "Mantén actualizado el firmware de la placa.",
+      "connectABoardToSee": "Conecta una placa para ver su firmware.",
+      "restartBoard": "Reiniciar placa",
+      "percent": " · {percent}%",
+      "image": "Imagen",
+      "slots": "Ranuras"
+    },
+    "firmwareStatus": {
+      "boardRuns": "{board} ejecuta",
+      "firmwareVersion": "Firmware {version}",
+      "versionAvailable": "{version} disponible",
+      "upToDate": "Actualizado",
+      "updateTo": "Actualizar a {version}",
+      "setupStays": "Tu configuración se conserva: Pitrig guarda una copia en «Configuraciones» y la restaura.",
+      "restartWaiting": "Hay una actualización instalada. Reinicia la placa para terminarla; la configuración se conserva.",
+      "restartToFinish": "Reiniciar para terminar",
+      "notConfirmedYet": "Este firmware aún no está confirmado. Si reinicias ahora, la placa vuelve al anterior.",
+      "cannotUpdateItself": "Este firmware no puede actualizarse solo. Actualízalo una vez por cable USB con el flasheador web. Esto borra la configuración de la placa, así que primero guárdala en un archivo.",
+      "openWebFlasher": "Abrir el flasheador web",
+      "whatChanges": "Cambios · {count}"
+    },
+    "fileInstall": {
+      "installFromAFile": "Instalar desde un archivo",
+      "aPitrigFirmwareFile": "Un archivo de firmware de Pitrig compilado para esta placa.",
+      "sizeBytes": "{size} bytes",
+      "selectFile": "Seleccionar archivo…",
+      "install": "Instalar"
+    },
+    "factoryReset": {
+      "factoryReset": "Restablecimiento de fábrica",
+      "eraseTheSetupOnThe": "Borra la configuración de la placa. Los archivos de este PC se conservan.",
+      "resetToFactory": "Restablecer de fábrica"
+    },
+    "boardUpdate": {
+      "alreadyRunning": "Ya hay una actualización de placa en curso.",
+      "readingTheBoard": "Leyendo lo que contiene la placa…",
+      "keepingACopy": "Guardando una copia de la configuración de la placa en «Configuraciones»…",
+      "backupName": "Antes de actualizar · {date} · firmware {version}",
+      "backupFailed": "No se tocó la placa: su configuración no se pudo copiar en «Configuraciones». {reason}",
+      "restarting": "Reiniciando la placa…",
+      "didNotComeBack": "La placa no volvió a aparecer después de reiniciarse. Vuelve a conectarla, abre «{backup}» en «Configuraciones» → «Configuraciones guardadas» y guárdala en la placa.",
+      "rolledBack": "El firmware nuevo no arrancó, así que la placa volvió a la versión {version}. Su configuración no se ha tocado.",
+      "puttingBack": "Restaurando la configuración de {documents}…",
+      "checking": "Comprobando lo que contiene la placa…",
+      "cancelled": "Actualización cancelada. La placa no se modificó.",
+      "updatedNothingStored": "La placa ejecuta la versión {version}. No tenía ninguna configuración guardada, así que no había nada que restaurar.",
+      "updatedAndRestored": "La placa ejecuta la versión {version} con su configuración restaurada. Queda una copia en «Configuraciones» como «{backup}».",
+      "updatedUnchanged": "La placa ejecuta la versión {version} y conservó su configuración. Queda una copia en «Configuraciones» como «{backup}».",
+      "restoreFailed": "La placa ejecuta la versión {version}, pero su configuración no se pudo restaurar: {reason} Abre «{backup}» en «Configuraciones» → «Configuraciones guardadas» y guárdala en la placa.",
+      "notVerified": "La placa ejecuta la versión {version}, pero lo que contiene no coincide con la copia. Abre «{backup}» en «Configuraciones» → «Configuraciones guardadas» y guárdala en la placa.",
+      "restoredNotShown": "La placa ejecuta la versión {version} y vuelve a tener su configuración, pero solo la mostrará después del próximo reinicio. Queda una copia en «Configuraciones» como «{backup}».",
+      "step": {
+        "backup": "Copiar",
+        "install": "Instalar",
+        "restart": "Reiniciar",
+        "restore": "Restaurar",
+        "verify": "Comprobar"
+      }
+    },
+    "firmwareUpdateService": {
+      "readingName": "Leyendo {name}",
+      "wrappedBytelengthBytesForBoardid": "Empaquetados {byteLength} bytes para {boardId}",
+      "firmwareUploadCancelled": "Envío del firmware cancelado.",
+      "cannotReadName": "No se puede leer {name}.",
+      "nameIsSizeBytesWhich": "{name} ocupa {size} bytes, que no caben en la ranura de firmware de 2,5 MiB.",
+      "theSelectedFirmwareImageIs": "La imagen de firmware seleccionada ya no está disponible.",
+      "firmwareUploadWasCancelled": "Se canceló el envío del firmware.",
+      "selectFirmwareImage": "Seleccionar imagen de firmware",
+      "selectImage": "Seleccionar imagen",
+      "selectThePitrigBinProduced": "Selecciona el pitrig.bin generado por una compilación del firmware.",
+      "aFirmwareUploadIsAlready": "Ya hay un envío de firmware en curso.",
+      "theConnectedFirmwareCannotUpdate": "El firmware del dispositivo conectado no puede actualizarse por el puerto serie.",
+      "thisDeviceHasNoSecond": "Este dispositivo no tiene una segunda ranura de firmware en la que instalar la actualización.",
+      "restartTheDeviceToRun": "Reinicia el dispositivo para ejecutar el firmware ya instalado.",
+      "unknownError": "Error desconocido al actualizar el firmware.",
+      "theConnectedDeviceChangedWhile": "El dispositivo conectado cambió mientras se preparaba la imagen.",
+      "firmwareInstalledIntoTargetRestart": "Firmware instalado en {target}. Reinicia el dispositivo para ejecutarlo.",
+      "theInactiveSlot": "la ranura inactiva"
+    },
+    "firmwarePackage": {
+      "theFirmwareImageIsEmpty": "La imagen de firmware está vacía.",
+      "theFirmwareImageIsBytelength": "La imagen de firmware ocupa {byteLength} bytes, que no caben en la ranura de firmware de 2,5 MiB.",
+      "unsupportedPitrigBoardBoard": "Placa Pitrig no compatible: {board}."
+    },
+    "dialog": {
+      "filter": "Firmware de Pitrig"
+    }
+  },
+  "updates": {
+    "releaseFeed": {
+      "downloadFailed": "No se pudo descargar {name}: GitHub respondió {status}.",
+      "downloadDamaged": "El archivo {name} llegó dañado. Vuelve a intentarlo.",
+      "githubAnswered": "GitHub respondió {status} a la búsqueda de actualizaciones."
+    },
+    "banner": {
+      "appReady": "Pitrig {version} ya se descargó y se instalará cuando se reinicie el configurador.",
+      "restartAndUpdate": "Reiniciar y actualizar",
+      "appAvailable": "Pitrig {version} está disponible.",
+      "download": "Descargar",
+      "firmwareAvailable": "El firmware {version} está disponible para esta placa, que ejecuta la versión {running}.",
+      "openFirmware": "Abrir la página Firmware",
+      "pluginStale": "El plugin de Pitrig en SimHub es la versión {installed}; esta versión de Pitrig trae la {bundled}.",
+      "pluginMissing": "SimHub aún no tiene el plugin de Pitrig.",
+      "updatePlugin": "Actualizar plugin",
+      "addPlugin": "Añadir plugin",
+      "simhubOld": "SimHub {version} es anterior a {minimum}, la versión más antigua con la que se ha probado el plugin de Pitrig.",
+      "getSimHub": "Obtener SimHub",
+      "later": "Más tarde"
+    },
+    "section": {
+      "checking": "Comprobando…",
+      "checkNow": "Comprobar ahora",
+      "boardFirmware": "Firmware de la placa",
+      "simhub": "SimHub",
+      "plugin": "Plugin de Pitrig en SimHub",
+      "lastChecked": "Última comprobación: {time}.",
+      "versions": "Versiones",
+      "justNow": "ahora mismo",
+      "pitrig": "Pitrig",
+      "boardNameFirmware": "Firmware de {board}",
+      "connectABoard": "Conecta una placa",
+      "upToDate": "Actualizado",
+      "available": "{version} disponible",
+      "ready": "{version} lista",
+      "downloading": "Descargando {progress}%",
+      "notChecked": "Aún sin comprobar",
+      "checkFailed": "Error al comprobar",
+      "ok": "OK",
+      "olderThan": "Anterior a {minimum}",
+      "openFirmware": "Abrir Firmware"
+    },
+    "app": {
+      "noWindowsUpdate": "la versión más reciente aún no incluye ninguna actualización para Windows"
+    },
+    "firmware": {
+      "notInRelease": "La versión {version} de Pitrig no incluye {name}.",
+      "nothingNewer": "Esta placa ya ejecuta el firmware que viene con esta versión de Pitrig.",
+      "alreadyDownloading": "El firmware ya se está descargando.",
+      "downloading": "Descargando el firmware… {progress}%",
+      "changesRelease": "Firmware {version}",
+      "changesUnreleased": "Aún no publicado",
+      "schemaNote": "Este firmware lee un formato de configuración más reciente. «Actualizar placa» guarda una copia de la configuración de la placa y la restaura.",
+      "kind": {
+        "added": "Añadido",
+        "changed": "Cambiado",
+        "fixed": "Corregido",
+        "removed": "Eliminado"
+      }
+    },
+    "simhub": {
+      "noSimHubFound": "No se encontró SimHub en este PC.",
+      "stillRunning": "SimHub sigue en ejecución. Ciérralo, incluido su icono en la bandeja del sistema, y vuelve a intentarlo.",
+      "copyFailed": "No se pudo copiar el plugin en {directory}. Cierra SimHub y copia Pitrig.SimHub.dll allí a mano.",
+      "copyFailedPlain": "No se pudo añadir el plugin a SimHub.",
+      "invalidRequest": "Solicitud de plugin no válida.",
+      "closeToReplace": "SimHub está en ejecución. ¿Cerrarlo ahora para poder reemplazar el plugin de Pitrig? SimHub se vuelve a iniciar después.",
+      "pluginInstalled": "El plugin de Pitrig en SimHub está actualizado.",
+      "noBundledPlugin": "Esta compilación del configurador no incluye ningún plugin de SimHub."
+    }
+  },
+  "protocol": {
+    "catalogSection": {
+      "telemetryCatalog": "Catálogo de telemetría",
+      "searchTelemetryFields": "Buscar campos de telemetría",
+      "fuelRpmLap": "fuel, rpm, lap…",
+      "tryAShorterWordThe": "Prueba con una palabra más corta: la búsqueda abarca el nombre, el ID de envío, la unidad, la categoría y la propiedad de SimHub.",
+      "noFieldMatches": "Ningún campo coincide",
+      "field": "Campo",
+      "wire": "ID",
+      "type": "Tipo",
+      "unit": "Unidad",
+      "simHubProperty": "Propiedad de SimHub",
+      "lengthOfLength2FieldsA": "{length} de {length2} campos. Un widget se vincula a uno de estos nombres; lo que viaja realmente es el ID de envío.",
+      "value": "Valor",
+      "live": "En vivo",
+      "games": "Juegos",
+      "anyGame": "cualquiera"
+    },
+    "protocolPage": {
+      "whereTelemetryComesFromHow": "De dónde viene la telemetría, cómo llega a la placa y cómo se llaman los campos.",
+      "telemetrySource": "Origen de la telemetría",
+      "whatProducesTheValuesThe": "Lo que genera los valores que dibuja el dashboard.",
+      "simHub": "SimHub",
+      "inUse": "En uso",
+      "aCustomSerialDeviceProfile": "El plugin de Pitrig en SimHub encuentra la placa por sí solo y le envía una línea por campo a través de la conexión que usa este configurador."
+    },
+    "bridgeSection": {
+      "title": "Plugin de SimHub",
+      "description": "El plugin de Pitrig en SimHub envía datos a la placa por sí solo. Mientras este configurador está conectado a una placa, el plugin se la cede y su telemetría pasa por aquí de camino, así que el dashboard, las luces y el catálogo de abajo la muestran a medida que llega.",
+      "summary": "El plugin de Pitrig en SimHub envía la telemetría a la placa.",
+      "pluginVersion": "Plugin {version}",
+      "pluginMissing": "Sin plugin",
+      "pluginHint": "Ningún plugin de Pitrig responde en este PC. El instalador de Windows de este configurador lo añade a SimHub; después, reinicia SimHub y activa la telemetría de Pitrig cuando lo pida.",
+      "boardsTitle": "Placas con datos del plugin",
+      "noBoards": "Ninguna por ahora.",
+      "portBusy": "Otro programa está usando {path}, quizá un dispositivo Custom Serial de SimHub. Quita ese dispositivo de SimHub para que el plugin pueda enviar datos a la placa.",
+      "receiving": "Recibiendo",
+      "waiting": "Esperando al plugin",
+      "relaying": "Reenviando a la placa",
+      "previewOnly": "Ninguna placa conectada: solo vista previa",
+      "suspended": "En espera mientras la placa está ocupada",
+      "connection": "Conexión",
+      "simhubHost": "PC con SimHub",
+      "simhubPort": "Puerto del plugin",
+      "listenPort": "Escuchar en el puerto",
+      "simhubHostHint": "Una dirección de loopback mantiene todo en este PC. Cualquier otra dirección conecta con un plugin a través de la red local solo para la vista previa: solo un plugin de este PC puede ceder una placa.",
+      "apply": "Aplicar",
+      "applying": "Aplicando…",
+      "asking": "Solicitando",
+      "sending": "Enviando",
+      "measured": "Medido",
+      "addedLatency": "Añadido por el puente",
+      "drainLatency": "Hasta la placa",
+      "lines": "Líneas",
+      "fields": "Campos",
+      "bytes": "Bytes",
+      "packets": "Paquetes",
+      "lostPackets": "Paquetes perdidos",
+      "dropped": "Descartados",
+      "droppedValue": "{bytes} · errores de escritura: {errors}",
+      "noSamples": "Aún no se ha medido nada.",
+      "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · máx. {max} ms",
+      "perSecond": "{value}/s"
+    },
+    "bridgeService": {
+      "theLinkClosed": "La conexión de telemetría se cerró.",
+      "portTaken": "El puerto {port} ya está en uso. Elige otro aquí y en el plugin.",
+      "invalidRequest": "Solicitud al puente de telemetría no válida."
+    },
+    "transportSection": {
+      "transport": "Transporte",
+      "theLinkTheBoardTalks": "Cómo se conecta la placa a este PC (por USB o por los pines serie) y a qué velocidad.",
+      "createOrOpenAConfiguration": "Primero crea o abre una configuración en la página «Configuraciones»: el transporte está en el documento de protocolo del borrador, no es un ajuste guardado en la placa.",
+      "noConfigurationOpen": "Ninguna configuración abierta",
+      "theLinkTheBoardTalks2": "Cómo se conecta la placa a este PC (por USB o por los pines serie) y a qué velocidad. Deja el valor predeterminado de la placa, salvo que esté cableada de otra forma.",
+      "changingThisCanCutThe": "Cambiar esto puede dejar la placa incomunicada",
+      "aSavedChangeRestartsThe": "Un cambio guardado reinicia la placa, y la placa vuelve con la nueva conexión (a la nueva velocidad, si eso es lo que cambió). Esta ventana se reconecta con la anterior e informará de que la placa no volvió.",
+      "notEverySpeedSurvivesEvery": "No todas las velocidades funcionan en todas las placas. Lo que la limita es el puente USB-serie, no el firmware, y una velocidad que el puente no puede mantener deja una placa que no responde a nada.",
+      "auto": "Auto",
+      "whichLinkCarriesTelemetryAnd": "Qué conexión lleva la telemetría y los comandos del configurador. El valor predeterminado de la placa es la conexión para la que se compiló el firmware.",
+      "bitsPerSecondOnThe": "Bits por segundo en la conexión UART. Lo que limita esto es el puente USB-serie, no la placa.",
+      "uARTPins": "Pines UART",
+      "theFirmwareChecksTheseAgainst": "El firmware los compara con el par de pines propio de la placa y rechaza un documento que indique otro, así que un número incorrecto solo provoca un guardado rechazado y no una placa incomunicada: es el único ajuste de aquí que no puede fallar sin avisar.",
+      "tXPin": "Pin TX",
+      "rXPin": "Pin RX",
+      "silenceEspLogs": "Silenciar registros de ESP",
+      "keepsTheFirmwareSOwn": "Mantiene el registro propio del firmware fuera de la conexión de telemetría, donde se leería como líneas con formato incorrecto.",
+      "theBoardSUartPins": "los pines UART de la placa, a través de un puente USB-serie.",
+      "theChipSOwnUsb": "el puerto USB propio del chip, sin puente intermedio.",
+      "whateverThisBoardWasBuilt": "lo que esta placa esté preparada para usar.",
+      "iKnowWhatTheseDo": "Sé lo que hacen: déjame cambiarlos",
+      "notPermanentBefore": "Nada de esto es permanente: ",
+      "notPermanentAfter": " en la parte superior de la ventana prueba una a una las velocidades a las que responde una placa Pitrig, y una placa con la que no hay ninguna comunicación aún se puede flashear por USB."
+    }
+  },
+  "templates": {
+    "dashboardListControls": {
+      "showDashboardsFor": "Mostrar dashboards para",
+      "showOnlyTheDashboardsDrawn": "Mostrar solo los dashboards diseñados para un tamaño de pantalla",
+      "orderDashboards": "Ordenar dashboards",
+      "smallestDisplayFirstOrBy": "Primero la pantalla más pequeña, o por nombre",
+      "screenSize": "Tamaño de pantalla",
+      "allSizesLength": "Todos los tamaños ({length})"
+    },
+    "dashboardSection": {
+      "dashboards": "Dashboards",
+      "noDashboards": "No hay dashboards",
+      "saveToTemplates": "Guardar plantilla",
+      "showEverySize": "Mostrar todos los tamaños",
+      "starter": "Inicial",
+      "use": "Usar",
+      "replaceEverythingYouHaveOpen": "Reemplazar todo lo que tienes abierto por esta plantilla",
+      "layoutTransfer": "Transferencia de diseños",
+      "dismiss": "Descartar",
+      "wholeLayoutsAddTakesScreens": "Diseños completos. «Añadir» toma pantallas de uno; «Usar» reemplaza lo que tienes abierto.",
+      "addScreensFromThisTemplate": "Añadir pantallas de esta plantilla al dashboard que tienes abierto",
+      "openADashboardFirstThere": "Abre primero un dashboard: no hay dónde añadir pantallas",
+      "emptyBefore": "Guarda el dashboard en el que trabajas con ",
+      "emptyAfter": " en el lienzo y aparecerá aquí la próxima vez.",
+      "replaceEverythingYouHaveOpen2": "¿Reemplazar todo lo que tienes abierto por «{name}»? Se descartarán todas las pantallas y todos los widgets del borrador actual.",
+      "thatEntryIsNotA": "Esa entrada no es un dashboard.",
+      "nameWouldNotBeAccepted": "Esta placa no aceptaría «{name}», así que el borrador no se ha modificado. {error}",
+      "failedToApplyTheTemplate": "No se pudo aplicar la plantilla.",
+      "nameIsNowTheLocal": "«{name}» es ahora el borrador local.",
+      "wholeLayoutsScaledToSize": "Diseños completos, escalados a {size} al cargarse. «Añadir» toma pantallas de uno; «Usar» reemplaza lo que tienes abierto.",
+      "creditBy": "por {name}",
+      "creditOpen": "Abrir la página de {name} en el navegador"
+    },
+    "dashboardThumbnail": {
+      "noPreview": "Sin vista previa",
+      "reading": "Leyendo…"
+    },
+    "insertScreenDialog": {
+      "addAScreen": "Añadir una pantalla",
+      "theLibraryHoldsNoDashboards": "La biblioteca aún no tiene dashboards.",
+      "allScreens": "Todas las pantallas",
+      "back": "Atrás",
+      "screensInName": "Pantallas de «{name}»",
+      "addedAtTheEndNothing": "Se añade al final. No cambia nada de lo que ya hay en este dashboard.",
+      "pickTheDashboardToTake": "Elige el dashboard del que quieres tomar una pantalla.",
+      "addsLength": "añade {length}",
+      "lengthWidgets": "Widgets: {length}",
+      "thisDashboardAlreadyHoldsMaximum": "Este dashboard ya tiene {mAXIMUM_SCREENS} pantallas, que es el máximo de una placa."
+    },
+    "saveToTemplates": {
+      "keepThisDashboardOrThe": "Guardar este dashboard, o el widget seleccionado, en la biblioteca de plantillas",
+      "descriptionOptional": "Descripción (opcional)",
+      "aNameNeedsAtLeast": "Un nombre necesita al menos una letra o un dígito.",
+      "theWholeDashboardGoesTo": "Todo el dashboard va a la biblioteca de dashboards: {draft}.",
+      "rPMGauge": "Indicador de RPM",
+      "raceLayout": "Diseño de carrera",
+      "greenBelow6000RedAbove": "Verde por debajo de 6000, rojo por encima",
+      "fuelAndTyresForLong": "Combustible y neumáticos para tandas largas",
+      "replaceTheSavedKindId": "¿Reemplazar el {kind} guardado «{id}»?",
+      "theTemplateWasNotSaved": "No se guardó la plantilla.",
+      "theSelectedWidgetGoesTo": "El widget seleccionado va a la biblioteca de widgets, con un tamaño de {width} × {height}.",
+      "theSelectedWidgetAndEverything": "El widget seleccionado y todo lo que contiene van a la biblioteca de widgets, con un tamaño de {width} × {height}."
+    },
+    "templatesPage": {
+      "readingTheLibrary": "Leyendo la biblioteca…",
+      "deleteTheSavedKindName": "¿Eliminar el {kind} guardado «{name}»?",
+      "nameDeleted": "Se eliminó «{name}».",
+      "unreadableFiles": {
+        "$plural": {
+          "one": "No se pudo leer {count} archivo de la carpeta de plantillas.",
+          "many": "No se pudieron leer {count} de archivos de la carpeta de plantillas.",
+          "other": "No se pudieron leer {count} archivos de la carpeta de plantillas."
+        }
+      }
+    },
+    "widgetSection": {
+      "widgets": "Widgets",
+      "partsOfADashboardKept": "Partes de un dashboard guardadas para reutilizarlas. Un contenedor incluye todo lo que tiene dentro.",
+      "noWidgets": "No hay widgets",
+      "placeThisOnTheCanvas": "Colocar esto en el lienzo",
+      "openADashboardFirstThere": "Abre primero un dashboard: no hay dónde colocarlo",
+      "emptyBefore": "Selecciona un widget en el lienzo y pulsa ",
+      "emptyAfter": ". Un contenedor guarda todo su conjunto: así es como un cuentarrevoluciones con sus luces se convierte en una sola entrada."
+    },
+    "templateService": {
+      "theStarterTemplateIsUnreadable": "La plantilla inicial no se puede leer.",
+      "noStarterTemplateNamedId": "No hay ninguna plantilla inicial llamada «{id}».",
+      "noTemplateNamedId": "No hay ninguna plantilla llamada «{id}».",
+      "theTemplateIsUnreadable": "La plantilla no se puede leer.",
+      "aTemplateNameNeedsAt": "El nombre de una plantilla necesita al menos una letra o un dígito.",
+      "thatCannotBeSavedAs": "Eso no se puede guardar como plantilla.",
+      "theLibraryHoldsAtMost": "La biblioteca admite como máximo {mAXIMUM_USER_TEMPLATES} {kind}s guardados.",
+      "failedToWriteTheTemplate": "No se pudo escribir la plantilla.",
+      "aStarterTemplateCannotBe": "Una plantilla inicial no se puede eliminar.",
+      "failedToDeleteTheTemplate": "No se pudo eliminar la plantilla.",
+      "aTemplateFileMustNot": "Un archivo de plantilla no puede superar los {maximum} bytes.",
+      "idIsNotAValid": "«{id}» no es un identificador de plantilla válido."
+    },
+    "screenGallery": {
+      "previousScreen": "Pantalla anterior",
+      "nextScreen": "Pantalla siguiente"
+    },
+    "templateDocuments": {
+      "theTemplateCarriesNoConfiguration": "La plantilla no contiene ninguna configuración.",
+      "aTemplateFileHoldsA": "Un archivo de plantilla contiene un objeto JSON.",
+      "thisFileIsNotDescribed": "Este archivo no es {described}.",
+      "theTemplateDeclaresNoFormat": "La plantilla no declara ninguna versión de formato.",
+      "theTemplateWasWrittenBy": "La plantilla se creó con una versión más reciente (formato {version}).",
+      "aTemplateNameIs1": "El nombre de una plantilla tiene de 1 a {mAXIMUM_TEMPLATE_NAME} caracteres.",
+      "aTemplateDescriptionIsAt": "La descripción de una plantilla tiene como máximo {mAXIMUM_TEMPLATE_DESCRIPTION} caracteres.",
+      "theWidgetTemplateNamesNo": "La plantilla de widget no indica ninguna placa conocida.",
+      "theTemplateCarriesNoWidget": "La plantilla no contiene ningún widget.",
+      "thatTemplateIsNotA": "Esa plantilla no es un widget.",
+      "aPitrigDashboardTemplate": "una plantilla de dashboard de Pitrig",
+      "aPitrigWidgetTemplate": "una plantilla de widget de Pitrig"
+    },
+    "insertScreen": {
+      "thereIsNoDashboardTo": "No hay ningún dashboard al que añadir una pantalla.",
+      "aDashboardHoldsAtMost": "Un dashboard admite como máximo {maximum} pantallas.",
+      "thatDashboardHasNoSuch": "Ese dashboard no tiene esa pantalla.",
+      "thatScreenWouldNotBe": "Esa pantalla no se aceptaría aquí, así que no ha cambiado nada. {error}"
+    },
+    "variants": {
+      "full": "Completa",
+      "clean": "Limpia"
+    },
+    "variantDialog": {
+      "label": "Elegir una versión",
+      "title": "¿Qué versión de {name}?",
+      "hint": "Cada versión es un dashboard completo e independiente."
+    },
+    "files": {
+      "share": "Compartir {name} como un solo archivo con sus imágenes y fuentes",
+      "open": "Abrir un archivo compartido de Pitrig y añadirlo a esta biblioteca",
+      "openTitle": "Añadir a la biblioteca de plantillas",
+      "added": "Se añadió {name} a la biblioteca."
+    }
+  },
+  "app": {
+    "app": {
+      "pitrig": "Pitrig",
+      "nameVersion": "{name} {version}",
+      "loadingApplicationInfo": "Cargando información de la aplicación…",
+      "applicationReady": "Aplicación lista"
+    },
+    "panelResizer": {
+      "resizeThePropertyPanel": "Cambiar el tamaño del panel de propiedades",
+      "resizeTheLayerList": "Cambiar el tamaño de la lista de capas"
+    },
+    "workspaceRail": {
+      "workspace": "Espacio de trabajo",
+      "collapse": "Contraer",
+      "collapseTheWorkspaceRail": "Contraer la barra de espacios de trabajo",
+      "expandTheWorkspaceRail": "Expandir la barra de espacios de trabajo",
+      "expand": "Expandir",
+      "labelHint": "{label} — {hint}"
+    },
+    "main": {
+      "rendererRootElementWasNot": "No se encontró el elemento raíz del renderizador"
+    }
+  },
+  "dashboard": {
+    "configsPage": {
+      "configs": "Configuraciones",
+      "yourSetupFiles": "Tus archivos de configuración.",
+      "restartRequired": "Reinicio necesario",
+      "modified": "Con cambios",
+      "notSavedToAFile": "Aún no se ha guardado en un archivo.",
+      "untitledSetup": "Configuración sin título",
+      "nothingOpen": "Nada abierto",
+      "startANewSetupOr": "Empieza una configuración nueva o abre un archivo.",
+      "pickABoardFirst": "Primero elige una placa.",
+      "new": "Nuevo",
+      "open": "Abrir…",
+      "save": "Guardar…",
+      "saveTheConfigurationToA": "Guardar la configuración en un archivo (Cmd/Ctrl+S)",
+      "thisSetupHasAnError": "Esta configuración tiene un error: {error}",
+      "documentNearlyFull": "{label}: ocupa el {percent}% de su espacio.",
+      "documentTooBig": "{label}: demasiado grande para la placa ({percent}% de su espacio). Quita algo antes de guardar.",
+      "setupForAnotherBoard": "Esta configuración es para {draftBoard}, pero la placa conectada es {board}. Conviértela para usarla aquí.",
+      "fitToTheNewDisplay": "Ajustar a la nueva pantalla",
+      "keepProportionsCentre": "Mantener proporciones y centrar",
+      "stretchToFillTheDisplay": "Estirar hasta llenar la pantalla",
+      "convertDraftToConverttarget": "Convertir a {convertTarget}…"
+    },
+    "dashboardWorkspace": {
+      "dashboardPages": "Páginas del dashboard",
+      "restart": "Reiniciar",
+      "canvas": "Lienzo",
+      "templates": "Plantillas",
+      "restartTheConnectedBoard": "Reiniciar la placa conectada",
+      "connectABoardToRestart": "Conecta una placa para reiniciarla"
+    },
+    "layersPanel": {
+      "noWidgetsYet": "Aún no hay widgets.",
+      "hidingAndLockingApplyTo": "Ocultar y bloquear solo afectan a esta sesión de edición; la placa dibuja todos los widgets.",
+      "bringToFrontCmdCtrl": "Traer al frente (Cmd/Ctrl+])",
+      "bringForwardAltCmdCtrl": "Traer adelante (Alt+Cmd/Ctrl+])",
+      "sendBackwardAltCmdCtrl": "Enviar atrás (Alt+Cmd/Ctrl+[)",
+      "sendToBackCmdCtrl": "Enviar al fondo (Cmd/Ctrl+[)"
+    },
+    "configurationActions": {
+      "keptTheCurrentDraft": "Se mantuvo el borrador actual.",
+      "thereIsNoConfigurationTo": "No hay ninguna configuración que guardar.",
+      "thereIsNoDraftTo": "No hay ningún borrador que convertir.",
+      "theDraftNamesAnUnknown": "El borrador indica una placa desconocida.",
+      "newBoardConfigurationCreatedLocally": "Se creó localmente una configuración nueva para {board}.",
+      "fileNameLoaded": "Se cargó {fileName}.",
+      "nameOpened": "Se abrió {name}.",
+      "fileNameOpened": "Se abrió {fileName}.",
+      "theConvertedLayoutWouldNot": "El diseño convertido no se aceptaría, así que el borrador no se modificó. {error}",
+      "convertedToTarget": "Se convirtió a {target}.",
+      "discardTheCurrentLocalDraft": "¿Descartar el borrador local actual y crear una configuración nueva?",
+      "discardTheCurrentLocalDraft2": "¿Abrir un archivo en lugar de lo que tienes abierto? Un archivo de dashboard solo reemplaza el dashboard; un archivo de configuración lo reemplaza todo.",
+      "discardTheCurrentLocalDraft3": "¿Descartar el borrador local actual y abrir «{id}»?",
+      "discardTheCurrentLocalDraft4": "¿Descartar el borrador local actual y abrir este archivo?",
+      "activeConfigurationReadFromThe": "Se leyó de la placa la configuración activa.",
+      "resetTheSavedConfigurationTo": "¿Restablecer la configuración guardada a la configuración de fábrica propia de la placa?",
+      "factoryConfigurationSavedRestartThe": "Se borró la configuración guardada. Reinicia la placa para ejecutar la de fábrica.",
+      "restartTheConnectedPitrigBoard": "¿Reiniciar ahora la placa Pitrig conectada?",
+      "convertTheDraftFromFrom": "¿Convertir el borrador de {from} a {to}? {outcome}"
+    },
+    "boardLabels": {
+      "thisBoardHasNoDisplay": "Esta placa no tiene pantalla, así que el dashboard se descarta y solo se conservan sus periféricos.",
+      "theDisplayIsTheSame": "La pantalla tiene el mismo tamaño, así que nada se mueve.",
+      "eachAxisIsScaledOn": "Cada eje se escala por separado, así que el diseño ocupa los {width} × {height} completos. Las formas redondas se vuelven ovaladas.",
+      "oneFactorForBothAxes": "Un mismo factor para los dos ejes, centrado: el diseño pasa a {width} × {height} en una pantalla de {width2} × {height2}.",
+      "boardSize": "{board} · {size}",
+      "boardNodisplay": "{board} · {noDisplay}"
+    },
+    "transfer": {
+      "noDisplay": "Esta placa no tiene pantalla.",
+      "sameSize": "La placa cambió; su pantalla es de {width} × {height} en ambos casos, así que nada se movió.",
+      "stretched": "Estirado con un factor de {x} en horizontal y de {y} en vertical para llenar la pantalla; {sizes}.",
+      "scaled": "Escalado con un factor de {scale} y centrado; {sizes}.",
+      "sizes": "{fromWidth} × {fromHeight} → {toWidth} × {toHeight}",
+      "imagesResized": {
+        "$plural": {
+          "one": "{count} imagen se dibuja ahora con un tamaño nuevo y hay que volver a enviarla: {list}.",
+          "many": "{count} de imágenes se dibujan ahora con un tamaño nuevo y hay que volver a enviarlas: {list}.",
+          "other": "{count} imágenes se dibujan ahora con un tamaño nuevo y hay que volver a enviarlas: {list}."
+        }
+      },
+      "propertiesClamped": {
+        "$plural": {
+          "one": "{count} propiedad no cabía en el rango que acepta el dispositivo y se limitó: {list}.",
+          "many": "{count} de propiedades no cabían en el rango que acepta el dispositivo y se limitaron: {list}.",
+          "other": "{count} propiedades no cabían en el rango que acepta el dispositivo y se limitaron: {list}."
+        }
+      },
+      "arcsThinned": {
+        "$plural": {
+          "one": "{count} arco tiene ahora un anillo más fino para que sigan cabiendo dos grosores a lo ancho: {list}.",
+          "many": "{count} de arcos tienen ahora un anillo más fino para que sigan cabiendo dos grosores a lo ancho: {list}.",
+          "other": "{count} arcos tienen ahora un anillo más fino para que sigan cabiendo dos grosores a lo ancho: {list}."
+        }
+      },
+      "dashboardDropped": "Esta placa no tiene pantalla, así que se descartó el dashboard; solo se conservaron sus periféricos.",
+      "pinsMoved": {
+        "$plural": {
+          "one": "{count} salida LED pasó a un pin que ofrece esta placa: {list}. Compruébala según el cableado real de la placa.",
+          "many": "{count} de salidas LED pasaron a pines que ofrece esta placa: {list}. Compruébalas según el cableado real de la placa.",
+          "other": "{count} salidas LED pasaron a pines que ofrece esta placa: {list}. Compruébalas según el cableado real de la placa."
+        }
+      },
+      "pinsCleared": {
+        "$plural": {
+          "one": "{count} salida LED perdió su pin porque esta placa no ofrece ninguno libre: {list}. La placa rechazará el documento hasta que cada una indique un pin.",
+          "many": "{count} de salidas LED perdieron su pin porque esta placa no ofrece ninguno libre: {list}. La placa rechazará el documento hasta que cada una indique un pin.",
+          "other": "{count} salidas LED perdieron su pin porque esta placa no ofrece ninguno libre: {list}. La placa rechazará el documento hasta que cada una indique un pin."
+        }
+      },
+      "widgetsOffDisplay": {
+        "$plural": {
+          "one": "{count} widget quedaría totalmente fuera de la pantalla de {width} × {height} y la placa rechazará el documento: {list}.",
+          "many": "{count} de widgets quedarían totalmente fuera de la pantalla de {width} × {height} y la placa rechazará el documento: {list}.",
+          "other": "{count} widgets quedarían totalmente fuera de la pantalla de {width} × {height} y la placa rechazará el documento: {list}."
+        }
+      },
+      "imageEntry": "{image} a {width} × {height}",
+      "clampedEntry": "{field} en {label} ({from} → {to})",
+      "arcEntry": "{label} ({from} → {to} px)",
+      "movedEntry": "{output} ({from} → {to})",
+      "clearedEntry": "{output} (antes {from})",
+      "widgetLabel": "«{name}» en la pantalla {number}",
+      "unnamedWidget": "widget",
+      "unnamedImage": "imagen"
+    }
+  },
+  "configs": {
+    "boardSection": {
+      "boardHoldsThisSetup": "La placa tiene esta configuración.",
+      "boardHoldsAnotherSetup": "La placa tiene otra configuración.",
+      "loadFromBoard": "Cargar desde la placa",
+      "loadFromBoardHint": "Reemplazar la configuración que tienes delante por la que tiene la placa"
+    },
+    "recentList": {
+      "recent": "Recientes",
+      "reading": "Leyendo…",
+      "nothingYet": "Aquí aparecen los archivos que abres o guardas.",
+      "savedInPitrig": "guardado en Pitrig",
+      "fileMovedOrDeleted": "archivo movido o eliminado",
+      "deleteName": "Eliminar la copia guardada {name}",
+      "forgetFilename": "Quitar {fileName} de esta lista",
+      "deleteTheSavedCopyName": "¿Eliminar la copia guardada «{name}»? No se puede deshacer.",
+      "unreadableCopies": {
+        "$plural": {
+          "one": "No se pudo leer {count} copia guardada.",
+          "many": "No se pudieron leer {count} de copias guardadas.",
+          "other": "No se pudieron leer {count} copias guardadas."
+        }
+      }
+    },
+    "librarySection": {
+      "deleteName": "Eliminar {name}",
+      "screenCount": {
+        "$plural": {
+          "one": "{count} pantalla",
+          "many": "{count} de pantallas",
+          "other": "{count} pantallas"
+        }
+      },
+      "widgetCount": {
+        "$plural": {
+          "one": "{count} widget",
+          "many": "{count} de widgets",
+          "other": "{count} widgets"
+        }
+      }
+    },
+    "configurationFileService": {
+      "loadConfiguration": "Cargar configuración",
+      "saveConfiguration": "Guardar configuración",
+      "configurationFileMustNotExceed": "El archivo de configuración no debe superar los {mAXIMUM_CONFIGURATION_TEXT_SIZE} bytes.",
+      "failedToLoadTheConfiguration": "No se pudo cargar el archivo de configuración.",
+      "invalidConfigurationJson": "JSON de configuración no válido.",
+      "failedToSaveTheConfiguration": "No se pudo guardar el archivo de configuración."
+    },
+    "configLibraryService": {
+      "failedToReadTheConfiguration": "No se pudo leer la carpeta de configuraciones.",
+      "noSavedConfigurationNamedId": "No hay ninguna configuración guardada llamada «{id}».",
+      "theSavedConfigurationIsUnreadable": "No se puede leer la configuración guardada.",
+      "aConfigurationNameIs1": "El nombre de una configuración tiene de 1 a {mAXIMUM_CONFIGURATION_NAME} caracteres.",
+      "theDraftCannotBeSaved": "La configuración no se puede guardar como copia.",
+      "theLibraryHoldsAtMost": "«Configuraciones» admite como máximo {mAXIMUM_SAVED_CONFIGURATIONS} copias guardadas. Elimina una allí.",
+      "failedToWriteTheConfiguration": "No se pudo escribir la configuración.",
+      "failedToDeleteTheConfiguration": "No se pudo eliminar la configuración.",
+      "thatFileIsNotIn": "Ese archivo ya no está en la lista de recientes.",
+      "thatFileIsNotA": "Ese archivo no es un documento de configuración.",
+      "thatFileIsNoLonger": "Ese archivo ya no está donde estaba.",
+      "theFileIsUnreadable": "No se puede leer el archivo.",
+      "aConfigurationFileMustNot": "Un archivo de configuración no debe superar los {maximum} bytes.",
+      "idIsNotAValid": "«{id}» no es un identificador de configuración válido."
+    },
+    "dialog": {
+      "loadTitle": "Cargar configuración de Pitrig",
+      "saveTitle": "Guardar configuración de Pitrig",
+      "filter": "Configuración de Pitrig",
+      "anyFilter": "Archivos de Pitrig"
+    }
+  },
+  "layers": {
+    "layerList": {
+      "unwrapPuttingTheWidgetsBack": "Deshacer el contenedor y devolver los widgets junto a este",
+      "typeDoubleClickToRename": "{type} · doble clic para cambiar el nombre",
+      "unlock": "Desbloquear",
+      "lockSoTheCanvasCannot": "Bloquear para que no se pueda mover en el lienzo",
+      "showInTheEditor": "Mostrar en el editor",
+      "hideInTheEditorOnly": "Ocultar solo en el editor",
+      "fold": "Contraer",
+      "unfold": "Expandir"
+    },
+    "slotPages": {
+      "drawThisPageOnThe": "Dibujar esta página en el lienzo",
+      "pageNumberNotInLoop": "Página {number}*"
+    }
+  },
+  "canvas": {
+    "boardPicker": {
+      "theConnectedBoardDecidesThe": "Mientras está conectada, la placa determina la pantalla.",
+      "whichBoardThisDashboardIs": "La placa para la que se diseña este dashboard",
+      "selectABoard": "Selecciona una placa…",
+      "fit": "Ajustar",
+      "everyWidgetIsPlacedIn": "Cada widget se coloca en los píxeles propios de esa pantalla.",
+      "stretch": "Estirar",
+      "lengthNotes": "Notas: {length}",
+      "theCanvasDrawsAtValue": "El lienzo dibuja a {value} píxeles lógicos.",
+      "movingToAnotherBoardKeeps": "Al pasar a otra placa se mantienen las proporciones y se centra el diseño",
+      "movingToAnotherBoardScales": "Al pasar a otra placa se escala cada eje por separado para llenar la pantalla"
+    },
+    "canvasStatusBar": {
+      "zoomOut": "Alejar",
+      "zoom": "Zoom",
+      "zoomIn": "Acercar",
+      "fitTheWholeDisplayCmd": "Ajustar el zoom a toda la pantalla (Cmd/Ctrl+0)",
+      "zoomToTheSelectionShift": "Ajustar el zoom a la selección (Shift+Cmd/Ctrl+0)",
+      "snapToAFixedStep": "Ajustar a un paso fijo",
+      "gridStep": "Paso de la cuadrícula",
+      "lineUpWithTheEdges": "Alinear con los bordes y centros de los widgets vecinos",
+      "repeatAGapTheRow": "Repetir un espacio que ya tiene la fila, para que los elementos queden a la misma distancia",
+      "howCloseABoxHas": "Lo cerca que tiene que estar un recuadro para que se ajuste",
+      "snapReach": "Alcance del ajuste",
+      "resizingAWidgetScalesWhat": "Al cambiar el tamaño de un widget se escala lo que contiene: los widgets de un contenedor y, con ellos, todos los tamaños de fuente, radios y grosores (Shift+Cmd/Ctrl+C)",
+      "lengthSelected": "Seleccionados: {length} · ",
+      "xXYYW": "X {x}  Y {y}  An {width}  Al {height}",
+      "gridSizePxChosenForThis": "{gridSize} px, elegido para la pantalla de esta placa",
+      "gridSizePx": "{gridSize} px",
+      "grid": "Cuadrícula",
+      "gaps": "Espacios",
+      "reach": "Alcance",
+      "scaleContents": "Escalar contenido"
+    },
+    "displayPreview": {
+      "displayPreview": "Vista previa de la pantalla",
+      "undoCmdCtrlZ": "Deshacer (Cmd/Ctrl+Z)",
+      "undo": "Deshacer",
+      "redoShiftCmdCtrlZ": "Rehacer (Shift+Cmd/Ctrl+Z)",
+      "redo": "Rehacer",
+      "duplicateTheSelectionCmdCtrl": "Duplicar la selección (Cmd/Ctrl+D)",
+      "duplicate": "Duplicar",
+      "deleteTheSelectionDelete": "Eliminar la selección (Delete)",
+      "noDashboardOpen": "No hay ningún dashboard abierto",
+      "newDashboard": "Nuevo dashboard",
+      "browseTemplates": "Explorar plantillas",
+      "authoringForTheConnectedBoardid": "Diseñando para la placa conectada: {boardId}.",
+      "chooseABoardFirst": "Elige primero una placa"
+    },
+    "previewCanvas": {
+      "dashboardDisplayPreview": "Vista previa del dashboard en la pantalla"
+    },
+    "previewChrome": {
+      "wrap": "Envolver",
+      "wrapTheSelectionInA": "Envolver la selección en un contenedor (Cmd/Ctrl+G)",
+      "spaceEvenlyAcross": "Distribuir en horizontal",
+      "spaceEvenlyDown": "Distribuir en vertical",
+      "lengthSelected": "Seleccionados: {length}",
+      "alignLeftEdges": "Alinear bordes izquierdos",
+      "alignHorizontalCentres": "Alinear centros horizontales",
+      "alignRightEdges": "Alinear bordes derechos",
+      "alignTopEdges": "Alinear bordes superiores",
+      "alignVerticalCentres": "Alinear centros verticales",
+      "alignBottomEdges": "Alinear bordes inferiores"
+    },
+    "screenTabs": {
+      "screens": "Pantallas",
+      "screenName": "Nombre de la pantalla",
+      "nameDoubleClickToRename": "{name} · doble clic para cambiar el nombre · arrastra para reordenar",
+      "nameDoubleClickToRename2": "{name} · doble clic para cambiar el nombre",
+      "deleteActivescreenindexAndEverythingOn": "Eliminar {activeScreenIndex} y todo lo que contiene"
+    },
+    "slotTabs": {
+      "addAPageToThis": "Añadir una página a este slot",
+      "inside": "Dentro",
+      "leaveEveryContainerEscape": "Salir de todos los contenedores",
+      "activeScreenIndex": "← {activeScreenIndex}",
+      "workInsideId": "Trabajar dentro de {id}",
+      "pageNumberShownBy": "Página {number}, mostrada por {binding}",
+      "telemetry": "telemetría"
+    },
+    "toolPalette": {
+      "widgetTools": "Herramientas de widgets",
+      "select": "Seleccionar",
+      "pickMoveAndResizeWidgets": "Seleccionar, mover y cambiar el tamaño de los widgets",
+      "aReadingDrawnFromTelemetry": "Una lectura tomada de la telemetría",
+      "aPlateAndTheContainer": "Un panel, y el contenedor en el que van otros widgets",
+      "aFillingBarOverA": "Una barra que se llena sobre una ventana de valores",
+      "aRingGauge": "Un indicador circular",
+      "lights": "Luces",
+      "aStripOfLamps": "Una fila de luces",
+      "graph": "Gráfico",
+      "aTraceOverTime": "Una curva a lo largo del tiempo",
+      "anUploadedBitmap": "Un mapa de bits enviado",
+      "trackMap": "Mapa del circuito",
+      "theTrackBeingDrivenWith": "El circuito en el que se corre, con todos los autos que hay en él",
+      "slot": "Slot",
+      "anAreaThatSwitchesBetween": "Una zona que cambia entre páginas",
+      "tapZone": "Zona táctil",
+      "anInvisibleRectangleThatTakes": "Un rectángulo invisible que recibe un toque",
+      "theDashboardAlreadyHoldsAs": "El dashboard ya tiene tantos widgets de tipo {toLowerCase} como caben en la placa.",
+      "labelHintDragABox": "{label} — {hint}. Arrastra un recuadro en la pantalla o haz clic para colocar uno."
+    },
+    "menuEntries": {
+      "copy": "Copiar",
+      "paste": "Pegar",
+      "unwrapTheContainer": "Deshacer el contenedor",
+      "bringToFront": "Traer al frente",
+      "bringForward": "Traer adelante",
+      "sendBackward": "Enviar atrás",
+      "sendToBack": "Enviar al fondo",
+      "locked": "Bloqueado",
+      "hiddenWhileEditing": "Oculto al editar",
+      "workInsideIt": "Trabajar dentro",
+      "rename": "Cambiar nombre…",
+      "add": "Añadir",
+      "insertWidget": "Insertar widget",
+      "theWidgetLibraryIsEmpty": "La biblioteca de widgets está vacía",
+      "insertScreen": "Insertar pantalla…",
+      "fromASavedDashboard": "desde un dashboard guardado",
+      "selectAllOnThisScreen": "Seleccionar todo en esta pantalla",
+      "snapToGrid": "Ajustar a la cuadrícula",
+      "snapToWidgets": "Ajustar a los widgets",
+      "snapToEqualGaps": "Ajustar a espacios iguales",
+      "resizingScalesContents": "Escalar el contenido al cambiar el tamaño",
+      "widthHeight": "{width} × {height}"
+    },
+    "canvasOverlays": {
+      "selectedWidgetsBounds": "Límites de los widgets seleccionados",
+      "selectedWidgetBounds": "Límites del widget seleccionado"
+    },
+    "imagePreview": {
+      "noImage": "sin imagen"
+    }
+  },
+  "shortcuts": {
+    "dragToRestackOrOntoTheMiddleOfAContainerToMoveItInside": "Arrastra para reordenar, o suéltalo en el centro de un contenedor para meterlo dentro",
+    "cmdCtrlD": "Cmd/Ctrl+D",
+    "cmdCtrlC": "Cmd/Ctrl+C",
+    "cmdCtrlV": "Cmd/Ctrl+V",
+    "cmdCtrlG": "Cmd/Ctrl+G",
+    "shiftCmdCtrlG": "Shift+Cmd/Ctrl+G",
+    "cmdCtrl": "Cmd/Ctrl+[",
+    "cmdCtrlForward": "Cmd/Ctrl+]",
+    "doubleClick": "Doble clic",
+    "del": "Delete",
+    "cmdCtrlA": "Cmd/Ctrl+A"
+  },
+  "ipc": {
+    "registerAssetHandlers": {
+      "familyCouldNotBeDownloaded": "No se pudo descargar {family}. Comprueba la conexión o importa el archivo.",
+      "invalidFirmwareUploadRequest": "Solicitud de envío de firmware no válida.",
+      "invalidImageUploadRequest": "Solicitud de envío de imagen no válida.",
+      "invalidFontLibraryRequest": "Solicitud a la biblioteca de fuentes no válida."
+    },
+    "registerIpcHandlers": {
+      "invalidSaveRequest": "Solicitud de guardado no válida.",
+      "invalidSerialConnectionRequest": "Solicitud de conexión serie no válida."
+    },
+    "registerLibraryHandlers": {
+      "invalidConfigurationFileRequest": "Solicitud de archivo de configuración no válida.",
+      "invalidConfigurationLibraryRequest": "Solicitud a la biblioteca de configuraciones no válida.",
+      "invalidTemplateRequest": "Solicitud de plantilla no válida.",
+      "invalidDashboardFileRequest": "Solicitud de archivo de dashboard no válida."
+    },
+    "requestGuards": {
+      "invalidDeviceConfigurationRequest": "Solicitud de configuración del dispositivo no válida."
+    }
+  },
+  "validation": {
+    "fonts": {
+      "everyDashboardFontMustExplicitly": "Cada fuente del dashboard debe definir explícitamente una familia válida y un size_px.",
+      "configurationReferencesMoreThanMaximum": "La configuración hace referencia a más de {mAXIMUM_FONT_FAMILIES} familias de fuentes."
+    },
+    "hardware": {
+      "labelIsAMatrixWhose": "{label} es una matriz: su disposición es su cuadrícula, no una lista de tramos.",
+      "labelArrangesArrangedLampsOver": "{label} reparte luces en sus tramos ({arranged}), pero la tira controla {lamps}.",
+      "ownerIsWiderThanAPanel": "{owner} supera el ancho que puede tener un panel: un dibujo de matriz mide como máximo {side} de ancho.",
+      "ownerOnAStripIsOneRow": "{owner} está en una tira, así que tiene una sola fila de luces de alto.",
+      "labelCarriesASpriteWith": "{label} tiene un sprite sin ID.",
+      "labelCarriesTwoSpritesNamed": "{label} tiene dos sprites llamados {id}.",
+      "ownerNamesNoPaletteColours": "{owner} no indica ningún color de la paleta.",
+      "ownerCarriesLengthPixelDigits": "Número de dígitos de píxel en {owner}: {length}; su geometría necesita {expected}.",
+      "ownerCarriesDigitWhichIs": "{owner} contiene {digit}, que no es un dígito de píxel hexadecimal.",
+      "layerOfLabel": "{layer} de {label}",
+      "theHardwareSectionMustBe": "La sección de hardware debe ser una lista de periféricos.",
+      "theConfigurationDeclaresLengthDevices": "La configuración declara {length} dispositivos; esta placa controla como máximo {outputs}, con un canal de transmisión cada uno.",
+      "labelNamesNoTypeSo": "{label} no indica ningún «type», así que nada dice qué periférico es.",
+      "labelIsATypePeripheral": "{label} es un periférico {type}, para el que este firmware no tiene controlador.",
+      "twoDevicesAreWiredTo": "Hay dos dispositivos conectados al pin {pin}.",
+      "labelIsRotatedByRotation": "{label} tiene un giro de {rotation_deg}°; solo 0, 90, 180 y 270 son cuartos de giro.",
+      "labelDrivesLampsLampsOne": "{label} controla {lamps} luces; un dispositivo admite como máximo {mAXIMUM_LEDS_PER_OUTPUT}.",
+      "theConfigurationDrivesTotalLamps": "La configuración controla {total} luces; una placa admite como máximo {mAXIMUM_LEDS_TOTAL}.",
+      "spriteId": "Sprite {id}",
+      "paletteColours": "colores de la paleta",
+      "layerId": "Capa {id}",
+      "deviceId": "Dispositivo {id}",
+      "labelNamesPinPinBut": "{label} indica el pin {pin}, pero esta placa todavía no ofrece pines libres para LED.",
+      "labelNamesPinPinThis": "{label} indica el pin {pin}; esta placa ofrece {join}."
+    },
+    "ledValues": {
+      "labelMustCarryItsWhat": "{label} debe llevar sus {what} como lista.",
+      "labelCarriesLengthWhatThe": "{label} lleva {length} {what}; el dispositivo admite {capacity}.",
+      "labelDrawsASpriteNamed": "{label} dibuja un sprite llamado {sprite}, que este dispositivo no tiene.",
+      "labelNamesFrameSpriteFrame": "{label} indica el fotograma {sprite_frame}, pero el sprite tiene {frames}.",
+      "labelNamesPanelPixelsWhich": "{label} indica píxeles de panel, que solo tiene una matriz.",
+      "labelCarriesLengthMaskDigits": "Número de dígitos de máscara en {label}: {length}; un panel de {width} por {height} necesita {expected}.",
+      "labelCarriesDigitInIts": "{label} contiene en su máscara {digit}, que no es un dígito hexadecimal.",
+      "labelMustCarryItsSource": "{label} debe llevar sus modificadores de origen como lista.",
+      "labelCarriesASourceModifier": "{label} lleva un modificador de origen, que una capa LED no puede aplicar.",
+      "labelIsATypeLayer": "{label} es una capa {type}, que necesita una matriz y no una tira LED.",
+      "labelIsATypeLayer2": "{label} es una capa {type} y no lee telemetría, así que su origen quedaría sin leer.",
+      "labelIsATypeLayer3": "{label} es una capa {type} y necesita telemetría que representar.",
+      "labelNeedsAWatchedSource": "{label} necesita un origen vigilado para su condición de activación y sus reglas de color, y en otro caso no debe tener ninguno.",
+      "labelSetsKeyToValue": "{label} asigna {value} a «{key}»; el dispositivo conoce {join}.",
+      "labelCarriesStrayAmongIts": "{label} lleva entre sus {what} un elemento que no es de ese tipo: {stray}.",
+      "labelSetsKeyToSomething": "{label} asigna a «{key}» algo que no es un número.",
+      "labelIsAGradientWhich": "{label} es una capa gradient, que necesita al menos dos puntos de color.",
+      "labelIsAStepsLayer": "{label} es una capa steps, que necesita al menos un paso.",
+      "labelIsAGaugeWith": "{label} es una capa gauge con un solo punto de color; no le pongas ninguno, o pon dos o más.",
+      "labelIsATextLayer": "{label} es una capa de texto sin texto ni origen que mostrar.",
+      "labelSelectsNoPixelsAt": "{label} no selecciona ningún píxel.",
+      "colourStops": "puntos de color",
+      "colourRules": "reglas de color",
+      "labelSetsKeyToValueWhole": "{label} asigna {value} a «{key}»; el dispositivo lo lee como número entero.",
+      "labelHasStepNumberBelow": "{label} tiene el paso {number} por debajo del anterior; los umbrales van en aumento.",
+      "colourRuleOfLabelCompares": "La regla de color {number} de {label} compara con algo que no es un número.",
+      "labelCoversLampsFromTo": "{label} cubre de la luz {from} a la {to} de un dispositivo que tiene {lamps}.",
+      "labelListsStripLamps": "{label} enumera luces de tira, pero una capa en un panel indica dónde pinta mediante sus píxeles.",
+      "partNumberOfLabel": "Parte {number} de {label}",
+      "labelSetsANegativeSwitchOff": "{label} define un margen de apagado negativo; solo puede ser 0 o más.",
+      "colourRuleOfLabel": "Regla de color {number} de {label}",
+      "ownerPaintsNothingGiveIt": "{owner} no pinta nada: dale un color, un fondo o un parpadeo."
+    },
+    "ranges": {
+      "ownerSetsKeyToSomething": "{owner} asigna a «{key}» algo que no es un número.",
+      "ownerSetsKeyToValue": "{owner} asigna {value} a «{key}»; el dispositivo acepta {range}.",
+      "minimumToMaximum": "de {minimum} a {maximum}",
+      "text0OrWindow": "0 o {window}",
+      "ruleOfLabel": "Regla {number} de {label}",
+      "pageOfLabel": "Página {number} de {label}"
+    },
+    "schemaKeys": {
+      "unknownPropertyHereIsNot": "La propiedad desconocida «{here}» no forma parte del esquema de configuración.",
+      "pathMustBeAnArray": "«{path}» debe ser una lista de widgets.",
+      "hereMustBeAnObject": "«{here}» debe ser un objeto.",
+      "hereTypeMustBeOne": "«{here}.type» debe ser uno de estos: {join}.",
+      "hereIsBytesBytesThe": "«{here}» ocupa {bytes} bytes; el dispositivo guarda como máximo {capacity}."
+    },
+    "structure": {
+      "dashboardScreensMustBeAn": "«dashboard.screens» debe ser una lista de pantallas.",
+      "aDashboardCarriesAtMost": "Número máximo de pantallas de un dashboard: {mAXIMUM_SCREENS}; este declara {length}.",
+      "thisBoardHasNoDisplay": "Esta placa no tiene pantalla, así que el dashboard no puede declarar pantallas.",
+      "whereHoldsLengthWidgetsThe": "{where} contiene {length} widgets; el dispositivo admite {cap}.",
+      "labelIsASlotInside": "{label} es un slot dentro de un contenedor; un slot va directamente sobre una pantalla.",
+      "thisDashboardUsesCountType": "Este dashboard usa {count} widgets de tipo {type}; el dispositivo guarda {cap}.",
+      "thisDashboardHasActionsTap": "Este dashboard tiene {actions} elementos táctiles; el dispositivo vincula como máximo {mAXIMUM_ACTIONS}.",
+      "thisDashboardHasLaptimersSources": "Este dashboard tiene {lapTimers} orígenes que usan el cronómetro de vuelta; el dispositivo ejecuta uno.",
+      "aContainer": "Un contenedor",
+      "containersAreNestedDepthDeep": "Hay contenedores anidados a {depth} niveles de profundidad; el dispositivo admite {maximum}.",
+      "widgetIdSitsEntirelyOff": "El widget «{id}» queda totalmente fuera de la pantalla.",
+      "twoWidgetsShareTheId": "Dos widgets comparten el ID {id}; un dashboard solo puede tener uno de cada ID.",
+      "twoScreensShareTheId": "Dos pantallas comparten el ID {id}; un elemento táctil nombra una pantalla por su ID."
+    },
+    "transforms": {
+      "whatOfLabelIsA": "{what} de {label} es una conversión de tiempo sin formato; el dispositivo necesita uno de estos: «duration_ms», «compact_duration_ms», «clock_ms», «compact_clock_ms», «split_ms», «signed_duration_ms» o «signed_digits_ms».",
+      "whatOfLabelTimesBinding": "{what} de {label} trata como tiempo «{binding}», que el dispositivo lleva como {type}; un {_ms} es un número entero de milisegundos {counted}.",
+      "whatOfLabelPutsA": "{what} de {label} aplica una conversión numérica a «{binding}», que es verdadero o falso y no tiene nada que escalar.",
+      "whatOfLabelAsksFor": "{what} de {label} pide {decimals} decimales; el dispositivo escribe como máximo {mAXIMUM_TRANSFORM_DECIMALS}.",
+      "whatOfLabelScalesBinding": "{what} de {label} escala «{binding}» por algo que no es un número finito.",
+      "aSigned": "con signo",
+      "anUnsigned": "sin signo"
+    },
+    "transport": {
+      "telemetryTransportIdIsId": "«telemetry_transport.id» es {id}; el dispositivo conoce {join}.",
+      "thisBoardHasNoNative": "Esta placa no tiene puerto USB nativo; la telemetría tiene que ir por su UART.",
+      "thisBoardHasNoUart": "Esta placa no tiene UART para la telemetría; se comunica por su puerto USB nativo.",
+      "theUartRunsAtBaudrate": "El UART funciona a {baudRate} bits por segundo; el dispositivo acepta de {mINIMUM_BAUD_RATE} a {mAXIMUM_BAUD_RATE}."
+    },
+    "widgetGeometry": {
+      "labelPadsFurtherThanThe": "{label} tiene un margen interior mayor que el ancho de la pantalla.",
+      "labelPadsFurtherThanThe2": "{label} tiene un margen interior mayor que el alto de la pantalla.",
+      "labelHasNoSizeThe": "{label} no tiene tamaño; el dispositivo necesita un ancho y un alto mayores que cero.",
+      "labelSpendsClaimedPixelsOn": "{label} dedica {claimed} px al borde y a la reducción del fondo, y su recuadro de {width}×{height} no tiene espacio para ellos.",
+      "labelPadsPaddedPixelsOn": "{label} ocupa con su margen interior {padded} px de su recuadro de {width}×{height}, contando el borde, y no deja nada en lo que dibujar.",
+      "labelIsThicknessPixelsThick": "{label} tiene un grosor de {thickness} px, que no cabe dos veces en su recuadro de {width}×{height}. Dale un radio propio o haz más grande el recuadro.",
+      "labelIsThicknessPixelsThick2": "{label} tiene un grosor de {thickness} px, más de lo que admite su radio de {radius} px.",
+      "labelIsThicknessPixelsThick3": "{label} tiene un grosor de {thickness} px, que no cabe dos veces en su recuadro de {width}×{height}. Dale una longitud propia o haz más grande el recuadro.",
+      "labelIsThicknessPixelsThick4": "{label} tiene un grosor de {thickness} px, más de lo que admite su longitud de {radius} px.",
+      "labelPaintsItsGradientFrom": "{label} pinta su degradado a partir de un mapa de bits del tamaño de su anillo, y un anillo de {side} px de diámetro es más ancho que la pantalla. Reduce el radio o quita el degradado."
+    },
+    "widgetRules": {
+      "labelIsASlotWith": "{label} es un slot con apariencia propia; un slot no dibuja nada, así que pon una forma detrás.",
+      "labelIsASlotAnd": "{label} es un slot y además navega; su toque ya significa «página siguiente».",
+      "labelIsASlotWith2": "{label} es un slot sin páginas.",
+      "labelHasLengthPagesThe": "{label} tiene {length} páginas; el dispositivo admite {mAXIMUM_SLOT_PAGES}.",
+      "labelHasNoPageIn": "{label} no tiene ninguna página en el ciclo, así que nada volvería a mostrar una después de un evento.",
+      "whereStaysUpForDuration": "{where} se queda visible {duration} ms; el dispositivo mantiene una página visible {mAXIMUM_HOLD_MS} como máximo.",
+      "whereHasNoTriggerSo": "{where} no tiene disparador, así que su telemetría, sus reglas y su duración nunca se leerían.",
+      "whereHasATriggerBut": "{where} tiene un disparador, pero no vigila ninguna telemetría.",
+      "whereAppearsOnAChange": "{where} aparece con un cambio, pero no permanece visible ni un instante; dale una duración.",
+      "whereAppearsOnAChange2": "{where} aparece con un cambio, así que sus reglas de comparación nunca se leerían.",
+      "whereAppearsOnAComparison": "{where} aparece con una comparación, pero no tiene ninguna regla que comparar.",
+      "ownerNavigatesToAScreen": "{owner} navega a una pantalla, pero no indica cuál.",
+      "ownerNavigatesToScreenScreen": "{owner} navega a la pantalla «{screen}», que este dashboard no tiene.",
+      "ownerNamesAScreenFor": "{owner} indica una pantalla para {type}, que navega de forma relativa; quita la pantalla.",
+      "sourceOfLabelHasAModifiers": "El origen {number} de {label} tiene un «modifiers» que no es una lista.",
+      "sourceOfLabelHasLengthModifiers": "El origen {number} de {label} tiene {length} modificadores; el dispositivo admite {maximum}.",
+      "sourceOfLabelUsesTheLap": "El origen {number} de {label} usa el cronómetro de vuelta {lapTimers} veces; con una basta.",
+      "sourceOfLabelUsesTheLap2": "El origen {number} de {label} usa el cronómetro de vuelta con «{binding}»; el cronómetro sustituye a «{lapTimer}».",
+      "whereDismissesForATime": "{where} necesita dismiss_ms con un descarte temporizado, y ningún dismiss_ms en otro caso."
+    },
+    "widgetValues": {
+      "labelSetsAMiddleGradient": "{label} define un color intermedio de degradado sin color final; activa primero el degradado.",
+      "whatOfLabelRunsMinimum": "{what} de {label} va de {minimum} a {maximum}; el dispositivo necesita un máximo mayor que el mínimo.",
+      "labelHasNoSourceSo": "{label} no tiene origen, así que no mostraría nada.",
+      "labelComposesLengthSourcesThe": "{label} combina {length} orígenes; el dispositivo combina {mAXIMUM_TEXT_SOURCES}.",
+      "labelNamesTheImageImage": "{label} indica la imagen «{image}», que no es un identificador de imagen.",
+      "theCaptionOfLabelReads": "El rótulo de {label} lee telemetría, pero no tiene texto propio de reserva.",
+      "labelHasLengthStylingRules": "{label} tiene {length} reglas de estilo; el dispositivo admite {mAXIMUM_WIDGET_CONDITIONS}.",
+      "labelHasAColourRamp": "{label} tiene una escala de colores con un solo punto; una escala de colores interpola entre dos.",
+      "labelHasAColourRamp2": "{label} tiene una escala de colores con {length} puntos; el dispositivo admite {mAXIMUM_COLOR_STOPS}.",
+      "labelHasNoSegmentsSo": "{label} no tiene segmentos, así que no se encendería nada.",
+      "labelHasLengthSegmentsThe": "{label} tiene {length} segmentos; el dispositivo admite {mAXIMUM_INDICATOR_SEGMENTS}.",
+      "whatOfLabelHasNo": "{what} de {label} no tiene campo de telemetría.",
+      "whatOfLabelReadsName": "{what} de {label} lee «{name}», que no es un campo de telemetría.",
+      "theSource": "El origen",
+      "theValueWindow": "La ventana de valores",
+      "theSpriteFrameSource": "El origen del fotograma del sprite",
+      "theCaptionSource": "El origen del rótulo",
+      "theWatchedSource": "El origen vigilado",
+      "labelHasAColourRampWhose": "{label} tiene una escala de colores cuyo punto {number} no supera al anterior.",
+      "ruleOfLabelComparesAgainst": "La regla {number} de {label} compara con algo que no es un número.",
+      "theTransformOnSourceNumber": "La conversión del origen {number}",
+      "labelDrawsLengthSourcesThe": "{label} dibuja {length} orígenes; el dispositivo dibuja {maximum}.",
+      "theWindowOfTraceNumber": "La ventana de la curva {number}",
+      "labelHasSegmentNumberBelow": "{label} tiene el segmento {number} por debajo del anterior; los umbrales van en aumento.",
+      "labelHasSegmentNumberOutside": "{label} tiene el segmento {number} fuera de 0 a 1; un umbral es una fracción del rango, no un valor en bruto."
+    },
+    "configuration": {
+      "theConfigurationCouldNotBe": "No se pudo leer la configuración{detail}.",
+      "configurationMustBeAJson": "La configuración debe ser un objeto JSON.",
+      "configurationMustTargetASupported": "La configuración debe ser para una placa compatible."
+    },
+    "controls": {
+      "thePcButtons": "Los botones del PC",
+      "theDashboardSControls": "Los controles del dashboard",
+      "actionNumber": "Acción {number}",
+      "screenRuleNumber": "Regla de pantalla {number}",
+      "ownerShowsAScreenThe": "{owner} muestra la pantalla «{screen}», que el dashboard no tiene.",
+      "ownerNamesAScreenIt": "{owner} ({action}) indica una pantalla que no usa.",
+      "ownerNamesASlotIt": "{owner} ({action}) indica un slot que no usa.",
+      "ownerWorksOnASlot": "{owner} actúa sobre el slot «{slot}», que el dashboard no tiene.",
+      "ownerShowsPageOfA": "{owner} muestra la página {page}, pero el número de páginas del slot «{slot}» es {pages}.",
+      "ownerWatchesALapTimer": "{owner} vigila un cronómetro de vuelta, algo que una regla de pantalla no puede hacer.",
+      "ownerHasNoComparison": "{owner} no tiene ninguna comparación que vigilar.",
+      "theSwitchTurnsSlotSlot": "El selector controla el slot «{slot}», que el dashboard no tiene.",
+      "theHomeScreenScreenIs": "La pantalla de inicio «{screen}» no está en el dashboard."
+    }
+  },
+  "misc": {
+    "workspaceRail": {
+      "drawTheDashboardAndThe": "Diseñar el dashboard y las fuentes, imágenes y plantillas que lo forman",
+      "ledsAndMatricesWiredTo": "LED y matrices conectados a la placa",
+      "whatYourWheelAndButtons": "Lo que hacen tu volante y tu botonera en la placa",
+      "telemetryLinkAndSimhub": "Conexión de telemetría y SimHub",
+      "installAFirmwareImageOver": "Instalar una imagen de firmware por el puerto serie",
+      "whatTheConnectedBoardIs": "Qué placa está conectada"
+    },
+    "valueTransform": {
+      "rpmThousands": "miles de rpm"
+    }
+  },
+  "assets": {
+    "chooseFile": {
+      "fontTitle": "Seleccionar variante de fuente",
+      "fontFilter": "Fuentes"
+    }
+  },
+  "controls": {
+    "document": {
+      "buttonNumber": "Botón {number}"
+    },
+    "actions": {
+      "next_screen": "Pantalla siguiente",
+      "previous_screen": "Pantalla anterior",
+      "show_screen": "Mostrar pantalla",
+      "hold_screen": "Pantalla al mantener",
+      "home_screen": "Pantalla de inicio",
+      "next_page": "Página siguiente",
+      "previous_page": "Página anterior",
+      "show_page": "Mostrar página",
+      "hold_page": "Página al mantener",
+      "dismiss_page": "Descartar página emergente",
+      "display_brighter": "Pantalla más brillante",
+      "display_dimmer": "Pantalla más tenue",
+      "leds_brighter": "LED más brillantes",
+      "leds_dimmer": "LED más tenues",
+      "leds_toggle": "Encender/apagar LED"
+    },
+    "inputParts": {
+      "assign": "Asignar",
+      "pressAButton": "Pulsa un botón…",
+      "removeInput": "Quitar {input}"
+    },
+    "buttonList": {
+      "noButtonsYet": "Aún no hay botones. Pulsa «Añadir botón» y luego el botón de tu volante o de tu botonera.",
+      "addButton": "Añadir botón",
+      "allButtonsUsed": "Todos los botones están en uso: {count}.",
+      "startSimhubToAssign": "Inicia SimHub con el plugin de Pitrig para asignar botones.",
+      "fourInputsAtMost": "Máximo de entradas por botón: {count}.",
+      "pressAssignThenTheButton": "Pulsa «Asignar» y luego el botón de tu volante, botonera, gamepad o teclado.",
+      "notAssignedYet": "Aún sin asignar",
+      "chooseWhatItDoes": "Elige qué hace…",
+      "alsoDoSomethingElse": "+ Hacer también otra cosa",
+      "removeName": "Quitar {name}"
+    },
+    "switchSection": {
+      "addPosition": "Añadir posición",
+      "removePositionNumber": "Quitar la posición {number}",
+      "turnTheSwitchToThe": "Pulsa «Añadir posición» y luego gira el selector a la siguiente posición.",
+      "noPositionsYet": "Aún no hay posiciones. Pulsa «Añadir posición» y gira el selector, una posición cada vez.",
+      "turnsThePagesOf": "Pasa las páginas de",
+      "noSlot": "Ningún slot",
+      "morePositionsThanPages": "Posiciones del selector: {positions}; páginas del slot: {pages}. Las posiciones sobrantes no hacen nada."
+    },
+    "actionLine": {
+      "action": "Acción",
+      "screen": "Pantalla",
+      "slot": "Slot",
+      "page": "Página",
+      "pageNumber": "Página {number}",
+      "wrap": "En bucle",
+      "repeatWhileHeld": "Repetir al mantener",
+      "removeAction": "Quitar {action}"
+    },
+    "controlsPage": {
+      "controls": "Controles",
+      "whatTheButtonsOnYour": "Lo que hacen en la placa los botones de tu volante, tu botonera y tu teclado.",
+      "buttons": "Botones",
+      "pressAddButtonThen": "Pulsa «Añadir botón», pulsa el botón de tu volante y luego elige qué hace.",
+      "rotarySwitch": "Selector rotativo",
+      "eachPositionShowsOne": "Cada posición muestra una página de un slot.",
+      "alsoInSimhub": "También puedes asignar los botones de PitrigPlugin.Button1 a Button16 en SimHub, en «Controls and events».",
+      "startANewSetupOn": "Empieza una configuración nueva o abre un archivo en la pestaña «Configuraciones».",
+      "startSimhubWithThePlugin": "SimHub no responde. Inicia SimHub con el plugin de Pitrig para leer tus botones.",
+      "pressTheButtonToAssign": "Pulsa el botón que quieres asignar o Esc para cancelar.",
+      "pressAnyButton": "Pulsa cualquier botón para verlo aquí.",
+      "lastInput": "Última entrada: {input}, {state}",
+      "down": "pulsado",
+      "up": "soltado"
+    },
+    "hints": {
+      "switchSlot": "El slot cuyas páginas pasa el selector: la posición 1 muestra su primera página."
+    }
+  },
+  "telemetry": {
+    "gameMarks": {
+      "sentBy": "Enviado por {games}; en los demás juegos se mantiene el marcador de posición",
+      "noneOfTheGames": "ACC, AC, iRacing y LMU no lo envían"
+    }
+  },
+  "usage": {
+    "section": {
+      "title": "Estadísticas de uso anónimas",
+      "description": "Ayuda a decidir qué desarrollar a continuación. El configurador y el plugin de Pitrig en SimHub envían un número de instalación aleatorio, si Pitrig ya se había usado antes en este PC, sus versiones, el sistema, el modelo y el firmware de la placa, los juegos que se ejecutan en SimHub, y cuándo termina un guardado o la aplicación sufre un fallo. No se envían nombres, archivos, dashboards ni direcciones. Este interruptor también abarca el plugin de SimHub en este PC.",
+      "enabled": "Activado",
+      "disabled": "Desactivado",
+      "developmentBuild": "Compilación de desarrollo: sin búsqueda de actualizaciones ni estadísticas.",
+      "noNamesFilesOrDashboards": "Sin nombres, archivos ni dashboards.",
+      "whatIsSent": "Qué se envía"
+    }
+  },
+  "language": {
+    "section": {
+      "title": "Idioma",
+      "description": "El idioma del configurador.",
+      "system": "Sistema ({language})",
+      "machineTranslated": "Esta traducción se hizo con ayuda de IA. Si ves un error, escríbenos: los datos de contacto están más abajo.",
+      "restartToApply": "El nuevo idioma se aplica cuando Pitrig se reinicia.",
+      "restartNow": "Reiniciar ahora",
+      "restartClosesDraft": "Al reiniciar se cierra el borrador actual. Se pierden los cambios que no estén en la placa o en un archivo. ¿Reiniciar ahora?"
+    }
+  },
+  "contact": {
+    "section": {
+      "title": "Contacto",
+      "description": "Una pregunta, una placa que no arranca o una idea llegan directamente al desarrollador. Si tienes un problema, pega en tu mensaje los detalles para el soporte.",
+      "form": "Formulario de contacto",
+      "copyEmail": "Copiar correo",
+      "copied": "Copiado"
+    }
+  },
+  "share": {
+    "button": {
+      "label": "Compartir…",
+      "title": "Guardar este dashboard con sus imágenes y fuentes en un solo archivo que se abre tal cual en otro PC"
+    },
+    "dialog": {
+      "saveTitle": "Compartir dashboard",
+      "saveWidgetTitle": "Compartir widget",
+      "saveButton": "Guardar",
+      "saveFile": "Guardar archivo…",
+      "saving": "Guardando…",
+      "filter": "Dashboard de Pitrig",
+      "defaultName": "Mi dashboard",
+      "intro": "Un solo archivo con el dashboard, sus imágenes y las fuentes que quizá no tenga otro PC. Al abrirlo se reemplaza el dashboard de ese PC; los ajustes de LED y de conexión no cambian.",
+      "saved": "Se guardó {fileName}, {size}.",
+      "savedWithout": "Se guarda sin {names}, que este PC no tiene."
+    },
+    "summary": {
+      "images": "Imágenes en el archivo: {count}.",
+      "fonts": "Fuentes en el archivo: {embedded}; descargadas de Google Fonts en el otro PC: {google}; integradas en Pitrig: {builtin}.",
+      "size": "Aprox. {size}.",
+      "missingImages": "No están en este PC, así que tampoco en el archivo: {images}. En el otro PC se muestran como recuadros con su nombre.",
+      "missingFonts": "No están en la biblioteca de fuentes de este PC, así que tampoco en el archivo: {fonts}."
+    },
+    "file": {
+      "damaged": "Este archivo de dashboard está dañado o incompleto.",
+      "newer": "Este archivo de dashboard se creó con una versión más reciente de Pitrig. Actualiza Pitrig para abrirlo.",
+      "newerVersion": "Este archivo de dashboard se creó con Pitrig {version}. Actualiza Pitrig para abrirlo.",
+      "tooLarge": "El archivo de dashboard superaría los {limit} MB.",
+      "isWidget": "Este archivo contiene un widget. Añádelo a la biblioteca de widgets en la página «Plantillas».",
+      "isDashboard": "Este archivo contiene un dashboard completo, no un widget. Añádelo a la biblioteca de dashboards."
+    },
+    "errors": {
+      "name": "El nombre de un dashboard tiene de 1 a {maximum} caracteres.",
+      "description": "Una descripción tiene como máximo {maximum} caracteres.",
+      "notSaved": "No se guardó el archivo de dashboard."
+    },
+    "open": {
+      "opened": "Se abrió {name}.",
+      "added": "Se añadió a este PC: {names}.",
+      "renamed": "Se cambió el nombre para conservar las copias propias de este PC: {names}.",
+      "imagesMissing": "Imágenes que no están en el archivo ni en este PC: {images}.",
+      "fontsMissing": "Fuentes no encontradas: {fonts}. Conéctate a internet para obtener las fuentes de Google o añádelas en la página «Fuentes».",
+      "scaled": "Se creó para otro tamaño de pantalla, así que se escaló; las imágenes conservan su tamaño.",
+      "next": "«Guardar en la placa» instala todo lo que necesita."
+    }
+  },
+  "simhub": {
+    "tabs": {
+      "status": "Estado",
+      "settings": "Ajustes",
+      "buttons": "Botones",
+      "about": "Acerca de"
+    },
+    "parts": {
+      "getConfigurator": "Obtener el configurador",
+      "openConfigurator": "Abrir el configurador de Pitrig"
+    },
+    "status": {
+      "telemetry": "TELEMETRÍA",
+      "boards": "PLACAS",
+      "configurator": "CONFIGURADOR",
+      "currentCar": "AUTO ACTUAL",
+      "sendTelemetry": "Enviar telemetría a las placas",
+      "switchOffHint": "Desactívalo para dejar los puertos de las placas a otros programas.",
+      "notListeningFor": "No se escucha al configurador: {error}",
+      "leavesPortsAlone": "El plugin no toca ningún puerto hasta que lo actives.",
+      "shiftSource": "Los puntos de cambio vienen de: {source}.",
+      "switchedOff": "Desactivado",
+      "inConfigurator": "En el configurador de Pitrig, que le reenvía esta telemetría.",
+      "portBusy": "Lo usa otro programa, quizá un dispositivo Custom Serial de SimHub. Quita ese dispositivo.",
+      "noBoard": "No se encontró ninguna placa Pitrig",
+      "noBoardHint": "Conecta una por USB. Una Guition ESP32-4848S040 se detecta después de que el configurador se haya conectado a ella una vez.",
+      "streaming": "Conectada · firmware {firmware} · valores: {values} · {speed} kB/s",
+      "safeMode": "En modo seguro. Abre el configurador para repararla.",
+      "connecting": "Conectando…",
+      "notListening": "Sin escuchar",
+      "cannotReach": "El configurador no puede comunicarse con el plugin.",
+      "notConnected": "No conectado",
+      "openToChange": "Ábrelo para cambiar lo que muestra una placa. Mientras se ejecuta, toma el control de la placa.",
+      "connected": "Conectado",
+      "nothingToSend": "Nada que enviar todavía",
+      "nothingToSendTo": "Nada que enviar todavía a {host}",
+      "sending": "Enviando valores: {count}",
+      "sendingTo": "Enviando valores a {host}: {count}"
+    },
+    "shifts": {
+      "noGame": "Sin juego",
+      "iracingGear": "iRacing, esta marcha",
+      "iracingCar": "iRacing, este auto",
+      "raceroomUpshift": "RaceRoom, subida de marcha",
+      "simhubCarSettings": "Ajustes del auto en SimHub",
+      "maximumRpm": "RPM máximas",
+      "noShiftData": "Sin datos de cambio",
+      "f1RevLights": "Luces de RPM de F1"
+    },
+    "buttons": {
+      "buttons": "BOTONES",
+      "switch": "SELECTOR",
+      "lastPress": "ÚLTIMA PULSACIÓN",
+      "wiring": "Los botones se asignan en la página «Controles» del configurador de Pitrig, o en SimHub, en «Controls and events», con los nombres de PitrigPlugin.Button1 a Button16 y de SwitchPosition1 a SwitchPosition12.",
+      "notWired": "Aún no hay botones asignados.",
+      "position": "Posición {position}",
+      "noPosition": "Aún sin posición.",
+      "nothingPressed": "Aún no se ha pulsado nada. Pulsa un botón del volante, de una botonera o del teclado.",
+      "button": "botón {number}",
+      "switchPosition": "posición {position} del selector",
+      "notWiredToButton": "sin asignar a un botón"
+    },
+    "settings": {
+      "fuel": "COMBUSTIBLE",
+      "averages": "PROMEDIOS",
+      "advanced": "AVANZADO",
+      "fuelMargin": "Margen de combustible, litros o galones",
+      "averageLaps": "Promedios de neumáticos y frenos, en vueltas",
+      "fuelHint": "El margen de combustible se suma al combustible que hay que añadir, en la unidad de combustible que muestra SimHub; un margen negativo resta combustible.",
+      "averagesHint": "Los promedios toman una muestra cada tres segundos fuera de boxes y duran hasta que SimHub se reinicia.",
+      "listenPort": "Puerto de escucha",
+      "listenPortHint": "El configurador envía sus solicitudes a este puerto; su «Puerto del plugin» debe coincidir.",
+      "portRange": "El puerto debe ser un número entre {minimum} y {maximum}.",
+      "thisMachine": "Este PC: {addresses}"
+    },
+    "about": {
+      "title": "Telemetría de Pitrig para SimHub",
+      "version": "Versión {version}",
+      "intro": "Pitrig encuentra sus placas por sí solo y envía a cada una la telemetría que usa su dashboard. Mientras el configurador de Pitrig está conectado a una placa, toma el control de ella y le reenvía esta telemetría; cuando la suelta, la placa vuelve aquí.",
+      "updates": "ACTUALIZACIONES",
+      "updatesText": "Las actualizaciones llegan con el configurador de Pitrig: busca una versión nueva y reemplaza este plugin en SimHub.",
+      "links": "ENLACES",
+      "website": "Sitio web",
+      "guides": "Guías",
+      "sourceCode": "Código fuente",
+      "reportProblem": "Informar de un problema",
+      "contact": "CONTACTO",
+      "contactText": "Una pregunta, una placa que no arranca o una idea llegan directamente al desarrollador.",
+      "contactForm": "Formulario de contacto",
+      "statistics": "ESTADÍSTICAS",
+      "statisticsText": "Pitrig envía estadísticas de uso anónimas: un número de instalación aleatorio, si Pitrig ya se había usado antes en este PC, las versiones del plugin y de SimHub, el modelo de placa y el juego en ejecución. Ni nombres ni archivos. El interruptor está en la página «Info» del configurador de Pitrig.",
+      "license": "LICENCIA",
+      "licenseText": "El plugin es de código abierto con la licencia Apache License 2.0.",
+      "readLicense": "Leer la licencia",
+      "technical": "DATOS TÉCNICOS",
+      "technicalText": "{cost} ms por actualización; actualizaciones por segundo: {rate}. Conexión con el configurador (paquetes: {packets}; errores: {errors})."
+    }
+  }
+}

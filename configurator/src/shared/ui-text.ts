@@ -1,6 +1,8 @@
 import { isUiLanguage, UI_LANGUAGE_GLOBAL, type UiLanguage } from './ui-language'
 import type { UiStringKey, UiStringParameters } from './ui-string-keys'
+import { DE_UI_STRINGS } from './ui-strings-de'
 import { EN_UI_STRINGS } from './ui-strings-en'
+import { ES_UI_STRINGS } from './ui-strings-es'
 import { KO_UI_STRINGS } from './ui-strings-ko'
 import { PL_UI_STRINGS } from './ui-strings-pl'
 import { UK_UI_STRINGS } from './ui-strings-uk'
@@ -15,7 +17,9 @@ const CATALOGS: Readonly<Record<UiLanguage, Readonly<Record<string, string>>>> =
   en: EN_UI_STRINGS,
   uk: UK_UI_STRINGS,
   ko: KO_UI_STRINGS,
-  pl: PL_UI_STRINGS
+  pl: PL_UI_STRINGS,
+  de: DE_UI_STRINGS,
+  es: ES_UI_STRINGS
 }
 
 const injected: unknown = Reflect.get(globalThis, UI_LANGUAGE_GLOBAL)

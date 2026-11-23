@@ -64,12 +64,12 @@ the preload exposes under that name. Changing the language on the Info page
 saves the choice and relaunches the application; the debug application sets
 nothing and stays English.
 
-**Four locales.** `en` is the source, and `uk`, `ko` and `pl` sit beside it in
-`i18n/`. Every locale carries every key, and every plural message carries
+**Six locales.** `en` is the source, and `uk`, `ko`, `pl`, `de` and `es` sit
+beside it in `i18n/`. Every locale carries every key, and every plural message carries
 exactly the CLDR categories `PLURAL_CATEGORIES` lists for its locale, so no form
-is missing at runtime. Terms and style follow `i18n/glossary.md`. The `ko` and
-`pl` text is a machine translation no native speaker has checked, and the Info
-page says so in those two languages.
+is missing at runtime. Terms and style follow `i18n/glossary.md`. The `ko`, `pl`,
+`de` and `es` text is a machine translation no native speaker has checked, and
+the Info page says so in those four languages.
 
 **The SimHub plugin reads the same catalog.** Keys under `simhub.` are its text:
 the generator leaves them out of the configurator's tables and writes them to
@@ -89,11 +89,11 @@ label, because localising them breaks lookup and corrupts saved documents.
 
 ## Consequences
 
-A phrase now has one home, and a locale is one JSON file, its plural categories
-and its entry in the catalog map. The generator's `--check` runs in CI, so a
+A phrase now has one home, and a locale is one JSON file, its plural categories,
+its entry in the catalog map and its name in `ui-language.ts`. The generator's `--check` runs in CI, so a
 catalog edited without regenerating fails the build, and so does an English key
-the other locales lack: every change to `i18n/en.json` carries its `uk`, `ko`
-and `pl` text in the same change. A reworded English message is not detected in
+the other locales lack: every change to `i18n/en.json` carries its text in
+every other locale in the same change. A reworded English message is not detected in
 the others; there the guard is review.
 
 The inspector's prose leaves the module a developer reads while working on that

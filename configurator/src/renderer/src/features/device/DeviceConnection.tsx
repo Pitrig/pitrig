@@ -169,7 +169,7 @@ export function DeviceConnection({
       />
 
       <Button
-        className="w-20 flex-none"
+        className="min-w-20 flex-none"
         variant="outline"
         disabled={isWorking || status === 'connected'}
         onClick={() => void refreshPorts()}

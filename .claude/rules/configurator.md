@@ -212,9 +212,9 @@ section's Open adds a received one through `templates:import`.
 
 ## Interface text
 
-Text lives in `i18n/en.json` with `uk.json`, `ko.json` and `pl.json` beside it
-(ADR 0031); the keys under `simhub.` are the SimHub plugin's. The generator fails while a locale lacks a key, so a new English
-message carries its three translations in the same change, in the terms and
+Text lives in `i18n/en.json` with `uk.json`, `ko.json`, `pl.json`, `de.json` and
+`es.json` beside it (ADR 0031); the keys under `simhub.` are the SimHub plugin's. The generator fails while a locale lacks a key, so a new English
+message carries its five translations in the same change, in the terms and
 style of `i18n/glossary.md`; a reworded one needs them updated by hand, since
 nothing detects it. The language is fixed for a run:
 `main/ui-language/startup-language.ts` is the first import of `main/index.ts`

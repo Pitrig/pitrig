@@ -1,0 +1,2806 @@
+{
+  "device": {
+    "connection": {
+      "baudRateLabel": "Baudrate",
+      "portLabel": "Serieller Port",
+      "autoPort": "Auto – Port und Baudrate erkennen",
+      "refresh": "Neu laden",
+      "connect": "Verbinden",
+      "cancel": "Abbrechen",
+      "disconnect": "Trennen",
+      "disconnecting": "Wird getrennt…",
+      "connectedAt": "{displayName} mit {baudRate}",
+      "scanningAt": "{displayName} wird mit {baudRate} abgefragt",
+      "disconnected": "Gerät getrennt"
+    },
+    "status": {
+      "disconnected": "getrennt",
+      "scanning": "sucht",
+      "connecting": "verbindet",
+      "connected": "verbunden",
+      "disconnecting": "trennt",
+      "error": "Fehler"
+    },
+    "health": {
+      "cause": {
+        "power_on": "Eingeschaltet",
+        "software": "Auf Anforderung neu gestartet",
+        "panic": "Abgestürzt",
+        "task_watchdog": "Reagierte nicht mehr",
+        "brownout": "Versorgungsspannung eingebrochen",
+        "other": "Zurückgesetzt"
+      },
+      "phase": {
+        "configuration": "beim Lesen seiner Konfiguration",
+        "link": "beim Aufbau der seriellen Verbindung",
+        "display": "beim Starten des Displays",
+        "assets": "beim Laden von Schriftarten und Bildern",
+        "composition": "beim Aufbau des Dashboards",
+        "complete": "nach Abschluss des Starts"
+      },
+      "lastBoot": "{cause} {phase}",
+      "noFailures": "Keine seit dem letzten Einschalten oder Schreiben der Konfiguration",
+      "crashCount": {
+        "$plural": {
+          "one": "{count} Start endete mit einem Absturz",
+          "other": "{count} Starts in Folge endeten mit einem Absturz"
+        }
+      }
+    },
+    "boardSyncDialog": {
+      "theBoardAndTheDraft": "Board und Entwurf unterscheiden sich",
+      "boardAndDraftDiffer": "Board und Entwurf weichen ab",
+      "showTheDraftOnThe": "Entwurf auf dem Board anzeigen",
+      "saveTheDraftToThe": "Entwurf auf dem Board speichern",
+      "decideLaterTheBoardKeeps": "Später entscheiden – das Board behält, was es gerade ausführt",
+      "onBoardid": " auf {boardId}",
+      "takeTheBoardSConfiguration": "Konfiguration des Boards übernehmen",
+      "explanation": "{reason} Bisher wurde{board} nichts geschrieben oder angewendet. Wählen Sie, wonach sich beide Seiten richten sollen.",
+      "documentDiffers": "„{label}“ weicht ab",
+      "mirrorTheDraftOnThe": "Entwurf auf dem Board spiegeln, ohne ihn zu schreiben",
+      "writeTheDraftToThe": "Entwurf auf das Board schreiben und dort behalten"
+    },
+    "infoPage": {
+      "info": "Info",
+      "board": "Board",
+      "display": "Display",
+      "firmware": "Firmware",
+      "firmwareSlots": "Firmware-Slots",
+      "lastBoot": "Letzter Start",
+      "recentFailures": "Letzte Ausfälle",
+      "port": "Port",
+      "speed": "Baudrate",
+      "name": "Name",
+      "version": "Version",
+      "displaySize": "{width} × {height}",
+      "singlePartition": "Nur eine Anwendungspartition",
+      "firmwareSlotsValue": "{running} läuft · Installation in {target}",
+      "versionsUpdatesAndWhat": "Versionen, Updates und was Sie senden, wenn Sie um Hilfe bitten."
+    },
+    "liveApplyIndicator": {
+      "theBoardRunsItsOwn": "Das Board führt seine eigene Konfiguration aus.",
+      "resolve": "Klären",
+      "applyingToTheBoard": "Wird auf das Board angewendet…",
+      "sendingToTheBoard": "Wird an das Board gesendet…",
+      "livePreviewFailedError": "Live-Vorschau fehlgeschlagen: {error}",
+      "theBoardIsNotFollowing": "Das Board folgt dem Entwurf nicht. {liveApplyBlockedReason}"
+    },
+    "schemaBanner": {
+      "updateTheBoardFirmware": "Firmware des Boards aktualisieren",
+      "explanation": "Seine Firmware liest das Konfigurationsschema {schema}, dieser Konfigurator schreibt das Schema {expected}. Daher lässt sich seine Konfiguration hier lesen, aber nicht darauf speichern. „Board aktualisieren“ auf der Seite „Firmware“ installiert die neue Firmware und spielt die Konfiguration des Boards zurück."
+    },
+    "safeModeBanner": {
+      "boardIsInSafeMode": "Board im abgesicherten Modus",
+      "theLastOnePhase": ", der letzte {phase}",
+      "explanation": "{failures}{phase}. Deshalb hat das Board nur die serielle Verbindung gestartet: kein Dashboard, keine Module und keine Übertragung von Schriftarten oder Bildern. Die Live-Vorschau ist aus. Speichern Sie eine Konfiguration darauf – das setzt den Zähler zurück und startet das Board normal neu."
+    },
+    "assetInfoParsers": {
+      "imageStatus": "Bildstatus",
+      "fontStatus": "Schriftartstatus",
+      "theDeviceReturnedMalformedFirmware": "Das Gerät hat einen fehlerhaften Firmware-Status gemeldet.",
+      "theDeviceReturnedMalformedImage": "Das Gerät hat einen fehlerhaften Bildstatus gemeldet.",
+      "theDeviceReturnedMalformedFont": "Das Gerät hat einen fehlerhaften Schriftartstatus gemeldet.",
+      "theDeviceReturnedMalformedFont2": "Das Gerät hat fehlerhafte Schriftarteinträge gemeldet.",
+      "firmwareStatus": "Firmware-Status"
+    },
+    "assetUpload": {
+      "preparingLabelStorage": "Speicher wird vorbereitet: {label}",
+      "uploadedReceivedOfBytelengthBytes": "{received} von {byteLength} Byte übertragen",
+      "validatingAndCommittingTheLabel": "Paket wird geprüft und übernommen: {label}",
+      "theDeviceReturnedAnInvalid": "Das Gerät hat eine ungültige Übertragungsbestätigung gesendet ({label}).",
+      "theDeviceDidNotAnswer": "Das Gerät hat nicht auf {responsePrefix} geantwortet.",
+      "theSerialPortClosedDuring": "Der serielle Port wurde während der Übertragung geschlossen.",
+      "theUploadWasCancelled": "Die Übertragung wurde abgebrochen.",
+      "theDeviceReturnedAMalformed": "Das Gerät hat eine fehlerhafte Bestätigung gesendet ({label}).",
+      "theDeviceReturnedAnInvalid2": "Das Gerät hat eine ungültige Bestätigung gesendet ({label})."
+    },
+    "deviceConnection": {
+      "aDeviceIsAlreadyConnected": "Es ist bereits ein Gerät verbunden.",
+      "theSelectedSerialPortIs": "Der gewählte serielle Port ist nicht mehr verfügbar. Laden Sie die Portliste neu.",
+      "theSerialDeviceWasDisconnected": "Das serielle Gerät wurde getrennt.",
+      "deviceScanWasCancelled": "Die Gerätesuche wurde abgebrochen."
+    },
+    "deviceErrors": {
+      "theSerialPortIsBusy": "Der serielle Port ist belegt. Schließen Sie das Programm, das ihn nutzt: ein „Custom Serial“-Gerät in SimHub, einen seriellen Monitor oder die andere Pitrig-App.",
+      "permissionToOpenTheSerial": "Die Berechtigung zum Öffnen des seriellen Ports wurde verweigert.",
+      "theSerialPortIsNo": "Der serielle Port ist nicht mehr verfügbar."
+    },
+    "deviceOperation": {
+      "noPitrigDeviceIsConnected": "Es ist kein Pitrig-Gerät verbunden.",
+      "anotherDeviceOperationIsAlready": "Es läuft bereits ein anderer Gerätevorgang.",
+      "theBoardIsBusyWith": "Das Board ist mit einem mehrstufigen Vorgang beschäftigt. Versuchen Sie es erneut, wenn er abgeschlossen ist."
+    },
+    "deviceScan": {
+      "theBoardRestartedButDid": "Das Board wurde neu gestartet, hat sich aber nicht wieder an seinem Port gemeldet. Verbinden Sie es manuell neu.",
+      "noUsbSerialPortsWere": "Es wurden keine seriellen USB-Ports gefunden.",
+      "noCompatiblePitrigDeviceResponded": "Kein kompatibles Pitrig-Board hat geantwortet.",
+      "multiplePitrigDevicesWereFound": "Es wurden mehrere Pitrig-Geräte gefunden. Wählen Sie einen Port manuell.",
+      "noPitrigDeviceWasFound": "Es wurde kein Pitrig-Gerät gefunden."
+    },
+    "deviceService": {
+      "cancelTheActiveDeviceOperation": "Brechen Sie den laufenden Gerätevorgang ab, bevor Sie die Verbindung trennen.",
+      "aSaveIsRunningOn": "Auf dem verbundenen Gerät läuft gerade ein Speichervorgang.",
+      "theConnectedDeviceIsBusy": "Das verbundene Gerät ist belegt oder nicht verfügbar.",
+      "font": "Schriftart",
+      "image": "Bild",
+      "firmware": "Firmware"
+    },
+    "deviceConfigCommands": {
+      "theConnectedDeviceChangedDuring": "Das verbundene Board wurde gewechselt, während seine Konfiguration gelesen wurde."
+    },
+    "deviceProbe": {
+      "theDeviceConfigurationBoardDoes": "Die Konfiguration auf dem Board nennt ein anderes Board als die verbundene Hardware."
+    },
+    "protocolParsers": {
+      "theDeviceReturnedMalformedFieldname": "Das Gerät hat fehlerhafte Daten gemeldet: {fieldName}.",
+      "theDeviceReturnedMalformedLabel": "Das Gerät hat fehlerhafte Daten gemeldet: {label}.",
+      "theDeviceReturnedMalformedInfo": "Das Gerät hat fehlerhafte INFO-Daten gemeldet.",
+      "infoData": "INFO-Daten",
+      "unsupportedConfigurationSchemaSchema": "Nicht unterstütztes Konfigurationsschema: {schema}."
+    },
+    "serialRequest": {
+      "theDeviceDidNotAnswer": "Das Gerät hat nicht auf {trim} geantwortet.",
+      "serialPortClosedDuringRequest": "Der serielle Port wurde während der Anfrage geschlossen.",
+      "serialPortClosedDuringThe": "Der serielle Port wurde während des Befehls geschlossen.",
+      "theSerialPortIsClosed": "Der serielle Port ist geschlossen."
+    },
+    "error": {
+      "validation": {
+        "none": "Das Gerät hat keinen Fehler gemeldet.",
+        "malformed": "Das Gerät konnte die Konfiguration nicht lesen. Sie ist entweder kein gültiges JSON oder größer, als das Gerät annimmt.",
+        "unsupported_schema": "Diese Konfiguration nutzt eine Schemaversion, die die Firmware des Geräts nicht annimmt. Aktualisieren Sie die Firmware oder den Konfigurator, damit beide übereinstimmen.",
+        "invalid_board": "Die Konfiguration nennt kein Board, das das Gerät erkennt.",
+        "board_mismatch": "Diese Konfiguration wurde für ein anderes Board erstellt als das verbundene Gerät.",
+        "invalid_hardware": "Der Hardware-Abschnitt ist fehlerhaft, deklariert mehr Peripheriegeräte, als das Board ansteuert, oder nennt ein Peripheriegerät, für das diese Firmware keinen Treiber hat.",
+        "invalid_led_pin": "Ein LED-Ausgang nennt einen Pin, den dieses Board nicht bietet, oder zwei Ausgänge sind an denselben Pin angeschlossen.",
+        "invalid_led_sprite": "Geometrie, Palette und Pixel eines LED-Sprites passen nicht zusammen, oder ein Effekt zeichnet ein Sprite, das der Ausgang nicht enthält.",
+        "invalid_transport": "Dieses Board unterstützt den gewählten Telemetrie-Transport nicht.",
+        "invalid_uart": "Die UART-Pins oder die Baudrate sind für dieses Board ungültig.",
+        "invalid_module": "Ein LED-Segment oder Effekt liegt außerhalb des zulässigen Bereichs, nennt ein Segment, das seine Kette nicht hat, oder enthält eine Eigenschaft, die seine Art nicht kennt.",
+        "invalid_screen": "Ein Bildschirm ist fehlerhaft, die Konfiguration hat mehr Bildschirme, als das Gerät erlaubt, oder zwei Bildschirme haben dieselbe ID.",
+        "invalid_dashboard": "Das Dashboard ist fehlerhaft oder nutzt ein Modul, das nicht aktiviert ist.",
+        "invalid_widget": "Eine Widget-Eigenschaft ist fehlerhaft oder außerhalb des zulässigen Bereichs, ein Widget liegt ganz außerhalb des Displays, ist zu tief verschachtelt oder nennt eine ID, die schon ein anderes Widget hat.",
+        "invalid_slot": "Ein Slot hat ein Aussehen, das er nicht kennt, wurde in einem Container statt auf einem Bildschirm erstellt oder enthält keine Seite, die per Tippen erreichbar ist.",
+        "invalid_slot_page": "Eine Slot-Seite ist fehlerhaft, oder ihr Auslöser passt nicht zu der Telemetrie, den Regeln und der Dauer, die sie enthält.",
+        "unknown_property": "Die Konfiguration enthält eine Eigenschaft, die diese Firmware-Version nicht kennt.",
+        "duplicate_property": "Dieselbe Eigenschaft kommt in einem Objekt zweimal vor.",
+        "out_of_range": "Ein Wert in der Konfiguration liegt außerhalb des Bereichs, ist länger als der erlaubte Text oder hat mehr Einträge, als die Eigenschaft aufnehmen kann.",
+        "unknown_value": "Ein Wert in der Konfiguration nennt keine der Optionen, die die Eigenschaft annimmt.",
+        "invalid_control": "Eine Tastenaktion, der Schalter, eine Steuerregel oder der Startbildschirm nennt einen Bildschirm, einen Slot oder eine Seite, die das Dashboard nicht hat, oder enthält ein Ziel, das die Aktion nicht nutzt."
+      },
+      "request": {
+        "storage": "Das Gerät konnte nicht in seinen Konfigurationsspeicher schreiben.",
+        "unsupported": "Das Gerät kann diese Anfrage in seinem aktuellen Zustand nicht ausführen.",
+        "unknown_command": "Das Gerät hat die Anfrage nicht erkannt.",
+        "busy": "Das Gerät startet noch und hat noch nichts, worauf es dies anwenden kann."
+      },
+      "upload": {
+        "busy": "Die Geräteverbindung ist belegt – entweder nutzt sie eine andere Übertragung, oder das Board beendet noch seinen Start und hat den Speicher, der überschrieben würde, noch nicht freigegeben. Warten Sie kurz und versuchen Sie es erneut.",
+        "timeout": "Zeitüberschreitung bei der Übertragung.",
+        "frame_crc": "Ein Datenblock der Übertragung hat die Prüfsumme nicht bestanden. Die Verbindung ist möglicherweise unzuverlässig.",
+        "sequence": "Ein Datenblock der Übertragung kam in falscher Reihenfolge an.",
+        "protocol_overrun": "Das Gerät hat Übertragungsdaten schneller empfangen, als es sie verarbeiten konnte.",
+        "invalid_frame": "Ein Datenblock der Übertragung war fehlerhaft.",
+        "incomplete_package": "Die Übertragung wurde abgeschlossen, bevor das ganze Paket angekommen war.",
+        "invalid_size": "Das Paket passt nicht in den Platz, den das Gerät dafür reserviert.",
+        "invalid_package": "Der Inhalt des Pakets ist ungültig.",
+        "invalid_state": "Das Gerät ist für diesen Schritt der Übertragung nicht bereit.",
+        "reboot_required": "Das Gerät muss neu gestartet werden, bevor dies möglich ist.",
+        "storage_failure": "Das Gerät konnte nicht in seinen Asset-Speicher schreiben.",
+        "unavailable": "Auf diesem Gerät ist kein Asset-Speicher verfügbar.",
+        "unknown": "Das Gerät hat einen Fehler gemeldet, den es nicht beschreiben konnte.",
+        "unknown_command": "Das Gerät hat den Übertragungsbefehl nicht erkannt."
+      },
+      "dependency": {
+        "font": "Das Dashboard nutzt eine Schriftfamilie, die das Board nicht hat. „Auf Board speichern“ installiert sie, oder wählen Sie eine Familie, die das Board schon hat. Beachten Sie, dass Widget-Beschriftungen ihre eigene Schriftart haben.",
+        "image": "Das Dashboard nutzt ein Bild, das auf dem Gerät nicht installiert ist. Übertragen Sie es, oder wählen Sie eines, das das Gerät schon hat."
+      },
+      "uploadKind": {
+        "FONT": "Schriftpaket",
+        "IMAGE": "Bild",
+        "FW": "Firmware-Image"
+      },
+      "noReason": "Das Gerät hat die Anfrage ohne Angabe eines Grundes abgelehnt.",
+      "noReasonGiven": "kein Grund angegeben",
+      "uploadFailed": "Übertragung fehlgeschlagen ({kind}). {reason}",
+      "uploadFailedRaw": "Übertragung fehlgeschlagen ({kind}): {reason}.",
+      "locationScreen": "Bildschirm {number}",
+      "locationWidget": "Widget {number}",
+      "location": " ({parts})",
+      "property": " Eigenschaft: {path}.",
+      "validationDetail": "{message}{location}{property}",
+      "rejected": "Das Gerät hat die Anfrage abgelehnt: {text}"
+    },
+    "saveToBoardUi": {
+      "saving": "Wird gespeichert…",
+      "saveToBoard": "Auf Board speichern",
+      "writeTheDashboardToThe": "Dashboard auf das Board schreiben (Schriftarten werden mitinstalliert)",
+      "needsNewerFirmware": "Diese Konfiguration braucht eine neuere Firmware",
+      "updateBoard": "Board aktualisieren"
+    },
+    "draftState": {
+      "theBoardFirmwareReadsSchema": "Die Firmware des Boards liest das Konfigurationsschema {schema}, dieser Konfigurator schreibt {expected}. Aktualisieren Sie zuerst seine Firmware auf der Seite „Firmware“.",
+      "connectAPitrigBoardTo": "Verbinden Sie ein Pitrig-Board, um den Entwurf darauf zu spiegeln.",
+      "theBoardIsInSafe": "Das Board ist im abgesicherten Modus. Es zeigt nichts an, bis es repariert und neu gestartet ist.",
+      "theDraftIsNotValid": "Der Entwurf ist ungültig, daher behält das Board, was es ausführt. {error}",
+      "theDraftTargetsBoardThe": "Der Entwurf ist für {board} bestimmt, das Board ist {boardId}.",
+      "theBoardLacksJoinSaving": "Dem Board fehlt: {join}. Beim Speichern werden die Schriftarten installiert.",
+      "noLocalConfiguration": "Keine lokale Konfiguration.",
+      "theBoardLacksImages": "Auf dem Board fehlt noch: {images}. Beim Speichern werden die Bilder installiert."
+    },
+    "documentStatus": {
+      "refused": "{label}: Konfiguration abgelehnt",
+      "notOnBoard": "{label}: Konfiguration nicht auf dem Board",
+      "shownNotSaved": "{label}: Konfiguration angezeigt, nicht gespeichert",
+      "inSync": "{label}: Konfiguration synchron"
+    },
+    "saveToBoardStore": {
+      "savedButTheBoardDid": "Gespeichert, aber das Board hat sich nicht wieder an seinem Port gemeldet. Verbinden Sie es manuell neu.",
+      "savedTheBoardKeepsShowing": "Gespeichert. Das Board zeigt bis zum Neustart weiter das vorherige Dashboard: {applyFailed}",
+      "fontsInstalledAndConfigurationSaved": "Schriftarten installiert und Konfiguration gespeichert. Das Board wurde neu gestartet und zeigt das neue Dashboard.",
+      "savedTheBoardIsRunning": "Gespeichert. Das Board führt die neue Konfiguration aus – kein Neustart nötig.",
+      "fontsAndImagesInstalled": "Schriftarten und Bilder installiert und Konfiguration gespeichert. Das Board wurde neu gestartet und zeigt das neue Dashboard.",
+      "imagesInstalled": "Bilder installiert und Konfiguration gespeichert. Das Board wurde neu gestartet und zeigt das neue Dashboard.",
+      "keptBoardImages": "Das Board hat seine eigene Kopie dieser Bilder behalten, weil dieser PC keine hat: {images}."
+    },
+    "configurationJson": {
+      "configurationJsonIsMalformed": "Das Konfigurations-JSON ist fehlerhaft.",
+      "theFragmentHoldsNoWidget": "Das Fragment enthält kein Widget.",
+      "configurationBoardMustRemainBoard": "Das Board der Konfiguration muss {board} bleiben."
+    },
+    "deviceUploads": {
+      "theConnectedFirmwareDoesNot": "Die verbundene Firmware unterstützt keine Bildverwaltung.",
+      "theConnectedDeviceChangedDuring": "Das verbundene Gerät wurde während der Bildbereinigung gewechselt.",
+      "theConnectedFirmwareDoesNot2": "Die verbundene Firmware unterstützt keine Verwaltung von Schriftarten.",
+      "theConnectedDeviceChangedDuring2": "Das verbundene Gerät wurde während der Schriftartbereinigung gewechselt."
+    },
+    "lineExchange": {
+      "theRequestWasCancelled": "Die Anfrage wurde abgebrochen."
+    },
+    "pitrigProtocol": {
+      "theDeviceConfigurationBoardDoes": "Das Board in der Gerätekonfiguration passt nicht zur verbundenen Hardware."
+    },
+    "bridgeErrors": {
+      "theConfigurationBridgeIsNot": "Die Konfigurationsbrücke ist nicht geladen. Starten Sie den Pitrig-Konfigurator vollständig neu und verbinden Sie das Board erneut.",
+      "theElectronBridgeIsOutdated": "Die Electron-Brücke ist veraltet. Starten Sie den Pitrig-Konfigurator vollständig neu.",
+      "theConfigurationOperationFailed": "Der Konfigurationsvorgang ist fehlgeschlagen.",
+      "theConfigurationFileOperationFailed": "Der Vorgang mit der Konfigurationsdatei ist fehlgeschlagen."
+    },
+    "boardHealth": {
+      "boardHealth": "Board-Zustand:",
+      "startedNormally": "normal gestartet. Keine Abstürze seit dem Einschalten.",
+      "safeMode": "Abgesicherter Modus",
+      "crashedWhile": {
+        "$plural": {
+          "one": "Das Board ist einmal {phase} abgestürzt.",
+          "other": "Das Board ist {count}-mal {phase} abgestürzt."
+        }
+      },
+      "crashed": {
+        "$plural": {
+          "one": "Das Board ist einmal abgestürzt.",
+          "other": "Das Board ist {count}-mal abgestürzt."
+        }
+      },
+      "startedInSafeMode": "Das Board wurde im abgesicherten Modus gestartet.",
+      "loadAnotherSetup": "Laden Sie ein anderes Setup oder setzen Sie das Board auf der Seite „Firmware“ zurück.",
+      "crashedTitle": "Abgestürzt",
+      "recovered": "{lastBoot}, dann erneut gestartet.",
+      "earlierCrashes": {
+        "$plural": {
+          "one": "{count} früherer Start endete mit einem Absturz.",
+          "other": "{count} frühere Starts endeten mit einem Absturz."
+        }
+      }
+    },
+    "supportDetails": {
+      "detailsForSupport": "Details für den Support",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "board": "Board",
+      "boardValue": "{board} · {display}",
+      "noDisplay": "kein Display",
+      "setupOnBoard": "Setup auf dem Board",
+      "documentStored": "{document}: gespeichert ({generation})",
+      "documentState": "{document}: {state}",
+      "state": {
+        "absent": "Werkszustand",
+        "valid": "gespeichert",
+        "malformed_record": "fehlerhaft",
+        "unsupported_schema": "anderes Schema",
+        "corrupt_payload": "beschädigt",
+        "rejected": "abgelehnt"
+      },
+      "schema": "Schema",
+      "schemaValue": "{schema} · {storage}",
+      "storageAvailable": "Speicher verfügbar",
+      "noStorage": "kein Speicher",
+      "link": "Verbindung",
+      "linkValue": "{path} · {baudRate} Baud",
+      "notConnected": "nicht verbunden",
+      "system": "System"
+    }
+  },
+  "fonts": {
+    "catalog": {
+      "weightCount": {
+        "$plural": {
+          "one": "{count} Schnitt",
+          "other": "{count} Schnitte"
+        }
+      }
+    },
+    "catalogSection": {
+      "addFromGoogleFonts": "Aus Google Fonts hinzufügen",
+      "downloadedIntoTheLibraryOn": "Wird bei Bedarf in die Bibliothek heruntergeladen; auf das Board kommt erst etwas, wenn Sie speichern.",
+      "searchGoogleFonts": "Google Fonts durchsuchen",
+      "orbitronInter": "Orbitron, Inter…",
+      "readingTheCatalog": "Katalog wird gelesen…",
+      "tryAShorterWord": "Versuchen Sie ein kürzeres Wort.",
+      "noFamilyMatches": "Keine passende Schriftfamilie",
+      "theFontCouldNotBe": "Die Schriftart konnte nicht heruntergeladen werden.",
+      "addedNameToTheLibrary": "{name} wurde zur Bibliothek hinzugefügt."
+    },
+    "fontPicker": {
+      "chooseAFont": "Schriftart wählen",
+      "searchFonts": "Schriftarten suchen",
+      "inThisDashboard": "In diesem Dashboard",
+      "alreadyUsedSoItCosts": "Bereits verwendet, belegt also keinen zusätzlichen Platz.",
+      "library": "Bibliothek",
+      "bundledWithTheAppImported": "Mit der App geliefert, importiert oder heruntergeladen.",
+      "googleFonts": "Google Fonts",
+      "importing": "Wird importiert…",
+      "downloadedWhenYouPickA": "Wird heruntergeladen, sobald Sie einen Schnitt wählen.",
+      "mostUsedFirstSearchTo": "Die meistgenutzten zuerst – über die Suche erreichen Sie die übrigen der insgesamt {length}.",
+      "nothingMatches": "Nichts passt zu „{query}“. Importieren Sie eine Datei, um eigene Schriftarten hinzuzufügen.",
+      "theBoardHoldsMaximumFont": "Das Board fasst {maximum} Schriftfamilien gleichzeitig.",
+      "addingThisFaceWouldPush": "Mit diesem Schnitt würde das Schriftpaket 2 MiB überschreiten.",
+      "aWeightIsItsOwn": "Jeder Schnitt gilt hier als eigene Schriftart, denn das Board speichert einen Schnitt pro Schriftfamilie.",
+      "downloading": "Wird heruntergeladen…"
+    },
+    "fontsPage": {
+      "fonts": "Schriftarten",
+      "importFont": "Schriftart importieren…",
+      "eraseOnBoard": "Vom Board löschen",
+      "eraseThePackageInstalledOn": "Das auf dem verbundenen Board installierte Paket löschen",
+      "usedByThisDashboard": "Von diesem Dashboard verwendet",
+      "fontsInstallThemselvesWhenYou": "Schriftarten werden automatisch installiert, wenn Sie auf dem Board speichern.",
+      "everyTextWidgetCarriesA": "Jedes Text-Widget hat eine Schriftfamilie und eine Größe. Wählen Sie im Inspektor eine Schriftart, dann erscheint sie hier.",
+      "noFontsNamed": "Keine Schriftarten verwendet",
+      "notInLibrary": "Nicht in Bibliothek",
+      "onBoard": "Auf Board",
+      "installsOnSave": "Installation beim Speichern",
+      "facesThisApplicationCanInstall": "Schnitte, die diese Anwendung installieren kann. Jeder Schnitt ist ein eigener Eintrag, denn das Board speichert einen Schnitt pro Schriftfamilie.",
+      "importATtfOrOtf": "Importieren Sie eine TTF- oder OTF-Datei oder fügen Sie unten eine aus Google Fonts hinzu.",
+      "theLibraryIsEmpty": "Die Bibliothek ist leer",
+      "bundled": "Mitgeliefert",
+      "familiesOfMaximumFontFamilies": "{families} von {mAXIMUM_FONT_FAMILIES} Schriftfamilien · {bytes} von 3 MiB. Eine Größe muss nie übertragen werden – das Board rastert jede Größe aus dem installierten Schnitt.",
+      "removeName": "{name} entfernen",
+      "unresolvedFamilies": {
+        "$plural": {
+          "one": "Eine Schriftfamilie fehlt in der Bibliothek. Importieren Sie den Schnitt oder wählen Sie im Inspektor eine andere Schriftart – gespeichert wird erst, wenn jede Schriftfamilie zugeordnet ist.",
+          "other": "{count} Schriftfamilien fehlen in der Bibliothek. Importieren Sie die Schnitte oder wählen Sie im Inspektor eine andere Schriftart – gespeichert wird erst, wenn jede Schriftfamilie zugeordnet ist."
+        }
+      },
+      "unreadableEntries": {
+        "$plural": {
+          "one": "Bei einem Bibliothekseintrag fehlt die Schriftdatei.",
+          "other": "Bei {count} Bibliothekseinträgen fehlen die Schriftdateien."
+        }
+      },
+      "removeNameFromTheLibrary": "{name} aus der Bibliothek entfernen?",
+      "eraseTheFontPackageInstalled": "Das auf dem Board installierte Schriftpaket löschen?",
+      "theFontCouldNotBe": "Die Schriftart konnte nicht importiert werden.",
+      "importedName": "{name} wurde importiert.",
+      "nameIsUsedByThis": "{name} wird von diesem Dashboard verwendet. Ändern Sie zuerst diese Widgets.",
+      "theFaceCouldNotBe": "Der Schnitt konnte nicht entfernt werden.",
+      "theBoardCouldNotBe": "Das Board konnte nicht erreicht werden.",
+      "nameRemovedFromTheLibrary": "{name} wurde aus der Bibliothek entfernt.",
+      "boardFontPackageErasedRestart": "Das Schriftpaket auf dem Board wurde gelöscht. Starten Sie das Board neu und speichern Sie dann, um es neu zu installieren."
+    },
+    "unresolvedFontsDialog": {
+      "fontsThisDashboardNeeds": "Schriftarten, die dieses Dashboard braucht",
+      "nothingWasWrittenToThe": "Auf das Board wurde nichts geschrieben. Es läuft unverändert weiter.",
+      "found": "Gefunden",
+      "orPickADifferentFont": "Oder wählen Sie im Inspektor eine andere Schriftart für diese Widgets – alles aus der Bibliothek wird automatisch zugeordnet.",
+      "saveAgain": "Erneut speichern",
+      "opening": "Wird geöffnet…",
+      "chooseTtfOtf": ".ttf/.otf wählen…"
+    },
+    "fontAssetService": {
+      "buildingOneFontPackageFrom": "Schriftpaket wird erstellt (Schriftfamilien: {length})",
+      "builtFontPackageBytelengthBytes": "Schriftpaket erstellt: {byteLength} Byte",
+      "fontPackageCommittedRestartThe": "Schriftpaket gespeichert. Starten Sie das Gerät neu, um es zu aktivieren.",
+      "fontUploadCancelled": "Übertragung der Schriftarten abgebrochen.",
+      "atMostMaximumFontFamilies": "Es lassen sich höchstens {mAXIMUM_FONT_FAMILIES} Schriftfamilien installieren.",
+      "invalidFontFamilyIdentifierFamily": "Ungültige Schriftfamilien-Kennung: {family}",
+      "duplicateFontFamilyFamily": "Doppelte Schriftfamilie: {family}",
+      "theFontLibraryHoldsNo": "Die Schriftbibliothek enthält keinen Schnitt namens „{family}“.",
+      "fontUploadWasCancelled": "Die Übertragung der Schriftarten wurde abgebrochen.",
+      "selectFontSource": "Schriftquelle wählen",
+      "selectFont": "Schriftart wählen",
+      "aFontUploadIsAlready": "Eine Übertragung von Schriftarten läuft bereits.",
+      "theConnectedFirmwareDoesNot": "Die Firmware des verbundenen Geräts unterstützt das Übertragen von Schriftarten nicht.",
+      "fontAssetStorageIsUnavailable": "Auf diesem Gerät ist kein Speicher für Schriftarten verfügbar.",
+      "restartTheDeviceBeforeUploading": "Starten Sie das Gerät neu, bevor Sie ein weiteres Schriftpaket übertragen.",
+      "packageBuildFailed": "Das Schriftpaket konnte nicht erstellt werden.",
+      "theConnectedDeviceChangedWhile": "Das verbundene Gerät wurde gewechselt, während das Paket erstellt wurde."
+    },
+    "fontLibraryService": {
+      "idIsNotAValid": "„{id}“ ist keine gültige Kennung für eine Schriftfamilie.",
+      "theLibraryAlreadyHoldsA": "Die Bibliothek enthält bereits eine Schriftart namens „{id}“.",
+      "theLibraryHoldsAtMost": "Die Bibliothek fasst höchstens {mAXIMUM_USER_FACES} importierte Schnitte.",
+      "selectATtfOrOtf": "Wählen Sie eine TTF- oder OTF-Schriftdatei.",
+      "theFontFileCouldNot": "Die Schriftdatei konnte nicht gelesen werden.",
+      "nameDoesNotReduceTo": "Aus „{name}“ lässt sich keine Kennung für eine Schriftfamilie ableiten.",
+      "theLibraryAlreadyHoldsA2": "Die Bibliothek enthält bereits eine Schriftart namens „{resolved}“.",
+      "familyDoesNotReduceTo": "Aus „{family}“ lässt sich keine Kennung für eine Schriftfamilie ableiten.",
+      "aBundledFontCannotBe": "Eine mitgelieferte Schriftart kann nicht entfernt werden.",
+      "theLibraryHoldsNoFont": "Die Bibliothek enthält keine Schriftart namens „{id}“.",
+      "theLibraryCouldNotBe": "Die Bibliothek konnte nicht aktualisiert werden.",
+      "theFontCouldNotBe": "Die Schriftart konnte nicht zur Bibliothek hinzugefügt werden."
+    },
+    "faceSpecimen": {
+      "fixedWidth": "feste Breite",
+      "varyingWidth": "variable Breite"
+    },
+    "fontCatalogRow": {
+      "previewUnavailable": " · Vorschau nicht verfügbar"
+    },
+    "fontPackage": {
+      "theFontPackageExceedsThe": "Das Schriftpaket überschreitet die Gerätegrenze von 3 MiB.",
+      "aFontPackageSupportsAt": "Ein Schriftpaket kann höchstens {mAXIMUM_FONT_FAMILIES} Schriftfamilien enthalten.",
+      "theFontPackageManifestExceeds": "Das Manifest des Schriftpakets ist größer als der dafür reservierte Bereich.",
+      "invalidFontFamilyFamily": "Ungültige Schriftfamilie: {family}",
+      "familyIsNotATtf": "{family} ist keine TTF- oder OTF-Schriftdatei.",
+      "duplicateFontFamilyFamily": "Doppelte Schriftfamilie: {family}."
+    },
+    "fontLibraryFiles": {
+      "notAnObject": "kein Objekt",
+      "notAFontLibrary": "keine Schriftbibliothek",
+      "thatFileIsTooSmall": "Diese Datei ist zu klein für einen Schriftschnitt.",
+      "thatFaceIsLargerThan": "Dieser Schnitt ist größer als die gesamte Schriftpartition von 2 MiB."
+    },
+    "footprint": "{families} von {maximum} Schriftfamilien · {kilobytes} von 3 MiB",
+    "dialog": {
+      "filter": "OpenType-Schriftarten"
+    }
+  },
+  "inspector": {
+    "hints": {
+      "geometry": {
+        "position": "Die obere linke Ecke in logischen Display-Pixeln. Bei einem Widget in einem Container wird sie vom Rahmen des Containers aus gemessen, nicht vom Bildschirm.",
+        "size": "Breite und Höhe in logischen Display-Pixeln.",
+        "z": "Die Zeichenreihenfolge innerhalb desselben Containers oder Bildschirms: Ein höherer Wert wird später gezeichnet und verdeckt so einen niedrigeren. Widgets mit gleichem Wert behalten die Reihenfolge der Ebenenliste."
+      },
+      "data": {
+        "binding": "Das Telemetriefeld, das dieses Widget liest. Die Namen stammen aus dem Katalog: Das Gerät verknüpft sie beim Aufbau des Dashboards und muss beim Zeichnen nie einen Namen nachschlagen.",
+        "modifier": "Eine Auswertung des Felds, die sich ihren Zustand merkt und auf dem Gerät berechnet wird. Der Rundentimer macht aus der aktuellen Rundenzeit eine Zeit, die zwischen den Aktualisierungen von SimHub weiterläuft.",
+        "range": "Der Bereich, an dem der Wert gemessen wird: Das Widget zeigt, wo der Wert zwischen den beiden Grenzen liegt, und begrenzt ihn an beiden Enden. Die Einheit ist die des verknüpften Felds."
+      },
+      "text": {
+        "sources": "Die Quellen werden der Reihe nach, jede mit ihrer eigenen Umwandlung, zu einem Text zusammengesetzt. Nur Präfix und Suffix trennen sie voneinander: „P 3/24“ ist also eine Positionsquelle, gefolgt von einer Teilnehmerquelle mit dem Präfix „/“.",
+        "transform": "Wie aus dem Rohwert Text wird. Eine Zahl wird mit einem Faktor multipliziert, um einen Offset verschoben und gerundet; eine Zeit wird als Rundenzeit, als Uhrzeit oder als Delta mit Vorzeichen formatiert. Angeboten werden nur die Umwandlungen, die das verknüpfte Feld unterstützt.",
+        "units": "Die Einheit, in der der Wert angezeigt wird. Das Board erhält immer die eigene Einheit des Felds; diese Auswahl legt Faktor und Offset für die Umrechnung fest und tauscht ein Einheitensuffix gleich mit aus. Für den Reifendruck ist anfangs psi eingestellt.",
+        "scale": "Wird vor dem Offset angewendet: Die angezeigte Zahl ist Wert × Faktor + Offset, gerundet auf die daneben eingestellten Kommastellen.",
+        "affix": "Fester Text, der direkt vor und nach dieser Quelle gezeichnet wird. Bei mehreren Quellen ist er das einzige Trennzeichen zwischen ihnen.",
+        "alignment": "Wo der Text im Widget-Rahmen steht, nach Abzug des Innenabstands.",
+        "fallback": "Wird angezeigt, sobald Telemetrie fließt, das Spiel dieses Feld aber nicht meldet. Vor dem ersten Telemetriepaket und wenn dieser Text leer ist, wird stattdessen eine Null im Format des Werts angezeigt.",
+        "fallbackColour": "Färbt, was das Widget zeichnet, solange das Spiel keines seiner Felder meldet – den Ersatztext oder, wenn es keinen gibt, die Null –, egal was eine Regel vorgibt. Wenn nicht gesetzt, bleibt die Farbe des Werts."
+      },
+      "title": {
+        "fallback": "Eine zweite installierte Schriftfamilie für Zeichen, die der ersten fehlen – etwa eine Icon-Familie neben einer Textfamilie. So zeigt ein Wert ein Icon und seine Zahl in einem einzigen Widget. Sie wird in derselben Größe erzeugt und kostet daher eine Schriftart mehr.",
+        "text": "Eine Beschriftung auf dem Widget-Rahmen. Wird der Text gelöscht, entfällt die Beschriftung ganz – so will es meist eine Fläche, die als Container oder Tippbereich dient.",
+        "source": "Telemetrie, die die Beschriftung statt des Texts anzeigt – so kann sie benennen, was das Widget gerade zeigt. Der Text bleibt der Ersatz: Er steht in der Beschriftung, bis das Feld eintrifft, und nach ihm richtet sich die Größe des Widget-Rahmens.",
+        "font": "Die Schriftfamilie stammt aus der Schriftbibliothek, die Größe gilt nur für diese Beschriftung – das Board hält einen Schnitt pro Schriftfamilie und erzeugt daraus jede Größe.",
+        "alignment": "Die Stelle am Widget-Rahmen, an der die Beschriftung verankert ist. Die obere und die untere Reihe liegen mittig auf der Kontur, die mittlere Reihe liegt innerhalb des Rahmens.",
+        "offset": "Verschiebt die Beschriftung von ihrem Anker weg, in Pixeln. Positive Werte verschieben nach rechts und nach unten.",
+        "cut": "Eine Beschriftung in der oberen oder unteren Reihe unterbricht die Kontur, auf der sie sitzt, statt über ihr gezeichnet zu werden. Schalten Sie dies aus, um die Kontur durchgehend zu zeichnen.",
+        "gap": "Wie viel Freiraum die Aussparung auf jeder Seite der Beschriftung lässt."
+      },
+      "box": {
+        "fillCorners": "Wie Hintergrund und Wertfüllung auf die abgerundeten Ecken treffen. „rounded“ gibt ihnen dieselbe Rundung; „square“ lässt sie gerade und schneidet sie stattdessen am Umriss des Rahmens ab. So behält ein Balken eine gerade Vorderkante, während seine Enden trotzdem der Rundung folgen.",
+        "background": "Die Füllung hinter dem Widget. Wenn nicht gesetzt, wird nichts gezeichnet – so scheint der Hintergrund des Bildschirms durch.",
+        "gradient": "Die Farbe am anderen Ende der Hintergrundfüllung. Wenn nicht gesetzt, ist der Hintergrund einfarbig.",
+        "axis": "Die Richtung, in die der Hintergrundverlauf läuft.",
+        "padding": "Hält den Inhalt auf jeder Seite so weit innerhalb des Rahmens. Der Rahmen selbst bewegt sich dadurch nicht, und auch die Widgets in einem Container werden nicht verschoben.",
+        "border": "Die Kontur am Rand des Rahmens. Bei Breite null wird keine gezeichnet.",
+        "radius": "Rundet die Ecken des Rahmens ab, Kontur und Hintergrund gleichermaßen.",
+        "inset": "Verkleinert die Hintergrundfüllung innerhalb der Kontur um diesen Betrag, damit sich eine dicke Kontur und ihre Füllung in der Rundung nicht überlappen."
+      },
+      "conditions": {
+        "source": "Das Feld, an dem die Regeln geprüft werden. Es ist unabhängig davon, was das Widget zeigt – so kann eine Ganganzeige abhängig von der Motordrehzahl rot werden.",
+        "ramp": "Ändert die Farbe fließend mit dem Wert zwischen den Punkten. Regeln haben Vorrang; eine Farbskala allein braucht mindestens zwei Punkte.",
+        "rampTarget": "Welchen Teil des Widgets die Farbskala färbt.",
+        "rule": "Die erste zutreffende Regel gewinnt. Was eine Regel nicht setzt, bleibt wie gestaltet – eine Regel kann also nur die Farbe ändern und sonst nichts.",
+        "blink": "Schaltet das Widget abwechselnd ein und aus, solange die Regel zutrifft. Bei null blinkt es nicht.",
+        "hold": "Lässt die Regel noch so lange wirken, nachdem sie nicht mehr zutrifft, damit ein kurzes Ereignis lesbar bleibt. Bei null wirkt sie nur, solange sie zutrifft."
+      },
+      "action": {
+        "tap": "Was Tippen auf dieses Widget bei einem Board mit Touchscreen bewirkt. Eine leere, transparente Form mit einer Aktion ist ein unsichtbarer Tippbereich.",
+        "screen": "Der Bildschirm, zu dem Tippen wechselt – über den Namen, nicht über die Nummer. Wird ein Bildschirm umbenannt, werden alle Aktionen angepasst, die ihn nennen."
+      },
+      "container": {
+        "clip": "Ob der Inhalt an diesem Rahmen endet. Ist dies aus, wird ein enthaltenes Widget dort gezeichnet, wo es liegt, auch außerhalb des Rahmens – das braucht etwa eine Beschriftung, die auf der oberen Kontur eines enthaltenen Widgets sitzt."
+      },
+      "ring": {
+        "centreAngle": "Die Mitte des Sektors. Null Grad liegt bei drei Uhr, und der Winkel wächst im Uhrzeigersinn: 270 zeigt also senkrecht nach oben, und ein Sektor von 270 Grad um diesen Winkel ergibt das übliche Rundinstrument wie im Auto.",
+        "sector": "Wie breit der Sektor ist. Je eine Hälfte liegt auf beiden Seiten des Mittelwinkels.",
+        "thickness": "Wie dick das Band ist. Es wächst nach beiden Seiten des Radius, der Radius selbst bleibt also, wo er ist.",
+        "radius": "Radius der Mittellinie des Bands. Null übernimmt ihn aus dem Rahmen, wie es ein Bogen schon immer getan hat. Ein eigener Radius darf größer als der Rahmen sein: Das Widget wird trotzdem an seinem Rahmen abgeschnitten, gezeichnet wird also nur der Teil des Bands, der durch den Rahmen läuft.",
+        "length": "Wie weit der Zeiger von seinem Drehpunkt reicht. Null übernimmt die Länge aus dem Rahmen – dieselbe Reichweite, die der Ring hätte. Eine eigene Länge darf über den Rand des Rahmens hinausgehen; der Rahmen schneidet das Gezeichnete trotzdem ab.",
+        "centering": "Was im Rahmen zentriert wird. „circle“ setzt den Mittelpunkt des Ringkreises in die Mitte des Rahmens. „figure“ zentriert das Gezeichnete – das Band zwischen den Enden des Sektors, samt Dicke –, sodass ein größerer Radius das Band in der Mitte des Rahmens hält und stattdessen den Kreismittelpunkt aus ihm hinausschiebt.",
+        "offset": "Verschiebt den Kreis aus der Mitte des Rahmens, ohne seinen Radius zu ändern. Schiebt man ihn mit passendem Radius aus dem Rahmen hinaus, entsteht ein flaches Band am oberen Rand eines runden Displays."
+      },
+      "arc": {
+        "track": "Der ungefüllte Teil des Bogens. Wenn nicht gesetzt, wird er nicht gezeichnet.",
+        "mark": "Wie der Wert an seinem Winkel angezeigt wird. Ein Ring füllt den Sektor bis dorthin; ein Zeiger richtet eine Linie von der Mitte darauf, so dick, wie der Ring wäre, und die Bahn bleibt als Skala dahinter.",
+        "gradient": "Legt bis zu drei Farben um den ganzen Sektor – die Füllfarbe am Minimum, optional eine Mitte und die Endfarbe –, die der Ring beim Füllen freilegt. Das Board erzeugt den Verlauf beim Anwenden des Dashboards als Bitmap in der Größe des Rings. Eine Regel oder Farbskala, die die Füllung umfärbt, füllt sie daher einfarbig, und ein Ring mit eigenem Radius muss auf das Display passen.",
+        "inverted": "Füllt vom anderen Ende des Sektors aus statt vom Anfang."
+      },
+      "bar": {
+        "origin": "Die Füllung reicht von diesem Wert bis zum aktuellen statt vom Minimum. So wird ein Bereich mit Vorzeichen und Ursprung null zu einer Anzeige mit dem Nullpunkt in der Mitte.",
+        "fill": "Die Farbe des gefüllten Teils. Der Hintergrund des Rahmens darunter ist die Bahn, über die die Füllung läuft.",
+        "gradient": "Legt bis zu drei Farben entlang der ganzen Bahn – die Füllfarbe am Minimum, optional eine Mitte und die Endfarbe. Die Füllung legt den Verlauf beim Wachsen frei, statt ihn zu strecken: Ein halb voller Balken zeigt also die erste Hälfte des Verlaufs.",
+        "inverted": "Füllt vom anderen Ende des Balkens aus statt vom Anfang."
+      },
+      "fill": {
+        "gradientMiddle": "Eine dritte Farbe in der Mitte des Verlaufs. Wenn nicht gesetzt, läuft der Verlauf direkt von der Füllfarbe zur Endfarbe."
+      },
+      "strip": {
+        "segments": "Jede Leuchte schaltet bei ihrem eigenen Anteil des Bereichs ein – so passt eine Leuchtenreihe zu jedem Motor. Die Schwellenwerte dürfen in der Liste nach unten nicht abnehmen.",
+        "gap": "Der Abstand zwischen den Leuchten und der Eckenradius jeder Leuchte. Ein Bogen verteilt den Abstand entlang seines Rings, und jeder Radius über null rundet stattdessen die Enden der Leuchten ab.",
+        "shape": "Eine Leuchtenreihe ordnet die Leuchten entlang ihrer Orientierung an. Ein Bogen verteilt sie über einen Sektor – das ist der Drehzahlring, auf dem ein rundes Dashboard aufbaut.",
+        "blink": "Ab diesem Anteil des Bereichs beginnt das Blinken. Ein Schwellenwert über 1 blinkt nie, ebenso wenig eine Periode von null.",
+        "off": "Die Farbe einer Leuchte, die nicht leuchtet. Wenn nicht gesetzt, wird sie nicht gezeichnet.",
+        "inverted": "Schaltet vom anderen Ende aus ein statt vom Anfang – so wird aus einer gestalteten Leuchtenreihe ein gespiegeltes Paar Drehzahlbalken. Welche Leuchte bei welchem Wert angeht, bleibt gleich."
+      },
+      "graph": {
+        "points": "Wie viele Messpunkte jede Kurve speichert und wie oft einer aufgenommen wird – zusammen ergeben sie das Zeitfenster des Diagramms. Ein gemeinsamer Takt gilt für das ganze Widget, damit mehrere Kurven auf derselben Zeitachse liegen. Der Graph ist das am aufwendigsten zu zeichnende Widget: Halten Sie die Zahl der Messpunkte also nur so hoch wie nötig.",
+        "traces": "Weitere Quellen im selben Diagramm, bis zu drei insgesamt, die eigene des Widgets mitgezählt. Jede hat ihren eigenen Bereich – so teilen sich Geschwindigkeit und Gas ein Diagramm, ohne dass eine davon am Rand platt gedrückt wird.",
+        "width": "Die Dicke aller Kurven. Die Hälfte davon bleibt im Diagramm auf jeder Seite frei – plus der Platz, den ein abgerundeter Rahmen braucht, damit die Ecken die Kurve nicht berühren –, sodass ein Wert ganz oben oder ganz unten in seinem Bereich vollständig gezeichnet und nicht vom Rahmen abgeschnitten wird."
+      },
+      "image": {
+        "image": "Bilder liegen in der Bildbibliothek dieses PCs, umgerechnet auf die Größe, mit der sie gezeichnet werden; „Auf Board speichern“ installiert die Bilder, die das Dashboard zeichnet. Das Gerät skaliert und dreht nicht – passen Sie daher den Widget-Rahmen der Bitmap an.",
+        "frame": "Welcher Frame eines Sprite-Sheets gezeichnet wird. Ein Sheet besteht aus mehreren Bildern, die als eines übertragen werden: Das Umschalten kostet auf dem Board nichts und belegt nur einen seiner 32 Einträge statt eines pro Bild.",
+        "frameSource": "Wählt den Frame stattdessen per Telemetrie: Der Wert wird auf eine ganze Zahl gerundet und auf die Frames des Sheets begrenzt – 0 ist der erste, alles nach dem letzten bleibt beim letzten. So zeigt ein einziges Widget einen Gang, eine Flagge oder einen Satz Leuchten statt eines Stapels von Widgets.",
+        "recolor": "Tönt die Bitmap in Richtung dieser Farbe – so dient ein weißes Icon für jeden Zustand. Ein alpha8-Bild wird nicht getönt, sondern ist diese Farbe: Es enthält nur die Deckkraft und wird weiß gezeichnet, solange hier nichts anderes eingestellt ist.",
+        "strength": "Wie stark getönt wird, von unverändert bei 0 bis ganz in der Tönungsfarbe bei 255. Ein alpha8-Bild ignoriert das – dort ist die Farbe das Bild selbst, keine Tönung darüber."
+      },
+      "trackMap": {
+        "track": "Das SimHub-Plugin sendet den Umriss der gefahrenen Strecke und die Stelle jedes Autos auf der Runde, daher verknüpft das Widget keine eigene Telemetrie. Bis ein Umriss eintrifft, fahren die Autos im Uhrzeigersinn auf einem Ring mit der Start-Ziel-Linie oben. Ohne Telemetrie zeichnet die Arbeitsfläche eine erfundene Beispielstrecke.",
+        "line": "Die Farbe der Strecke. Eine Stilregel, die eine Farbe setzt, färbt sie um.",
+        "width": "Wie dick die Strecke gezeichnet wird. Die Boxengasse ist halb so dick, aber nie dünner als ein Pixel. Die Strecke wird in den Rahmen eingepasst, abzüglich der halben Breite des breitesten Elements aus Linie, Auto und Spielerpunkt, damit am Rand nichts abgeschnitten wird.",
+        "sectorMarks": "Eine dünne Markierung quer über die Strecke, wo jeder Sektor nach dem ersten beginnt. Wenn nicht gesetzt, werden keine Markierungen gezeichnet.",
+        "pitLane": "Wird gezeichnet, sobald das Plugin ein Auto durch die Boxengasse fahren gesehen hat. Wenn nicht gesetzt, fehlt die Boxengasse, und ein Auto darin wird an seiner Stelle der Runde auf der Strecke gezeichnet.",
+        "finishLine": "Eine kurze Markierung quer über die Strecke an der Start-Ziel-Linie. Wenn nicht gesetzt, wird keine Markierung gezeichnet.",
+        "car": "Die Farbe eines Autos, für das keine Rollen- oder Klassenfarbe gilt.",
+        "carSize": "Der Durchmesser des Punkts, als der jedes andere Auto gezeichnet wird. Ein ein Pixel breiter Ring in der Hintergrundfarbe hebt ihn von der Strecke ab.",
+        "player": "Die Farbe des Spielerpunkts, der über allen anderen Autos gezeichnet wird.",
+        "playerSize": "Der Durchmesser des Spielerpunkts, innerhalb seines ein Pixel breiten Rings.",
+        "playerRing": "Die Farbe des ein Pixel breiten Rings um den Spielerpunkt. Wenn nicht gesetzt, hat der Ring die Hintergrundfarbe, wie bei jedem anderen Auto.",
+        "ahead": "Das Auto einen Platz vor dem Spieler in dessen Klasse. Wenn nicht gesetzt, wird es wie jedes andere Auto gezeichnet.",
+        "behind": "Das Auto einen Platz hinter dem Spieler in dessen Klasse. Wenn nicht gesetzt, wird es wie jedes andere Auto gezeichnet.",
+        "lapping": "Ein Auto, das nach gefahrener Distanz eine Runde oder mehr vor dem Spieler liegt. Wenn nicht gesetzt, wird es wie jedes andere Auto gezeichnet.",
+        "lapped": "Ein Auto, das nach gefahrener Distanz eine Runde oder mehr hinter dem Spieler liegt. Wenn nicht gesetzt, wird es wie jedes andere Auto gezeichnet.",
+        "pitCar": "Ein Auto in der Boxengasse, außer dem des Spielers. Wenn nicht gesetzt, erhält es die Farbe, die es auf der Strecke hätte, in halber Stärke.",
+        "classes": "Sind mehrere Klassen auf der Strecke, ordnet das Plugin die Klassen nach ihrer besten Runde: Klasse 1 ist die schnellste, die vierte und alle langsameren teilen sich Klasse 4. Ist nur eine Klasse auf der Strecke, gilt keine Klassenfarbe.",
+        "classColor": "Die Farbe der Autos dieser Klasse. Eine Rollenfarbe hat Vorrang; wenn nicht gesetzt, bleibt die Autofarbe.",
+        "fitRotation": "Dreht die Strecke in den Winkel, in dem sie den Rahmen am besten füllt; geprüft wird alle 5° von 0 bis 175. Ausgeschaltet bleiben die Achsen des Spiels.",
+        "rotation": "Eine zusätzliche Drehung im Uhrzeigersinn nach dem Einpassen. Danach wird die Strecke erneut in den Rahmen eingepasst.",
+        "refresh": "Die kürzeste Zeit zwischen zwei Neuzeichnungen der Autos auf dem Board. Jedes Auto gleitet zwischen zwei Aktualisierungen des Plugins die Runde entlang, ein kürzeres Intervall bewegt die Autos also flüssiger. Jede Neuzeichnung erneuert den Bereich, den die Autos bedecken, ein längeres Intervall kostet also auf einem vollen Bildschirm weniger Frame-Zeit."
+      },
+      "shape": {
+        "kind": "Eine Linie ist ein schmales Rechteck: Geben Sie ihr eine geringe Höhe oder Breite. Eine Form ist außerdem der Container, in den andere Widgets gesetzt werden."
+      },
+      "slot": {
+        "pages": "Tippen auf dem Board schaltet reihum durch die Seiten im Umlauf. Die Reihenfolge der Seiten ist ihre Priorität: Werden zwei gleichzeitig ausgelöst, zeigt das Gerät die frühere.",
+        "loop": "Ob Tippen auf den Slot diese Seite erreichen kann. Eine Seite außerhalb des Umlaufs wird nur von ihrem Auslöser eingeblendet.",
+        "trigger": "Was diese Seite von selbst über den Umlauf einblendet. Ohne Auslöser ist die Seite nur durch Tippen auf den Slot erreichbar.",
+        "duration": "Wie lange die Seite eingeblendet bleibt. Ein Auslöser bei Wertänderung braucht eine Dauer; bei Regeln zeigt null die Seite nur, solange eine Regel zutrifft.",
+        "homeAfter": "Wie lange der Slot ohne Tippen und ohne eine auf ihn wirkende Taste bleibt, bevor er zu seiner ersten Seite im Umlauf zurückkehrt. Bei 0 geschieht das nie.",
+        "dismiss": "Wie lange diese Seite wegbleibt, nachdem eine Taste sie ausgeblendet hat: bis ihr Auslöser wieder anspricht (next_event), für eine feste Zeit (timed) oder bis die Session neu beginnt (session)."
+      },
+      "dashboard": {
+        "transition": "Wie das Board einen Bildschirm gegen einen anderen tauscht, egal ob Wischen oder Tippen den Wechsel auslöst. „slide“ ist die Schiebeanimation; „none“ ersetzt den Bildschirm in einem einzigen Frame. Die Schiebeanimation zeichnet in jedem ihrer Frames beide Bildschirme – bei einem Bildschirm voller Widgets macht sich das bemerkbar. Stellen Sie „none“ ein, wenn das Wischen ruckelt.",
+        "smoothing": "Ob Balken, Bögen, Zeiger, Graph-Kurven und als Zahl formatierter Text sich zwischen den Telemetriepaketen bewegen, statt mit ihnen zu springen. „interpolate“ gleitet zu jedem Paket und kommt an, wenn das nächste fällig ist: völlig flüssig, aber eine Paketperiode hinterher (16 ms bei 60 Hz, 50 ms bei 20 Hz). „predict“ bewegt sich mit der gemessenen Rate weiter und korrigiert, wenn das Paket eintrifft: im Mittel ohne Rückstand, mit leichtem Überschwingen bei Richtungswechseln. Eine Pause von mehr als 250 ms zwischen Paketen wird als Sprung gezeichnet, daher gleiten Werte, die sich bei Ereignissen ändern, nie. Leuchten-Widgets, Bedingungen und Beschriftungen lesen immer das Paket selbst.",
+        "font": "Die Schriftfamilie für neue Widgets. Das ist eine Einstellung nur des Editors – das Gerät bestimmt die Schriftart je Widget, daher enthält das Dokument keine für das ganze Dashboard.",
+        "budget": "Was die gewählten Schriftfamilien auf dem Board belegen. Schnitte werden vollständig übertragen, und die Partition fasst 3 MiB davon."
+      },
+      "screen": {
+        "name": "Worauf eine Aktion „Zu Bildschirm wechseln“ zeigt. Beim Umbenennen werden alle Aktionen angepasst, die diesen Bildschirm nennen.",
+        "background": "Die Farbe hinter allen Widgets auf diesem Bildschirm."
+      },
+      "widget": {
+        "id": "Der Name, unter dem dieses Widget in der Ebenenliste, im JSON und überall dort bekannt ist, wo darauf verwiesen wird. Das Gerät speichert ihn, zeichnet ihn aber nie."
+      },
+      "screenChanges": {
+        "group": "Holt einen Bildschirm nach vorn, solange ein Wert eine Bedingung erfüllt – etwa den Boxenbildschirm in der Boxengasse. Endet das, kehrt das Dashboard zurück, es sei denn, eine Taste hat inzwischen den Bildschirm gewechselt.",
+        "watch": "Der Telemetriewert, den die Regel beobachtet.",
+        "homeScreen": "Der Bildschirm, den die Aktion „Startbildschirm“ und die automatische Rückkehr zeigen.",
+        "homeAfter": "Wie lange kein Bildschirmwechsel erfolgen darf, bis das Dashboard zum Startbildschirm zurückkehrt. Bei 0 geschieht das nie."
+      }
+    },
+    "actionEditor": {
+      "action": "Aktion",
+      "onTap": "Beim Tippen",
+      "screen": "Bildschirm",
+      "followThisAction": "Zum Ziel dieser Aktion wechseln",
+      "thisDashboardAlreadyUsesAll": "Dieses Dashboard nutzt bereits alle {mAXIMUM_ACTIONS} Tippziele.",
+      "goToScreen": "Zu {screen} wechseln"
+    },
+    "colorPicker": {
+      "pickAColourFromThe": "Farbe vom Bildschirm aufnehmen",
+      "onThisDashboard": "In diesem Dashboard",
+      "colorsAlreadyOnTheDashboard": "Farben, die das Dashboard bereits nutzt",
+      "labelPicker": "Auswahl für {label}"
+    },
+    "conditionsEditor": {
+      "conditions": "Bedingungen",
+      "watch": "Beobachten",
+      "modifier": "Modifikator",
+      "removeThisRule": "Diese Regel entfernen",
+      "when": "Wenn",
+      "value": "Wert",
+      "border": "Kontur",
+      "title": "Titel",
+      "hide": "Ausblenden",
+      "blinkPeriodInMilliseconds0": "Blinkperiode in Millisekunden, 0 = kein Blinken",
+      "holdInMillisecondsAfterThe": "Haltezeit in Millisekunden, nachdem die Regel nicht mehr zutrifft",
+      "removeTheColourRamp": "Farbskala entfernen",
+      "removeThisStop": "Diesen Punkt entfernen",
+      "aRampNeedsAtLeast": "Eine Farbskala braucht mindestens zwei Punkte, zwischen denen sie überblenden kann.",
+      "lengthRuleS": "Regeln: {length}",
+      "thresholdInUnit": "Schwellenwert in {unit}",
+      "blinkHold": "{blink} {hold}",
+      "atInUnit": "Wert in {unit}",
+      "at": "Bei",
+      "addStop": "Punkt hinzufügen",
+      "addAColourRamp": "Farbskala hinzufügen",
+      "ruleNumber": "Regel {number}",
+      "removeRuleNumber": "Regel {number} entfernen",
+      "removeStopNumber": "Punkt {number} entfernen",
+      "stopNumber": "Punkt {number}",
+      "stopNumberColour": "Farbe von Punkt {number}"
+    },
+    "group": {
+      "advanced": "Erweitert",
+      "set": "gesetzt"
+    },
+    "iconPicker": {
+      "anIconIsAGlyph": "Ein Icon ist ein Zeichen der Schriftfamilie Material Icons – legen Sie sie als Schriftart des Texts fest, in den es kommt, oder als Ersatzfamilie neben einer Textfamilie.",
+      "insertAnIcon": "Icon einfügen",
+      "insertAnIconGlyph": "Icon-Zeichen einfügen",
+      "insertTheNameIcon": "Icon „{name}“ einfügen",
+      "searchAllIcons": "Alle Icons durchsuchen",
+      "nothingMatches": "Kein Icon passt zu „{query}“.",
+      "firstShownOfTotal": "Die ersten {shown} von {total} – geben Sie mehr ein, um die Suche einzugrenzen."
+    },
+    "slotPagesEditor": {
+      "pages": "Seiten",
+      "addPage": "Seite hinzufügen",
+      "inLoop": "Im Umlauf",
+      "trigger": "Auslöser",
+      "duration": "Dauer",
+      "threshold": "Schwellenwert",
+      "closeThisSlot": "Diesen Slot schließen",
+      "editPagesOnTheCanvas": "Seiten auf der Arbeitsfläche bearbeiten",
+      "lengthPageS": "Seiten: {length}",
+      "addActivationRule": "Aktivierungsregel hinzufügen",
+      "deletePageNumber": "Seite {number} löschen"
+    },
+    "sourceEditor": {
+      "removeThisSource": "Diese Quelle entfernen",
+      "transform": "Umwandlung",
+      "units": "Einheiten",
+      "number": "Zahl",
+      "decimals": "Kommastellen",
+      "scale": "Faktor",
+      "offset": "Offset",
+      "affixes": "Zusätze",
+      "prefix": "Präfix",
+      "suffix": "Suffix",
+      "sourceNumber": "Quelle {number}",
+      "removeSourceNumber": "Quelle {number} entfernen"
+    },
+    "telemetryBindingField": {
+      "unknownTelemetryBinding": "Unbekannte Telemetrieverknüpfung",
+      "fieldSummary": "{category} · {type} · {unit} · {rate} · ID {wireId}"
+    },
+    "widgetInspector": {
+      "selectAnExistingWidgetOn": "Wählen Sie ein vorhandenes Widget auf dem Display aus.",
+      "widgetName": "Widget-Name"
+    },
+    "colorPickerControls": {
+      "hue": "Farbton"
+    },
+    "documentSections": {
+      "transition": "Übergang",
+      "smoothing": "Glättung",
+      "newWidgets": "Neue Widgets",
+      "applyToEveryWidget": "Auf alle Widgets anwenden",
+      "fontBudget": "Schriftbudget",
+      "idNotInTheLibrary": "{id} – nicht in der Bibliothek"
+    },
+    "fields": {
+      "notSet": "Nicht gesetzt",
+      "labelInSuffix": "{label} in {suffix}",
+      "labelSet": "{label} gesetzt"
+    },
+    "fontFields": {
+      "font": "Schriftart",
+      "sizeInPixels": "Größe in Pixeln",
+      "fallbackFamily": "+ Ersatzfamilie",
+      "removeTheFallbackFamily": "Ersatzfamilie entfernen",
+      "drawMissingGlyphsAsNothing": "Ersatzfamilie entfernen – fehlende Zeichen erscheinen wieder als leere Kästchen",
+      "unresolvedFamily": "Nicht gefunden: {family}",
+      "chooseFont": "Schriftart wählen…"
+    },
+    "gaugeEditors": {
+      "arc": "Bogen",
+      "mark": "Anzeige",
+      "fill": "Füllung",
+      "track": "Bahn",
+      "removeThisTrace": "Diese Kurve entfernen",
+      "line": "Linie",
+      "moreTraces": "Weitere Kurven",
+      "addTrace": "Kurve hinzufügen",
+      "plot": "Diagramm",
+      "window": "Zeitfenster",
+      "howManySamplesEachTrace": "Wie viele Messpunkte jede Kurve speichert",
+      "millisecondsBetweenSamples": "Millisekunden zwischen den Messpunkten",
+      "points": "Messpunkte",
+      "intervalMs": "Intervall (ms)",
+      "lineWidth": "Linienbreite",
+      "fromOrigin": "Ab Ursprung",
+      "origin": "Ursprung",
+      "bar": "Balken",
+      "orientation": "Orientierung",
+      "gradientTo": "Verlauf bis",
+      "gradient": "Verlauf",
+      "gradientMiddle": "Mitte",
+      "gradientEnd": "Ende",
+      "aGraphDrawsAtMost": "Ein Graph zeichnet höchstens {mAXIMUM_GRAPH_SOURCES} Quellen in einem Diagramm.",
+      "showsTheLastTofixedS": "Zeigt die letzten {toFixed} s.",
+      "toFixedS": "{toFixed} s",
+      "removeTraceNumber": "Kurve {number} entfernen",
+      "lengthOfMaximum": "{length} von {maximum}"
+    },
+    "indicatorEditor": {
+      "strip": "Leuchtenreihe",
+      "shape": "Form",
+      "gapBetweenLampsInPixels": "Abstand zwischen den Leuchten in Pixeln",
+      "gap": "Abstand",
+      "radius": "Radius",
+      "unlit": "Aus",
+      "blinkFromThisFractionOf": "Ab diesem Anteil des Bereichs blinken",
+      "blinkPeriodInMilliseconds": "Blinkperiode in Millisekunden",
+      "periodMs": "Periode (ms)",
+      "segments": "Segmente",
+      "addLamp": "Leuchte hinzufügen",
+      "aStripHoldsAtMost": "Eine Leuchtenreihe fasst höchstens {mAXIMUM_INDICATOR_SEGMENTS} Leuchten.",
+      "arcWidget": "Bogen {widget}",
+      "nonZeroRoundsTheLamp": "Ein Wert über null rundet die Enden der Leuchten ab",
+      "lampCornerRadiusInPixels": "Eckenradius der Leuchten in Pixeln",
+      "lengthLampS": "Leuchten: {length}",
+      "lampNumber": "Leuchte {number}",
+      "lampNumberLightsAtThis": "Leuchte {number} geht bei diesem Anteil des Bereichs an",
+      "lampNumberColour": "Farbe von Leuchte {number}",
+      "removeLampNumber": "Leuchte {number} entfernen"
+    },
+    "ringEditor": {
+      "centreAngle": "Mittelwinkel",
+      "sector": "Sektor",
+      "thickness": "Dicke",
+      "length": "Länge",
+      "centreOn": "Zentrieren auf",
+      "xOffset": "X-Versatz",
+      "yOffset": "Y-Versatz",
+      "followingTheBoxFittedPx": "Folgt dem Rahmen – {fitted} px. Eine Eingabe legt einen eigenen Radius fest.",
+      "followingTheBoxFittedPxLength": "Folgt dem Rahmen – {fitted} px. Eine Eingabe legt eine eigene Länge fest."
+    },
+    "sectionEditors": {
+      "data": "Daten",
+      "range": "Bereich",
+      "container": "Container",
+      "clipContents": "Inhalt beschneiden",
+      "geometry": "Geometrie",
+      "position": "Position",
+      "minimumUnit": "Minimum{unit}",
+      "maximumUnit": "Maximum{unit}",
+      "empty": "Leer",
+      "countWidgetS": "Widgets: {count}"
+    },
+    "stylingEditors": {
+      "title": "Titel",
+      "textFrom": "Text aus",
+      "color": "Farbe",
+      "anchor": "Anker",
+      "xOffset": "X-Versatz",
+      "yOffset": "Y-Versatz",
+      "cutBorder": "Kontur aussparen",
+      "cutPadding": "Freiraum",
+      "theCutIsAStraight": "Die Aussparung ist ein gerades Band – eine Beschriftung, die in eine abgerundete Ecke geschoben wird, schneidet daher ein Stück aus der Rundung. Versetzen Sie sie um etwa den Radius plus die Konturbreite, damit sie die Rundung frei lässt.",
+      "box": "Rahmen",
+      "borderWidth": "Konturbreite",
+      "cornerRadius": "Eckenradius",
+      "fillCorners": "Füllungsecken",
+      "borderColor": "Konturfarbe",
+      "paddingX": "Innenabstand X",
+      "paddingLeft": "Innenabstand links",
+      "paddingRight": "Innenabstand rechts",
+      "left": "Links",
+      "right": "Rechts",
+      "paddingY": "Innenabstand Y",
+      "paddingTop": "Innenabstand oben",
+      "paddingBottom": "Innenabstand unten",
+      "top": "Oben",
+      "bottom": "Unten",
+      "inset": "Einzug",
+      "axis": "Achse",
+      "borderRadius": "{border} {radius}"
+    },
+    "widgetEditors": {
+      "bitmap": "Bitmap",
+      "frameFrom": "Frame aus",
+      "recolor": "Umfärben",
+      "strength": "Stärke",
+      "kind": "Art",
+      "theSlotDrawsNothingItself": "Der Slot zeichnet selbst nichts – legen Sie für einen Hintergrund eine Form dahinter. Jede Seite hat genau diesen Rahmen, und ihre Widgets werden relativ zu ihm platziert.",
+      "addSource": "Quelle hinzufügen",
+      "alignment": "Ausrichtung",
+      "fallback": "Ersatztext",
+      "fallbackColour": "Ersatzfarbe",
+      "imageHasASingleFrame": "„{image}“ hat nur einen Frame, daher lehnt das Gerät dafür eine Frame-Auswahl oder eine Frame-Quelle ab.",
+      "thisShapeHoldsNoWidgets": "Diese Form enthält keine Widgets. Ziehen Sie Widgets darauf, um sie zum Container zu machen; eine leere Form mit einer Aktion ist ein unsichtbarer Tippbereich.",
+      "holdsHeldWidgetSPlaced": "Enthaltene Widgets: {held}, relativ zu diesem Rahmen platziert.",
+      "lengthSources": "Quellen: {length}",
+      "unassigned": "Nicht zugewiesen",
+      "unbound": "Nicht verknüpft",
+      "addImagesFirst": "Fügen Sie auf der Seite „Bilder“ Bilder hinzu, um hier eines auszuwählen.",
+      "imageIsNowhere": "„{image}“ ist weder auf diesem PC noch auf dem Board, daher lehnt das Board dieses Dashboard ab. Fügen Sie es auf der Seite „Bilder“ hinzu.",
+      "imageNotOnBoardYet": "„{image}“ ist noch nicht auf dem Board. „Auf Board speichern“ installiert es.",
+      "imageOnlyOnBoard": "Nur das Board hat „{image}“. Auf diesem PC gibt es keine Kopie, daher fehlt es in einer geteilten Dashboard-Datei."
+    },
+    "trackMapEditor": {
+      "track": "Strecke",
+      "line": "Linie",
+      "lineWidth": "Linienbreite",
+      "sectorMarks": "Sektormarken",
+      "pitLane": "Boxengasse",
+      "finishLine": "Ziellinie",
+      "widthPx": "{width} px",
+      "cars": "Autos",
+      "car": "Auto",
+      "carSize": "Autogröße",
+      "player": "Spieler",
+      "playerSize": "Spielergröße",
+      "playerRing": "Spielerring",
+      "ahead": "Vordermann",
+      "behind": "Hintermann",
+      "lapping": "Überrundend",
+      "lapped": "Überrundet",
+      "pitCar": "In der Boxengasse",
+      "carsSummary": "{car} px · Spieler {player} px",
+      "classes": "Klassen",
+      "classNumber": "Klasse {number}",
+      "classesSummary": "{count} von {maximum} gesetzt",
+      "layout": "Layout",
+      "fitRotation": "Passend drehen",
+      "rotation": "Drehung",
+      "refresh": "Neuzeichnen",
+      "fitted": "Eingepasst",
+      "fittedRotation": "Eingepasst, dann {rotation}°",
+      "fixedRotation": "{rotation}°"
+    },
+    "infoHint": {
+      "aboutLabel": "Info zu {label}",
+      "aboutThisProperty": "Info zu dieser Eigenschaft"
+    },
+    "propertyRow": {
+      "labelIsSetInThis": "{label} weicht vom Standard des Geräts ab – zum Zurücksetzen klicken",
+      "clearLabel": "{label} zurücksetzen"
+    },
+    "valueColorList": {
+      "positionColour": "Farbe {position}",
+      "removeNounPosition": "{noun} {position} entfernen"
+    },
+    "slotControls": {
+      "firstPageAfter": "Erste Seite nach",
+      "dismissedUntil": "Ausgeblendet bis",
+      "dismissedFor": "Ausgeblendet für"
+    },
+    "screenChanges": {
+      "automaticScreenChanges": "Automatische Bildschirmwechsel",
+      "show": "Anzeigen",
+      "screen": "Bildschirm",
+      "while": "Solange",
+      "value": "Wert",
+      "removeRuleNumber": "Regel {number} entfernen",
+      "moreConditions": {
+        "$plural": {
+          "one": "und eine weitere Bedingung, unverändert beibehalten",
+          "other": "und {count} weitere Bedingungen, unverändert beibehalten"
+        }
+      },
+      "addRule": "Regel hinzufügen",
+      "homeScreen": "Startbildschirm",
+      "theFirstScreen": "Der erste Bildschirm",
+      "returnHomeAfter": "Zurück zum Start nach",
+      "seconds": "s",
+      "ruleCount": {
+        "$plural": {
+          "one": "{count} Regel",
+          "other": "{count} Regeln"
+        }
+      }
+    }
+  },
+  "modules": {
+    "hints": {
+      "output": {
+        "pin": "GPIO-Pin, an den die Datenleitung der Kette angeschlossen ist. Angeboten werden nur Pins, die das Board frei lässt – die übrigen gehören dem Display, dem Flash-Speicher, dem PSRAM und der seriellen Verbindung, und die Firmware lehnt jeden davon ab.",
+        "chip": "Zu welcher Chipfamilie die Leuchten gehören. „ws2812b“ deckt auch WS2812, WS2813 und WS2815 ab, denn diese lesen dieselben drei Bytes und unterscheiden sich nur bei Stromversorgung und Redundanz. „sk6812_rgbw“ hat in jedem Gehäuse eine vierte, weiße Leuchte, daher wird ein neutraler Farbanteil auf sie verlagert, und die Kette braucht ein Drittel länger, bis alle Daten ausgegeben sind.",
+        "brightness": "Skaliert jede Farbe dieses Ausgangs auf dem Weg zur Leitung, noch vor der Strombegrenzung. Das ist die einzige Helligkeitseinstellung des Geräts – Ebenen haben keine eigene.",
+        "gamma": "Korrigiert die wahrgenommene Helligkeit der Leuchten. Ohne diese Korrektur besteht das untere Ende des Helligkeitsbereichs aus einer Handvoll sichtbar getrennter Stufen statt aus einem sanften Übergang.",
+        "current": "Obergrenze für den Strom, den dieser Ausgang ziehen darf. Überschreitet die Schätzung diesen Wert, wird der ganze Frame heruntergeregelt, sodass alles gleichmäßig dunkler wird, statt dass die Versorgung einbricht und die Farben verfälscht werden. Eine Leuchte zieht bei vollem Weiß etwa 60 mA, daher übersteigt schon ein einzelnes Panel mit 8 × 8 Leuchten, was ein USB-Port liefern kann. Lassen Sie den Wert nur auf 0, wenn Sie Ihre Stromversorgung kennen."
+      },
+      "device": {
+        "count": "Anzahl der Leuchten in diesem LED-Streifen. Ist unten eine Anordnung beschrieben, ist es die Summe ihrer Abschnitte.",
+        "segments": "Wie der LED-Streifen tatsächlich montiert ist, als gerade Abschnitte in Verdrahtungsreihenfolge – etwa 8 Leuchten links nach oben, 16 oben quer, 8 rechts nach unten. Das Board gibt die Daten immer gleich an die Kette aus; die Abschnitte biegen die Vorschauen passend zur Montage und bieten Profilen fertige Ziele. Zusammen müssen ihre Leuchten den ganzen Streifen ergeben.",
+        "size": "Spalten und Zeilen des Panels, so wie es gebaut ist, nicht wie es montiert ist.",
+        "wiring": "Wie das Panel verdrahtet und montiert ist. „Zeilen“ legt fest, ob jede zweite Zeile rückwärts läuft, wie bei den meisten fertigen Panels. „Erste Leuchte“ gibt die Ecke an, an der die Datenleitung eintritt. „Drehung“ dreht alles, was auf dem Panel gezeichnet wird, sodass auch ein seitlich montiertes Panel aufrecht lesbar bleibt."
+      },
+      "sprite": {
+        "pictures": "Motive, die dieses Panel zeichnen kann, jeweils ein Raster aus Pixeln, die auf Farben einer Palette verweisen, mit bis zu sechzehn Frames. Sie werden im Moduldokument mitgeführt statt übertragen und kosten daher keine Partition, keine Übertragung und keinen Neustart – und eine gespeicherte Konfiguration bringt ihre eigenen Grafiken mit.",
+        "name": "Der Name, unter dem Ebenen dieses Motiv ansprechen. Eine Umbenennung wird in jede Ebene übernommen, die es zeichnet. Zwei Motive auf einem Panel dürfen nicht denselben Namen haben.",
+        "size": "Spalten und Zeilen des Motivs selbst, die nicht zum Panel passen müssen: Ein kleineres Motiv erscheint mittig in dem Bereich, in dem die Ebene zeichnet. Je größer es ist, desto weniger Frames passen hinein, denn jedes Motiv hat ein eigenes Budget von 1024 Ziffern.",
+        "palette": "Farben, aus denen dieses Motiv gezeichnet wird, höchstens fünfzehn. Wählen Sie eine zum Malen oder „Transparent“, um ein Pixel unbemalt zu lassen, damit die Ebenen darunter sichtbar bleiben – das ist keine Farbe, sondern eine Ziffer hinter dem Ende der Palette, deshalb bleibt die letzte Ziffer frei. Eintrag 1 steht per Konvention, nicht per Regel, für die dunkle Leuchte: Er malt Schwarz über alles, was darunter liegt.",
+        "stripSize": "Wie viele Leuchten ein Frame dieser Animation umfasst. Eine Ebene spielt sie ab ihrer ersten abgedeckten Leuchte in ihrer eigenen Richtung ab, sodass dieselbe Zeichnung für beide Enden eines Lenkrads taugt. Je länger die Reihe, desto weniger Frames passen hinein, denn jedes Motiv hat ein eigenes Budget von 1024 Ziffern.",
+        "frames": "Frames der Animation, die eine Ebene mit eingeschaltetem „Frames abspielen“ der Reihe nach abspielt. Wie viele passen, hängt von der Größe ab: sechzehn bei 8 × 8, vier bei 16 × 16. Duplizieren Sie einen Frame, um daraus den nächsten zu zeichnen.",
+        "mirror": "Spielt dieses Motiv beim Zeichnen allein auf dem verbundenen Board ab, so wie die Vorschau einer Ebene. Erfordert ein verbundenes Board, das dem Entwurf folgt; wird dies ausgeschaltet, zeigt das Panel wieder die gesamte Konfiguration."
+      },
+      "effect": {
+        "stack": "Alle Ebenen, deren Einschaltbedingung erfüllt ist, zeichnen gleichzeitig. Decken zwei dieselbe Leuchte ab, gewinnt die zuletzt aufgeleuchtete – so erscheint eine Flagge über den Shift-Lights, egal in welcher Reihenfolge die beiden aufgeführt sind –, und gleichzeitig aufgeleuchtete Ebenen behalten die Reihenfolge, die sie hier haben. Bei den Stilregeln eines Widgets ist es umgekehrt, dort gewinnt der erste Treffer: Ein Widget ermittelt ein einziges Aussehen, ein Ausgang setzt dagegen ein Gesamtbild aus vielen gleichzeitig zutreffenden Zuständen zusammen.",
+        "type": "Was diese Ebene zeichnet. „steps“ ist das typische Shift-Light-Muster: Schwellenwerte, verteilt auf die abgedeckten Leuchten. „gauge“ füllt proportional zum Wert. „gradient“ verteilt eine Farbskala über die Leuchten. „animation“ läuft in einem eigenen Zeittakt. „sprite“ spielt ein Motiv ab, ein Raster auf einer Matrix oder eine Reihe von Leuchten auf einem LED-Streifen, und „text“ zeichnet auf einer Matrix.",
+        "panel": "Auf welchen Pixeln des Panels diese Ebene zeichnet. Klicken Sie auf ein Pixel, um es aus- oder einzuschalten, oder ziehen Sie über mehrere; „Alle“ und „Umkehren“ wirken auf das ganze Raster auf einmal. Standardmäßig sind alle Pixel gewählt, und das kostet im Dokument nichts. Die Ebene arbeitet im kleinsten Rahmen um Ihre Auswahl, sodass Text und Motive weiterhin mittig auf der gewählten Form sitzen statt auf dem Panel.",
+        "sprite": "Welches Motiv des Geräts diese Ebene zeichnet. Motive entstehen auf dem Tab „Motive“, und ein Profil bringt seine eigenen mit – die Flaggen haben ihre Grafiken dabei; eine Ebene, deren Motiv das Panel nicht enthält, führt zu einem Fehler beim Zusammensetzen statt zu einem leeren Panel.",
+        "loop": "Durchläuft die Frames des Motivs im eigenen Takt dieser Ebene, jeweils einen für die unter „Frame-Dauer“ eingestellte Zeit – so bewegt sich eine Grafik, ohne dass Telemetrie sie antreibt. Ausgeschaltet hält die Ebene den einen unten angegebenen Frame.",
+        "gate": "Wann diese Ebene überhaupt zeichnet. „always“ zeichnet in jedem Frame; „conditions“ zeichnet, solange eine Regel über ihren eigenen beobachteten Wert zutrifft; „telemetry idle“ zeichnet erst nach zwei Sekunden ohne Daten – genau das brauchen eine Leerlauf-Animation und eine Warnung bei Verbindungsverlust.",
+        "hold": "Lässt die Ebene noch so lange weiterzeichnen, nachdem ihre Einschaltbedingung nicht mehr erfüllt ist, sodass auch ein kurzes Ereignis wie ein Eingriff der Traktionskontrolle sichtbar aufblitzt.",
+        "background": "Füllt die Leuchten dieser Ebene, bevor sie zeichnet, und hält sie gefüllt, während sie blinkt, sodass die Ebenen darunter nie durchscheinen. Schwarz verdeckt sie; eine andere Farbe wird zum Untergrund, auf dem die Ebene zeichnet. Bei „Aus“ scheinen die Ebenen darunter überall dort durch, wo diese Ebene nichts zeichnet – in den Blinkpausen, zwischen den Punkten einer Animation, auf den noch nicht leuchtenden Stufen.",
+        "ruleTiming": "„Blinken“ ist die Periode, mit der die ganze Ebene blinkt, solange diese Regel zutrifft – so kann ein Wertebereich blinken, ohne dass eine zweite Ebene darüberliegt; das ersetzt das eigene Blinken der Ebene. „Halten“ hält die Regel so lange aktiv, nachdem sie nicht mehr zutrifft, sodass auch ein kurzer Auslöser einen sichtbaren Farbblitz hinterlässt.",
+        "colors": "Farben, die diese Ebene annimmt, solange der beobachtete Wert passt; die erste passende Regel gewinnt – etwa ein Gang, der mit steigender Drehzahl erst bernsteinfarben und dann rot wird. Sie beschreiben, statt auszuwählen: Die Einschaltbedingung bestimmt, ob die Ebene überhaupt zeichnet, diese Regeln bestimmen die Farbe. Bei einem Motiv färbt die Farbe jedes leuchtende Pixel um, sodass eine Zeichnung für jeden Zustand reicht – schwarz gezeichnete Pixel bleiben schwarz.",
+        "blink": "Volle Blinkperiode dessen, was diese Ebene zeichnet. Bei 0 leuchtet sie dauerhaft. In den Blinkpausen scheinen die Ebenen darunter durch, sofern „Deckend“ nicht angehakt ist.",
+        "lamps": "Welche Leuchten diese Ebene abdeckt, ab 1 nach der Verdrahtung nummeriert. Trennen Sie Abschnitte mit Kommas; ein absteigend geschriebener Abschnitt wie 30-27 läuft rückwärts, und eine Füllung folgt der Reihenfolge, in der Sie die Abschnitte schreiben. Klicken Sie in der Vorschau auf Leuchten, um sie hinzuzufügen oder zu entfernen, oder ziehen Sie über einen Abschnitt.",
+        "spread": "„Als eine Linie“ reiht die Abschnitte aneinander, sodass eine Füllung von einem in den nächsten läuft. „Jeder Abschnitt für sich“ zeichnet den ganzen Effekt gleichzeitig auf jedem Abschnitt, sodass die Flaggen an beiden Enden eines Lenkrads gemeinsam blinken.",
+        "hysteresis": "Ist die Einschaltbedingung erfüllt, muss der beobachtete Wert um so viel hinter den Schwellenwert einer Regel zurückfallen, bevor die Ebene wieder ausgeht, sodass eine Drehzahl, die um einen Schaltpunkt pendelt, sie nicht in jedem Frame ein- und ausschalten kann. Bei 0 geht sie sofort aus.",
+        "span": "Wie viele Leuchten die Bewegung umfasst: der Schweif des Kometen, die Lücke beim Theater-Lauflicht, der springende Block, die Funken eines Durchgangs.",
+        "scaled": "Bildet den verknüpften Wert über Minimum und Maximum auf die Frames des Motivs ab – der erste Frame beim Minimum, der letzte beim Maximum –, sodass ein als Abfolge gezeichnetes Motiv der Drehzahl folgt. Ausgeschaltet ist der Wert selbst die Frame-Nummer.",
+        "shape": "In welcher Richtung die Ebene ihre Leuchten füllt. Entlang des Abschnitts beginnt die Füllung bei der ersten Leuchte, rückwärts bei der letzten. Von der Mitte nach außen füllt sie gleichzeitig in beide Richtungen – genau das braucht ein zentrierter Drehzahlbalken; von den Enden nach innen ist es umgekehrt, und die Füllung schließt sich zur Mitte hin."
+      }
+    },
+    "effectEditor": {
+      "paints": "Darstellung",
+      "from": "Quelle",
+      "colour": "Farbe",
+      "picture": "Motiv",
+      "playFrames": "Frames abspielen",
+      "frameHolds": "Frame-Dauer",
+      "frame": "Frame",
+      "framesFollowTheRange": "Frames folgen dem Bereich",
+      "span": "Länge",
+      "whichFrameToHoldStill": "Welcher Frame stehen bleibt. Ist Telemetrie verknüpft, wählt stattdessen der Wert ihn aus.",
+      "text": "Text",
+      "drawnAsAuthoredWithA": "Wird im eingebauten Schnitt gezeichnet, der nur die Ziffern, N und R enthält – andere Zeichen bleiben dunkel. Ist eine Quelle verknüpft, wird dies zum Präfix, und die Quelle liefert den Rest.",
+      "face": "Schnitt",
+      "scrollStep": "Scroll-Schritt",
+      "howLongOneColumnOf": "Wie lange eine Spalte eines scrollenden Texts stehen bleibt. Text, der auf das Panel passt, wird zentriert und scrollt nicht.",
+      "motion": "Bewegung",
+      "pass": "Durchgang",
+      "direction": "Richtung"
+    },
+    "effectList": {
+      "layers": "Ebenen",
+      "allPaintedAtOnceWhere": "Alle werden gleichzeitig gezeichnet; teilen sich zwei eine Leuchte, gewinnt die zuletzt aufgeleuchtete.",
+      "playsThisLayerInThe": "Spielt diese Ebene in der Vorschau oben ab, neben allem, was sonst gerade läuft, bis Sie erneut darauf klicken",
+      "lengthLayerS": "Ebenen: {length}",
+      "stopPreviewingIndex": "Vorschau beenden: {index}",
+      "previewIndex": "Vorschau: {index}",
+      "moveLayerNumberDownThe": "Ebene {number} im Stapel nach unten verschieben",
+      "moveLayerNumberUpThe": "Ebene {number} im Stapel nach oben verschieben",
+      "removeLayerNumber": "Ebene {number} entfernen",
+      "ctrlClickOrShiftClick": "Mit Ctrl-Klick oder Shift-Klick wählen Sie mehrere Ebenen, um sie gemeinsam zu ändern.",
+      "pickAll": "Alle wählen",
+      "groupsDifferOnlyInLamps": "Gruppen von Ebenen, die sich nur in ihren Leuchten unterscheiden: {count}. Je Gruppe würde eine Ebene dasselbe bewirken.",
+      "merge": "Zusammenführen",
+      "mergesNames": "Führt die Kopien von {names} zu je einer Ebene zusammen; jeder Abschnitt zeichnet wie bisher für sich",
+      "picksEveryLayerInThis": "Wählt alle Ebenen dieser Gruppe, um sie gemeinsam zu ändern"
+    },
+    "effectRow": {
+      "lampsOfName": "{name}: Leuchten {lamps}. Zum Bearbeiten klicken; Ctrl-Klick oder Shift-Klick wählt mehrere.",
+      "duplicateName": "{name} duplizieren"
+    },
+    "layerGroups": {
+      "whenTelemetryStops": "Wenn die Telemetrie ausbleibt",
+      "alwaysOn": "Immer an"
+    },
+    "layerWarnings": {
+      "coversNoLamps": "Deckt keine Leuchten ab: Die erste Leuchte der Ebene liegt hinter dem Ende des LED-Streifens.",
+      "sameAsLayer": "Identisch mit {name}, daher ist eine der beiden wirkungslos.",
+      "alwaysHiddenUnder": "Nie sichtbar: {name} zeichnet immer über alle Leuchten dieser Ebene.",
+      "showsThroughBetweenFlashes": "In den Blinkpausen scheinen durch: {names}. Mit „Deckend“ bleibt dort alles dunkel."
+    },
+    "multiEffectEditor": {
+      "countLayers": "Ebenen: {count}",
+      "labelMixed": "{label} (gemischt)",
+      "whatYouChangeHere": "Was Sie hier ändern, wird in jede gewählte Ebene geschrieben. Ein als „gemischt“ markiertes Feld unterscheidet sich zwischen ihnen und zeigt den Wert der ersten Ebene.",
+      "duplicateCount": "{count} duplizieren",
+      "removeCount": "{count} entfernen"
+    },
+    "simulator": {
+      "drivenBy": "Gesteuert von",
+      "simHub": "SimHub",
+      "simulator": "Simulator",
+      "theLampsFollowTheGame": "Die Leuchten folgen dem Spiel, so wie auf dem Board.",
+      "simHubIsSendingTelemetry": "SimHub sendet Telemetrie, aber die Vorschau folgt stattdessen diesen Werten.",
+      "noTelemetryFromSimHub": "Keine Telemetrie von SimHub, daher steuern diese Werte die Vorschau.",
+      "simHubSendsNoValues": "SimHub sendet erst Werte, wenn ein Spiel oder ein Replay läuft, daher steuern diese Werte die Vorschau.",
+      "simHubSendsNoValuesDark": "SimHub sendet erst Werte, wenn ein Spiel oder ein Replay läuft, daher bleiben die Leuchten dunkel.",
+      "startAGameOrA": "Starten Sie in SimHub ein Spiel oder ein Replay, um es hier zu verfolgen",
+      "reset": "Zurücksetzen",
+      "resetEveryValue": "Setzt jeden Wert auf seinen Anfangswert zurück",
+      "showOnTheBoard": "Auf dem Board zeigen",
+      "feedsTheseValuesToTheBoard": "Sendet diese Werte statt der von SimHub an das verbundene Board, sodass auch seine Leuchten und sein Bildschirm sie zeigen. Beim Ausschalten werden sie gelöscht, und die Werte von SimHub kommen wieder durch.",
+      "connectABoardToDrive": "Verbinden Sie ein Board, um seine Leuchten von hier aus zu steuern",
+      "theBoardFollowsTheseValues": "Solange diese Seite geöffnet ist, folgt das Board diesen Werten statt denen von SimHub.",
+      "sweep": "Durchlaufen",
+      "stopSweeping": "Durchlauf stoppen",
+      "sweepsTheValueUpAnd": "Lässt den Wert selbsttätig auf und ab laufen",
+      "telemetryLost": "Telemetrie-Ausfall",
+      "layersGatedOnTelemetryIdle": "Lässt die Ebenen leuchten, die auf ausbleibende Telemetrie warten, etwa eine Warnung bei Verbindungsverlust",
+      "noLayerReadsTelemetry": "Keine Ebene liest Telemetrie, daher gibt es nichts zu simulieren."
+    },
+    "ledPreview": {
+      "preview": "Vorschau",
+      "everyLampAsTheBoard": "Jede Leuchte ist nummeriert, so platziert, wie sie montiert ist, und leuchtet so, wie das Board sie ansteuert: von SimHub, solange es Telemetrie sendet, sonst vom Simulator unten. Die Wiedergabe-Schaltfläche einer Ebene zeigt diese allein.",
+      "dragAcrossLampsToSet": "Klicken Sie auf Leuchten, um sie zu {name} hinzuzufügen oder daraus zu entfernen, oder ziehen Sie über einen Abschnitt. Alt-Klick wählt die oberste Ebene an dieser Stelle.",
+      "clickALampToPick": "Klicken Sie auf eine Leuchte, um die oberste Ebene an dieser Stelle zu wählen.",
+      "clickLampsForTheNewLayer": "Klicken Sie auf Leuchten, um festzulegen, wo die neue Ebene liegt, oder ziehen Sie über einen Abschnitt; der erste Klick beginnt von vorn. Alt-Klick wählt die oberste Ebene an dieser Stelle.",
+      "clickPixelsToShowName": "Klicken Sie auf Pixel, um {name} darauf zu zeigen oder davon zu entfernen, oder ziehen Sie über mehrere. Alt-Klick wählt die oberste Ebene an dieser Stelle.",
+      "lampNumberNoLayer": "Leuchte {number}: Keine Ebene deckt sie ab.",
+      "lampNumberLayers": "Leuchte {number}: {names}. Keine davon leuchtet gerade.",
+      "lampNumberLayersOnTop": "Leuchte {number}: {names}. Gerade oben: {top}.",
+      "nameOnItsOwnOver": "{name} allein, in Endlosschleife.{note} Klicken Sie erneut auf die Schaltfläche, um zu stoppen.",
+      "namesTogetherOverAndOver": "{names} zusammen, in Endlosschleife. Wo sie sich eine Leuchte teilen, gewinnt die zuletzt gestartete – so entscheidet es auch das Board.",
+      "pictureSprite": "Motiv {sprite}"
+    },
+    "modulesPage": {
+      "peripheralsBeyondTheDisplayEach": "Peripheriegeräte neben dem Display, jedes an einem eigenen Daten-Pin.",
+      "modulesView": "Modulansicht",
+      "deviceView": "Geräteansicht",
+      "wiring": "Verdrahtung",
+      "thePinTheShapeAnd": "Pin, Form und Grenzwerte dieses Geräts.",
+      "whatItShows": "Was es zeigt",
+      "layersComposedOntoThisDevice": "Ebenen, die auf diesem Gerät zusammengesetzt werden, oder ein Profil, das eine fertige Ebene hinzufügt.",
+      "pickALayerToEdit": "Wählen Sie eine Ebene, um zu bearbeiten, was sie zeichnet.",
+      "pictures": "Motive",
+      "artworkThisPanelDrawsDrawn": "Grafiken, die dieses Panel zeichnet – hier gezeichnet und im Moduldokument mitgeführt.",
+      "animations": "Animationen",
+      "animationsThisStripPlays": "Animationen, die dieser LED-Streifen abspielt – hier Leuchte für Leuchte und Frame für Frame gezeichnet und im Moduldokument mitgeführt. Eine Ebene vom Typ „sprite“ spielt eine davon auf den Leuchten ab, die sie abdeckt.",
+      "pickAPictureToDraw": "Wählen Sie ein Motiv zum Zeichnen oder erstellen Sie ein neues.",
+      "lEDs": "LEDs",
+      "matrix": "Matrix",
+      "addNoun": "{noun} hinzufügen",
+      "boardPublishesNoFreePins": "{board} stellt noch keine freien Pins für LEDs bereit, daher würde die Firmware ein Gerät daran ablehnen.",
+      "nothingIsWiredYetAdd": "Noch ist nichts verdrahtet. Fügen Sie ein Gerät vom Typ {noun} hinzu, um seinen Pin und seine Anzeige zu beschreiben.",
+      "matrices": "Matrizen",
+      "strips": "LED-Streifen",
+      "eachNounOwnsOneData": "Jedes Gerät vom Typ {noun} belegt einen Daten-Pin und einen Sendekanal; ein Board steuert ein Gerät pro LED-Pin, den es bereitstellt.",
+      "noMatrices": "Keine Matrizen",
+      "noStrips": "Keine LED-Streifen",
+      "pinNumber": "Pin {pin}",
+      "removeDeviceNumber": "Gerät {number} entfernen"
+    },
+    "noConfiguration": {
+      "peripheralsLiveInTheSame": "Peripheriegeräte liegen im selben Entwurf wie das Dashboard, daher muss dafür kein Board angeschlossen sein.",
+      "nothingToConfigureYet": "Noch nichts zu konfigurieren",
+      "thisBoardPublishesNoFree": "Dieses Board stellt noch keine freien Pins für LEDs bereit, daher lehnt die Firmware jeden Ausgang an diesem Board ab. Sie können trotzdem einen anlegen und den Entwurf später für ein anderes Board verwenden.",
+      "newConfiguration": "Neue Konfiguration",
+      "openFile": "Datei öffnen…"
+    },
+    "outputEditor": {
+      "device": "Gerät",
+      "pin": "Pin",
+      "noPinYetTheBoard": "Noch kein Pin – das Board lehnt das Dokument ab, bis einer gewählt ist.",
+      "thisBoardPublishesNoFree": "Dieses Board stellt noch keine freien Pins für LEDs bereit.",
+      "size": "Größe",
+      "columns": "Spalten",
+      "rows": "Zeilen",
+      "firstLamp": "Erste Leuchte",
+      "turn": "Drehung",
+      "lamps": "Leuchten",
+      "chip": "Chip",
+      "brightness": "Helligkeit",
+      "gamma": "Gamma",
+      "currentCap": "Strombegrenzung",
+      "lampsSummedOverTheRuns": "{lamps}, summiert über die Abschnitte der Anordnung unten.",
+      "theCapHoldsItTo": " Die Strombegrenzung hält den Strom auf {current_limit_ma} mA.",
+      "currentEstimate": "Leuchten: {lamps}. Bei vollem Weiß und dieser Helligkeit könnten sie etwa {peak} mA ziehen.",
+      "pinPinLampsLamps": "Pin {pin} · Leuchten: {lamps}"
+    },
+    "lampsField": {
+      "lamps": "Leuchten",
+      "writeLampsLike": "Leuchten wie 3-6, 30-27 angeben: von 1 bis {lamps}, höchstens {parts} Abschnitte.",
+      "clickToRunThisPart": "Klicken, um diesen Abschnitt in Gegenrichtung laufen zu lassen",
+      "wholeStrip": "Ganzer Streifen",
+      "mirror": "Auf die andere Seite spiegeln",
+      "addsTheMirrorImage": "Fügt dieselben Leuchten auf der anderen Seite des Streifens hinzu, in Gegenrichtung laufend",
+      "spread": "Verteilung",
+      "asOneLine": "Als eine Linie",
+      "eachPartOnItsOwn": "Jeder Abschnitt für sich"
+    },
+    "panelArea": {
+      "showsOn": "Fläche",
+      "all": "Alle",
+      "invert": "Umkehren",
+      "everyPixel": "alle Pixel",
+      "countOfPixelsPixels": "{count} von {pixels} Pixeln",
+      "everyPixelIsChosenSo": "Alle Pixel sind gewählt, daher bliebe der Ebene nach dem Umkehren nichts zum Zeichnen",
+      "choosesThePixelsThisLayer": "Wählt die Pixel, auf denen diese Ebene nicht erscheint",
+      "aLayerKeepsAtLeast": "Eine Ebene behält mindestens ein Pixel"
+    },
+    "profilePicker": {
+      "addLayer": "Ebene hinzufügen…",
+      "closeTheLayerPicker": "Ebenenauswahl schließen",
+      "customLayer": "Eigene Ebene",
+      "aBlankLayerWithEvery": "Eine leere Ebene, alle Einstellungen frei zugänglich.",
+      "theCoveredLampsGlowIn": "Klicken Sie in der Vorschau oben auf Leuchten, um festzulegen, wo die neue Ebene liegt, oder ziehen Sie über einen Abschnitt; der erste Klick beginnt von vorn. Als Text legen mehrere Abschnitte wie 3-6, 27-30 sie gleichzeitig auf jeden davon.",
+      "addToThisDevice": "Zu diesem Gerät hinzufügen",
+      "whatShouldTheNewLayer": "Was soll die neue Ebene tun?",
+      "runNumberRange": "Abschnitt {number} · {from}–{to}"
+    },
+    "segmentEditor": {
+      "arrangement": "Anordnung",
+      "drawnAsAStraightLine": "Als gerade Linie gezeichnet. Beschreiben Sie den Streifen als Abschnitte – etwa 8 Leuchten nach oben, 16 nach rechts, 8 nach unten –, dann biegen sich die Vorschauen passend zur Montage.",
+      "lampsInThisRun": "Leuchten in diesem Abschnitt",
+      "addRun": "Abschnitt hinzufügen",
+      "anArrangementHoldsAtMost": "Eine Anordnung hat höchstens {mAXIMUM_LED_SEGMENTS} Abschnitte.",
+      "straightLine": "gerade Linie",
+      "lengthRunS": "Abschnitte: {length}",
+      "removeRunNumber": "Abschnitt {number} entfernen",
+      "runNumber": "Abschnitt {number}"
+    },
+    "spriteEditor": {
+      "fitPanel": "Panelgröße",
+      "fitStrip": "Streifenlänge",
+      "matchesTheStripLamps": "Entspricht dem Streifen (Leuchten: {lamps})",
+      "showOnStrip": "Auf Streifen zeigen",
+      "showingOnStrip": "Wird auf Streifen gezeigt",
+      "paintsEveryPixelOfThis": "Malt jedes Pixel dieses Frames mit der gewählten Malfarbe aus",
+      "clearsThisFrameLeavingThe": "Leert diesen Frame, sodass die Ebenen darunter sichtbar bleiben",
+      "valueMs": "{value} ms",
+      "addAnotherLayer": "Weitere Ebene hinzufügen",
+      "addALayer": "Ebene hinzufügen",
+      "showingOnPanel": "Wird auf Panel gezeigt",
+      "showOnPanel": "Auf Panel zeigen",
+      "spriteOfSpriteDigitBudget": "{sprite} von {sPRITE_DIGIT_BUDGET} Pixelziffern, mitgeführt im Moduldokument.",
+      "widthHeightFramesFrameS": "{width}×{height} · Frames: {frames}",
+      "matchesThePanelWidthBy": "Entspricht dem Panel ({width} × {height})",
+      "addsAnotherLayerDrawingThis": "Fügt eine weitere Ebene hinzu, die dieses Motiv zeichnet",
+      "addsALayerThatDraws": "Fügt eine Ebene hinzu, die dieses Motiv zeichnet – erst so erscheint es auf dem Panel",
+      "ghostPreviousFrame": "Vorigen Frame einblenden",
+      "fillFrame": "Frame füllen",
+      "clearFrame": "Frame leeren"
+    },
+    "stripTimeline": {
+      "frameLamp": "Frame {frame}, Leuchte {lamp}"
+    },
+    "spriteFrames": {
+      "frames": "Frames",
+      "moveThisFrameEarlier": "Diesen Frame nach vorn verschieben",
+      "moveThisFrameLater": "Diesen Frame nach hinten verschieben",
+      "duplicateThisFrame": "Diesen Frame duplizieren",
+      "copiesThisFrameAfterIt": "Kopiert diesen Frame dahinter – so wird aus einer Zeichnung die nächste",
+      "addAnEmptyFrame": "Leeren Frame hinzufügen",
+      "removeThisFrame": "Diesen Frame entfernen",
+      "framesOfCeilingThisSize": "{frames} von maximal {ceiling} bei dieser Größe",
+      "stopPlayingTheFrames": "Wiedergabe der Frames stoppen",
+      "playTheFrames": "Frames abspielen",
+      "aWidthByHeightPicture": "Höchstzahl der Frames bei einem Motiv mit {width} × {height}: {ceiling}",
+      "frameNumber": "Frame {number}"
+    },
+    "spriteList": {
+      "sweep": "Durchlauf",
+      "orStartFrom": "oder beginnen mit",
+      "noneYetDrawOneOr": "Noch keine. Zeichnen Sie eines oder beginnen Sie mit einem Muster – ein Motiv besteht aus Pixeln, die auf Farben einer Palette verweisen, und wird im Moduldokument mitgeführt, braucht also keine Übertragung und keinen Neustart.",
+      "inUse": "verwendet",
+      "playsThisPictureInThe": "Spielt dieses Motiv in der Vorschau oben ab und, solange „Auf Panel zeigen“ an ist, auch auf dem Panel",
+      "disc": "Scheibe",
+      "chequer": "Schachbrett",
+      "widthHeightFramesFrameS": "{width}×{height} · Frames: {frames} · Ziffern: {sprite}",
+      "lengthOfMaximumLedSprites": "{length} von {mAXIMUM_LED_SPRITES}",
+      "drawsANewPictureAt": "Legt ein neues Motiv in der Größe dieses Panels an",
+      "aPanelCarriesMaximumLed": "Ein Panel enthält höchstens {mAXIMUM_LED_SPRITES} Motive",
+      "stopShowingId": "{id} nicht mehr zeigen",
+      "showIdOnItsOwn": "{id} allein zeigen",
+      "duplicateId": "{id} duplizieren",
+      "removePictureId": "Motiv {id} entfernen",
+      "newPicture": "Neues Motiv",
+      "aDiagonalBandTravellingAcross": "Ein diagonales Band, das über das Panel wandert, mit so vielen Frames, wie die Größe erlaubt",
+      "aFilledCircleOnOne": "Ein gefüllter Kreis in einem Frame, bereit, von seiner Ebene umgefärbt oder zum Blinken gebracht zu werden",
+      "aRipplingChequerboardTheArtwork": "Ein wogendes Schachbrett – die Grafik, mit der die Zielflagge gezeichnet wird"
+    },
+    "spritePalette": {
+      "inks": "Malfarben",
+      "clear": "Transparent",
+      "colorEntry1IsThe": "{color} – Eintrag 1 ist per Konvention die dunkle Leuchte",
+      "aPictureNamesUsablePalette": "Ein Motiv kann {uSABLE_PALETTE} Farben festlegen; die letzte Ziffer bleibt für „Transparent“ frei",
+      "addsAnotherColourToThis": "Fügt diesem Motiv eine weitere Farbe hinzu",
+      "thisPictureNamesAllSixteen": "Dieses Motiv legt alle sechzehn Farben fest, daher bleibt keine Ziffer für „Transparent“ übrig",
+      "clearsAPixelLeavingThe": "Macht ein Pixel transparent, sodass die Ebenen darunter sichtbar bleiben",
+      "ink": "Malfarbe",
+      "inkNumber": "Malfarbe {number}",
+      "removeInkNumber": "Malfarbe {number} entfernen",
+      "inkNumberColour": "Malfarbe {number}, {color}"
+    },
+    "effectColors": {
+      "colourWhen": "Farbe, wenn",
+      "background": "Hintergrund",
+      "watches": "Beobachtet",
+      "timing": "Timing",
+      "blinkPeriodInMillisecondsWhile": "Blinkperiode in Millisekunden, solange diese Regel zutrifft; bei 0 dauerhaft an",
+      "holdInMillisecondsAfterThis": "Haltezeit in Millisekunden, nachdem diese Regel nicht mehr zutrifft",
+      "blinkMs": "Blinken (ms)",
+      "holdMs": "Halten (ms)",
+      "addColourRule": "Farbregel hinzufügen",
+      "removeColourRuleNumber": "Farbregel {number} entfernen"
+    },
+    "effectGate": {
+      "whenItPaints": "Wann gezeichnet wird",
+      "gate": "Einschaltbedingung",
+      "addRule": "Regel hinzufügen",
+      "hold": "Halten",
+      "blink": "Blinken",
+      "switchOffMargin": "Ausschaltabstand",
+      "coversLayersBelow": "Deckend",
+      "noTheyShowThrough": "Nein – die Ebenen darunter scheinen durch",
+      "betweenFlashesNamesShowThrough": "In den Blinkpausen scheinen durch: {names}.",
+      "coverThem": "Verdecken"
+    },
+    "effectPayload": {
+      "thresholds": "Schwellenwerte",
+      "colourRamp": "Farbskala",
+      "lightsAtThisFractionOf": "Leuchtet bei diesem Anteil des Bereichs",
+      "aLayerHoldsAtMost": "Eine Ebene hat höchstens {maximum} Stufen.",
+      "positionAlongTheLamps0": "Position entlang der Leuchten, 0 bis 1",
+      "valueThisColourSitsAt": "Wert, an dem diese Farbe liegt",
+      "aRampHoldsAtMost": "Eine Farbskala hat höchstens {maximum} Punkte.",
+      "step": "Stufe",
+      "stop": "Punkt"
+    },
+    "previewStatus": {
+      "boardRefusedThePreview": "Board hat die Vorschau abgelehnt",
+      "previewingHereOnly": "Vorschau nur hier",
+      "previewingOnTheBoard": "Vorschau auf dem Board",
+      "theBoardIsLitBy": "Dieser Ausgang zeigt nur, was gerade abgespielt wird. Eine mit Telemetrie verknüpfte Ebene folgt dort dem Spiel statt dem hier gezeigten Durchlauf."
+    },
+    "flags": {
+      "raceFlags": "Rennflaggen",
+      "allEightFlagsAtOnce": "Alle acht Flaggen auf einmal. Auf einem Panel lässt die schwarz-weiße Flagge ein diagonales Band durchlaufen, die schwarze Flagge mit orangefarbener Scheibe lässt die Scheibe blinken, und die Zielflagge wogt als echtes Schachbrett; auf einem LED-Streifen werden daraus ein blinkender Fleck und eine laufende Leuchte. Teilen sich zwei Flaggen eine Leuchte, gewinnt die zuletzt gezeigte; gleichzeitig gezeigte Flaggen folgen der Liste, die mit der roten endet."
+    },
+    "profiles": {
+      "shiftLights": "Shift-Lights",
+      "oneStepPerLampFrom": "Bis zu sechzehn Stufen über die Leuchten, gefüllt nach den Schaltpunkten des Fahrzeugs im aktuellen Gang – aus dem Spiel, wenn es sie mitteilt, sonst aus den Fahrzeugeinstellungen von SimHub –, von Grün über Gelb bis Pink; wenn es Zeit zum Schalten ist, blinkt der ganze Abschnitt rot.",
+      "gear": "Gang",
+      "theSelectedGearDrawnIn": "Der eingelegte Gang, gezeichnet im größten eingebauten Schnitt, der auf das Panel passt; er wird bernsteinfarben und dann rot, wenn sich die Drehzahl dem Schaltpunkt des aktuellen Gangs nähert. Ändern Sie den Schnitt in der Ebene, wenn Sie die Anzeige kleiner möchten. Nur für ein Panel, da ein LED-Streifen kein Zeichen darstellen kann.",
+      "aBS": "ABS",
+      "redFlashWhileAbsIs": "Rotes Blinken, solange das ABS eingreift.",
+      "tractionControl": "Traktionskontrolle",
+      "orangeFlashWhileTractionControl": "Orangefarbenes Blinken, solange die Traktionskontrolle eingreift.",
+      "pitLimiter": "Pit-Limiter",
+      "steadyBlueWhileTheLimiter": "Dauerhaft blau, solange der Limiter aktiv ist, damit es nie wie eine blaue Flagge wirkt.",
+      "dRS": "DRS",
+      "dimGreenWhenAvailableBright": "Gedämpftes Grün, wenn verfügbar, helles Grün, solange offen.",
+      "linkLost": "Verbindung verloren",
+      "aSlowRainbowOnceTelemetry": "Ein langsamer Regenbogen, sobald zwei Sekunden lang keine Telemetrie gekommen ist."
+    },
+    "previewValues": {
+      "liveValues": " Die Werte kommen aus der Live-Telemetrie.",
+      "theGearStepsFromReverse": " Der Gang wird vom Rückwärtsgang bis zum neunten durchgeschaltet, und jede Farbregel ist nacheinander aktiv.",
+      "theGearStepsFromReverse2": " Der Gang wird vom Rückwärtsgang bis zum neunten durchgeschaltet.",
+      "everyColourRuleIsHeld": " Jede Farbregel ist nacheinander aktiv, danach keine."
+    },
+    "spriteCanvas": {
+      "pixelXY": "Pixel {x}, {y}",
+      "xYClear": "{x}, {y} – transparent"
+    },
+    "devicePreview": {
+      "lampNumber": "Leuchte {number}"
+    }
+  },
+  "documents": {
+    "label": {
+      "dashboard": "Dashboard",
+      "modules": "Module",
+      "protocol": "Protokoll"
+    },
+    "labelLower": {
+      "dashboard": "Dashboard",
+      "modules": "Module",
+      "protocol": "Protokoll"
+    }
+  },
+  "boards": {
+    "noDisplay": "kein Display"
+  },
+  "images": {
+    "format": {
+      "rgb565a8": "Farbe + Transparenz",
+      "rgb565": "Farbe ohne Transparenz",
+      "alpha8": "Maske (nur Alpha)"
+    },
+    "imagesPage": {
+      "images": "Bilder",
+      "addImage": "Bild hinzufügen…",
+      "onTheBoard": "Auf dem Board",
+      "whatTheInstalledPackageHolds": "Was das Board jetzt enthält. „Auf Board speichern“ ersetzt es durch die Bilder, die das Dashboard zeichnet.",
+      "installed": "Installiert",
+      "addingAnImageConvertsIt": "Beim Hinzufügen wird ein Bild hier umgewandelt, und zwar in die Größe, in der das Board es zeichnet – das Gerät skaliert und dreht nicht.",
+      "aNameUsesLowerCase": "Ein Name besteht aus Kleinbuchstaben, Ziffern, Bindestrich und Unterstrich, höchstens 31 Zeichen.",
+      "twoImagesShareAName": "Zwei Bilder haben denselben Namen.",
+      "widthHeightFormat": "{width}×{height} · {format}",
+      "frameCountFrames": " · Frames: {frameCount}",
+      "connectABoardWhoseFirmware": "Verbinden Sie ein Board, dessen Firmware eine Bildpartition hat.",
+      "noImagesInstalled": "Keine Bilder installiert",
+      "noImageSupport": "Keine Bildunterstützung",
+      "eraseEveryImageInstalledOn": "Alle auf dem Board installierten Bilder löschen?",
+      "boardImagePackageErasedRestart": "Das Bildpaket auf dem Board wurde gelöscht. Starten Sie das Board neu; beim nächsten „Auf Board speichern“ werden die Bilder des Dashboards wieder installiert.",
+      "description": "Bilder werden hier umgewandelt und auf diesem PC aufbewahrt. „Auf Board speichern“ installiert die vom Dashboard gezeichneten als ein Paket und startet das Board neu, wenn sie sich geändert haben.",
+      "saveInstallsThem": "„Auf Board speichern“ installiert die Bilder, die das Dashboard zeichnet.",
+      "restartTheBoardToUse": "Das Board startet neu, um die neuen Bilder zu verwenden."
+    },
+    "stagedImageCard": {
+      "nameAWidgetRefersTo": "Name, den Widgets verwenden",
+      "format": "Format",
+      "width": "Breite",
+      "height": "Höhe",
+      "addFrameLength": "Frame hinzufügen ({length})",
+      "makeASpriteSheet": "Sprite-Sheet erstellen…",
+      "removeFrameIndex": "Frame {index} entfernen",
+      "unlockProportions": "Seitenverhältnis freigeben",
+      "lockProportions": "Seitenverhältnis sperren",
+      "proportionsLockedChangingOneSide": "Seitenverhältnis gesperrt: Wenn Sie eine Seite ändern, ändert sich die andere mit",
+      "proportionsFreeEachSideIs": "Seitenverhältnis frei: Jede Seite wird einzeln eingestellt"
+    },
+    "imagePageParts": {
+      "noCopy": "Keine Vorschau",
+      "framesFramesAllConvertedTo": "Frames: {frames}, alle umgewandelt in {width}×{height}. ",
+      "sourceIsWidthHeightConverted": "Quelle: {width}×{height}, umgewandelt in {width2}×{height2} – {bytes} statt {sourceBytes}.",
+      "sourceIsWidthHeightUploaded": "Quelle: {width}×{height}, in dieser Größe beibehalten – {bytes}. Das Board zeichnet das Bild in dieser Größe, daher ist das auch die Größe des Widgets.",
+      "unavailable": "Nicht verfügbar",
+      "usedOfLimit": "{used} von {limit} · {rest}",
+      "bytesOver": "{bytes} zu viel",
+      "bytesFree": "{bytes} frei"
+    },
+    "imageAssetService": {
+      "readingImageSources": "Bildquellen werden gelesen",
+      "buildingTheImagePackage": "Bildpaket wird erstellt",
+      "imagesInstalledRestartTheDevice": "Bilder installiert; starten Sie das Gerät neu, um sie zu verwenden",
+      "selectAtLeastOneImage": "Wählen Sie mindestens ein Bild zum Übertragen.",
+      "theDeviceStoresAtMost": "Das Gerät speichert höchstens {mAXIMUM_IMAGES} Bilder.",
+      "nameIsNotAValid": "„{name}“ ist kein gültiger Bildname.",
+      "imageNameIsListedTwice": "Bild „{name}“ ist doppelt aufgeführt.",
+      "pathCouldNotBeRead": "„{path}“ konnte nicht als Bild gelesen werden.",
+      "selectTheImageFileAgain": "Wählen Sie die Bilddatei erneut und versuchen Sie es noch einmal.",
+      "theConnectedDeviceChangedDuring": "Das verbundene Gerät wurde während der Übertragung gewechselt.",
+      "selectImageSource": "Bildquelle wählen",
+      "selectAPngJpegOr": "Wählen Sie ein PNG-, JPEG- oder BMP-Bild.",
+      "anImageUploadIsAlready": "Eine Bildübertragung läuft bereits.",
+      "theConnectedFirmwareDoesNot": "Die Firmware des verbundenen Geräts unterstützt keine Bildübertragung.",
+      "imageStorageIsUnavailableOn": "Auf diesem Gerät ist kein Bildspeicher verfügbar.",
+      "restartTheDeviceBeforeUploading": "Starten Sie das Gerät neu, bevor Sie ein weiteres Bildpaket übertragen."
+    },
+    "imagePackage": {
+      "nameHasNoImageFile": "„{name}“ hat keine Bilddatei.",
+      "nameHasLengthFramesAn": "„{name}“ hat {length} Frames; ein Bild fasst höchstens {mAXIMUM_SPRITE_FRAMES}.",
+      "pathIsNotAReadable": "„{path}“ ist kein lesbares Bild.",
+      "nameDecodedToAnUnexpected": "„{name}“ hat nach dem Dekodieren eine unerwartete Größe.",
+      "nameCouldNotBeResized": "„{name}“ konnte nicht auf {width} × {height} skaliert werden.",
+      "theImagePackageIsPackagesize": "Das Bildpaket hat {packageSize} Byte; das Gerät speichert höchstens {mAXIMUM_IMAGE_PACKAGE_SIZE}.",
+      "anImagePackageNeedsAt": "Ein Bildpaket braucht mindestens ein Bild.",
+      "theImageManifestDoesNot": "Das Manifest des Bildpakets passt nicht vor die Pixeldaten.",
+      "nameIsNotAValid": "„{name}“ ist kein gültiger Bildname: Kleinbuchstaben, Ziffern, Bindestrich und Unterstrich, höchstens 31 Zeichen.",
+      "nameIsWidthHeightThe": "„{name}“ ist {width}×{height} groß; das Gerät akzeptiert höchstens {mAXIMUM_IMAGE_DIMENSION} pro Seite.",
+      "nameHasFramecountFramesThe": "„{name}“ hat {frameCount} Frames; das Gerät akzeptiert 1 bis {mAXIMUM_SPRITE_FRAMES}.",
+      "nameIsBytelengthBytesIts": "„{name}“ hat {byteLength} Byte; nach seinen Abmessungen müssten es {expected} sein."
+    },
+    "dialog": {
+      "filter": "Bilder"
+    },
+    "imageLibrary": {
+      "notOnThisPc": "Bild „{id}“ ist nicht auf diesem PC. Fügen Sie es auf der Seite „Bilder“ hinzu.",
+      "damaged": "Die Kopie von Bild „{id}“ auf diesem PC ist beschädigt. Fügen Sie das Bild auf der Seite „Bilder“ erneut hinzu.",
+      "tooLarge": "Bild „{id}“ braucht auf einem Board {size} KB, ein Board fasst aber nur {limit} KB an Bildern.",
+      "notAdded": "Das Bild konnte nicht hinzugefügt werden.",
+      "notRemoved": "Das Bild konnte nicht entfernt werden."
+    },
+    "library": {
+      "title": "Auf diesem PC",
+      "description": "Alle Bilder, die von diesem PC aus installiert oder mit einer Dashboard-Datei geöffnet wurden, insgesamt {size}. „Auf Board speichern“ installiert die, die das geöffnete Dashboard zeichnet.",
+      "dashboardDraws": {
+        "$plural": {
+          "one": "Das geöffnete Dashboard zeichnet ein Bild.",
+          "other": "Das geöffnete Dashboard zeichnet {count} Bilder."
+        }
+      },
+      "notOnThisPc": "Nicht auf diesem PC: {images}. Fügen Sie sie hier hinzu, sonst bleiben die Kopien auf dem Board erhalten.",
+      "empty": "Noch keine Bilder auf diesem PC",
+      "emptyHint": "Fügen Sie mit „Bild hinzufügen…“ ein PNG, JPEG oder BMP hinzu oder öffnen Sie eine Dashboard-Datei, die Bilder enthält.",
+      "inDashboard": "Im Dashboard",
+      "board": {
+        "same": "Auf dem Board",
+        "differs": "Board-Kopie weicht ab",
+        "absent": "Nicht auf dem Board"
+      },
+      "remove": "„{id}“ von diesem PC entfernen? Das Board behält seine Kopie, bis sie beim nächsten Speichern ersetzt wird.",
+      "removeUsed": "Das geöffnete Dashboard zeichnet „{id}“. Trotzdem von diesem PC entfernen? Das Board behält seine Kopie, aber dieser PC kann das Bild nicht mehr installieren oder teilen.",
+      "unreadable": {
+        "$plural": {
+          "one": "Ein gespeichertes Bild konnte nicht gelesen werden und wird ausgelassen.",
+          "other": "{count} gespeicherte Bilder konnten nicht gelesen werden und werden ausgelassen."
+        }
+      }
+    },
+    "staged": {
+      "title": "Bereit zum Hinzufügen",
+      "add": "{count} zu diesem PC hinzufügen",
+      "added": {
+        "$plural": {
+          "one": "Ein Bild wurde zu diesem PC hinzugefügt.",
+          "other": "{count} Bilder wurden zu diesem PC hinzugefügt."
+        }
+      },
+      "replace": "Auf diesem PC gibt es bereits: {images}. Ersetzen? Dashboards, die sie zeichnen, zeigen dann die neuen Bilder, und beim nächsten „Auf Board speichern“ werden sie installiert."
+    }
+  },
+  "save": {
+    "stage": {
+      "checking": "Firmware des Boards wird geprüft",
+      "preparing": "Schriftarten und Bilder werden geprüft",
+      "building": "Schriftarten und Bilder werden vorbereitet",
+      "uploading": "Wird auf dem Board installiert",
+      "saving": "Konfiguration wird gespeichert",
+      "applying": "Wird auf das Board angewendet",
+      "rebooting": "Board wird neu gestartet",
+      "reconnecting": "Verbindung wird wiederhergestellt",
+      "completed": "Gespeichert"
+    },
+    "saveToBoardService": {
+      "noPitrigBoardIsConnected": "Es ist kein Pitrig-Board verbunden.",
+      "theConfigurationIsNotValid": "Die Konfiguration ist ungültig.",
+      "checkingTheFontsThisDashboard": "Schriftarten und Bilder für dieses Dashboard werden geprüft",
+      "savingTheAndConfiguration": "Konfiguration wird gespeichert: {and}",
+      "savedTheBoardIsRestarting": "Gespeichert. Das Board startet aus dem abgesicherten Modus neu.",
+      "savedTheBoardIsRunning": "Gespeichert. Das Board zeigt das neue Dashboard.",
+      "nothingToSaveTheBoard": "Nichts zu speichern – das Board hat diese Konfiguration bereits."
+    },
+    "firmwareCheck": {
+      "checking": "Es wird geprüft, ob die Firmware {version} des Boards diese Konfiguration annimmt",
+      "refused": "Auf dem Board läuft die Firmware {running}, die diese Konfiguration nicht annimmt: Nötig ist die Firmware {released}. Auf dem Board hat sich nichts geändert. Aktualisieren Sie das Board und speichern Sie dann erneut. Das Board meldete: {reason}"
+    },
+    "fontDelivery": {
+      "building": "Schriftpaket wird erstellt",
+      "noFaceCalled": "Die Schriftbibliothek hat keinen Schnitt namens „{family}“.",
+      "noFaceForSome": "Schriftfamilien dieses Dashboards ohne Schnitt in der Schriftbibliothek: {count}."
+    },
+    "imageDelivery": {
+      "building": "Bildpaket wird erstellt",
+      "failed": "Die Bilder konnten nicht installiert werden.",
+      "noStorage": "Dieses Dashboard zeigt Bilder, aber das Board hat keinen Bildspeicher.",
+      "unavailable": "Dieses Dashboard zeigt Bilder, die weder auf diesem PC noch auf dem Board sind: {images}. Fügen Sie sie auf der Seite „Bilder“ hinzu.",
+      "tooMany": "Bilder in diesem Dashboard: {count}. Ein Board fasst höchstens {maximum}.",
+      "tooLarge": "Die Bilder dieses Dashboards brauchen {size} KB, ein Board fasst {limit} KB an Bildern.",
+      "boardOnly": "Nur das Board hat {images}, und dieser PC hat keine Kopie. Daher ist die Installation von {pending} nicht möglich, ohne diese Bilder vom Board zu entfernen. Fügen Sie zuerst {images} auf der Seite „Bilder“ hinzu.",
+      "fontsWithoutImages": "Die Schriftarten wurden installiert, die Bilder aber nicht: {error} Führen Sie „Auf Board speichern“ erneut aus, bevor das Board neu startet, sonst startet es ohne seine Bilder."
+    }
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "ok": "OK",
+    "close": "Schließen",
+    "save": "Speichern",
+    "open": "Öffnen",
+    "delete": "Löschen",
+    "none": "Keine",
+    "listAndMore": "{shown} und {rest} weitere",
+    "add": "Hinzufügen",
+    "select": "Auswählen",
+    "screenNumber": "Bildschirm {number}",
+    "pageNumber": "Seite {number}",
+    "traceNumber": "Kurve {number}"
+  },
+  "firmware": {
+    "firmwarePage": {
+      "keepTheBoardsFirmware": "Halten Sie die Firmware des Boards aktuell.",
+      "connectABoardToSee": "Verbinden Sie ein Board, um seine Firmware zu sehen.",
+      "restartBoard": "Board neu starten",
+      "percent": " · {percent} %",
+      "image": "Image",
+      "slots": "Slots"
+    },
+    "firmwareStatus": {
+      "boardRuns": "Auf {board} läuft",
+      "firmwareVersion": "Firmware {version}",
+      "versionAvailable": "{version} verfügbar",
+      "upToDate": "Aktuell",
+      "updateTo": "Auf {version} aktualisieren",
+      "setupStays": "Ihr Setup bleibt erhalten: Pitrig legt eine Kopie unter „Setups“ ab und spielt sie zurück.",
+      "restartWaiting": "Ein Update ist installiert. Starten Sie das Board neu, um es abzuschließen; das Setup bleibt erhalten.",
+      "restartToFinish": "Neu starten und abschließen",
+      "notConfirmedYet": "Diese Firmware ist noch nicht bestätigt. Wenn Sie jetzt neu starten, kehrt das Board zur vorherigen Firmware zurück.",
+      "cannotUpdateItself": "Diese Firmware kann sich nicht selbst aktualisieren. Aktualisieren Sie sie einmal per USB-Kabel im Web-Flasher. Dabei wird das Setup des Boards gelöscht, speichern Sie es also vorher in eine Datei.",
+      "openWebFlasher": "Web-Flasher öffnen",
+      "whatChanges": "Änderungen · {count}"
+    },
+    "fileInstall": {
+      "installFromAFile": "Aus einer Datei installieren",
+      "aPitrigFirmwareFile": "Eine Pitrig-Firmware-Datei, die für dieses Board erstellt wurde.",
+      "sizeBytes": "{size} Byte",
+      "selectFile": "Datei wählen…",
+      "install": "Installieren"
+    },
+    "factoryReset": {
+      "factoryReset": "Werkszustand",
+      "eraseTheSetupOnThe": "Löscht das Setup auf dem Board. Dateien auf diesem PC bleiben erhalten.",
+      "resetToFactory": "Auf Werkszustand zurücksetzen"
+    },
+    "boardUpdate": {
+      "alreadyRunning": "Es läuft bereits ein Board-Update.",
+      "readingTheBoard": "Inhalt des Boards wird gelesen…",
+      "keepingACopy": "Kopie der Board-Konfiguration wird unter „Setups“ abgelegt…",
+      "backupName": "Vor Update · {date} · Firmware {version}",
+      "backupFailed": "Das Board wurde nicht verändert: Seine Konfiguration konnte nicht nach „Setups“ kopiert werden. {reason}",
+      "restarting": "Board wird neu gestartet…",
+      "didNotComeBack": "Das Board hat sich nach dem Neustart nicht wieder gemeldet. Verbinden Sie es neu, öffnen Sie dann auf der Seite „Setups“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
+      "rolledBack": "Die neue Firmware ist nicht gestartet, daher ist das Board zu {version} zurückgekehrt. Seine Konfiguration ist unverändert.",
+      "puttingBack": "Konfiguration wird zurückgespielt: {documents}…",
+      "checking": "Inhalt des Boards wird geprüft…",
+      "cancelled": "Update abgebrochen. Das Board wurde nicht verändert.",
+      "updatedNothingStored": "Auf dem Board läuft {version}. Es hatte keine gespeicherte Konfiguration, daher gab es nichts zurückzuspielen.",
+      "updatedAndRestored": "Auf dem Board läuft {version}, seine Konfiguration ist zurückgespielt. Eine Kopie bleibt unter „Setups“ als „{backup}“.",
+      "updatedUnchanged": "Auf dem Board läuft {version}, seine Konfiguration ist erhalten geblieben. Eine Kopie bleibt unter „Setups“ als „{backup}“.",
+      "restoreFailed": "Auf dem Board läuft {version}, aber seine Konfiguration konnte nicht zurückgespielt werden: {reason} Öffnen Sie auf der Seite „Setups“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
+      "notVerified": "Auf dem Board läuft {version}, aber sein Inhalt weicht von der Kopie ab. Öffnen Sie auf der Seite „Setups“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
+      "restoredNotShown": "Auf dem Board läuft {version}, und es hat seine Konfiguration wieder, zeigt sie aber erst nach dem nächsten Neustart. Eine Kopie bleibt unter „Setups“ als „{backup}“.",
+      "step": {
+        "backup": "Kopieren",
+        "install": "Installieren",
+        "restart": "Neu starten",
+        "restore": "Zurückspielen",
+        "verify": "Prüfen"
+      }
+    },
+    "firmwareUpdateService": {
+      "readingName": "{name} wird gelesen",
+      "wrappedBytelengthBytesForBoardid": "{byteLength} Byte für {boardId} verpackt",
+      "firmwareUploadCancelled": "Firmware-Übertragung abgebrochen.",
+      "cannotReadName": "{name} kann nicht gelesen werden.",
+      "nameIsSizeBytesWhich": "{name} hat {size} Byte und passt nicht in den Firmware-Slot mit 2,5 MiB.",
+      "theSelectedFirmwareImageIs": "Das gewählte Firmware-Image ist nicht mehr verfügbar.",
+      "firmwareUploadWasCancelled": "Die Firmware-Übertragung wurde abgebrochen.",
+      "selectFirmwareImage": "Firmware-Image wählen",
+      "selectImage": "Image wählen",
+      "selectThePitrigBinProduced": "Wählen Sie die Datei pitrig.bin, die ein Firmware-Build erzeugt hat.",
+      "aFirmwareUploadIsAlready": "Es läuft bereits eine Firmware-Übertragung.",
+      "theConnectedFirmwareCannotUpdate": "Die verbundene Firmware kann sich nicht über die serielle Verbindung selbst aktualisieren.",
+      "thisDeviceHasNoSecond": "Dieses Gerät hat keinen zweiten Firmware-Slot für das Update.",
+      "restartTheDeviceToRun": "Starten Sie das Gerät neu, um die bereits installierte Firmware auszuführen.",
+      "unknownError": "Unbekannter Fehler beim Firmware-Update.",
+      "theConnectedDeviceChangedWhile": "Das verbundene Gerät wurde gewechselt, während das Image vorbereitet wurde.",
+      "firmwareInstalledIntoTargetRestart": "Die Firmware wurde in {target} installiert. Starten Sie das Gerät neu, um sie auszuführen.",
+      "theInactiveSlot": "den inaktiven Slot"
+    },
+    "firmwarePackage": {
+      "theFirmwareImageIsEmpty": "Das Firmware-Image ist leer.",
+      "theFirmwareImageIsBytelength": "Das Firmware-Image hat {byteLength} Byte und passt nicht in den Firmware-Slot mit 2,5 MiB.",
+      "unsupportedPitrigBoardBoard": "Nicht unterstütztes Pitrig-Board: {board}."
+    },
+    "dialog": {
+      "filter": "Pitrig-Firmware"
+    }
+  },
+  "updates": {
+    "releaseFeed": {
+      "downloadFailed": "{name} konnte nicht heruntergeladen werden: GitHub antwortete mit {status}.",
+      "downloadDamaged": "{name} ist beschädigt angekommen. Versuchen Sie es erneut.",
+      "githubAnswered": "GitHub antwortete auf die Update-Prüfung mit {status}."
+    },
+    "banner": {
+      "appReady": "Pitrig {version} wurde heruntergeladen und wird beim Neustart des Konfigurators installiert.",
+      "restartAndUpdate": "Neu starten und aktualisieren",
+      "appAvailable": "Pitrig {version} ist verfügbar.",
+      "download": "Herunterladen",
+      "firmwareAvailable": "Firmware {version} ist für dieses Board verfügbar, auf dem {running} läuft.",
+      "openFirmware": "Seite „Firmware“ öffnen",
+      "pluginStale": "Das Pitrig-Plugin in SimHub hat die Version {installed}; diese Pitrig-Version bringt {bundled} mit.",
+      "pluginMissing": "SimHub hat das Pitrig-Plugin noch nicht.",
+      "updatePlugin": "Plugin aktualisieren",
+      "addPlugin": "Plugin hinzufügen",
+      "simhubOld": "SimHub {version} ist älter als {minimum}, die älteste Version, mit der das Pitrig-Plugin geprüft wurde.",
+      "getSimHub": "SimHub herunterladen",
+      "later": "Später"
+    },
+    "section": {
+      "checking": "Wird geprüft…",
+      "checkNow": "Jetzt prüfen",
+      "boardFirmware": "Board-Firmware",
+      "simhub": "SimHub",
+      "plugin": "Pitrig-Plugin in SimHub",
+      "lastChecked": "Zuletzt geprüft: {time}.",
+      "versions": "Versionen",
+      "justNow": "gerade eben",
+      "pitrig": "Pitrig",
+      "boardNameFirmware": "Firmware für {board}",
+      "connectABoard": "Board verbinden",
+      "upToDate": "Aktuell",
+      "available": "{version} verfügbar",
+      "ready": "{version} bereit",
+      "downloading": "Download {progress} %",
+      "notChecked": "Noch nicht geprüft",
+      "checkFailed": "Prüfung fehlgeschlagen",
+      "ok": "OK",
+      "olderThan": "Älter als {minimum}",
+      "openFirmware": "Firmware öffnen"
+    },
+    "app": {
+      "noWindowsUpdate": "das neueste Release enthält noch kein Windows-Update"
+    },
+    "firmware": {
+      "notInRelease": "Das Release Pitrig {version} enthält keine Datei {name}.",
+      "nothingNewer": "Auf diesem Board läuft bereits die Firmware, die zu dieser Pitrig-Version gehört.",
+      "alreadyDownloading": "Die Firmware wird bereits heruntergeladen.",
+      "downloading": "Firmware wird heruntergeladen… {progress} %",
+      "changesRelease": "Firmware {version}",
+      "changesUnreleased": "Noch nicht veröffentlicht",
+      "schemaNote": "Diese Firmware liest ein neueres Konfigurationsformat. „Board aktualisieren“ legt eine Kopie der Board-Konfiguration ab und spielt sie zurück.",
+      "kind": {
+        "added": "Neu",
+        "changed": "Geändert",
+        "fixed": "Behoben",
+        "removed": "Entfernt"
+      }
+    },
+    "simhub": {
+      "noSimHubFound": "SimHub wurde auf diesem PC nicht gefunden.",
+      "stillRunning": "SimHub läuft noch. Schließen Sie es, auch sein Symbol im Infobereich der Taskleiste, und versuchen Sie es erneut.",
+      "copyFailed": "Das Plugin konnte nicht nach {directory} kopiert werden. Schließen Sie SimHub und kopieren Sie Pitrig.SimHub.dll manuell dorthin.",
+      "copyFailedPlain": "Das Plugin konnte SimHub nicht hinzugefügt werden.",
+      "invalidRequest": "Ungültige Plugin-Anfrage.",
+      "closeToReplace": "SimHub läuft. Jetzt schließen, damit das Pitrig-Plugin ersetzt werden kann? SimHub startet danach wieder.",
+      "pluginInstalled": "Das Pitrig-Plugin in SimHub ist aktuell.",
+      "noBundledPlugin": "Dieser Build des Konfigurators enthält kein SimHub-Plugin."
+    }
+  },
+  "protocol": {
+    "catalogSection": {
+      "telemetryCatalog": "Telemetrie-Katalog",
+      "searchTelemetryFields": "Telemetriefelder durchsuchen",
+      "fuelRpmLap": "fuel, rpm, lap…",
+      "tryAShorterWordThe": "Versuchen Sie ein kürzeres Wort – die Suche umfasst Name, Wire-ID, Einheit, Kategorie und SimHub-Eigenschaft.",
+      "noFieldMatches": "Kein Feld passt",
+      "field": "Feld",
+      "wire": "Wire-ID",
+      "type": "Typ",
+      "unit": "Einheit",
+      "simHubProperty": "SimHub-Eigenschaft",
+      "lengthOfLength2FieldsA": "Felder: {length} von {length2}. Ein Widget verknüpft einen dieser Namen; übertragen wird tatsächlich die Wire-ID.",
+      "value": "Wert",
+      "live": "Live",
+      "games": "Spiele",
+      "anyGame": "alle"
+    },
+    "protocolPage": {
+      "whereTelemetryComesFromHow": "Woher die Telemetrie kommt, wie sie das Board erreicht und wie die Felder heißen.",
+      "telemetrySource": "Telemetriequelle",
+      "whatProducesTheValuesThe": "Was die Werte erzeugt, die das Dashboard zeigt.",
+      "simHub": "SimHub",
+      "inUse": "Aktiv",
+      "aCustomSerialDeviceProfile": "Das Pitrig-Plugin in SimHub findet das Board selbst und sendet ihm eine Zeile pro Feld über die Verbindung, die auch dieser Konfigurator nutzt."
+    },
+    "bridgeSection": {
+      "title": "SimHub-Plugin",
+      "description": "Das Pitrig-Plugin in SimHub versorgt das Board selbstständig. Solange dieser Konfigurator mit einem Board verbunden ist, übergibt ihm das Plugin das Board, und die Telemetrie des Plugins läuft auf dem Weg hier durch. So zeigen das Dashboard, die Leuchten und der Katalog unten sie, sobald sie ankommt.",
+      "summary": "Das Pitrig-Plugin in SimHub sendet Telemetrie an das Board.",
+      "pluginVersion": "Plugin {version}",
+      "pluginMissing": "Kein Plugin",
+      "pluginHint": "Auf diesem PC antwortet kein Pitrig-Plugin. Der Windows-Installer dieses Konfigurators fügt es SimHub hinzu; starten Sie SimHub danach neu und aktivieren Sie die Pitrig-Telemetrie, wenn SimHub danach fragt.",
+      "boardsTitle": "Boards, die das Plugin versorgt",
+      "noBoards": "Derzeit keine.",
+      "portBusy": "{path} wird von einem anderen Programm genutzt, vielleicht von einem „Custom Serial“-Gerät in SimHub. Entfernen Sie dieses Gerät aus SimHub, damit das Plugin das Board versorgen kann.",
+      "receiving": "Empfang läuft",
+      "waiting": "Warten auf das Plugin",
+      "relaying": "Weiterleitung an das Board",
+      "previewOnly": "Kein Board verbunden – nur Vorschau",
+      "suspended": "Angehalten, solange das Board beschäftigt ist",
+      "connection": "Verbindung",
+      "simhubHost": "SimHub-Rechner",
+      "simhubPort": "Plugin-Port",
+      "listenPort": "Empfangsport",
+      "simhubHostHint": "Eine Loopback-Adresse hält alles auf diesem PC. Jede andere Adresse erreicht ein Plugin im lokalen Netzwerk nur für eine Vorschau: Ein Board übergibt nur ein Plugin auf diesem PC.",
+      "apply": "Anwenden",
+      "applying": "Wird angewendet…",
+      "asking": "Anfrage",
+      "sending": "Senden",
+      "measured": "Gemessen",
+      "addedLatency": "Durch die Brücke hinzugefügt",
+      "drainLatency": "Bis zum Board",
+      "lines": "Zeilen",
+      "fields": "Felder",
+      "bytes": "Bytes",
+      "packets": "Pakete",
+      "lostPackets": "Verlorene Pakete",
+      "dropped": "Verworfen",
+      "droppedValue": "{bytes} · Schreibfehler: {errors}",
+      "noSamples": "Noch nichts gemessen.",
+      "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · max. {max} ms",
+      "perSecond": "{value}/s"
+    },
+    "bridgeService": {
+      "theLinkClosed": "Die Telemetrieverbindung wurde geschlossen.",
+      "portTaken": "Port {port} ist bereits belegt. Wählen Sie hier und im Plugin einen anderen.",
+      "invalidRequest": "Ungültige Anfrage an die Telemetriebrücke."
+    },
+    "transportSection": {
+      "transport": "Transport",
+      "theLinkTheBoardTalks": "Wie das Board mit diesem PC verbunden ist – über USB oder die seriellen Pins – und wie schnell.",
+      "createOrOpenAConfiguration": "Erstellen oder öffnen Sie zuerst eine Konfiguration auf der Seite „Setups“ – der Transport gehört zum Protokolldokument des Entwurfs und ist keine Einstellung, die auf dem Board bleibt.",
+      "noConfigurationOpen": "Keine Konfiguration geöffnet",
+      "theLinkTheBoardTalks2": "Wie das Board mit diesem PC verbunden ist – über USB oder die seriellen Pins – und wie schnell. Behalten Sie die Board-Vorgabe, es sei denn, das Board ist anders verdrahtet.",
+      "changingThisCanCutThe": "Eine Änderung kann das Board unerreichbar machen",
+      "aSavedChangeRestartsThe": "Eine gespeicherte Änderung startet das Board neu, und es meldet sich über die neue Verbindung zurück – mit der neuen Geschwindigkeit, falls sie sich geändert hat. Dieses Fenster verbindet sich mit der alten neu und meldet dann, dass das Board nicht zurückgekommen ist.",
+      "notEverySpeedSurvivesEvery": "Nicht jede Geschwindigkeit funktioniert mit jedem Board. Die Grenze setzt ein USB-Seriell-Wandler, nicht die Firmware, und eine Rate, die der Wandler nicht hält, hinterlässt ein Board, das auf nichts mehr antwortet.",
+      "auto": "Auto",
+      "whichLinkCarriesTelemetryAnd": "Welche Verbindung die Telemetrie und die Befehle des Konfigurators überträgt. Die Board-Vorgabe ist das, wofür die Firmware erstellt wurde.",
+      "bitsPerSecondOnThe": "Bits pro Sekunde auf der UART-Verbindung. Die Grenze setzt ein USB-Seriell-Wandler, nicht das Board.",
+      "uARTPins": "UART-Pins",
+      "theFirmwareChecksTheseAgainst": "Die Firmware prüft diese gegen das eigene Pin-Paar des Boards und lehnt ein Dokument ab, das ein anderes nennt. Eine falsche Nummer kostet also einen abgelehnten Speichervorgang statt eines dunklen Boards – die einzige Einstellung hier, die nicht unbemerkt schiefgehen kann.",
+      "tXPin": "TX-Pin",
+      "rXPin": "RX-Pin",
+      "silenceEspLogs": "ESP-Logs stummschalten",
+      "keepsTheFirmwareSOwn": "Hält das eigene Log der Firmware von der Telemetrieverbindung fern, wo es als fehlerhafte Zeilen gelesen würde.",
+      "theBoardSUartPins": "die UART-Pins des Boards, erreicht über einen USB-Seriell-Wandler.",
+      "theChipSOwnUsb": "der eigene USB-Port des Chips, ohne Wandler dazwischen.",
+      "whateverThisBoardWasBuilt": "das, wofür dieses Board gebaut wurde.",
+      "iKnowWhatTheseDo": "Ich weiß, was diese Einstellungen bewirken – Änderungen erlauben",
+      "notPermanentBefore": "Nichts hiervon ist endgültig: ",
+      "notPermanentAfter": " oben im Fenster probiert die Geschwindigkeiten durch, auf denen ein Pitrig-Board antwortet, und ein Board, das gar nicht erreichbar ist, lässt sich weiterhin über USB flashen."
+    }
+  },
+  "templates": {
+    "dashboardListControls": {
+      "showDashboardsFor": "Dashboards anzeigen für",
+      "showOnlyTheDashboardsDrawn": "Nur die Dashboards anzeigen, die für eine bestimmte Displaygröße gezeichnet sind",
+      "orderDashboards": "Dashboards sortieren",
+      "smallestDisplayFirstOrBy": "Kleinstes Display zuerst oder nach Name",
+      "screenSize": "Bildschirmgröße",
+      "allSizesLength": "Alle Größen ({length})"
+    },
+    "dashboardSection": {
+      "dashboards": "Dashboards",
+      "noDashboards": "Keine Dashboards",
+      "saveToTemplates": "Vorlage speichern",
+      "showEverySize": "Alle Größen anzeigen",
+      "starter": "Starter",
+      "use": "Verwenden",
+      "replaceEverythingYouHaveOpen": "Alles Geöffnete durch diese Vorlage ersetzen",
+      "layoutTransfer": "Layout-Übernahme",
+      "dismiss": "Ausblenden",
+      "wholeLayoutsAddTakesScreens": "Komplette Layouts. „Hinzufügen“ übernimmt Bildschirme aus einem davon; „Verwenden“ ersetzt, was Sie geöffnet haben.",
+      "addScreensFromThisTemplate": "Bildschirme aus dieser Vorlage zum geöffneten Dashboard hinzufügen",
+      "openADashboardFirstThere": "Öffnen Sie zuerst ein Dashboard – es gibt nichts, dem Bildschirme hinzugefügt werden könnten",
+      "emptyBefore": "Speichern Sie das Dashboard, an dem Sie arbeiten, mit ",
+      "emptyAfter": " auf der Arbeitsfläche, dann ist es beim nächsten Mal hier.",
+      "replaceEverythingYouHaveOpen2": "Alles Geöffnete durch „{name}“ ersetzen? Alle Bildschirme und Widgets im aktuellen Entwurf werden verworfen.",
+      "thatEntryIsNotA": "Dieser Eintrag ist kein Dashboard.",
+      "nameWouldNotBeAccepted": "„{name}“ würde auf diesem Board nicht angenommen, daher bleibt der Entwurf unverändert. {error}",
+      "failedToApplyTheTemplate": "Die Vorlage konnte nicht angewendet werden.",
+      "nameIsNowTheLocal": "„{name}“ ist jetzt der lokale Entwurf.",
+      "wholeLayoutsScaledToSize": "Komplette Layouts, beim Übernehmen auf {size} skaliert. „Hinzufügen“ übernimmt Bildschirme aus einem davon; „Verwenden“ ersetzt, was Sie geöffnet haben.",
+      "creditBy": "von {name}",
+      "creditOpen": "Seite von {name} im Browser öffnen"
+    },
+    "dashboardThumbnail": {
+      "noPreview": "Keine Vorschau",
+      "reading": "Wird gelesen…"
+    },
+    "insertScreenDialog": {
+      "addAScreen": "Bildschirm hinzufügen",
+      "theLibraryHoldsNoDashboards": "Die Bibliothek enthält noch keine Dashboards.",
+      "allScreens": "Alle Bildschirme",
+      "back": "Zurück",
+      "screensInName": "Bildschirme in „{name}“",
+      "addedAtTheEndNothing": "Wird am Ende hinzugefügt. Was bereits auf diesem Dashboard ist, bleibt unverändert.",
+      "pickTheDashboardToTake": "Wählen Sie das Dashboard, aus dem Sie einen Bildschirm übernehmen.",
+      "addsLength": "fügt {length} hinzu",
+      "lengthWidgets": "Widgets: {length}",
+      "thisDashboardAlreadyHoldsMaximum": "Dieses Dashboard hat bereits {mAXIMUM_SCREENS} Bildschirme, mehr hat ein Board nicht."
+    },
+    "saveToTemplates": {
+      "keepThisDashboardOrThe": "Dieses Dashboard oder das ausgewählte Widget in der Vorlagenbibliothek ablegen",
+      "descriptionOptional": "Beschreibung (optional)",
+      "aNameNeedsAtLeast": "Ein Name braucht mindestens einen Buchstaben oder eine Ziffer.",
+      "theWholeDashboardGoesTo": "Das ganze Dashboard kommt in die Dashboard-Bibliothek – {draft}.",
+      "rPMGauge": "RPM-Anzeige",
+      "raceLayout": "Renn-Layout",
+      "greenBelow6000RedAbove": "Unter 6000 grün, darüber rot",
+      "fuelAndTyresForLong": "Kraftstoff und Reifen für lange Stints",
+      "replaceTheSavedKindId": "Gespeicherte Vorlage „{id}“ ({kind}) ersetzen?",
+      "theTemplateWasNotSaved": "Die Vorlage wurde nicht gespeichert.",
+      "theSelectedWidgetGoesTo": "Das ausgewählte Widget kommt in die Widget-Bibliothek, in der Größe {width} × {height}.",
+      "theSelectedWidgetAndEverything": "Das ausgewählte Widget kommt mit allem, was darin liegt, in die Widget-Bibliothek, in der Größe {width} × {height}."
+    },
+    "templatesPage": {
+      "readingTheLibrary": "Bibliothek wird gelesen…",
+      "deleteTheSavedKindName": "Gespeicherte Vorlage „{name}“ ({kind}) löschen?",
+      "nameDeleted": "„{name}“ gelöscht.",
+      "unreadableFiles": {
+        "$plural": {
+          "one": "Eine Datei im Vorlagenordner konnte nicht gelesen werden.",
+          "other": "{count} Dateien im Vorlagenordner konnten nicht gelesen werden."
+        }
+      }
+    },
+    "widgetSection": {
+      "widgets": "Widgets",
+      "partsOfADashboardKept": "Teile eines Dashboards, zur Wiederverwendung aufbewahrt. Ein Container bringt alles mit, was darin liegt.",
+      "noWidgets": "Keine Widgets",
+      "placeThisOnTheCanvas": "Auf der Arbeitsfläche platzieren",
+      "openADashboardFirstThere": "Öffnen Sie zuerst ein Dashboard – es gibt nichts, worauf es platziert werden könnte",
+      "emptyBefore": "Wählen Sie ein Widget auf der Arbeitsfläche und klicken Sie auf ",
+      "emptyAfter": ". Ein Container speichert seinen gesamten Inhalt mit – so wird ein Drehzahlmesser samt seinen Leuchten zu einem einzigen Eintrag."
+    },
+    "templateService": {
+      "theStarterTemplateIsUnreadable": "Die Starter-Vorlage ist nicht lesbar.",
+      "noStarterTemplateNamedId": "Keine Starter-Vorlage namens „{id}“.",
+      "noTemplateNamedId": "Keine Vorlage namens „{id}“.",
+      "theTemplateIsUnreadable": "Die Vorlage ist nicht lesbar.",
+      "aTemplateNameNeedsAt": "Ein Vorlagenname braucht mindestens einen Buchstaben oder eine Ziffer.",
+      "thatCannotBeSavedAs": "Das kann nicht als Vorlage gespeichert werden.",
+      "theLibraryHoldsAtMost": "Die Bibliothek fasst höchstens {mAXIMUM_USER_TEMPLATES} gespeicherte Vorlagen vom Typ {kind}.",
+      "failedToWriteTheTemplate": "Die Vorlage konnte nicht geschrieben werden.",
+      "aStarterTemplateCannotBe": "Eine Starter-Vorlage kann nicht gelöscht werden.",
+      "failedToDeleteTheTemplate": "Die Vorlage konnte nicht gelöscht werden.",
+      "aTemplateFileMustNot": "Eine Vorlagendatei darf höchstens {maximum} Byte groß sein.",
+      "idIsNotAValid": "„{id}“ ist keine gültige Kennung für eine Vorlage."
+    },
+    "screenGallery": {
+      "previousScreen": "Vorheriger Bildschirm",
+      "nextScreen": "Nächster Bildschirm"
+    },
+    "templateDocuments": {
+      "theTemplateCarriesNoConfiguration": "Die Vorlage enthält keine Konfiguration.",
+      "aTemplateFileHoldsA": "Eine Vorlagendatei enthält ein JSON-Objekt.",
+      "thisFileIsNotDescribed": "Diese Datei ist keine {described}.",
+      "theTemplateDeclaresNoFormat": "Die Vorlage gibt keine Formatversion an.",
+      "theTemplateWasWrittenBy": "Die Vorlage wurde von einer neueren Programmversion geschrieben (Format {version}).",
+      "aTemplateNameIs1": "Ein Vorlagenname hat 1 bis {mAXIMUM_TEMPLATE_NAME} Zeichen.",
+      "aTemplateDescriptionIsAt": "Eine Vorlagenbeschreibung hat höchstens {mAXIMUM_TEMPLATE_DESCRIPTION} Zeichen.",
+      "theWidgetTemplateNamesNo": "Die Widget-Vorlage nennt kein bekanntes Board.",
+      "theTemplateCarriesNoWidget": "Die Vorlage enthält kein Widget.",
+      "thatTemplateIsNotA": "Diese Vorlage ist kein Widget.",
+      "aPitrigDashboardTemplate": "Pitrig-Dashboard-Vorlage",
+      "aPitrigWidgetTemplate": "Pitrig-Widget-Vorlage"
+    },
+    "insertScreen": {
+      "thereIsNoDashboardTo": "Es gibt kein Dashboard, dem ein Bildschirm hinzugefügt werden könnte.",
+      "aDashboardHoldsAtMost": "Ein Dashboard hat höchstens {maximum} Bildschirme.",
+      "thatDashboardHasNoSuch": "Dieses Dashboard hat keinen solchen Bildschirm.",
+      "thatScreenWouldNotBe": "Dieser Bildschirm würde hier nicht angenommen, daher hat sich nichts geändert. {error}"
+    },
+    "variants": {
+      "full": "Komplett",
+      "clean": "Schlicht"
+    },
+    "variantDialog": {
+      "label": "Version wählen",
+      "title": "Welche Version von {name}?",
+      "hint": "Jede Version ist ein vollständiges, eigenständiges Dashboard."
+    },
+    "files": {
+      "share": "{name} mit Bildern und Schriftarten als eine Datei teilen",
+      "open": "Eine geteilte Pitrig-Datei öffnen und zu dieser Bibliothek hinzufügen",
+      "openTitle": "Zur Vorlagenbibliothek hinzufügen",
+      "added": "{name} wurde zur Bibliothek hinzugefügt."
+    }
+  },
+  "app": {
+    "app": {
+      "pitrig": "Pitrig",
+      "nameVersion": "{name} {version}",
+      "loadingApplicationInfo": "Anwendungsinfos werden geladen…",
+      "applicationReady": "Anwendung bereit"
+    },
+    "panelResizer": {
+      "resizeThePropertyPanel": "Größe des Eigenschaftenbereichs ändern",
+      "resizeTheLayerList": "Größe der Ebenenliste ändern"
+    },
+    "workspaceRail": {
+      "workspace": "Arbeitsbereich",
+      "collapse": "Einklappen",
+      "collapseTheWorkspaceRail": "Arbeitsbereichsleiste einklappen",
+      "expandTheWorkspaceRail": "Arbeitsbereichsleiste ausklappen",
+      "expand": "Ausklappen",
+      "labelHint": "{label} – {hint}"
+    },
+    "main": {
+      "rendererRootElementWasNot": "Das Stammelement des Renderers wurde nicht gefunden"
+    }
+  },
+  "dashboard": {
+    "configsPage": {
+      "configs": "Setups",
+      "yourSetupFiles": "Ihre Setup-Dateien.",
+      "restartRequired": "Neustart erforderlich",
+      "modified": "Geändert",
+      "notSavedToAFile": "Noch nicht in einer Datei gespeichert.",
+      "untitledSetup": "Unbenanntes Setup",
+      "nothingOpen": "Nichts geöffnet",
+      "startANewSetupOr": "Beginnen Sie ein neues Setup oder öffnen Sie eine Datei.",
+      "pickABoardFirst": "Wählen Sie zuerst ein Board.",
+      "new": "Neu",
+      "open": "Öffnen…",
+      "save": "Speichern…",
+      "saveTheConfigurationToA": "Konfiguration in einer Datei speichern (Cmd/Ctrl+S)",
+      "thisSetupHasAnError": "Dieses Setup hat einen Fehler: {error}",
+      "documentNearlyFull": "{label}: {percent} % belegt.",
+      "documentTooBig": "{label}: zu groß für das Board ({percent} % seines Platzes). Entfernen Sie etwas, bevor Sie speichern.",
+      "setupForAnotherBoard": "Dieses Setup ist für {draftBoard}, das verbundene Board ist aber {board}. Konvertieren Sie es, um es hier zu nutzen.",
+      "fitToTheNewDisplay": "An das neue Display anpassen",
+      "keepProportionsCentre": "Proportionen beibehalten, zentrieren",
+      "stretchToFillTheDisplay": "Strecken, um das Display zu füllen",
+      "convertDraftToConverttarget": "Für {convertTarget} konvertieren…"
+    },
+    "dashboardWorkspace": {
+      "dashboardPages": "Dashboard-Seiten",
+      "restart": "Neu starten",
+      "canvas": "Arbeitsfläche",
+      "templates": "Vorlagen",
+      "restartTheConnectedBoard": "Verbundenes Board neu starten",
+      "connectABoardToRestart": "Verbinden Sie ein Board, um es neu zu starten"
+    },
+    "layersPanel": {
+      "noWidgetsYet": "Noch keine Widgets.",
+      "hidingAndLockingApplyTo": "Ausblenden und Sperren gelten nur für diese Bearbeitungssitzung; das Board zeichnet jedes Widget.",
+      "bringToFrontCmdCtrl": "In den Vordergrund (Cmd/Ctrl+])",
+      "bringForwardAltCmdCtrl": "Eine Ebene nach vorn (Alt+Cmd/Ctrl+])",
+      "sendBackwardAltCmdCtrl": "Eine Ebene nach hinten (Alt+Cmd/Ctrl+[)",
+      "sendToBackCmdCtrl": "In den Hintergrund (Cmd/Ctrl+[)"
+    },
+    "configurationActions": {
+      "keptTheCurrentDraft": "Der aktuelle Entwurf wurde beibehalten.",
+      "thereIsNoConfigurationTo": "Es gibt keine Konfiguration zum Speichern.",
+      "thereIsNoDraftTo": "Es gibt keinen Entwurf zum Konvertieren.",
+      "theDraftNamesAnUnknown": "Der Entwurf nennt ein unbekanntes Board.",
+      "newBoardConfigurationCreatedLocally": "Neue Konfiguration für {board} lokal erstellt.",
+      "fileNameLoaded": "{fileName} geladen.",
+      "nameOpened": "{name} geöffnet.",
+      "fileNameOpened": "{fileName} geöffnet.",
+      "theConvertedLayoutWouldNot": "Das konvertierte Layout würde nicht angenommen, daher blieb der Entwurf unverändert. {error}",
+      "convertedToTarget": "Für {target} konvertiert.",
+      "discardTheCurrentLocalDraft": "Aktuellen lokalen Entwurf verwerfen und eine neue Konfiguration erstellen?",
+      "discardTheCurrentLocalDraft2": "Eine Datei anstelle des Geöffneten öffnen? Eine Dashboard-Datei ersetzt nur das Dashboard, eine Konfigurationsdatei ersetzt alles.",
+      "discardTheCurrentLocalDraft3": "Aktuellen lokalen Entwurf verwerfen und „{id}“ öffnen?",
+      "discardTheCurrentLocalDraft4": "Aktuellen lokalen Entwurf verwerfen und diese Datei öffnen?",
+      "activeConfigurationReadFromThe": "Aktive Konfiguration vom Board gelesen.",
+      "resetTheSavedConfigurationTo": "Gespeicherte Konfiguration auf die reine Werkskonfiguration des Boards zurücksetzen?",
+      "factoryConfigurationSavedRestartThe": "Gespeicherte Konfiguration gelöscht. Starten Sie das Board neu, um die Werkskonfiguration auszuführen.",
+      "restartTheConnectedPitrigBoard": "Verbundenes Pitrig-Board jetzt neu starten?",
+      "convertTheDraftFromFrom": "Entwurf von {from} für {to} konvertieren? {outcome}"
+    },
+    "boardLabels": {
+      "thisBoardHasNoDisplay": "Dieses Board hat kein Display, daher bleibt das Dashboard zurück und nur seine Peripherie wird übernommen.",
+      "theDisplayIsTheSame": "Das Display hat dieselbe Größe, daher verschiebt sich nichts.",
+      "eachAxisIsScaledOn": "Jede Achse wird einzeln skaliert, sodass das Layout die vollen {width} × {height} füllt. Runde Formen werden oval.",
+      "oneFactorForBothAxes": "Ein Faktor für beide Achsen, zentriert: Das Layout wird {width} × {height} groß, auf einem Display mit {width2} × {height2}.",
+      "boardSize": "{board} · {size}",
+      "boardNodisplay": "{board} · {noDisplay}"
+    },
+    "transfer": {
+      "noDisplay": "Dieses Board hat kein Display.",
+      "sameSize": "Das Board wurde gewechselt; sein Display ist in beiden Fällen {width} × {height}, daher hat sich nichts verschoben.",
+      "stretched": "Um {x} in der Breite und {y} in der Höhe gestreckt, um das Display zu füllen; {sizes}.",
+      "scaled": "Um {scale} skaliert und zentriert; {sizes}.",
+      "sizes": "{fromWidth} × {fromHeight} → {toWidth} × {toHeight}",
+      "imagesResized": {
+        "$plural": {
+          "one": "{count} Bild wird jetzt in einer neuen Größe gezeichnet und muss erneut übertragen werden: {list}.",
+          "other": "{count} Bilder werden jetzt in einer neuen Größe gezeichnet und müssen erneut übertragen werden: {list}."
+        }
+      },
+      "propertiesClamped": {
+        "$plural": {
+          "one": "{count} Eigenschaft passte nicht in den Bereich, den das Gerät annimmt, und wurde begrenzt: {list}.",
+          "other": "{count} Eigenschaften passten nicht in den Bereich, den das Gerät annimmt, und wurden begrenzt: {list}."
+        }
+      },
+      "arcsThinned": {
+        "$plural": {
+          "one": "{count} Bogen hat einen dünneren Ring erhalten, damit die doppelte Dicke noch hineinpasst: {list}.",
+          "other": "{count} Bögen haben dünnere Ringe erhalten, damit die doppelte Dicke noch hineinpasst: {list}."
+        }
+      },
+      "dashboardDropped": "Dieses Board hat kein Display, daher blieb das Dashboard zurück; nur seine Peripherie wurde übernommen.",
+      "pinsMoved": {
+        "$plural": {
+          "one": "{count} LED-Ausgang wurde auf einen Pin verlegt, den dieses Board bietet: {list}. Prüfen Sie ihn anhand der tatsächlichen Verdrahtung des Boards.",
+          "other": "{count} LED-Ausgänge wurden auf Pins verlegt, die dieses Board bietet: {list}. Prüfen Sie sie anhand der tatsächlichen Verdrahtung des Boards."
+        }
+      },
+      "pinsCleared": {
+        "$plural": {
+          "one": "{count} LED-Ausgang hat seinen Pin verloren, weil dieses Board keinen freien bietet: {list}. Das Board lehnt das Dokument ab, bis jeder Ausgang einen Pin nennt.",
+          "other": "{count} LED-Ausgänge haben ihre Pins verloren, weil dieses Board keine freien bietet: {list}. Das Board lehnt das Dokument ab, bis jeder Ausgang einen Pin nennt."
+        }
+      },
+      "widgetsOffDisplay": {
+        "$plural": {
+          "one": "{count} Widget läge ganz außerhalb des Displays ({width} × {height}), und das Board wird das Dokument ablehnen: {list}.",
+          "other": "{count} Widgets lägen ganz außerhalb des Displays ({width} × {height}), und das Board wird das Dokument ablehnen: {list}."
+        }
+      },
+      "imageEntry": "{image} mit {width} × {height}",
+      "clampedEntry": "{field} bei {label} ({from} → {to})",
+      "arcEntry": "{label} ({from} → {to} px)",
+      "movedEntry": "{output} ({from} → {to})",
+      "clearedEntry": "{output} (vorher {from})",
+      "widgetLabel": "„{name}“ auf Bildschirm {number}",
+      "unnamedWidget": "Widget",
+      "unnamedImage": "Bild"
+    }
+  },
+  "configs": {
+    "boardSection": {
+      "boardHoldsThisSetup": "Das Board hat dieses Setup.",
+      "boardHoldsAnotherSetup": "Das Board hat ein anderes Setup.",
+      "loadFromBoard": "Vom Board laden",
+      "loadFromBoardHint": "Das geöffnete Setup durch das Setup auf dem Board ersetzen"
+    },
+    "recentList": {
+      "recent": "Zuletzt verwendet",
+      "reading": "Wird gelesen…",
+      "nothingYet": "Dateien, die Sie öffnen oder speichern, erscheinen hier.",
+      "savedInPitrig": "in Pitrig gespeichert",
+      "fileMovedOrDeleted": "Datei verschoben oder gelöscht",
+      "deleteName": "Gespeicherte Kopie {name} löschen",
+      "forgetFilename": "{fileName} aus dieser Liste entfernen",
+      "deleteTheSavedCopyName": "Gespeicherte Kopie „{name}“ löschen? Das lässt sich nicht rückgängig machen.",
+      "unreadableCopies": {
+        "$plural": {
+          "one": "{count} gespeicherte Kopie konnte nicht gelesen werden.",
+          "other": "{count} gespeicherte Kopien konnten nicht gelesen werden."
+        }
+      }
+    },
+    "librarySection": {
+      "deleteName": "{name} löschen",
+      "screenCount": {
+        "$plural": {
+          "one": "{count} Bildschirm",
+          "other": "{count} Bildschirme"
+        }
+      },
+      "widgetCount": {
+        "$plural": {
+          "one": "{count} Widget",
+          "other": "{count} Widgets"
+        }
+      }
+    },
+    "configurationFileService": {
+      "loadConfiguration": "Konfiguration laden",
+      "saveConfiguration": "Konfiguration speichern",
+      "configurationFileMustNotExceed": "Die Konfigurationsdatei darf höchstens {mAXIMUM_CONFIGURATION_TEXT_SIZE} Byte groß sein.",
+      "failedToLoadTheConfiguration": "Die Konfigurationsdatei konnte nicht geladen werden.",
+      "invalidConfigurationJson": "Ungültiges Konfigurations-JSON.",
+      "failedToSaveTheConfiguration": "Die Konfigurationsdatei konnte nicht gespeichert werden."
+    },
+    "configLibraryService": {
+      "failedToReadTheConfiguration": "Der Konfigurationsordner konnte nicht gelesen werden.",
+      "noSavedConfigurationNamedId": "Keine gespeicherte Konfiguration namens „{id}“.",
+      "theSavedConfigurationIsUnreadable": "Die gespeicherte Konfiguration ist nicht lesbar.",
+      "aConfigurationNameIs1": "Ein Konfigurationsname hat 1 bis {mAXIMUM_CONFIGURATION_NAME} Zeichen.",
+      "theDraftCannotBeSaved": "Die Konfiguration kann nicht als Kopie gespeichert werden.",
+      "theLibraryHoldsAtMost": "„Setups“ fasst höchstens {mAXIMUM_SAVED_CONFIGURATIONS} gespeicherte Kopien. Löschen Sie dort eine.",
+      "failedToWriteTheConfiguration": "Die Konfiguration konnte nicht geschrieben werden.",
+      "failedToDeleteTheConfiguration": "Die Konfiguration konnte nicht gelöscht werden.",
+      "thatFileIsNotIn": "Diese Datei ist nicht mehr in der Liste der zuletzt verwendeten Dateien.",
+      "thatFileIsNotA": "Diese Datei ist kein Konfigurationsdokument.",
+      "thatFileIsNoLonger": "Diese Datei ist nicht mehr dort, wo sie war.",
+      "theFileIsUnreadable": "Die Datei ist nicht lesbar.",
+      "aConfigurationFileMustNot": "Eine Konfigurationsdatei darf höchstens {maximum} Byte groß sein.",
+      "idIsNotAValid": "„{id}“ ist keine gültige Konfigurationskennung."
+    },
+    "dialog": {
+      "loadTitle": "Pitrig-Konfiguration laden",
+      "saveTitle": "Pitrig-Konfiguration speichern",
+      "filter": "Pitrig-Konfiguration",
+      "anyFilter": "Pitrig-Dateien"
+    }
+  },
+  "layers": {
+    "layerList": {
+      "unwrapPuttingTheWidgetsBack": "Auflösen: Die Widgets kommen wieder neben dieses Widget",
+      "typeDoubleClickToRename": "{type} · Doppelklick zum Umbenennen",
+      "unlock": "Entsperren",
+      "lockSoTheCanvasCannot": "Sperren, damit es auf der Arbeitsfläche nicht verschoben werden kann",
+      "showInTheEditor": "Im Editor einblenden",
+      "hideInTheEditorOnly": "Nur im Editor ausblenden",
+      "fold": "Einklappen",
+      "unfold": "Ausklappen"
+    },
+    "slotPages": {
+      "drawThisPageOnThe": "Diese Seite auf der Arbeitsfläche anzeigen",
+      "pageNumberNotInLoop": "Seite {number}*"
+    }
+  },
+  "canvas": {
+    "boardPicker": {
+      "theConnectedBoardDecidesThe": "Das angeschlossene Board bestimmt das Display, solange es eingesteckt ist.",
+      "whichBoardThisDashboardIs": "Für welches Board dieses Dashboard gestaltet wird",
+      "selectABoard": "Board auswählen…",
+      "fit": "Einpassen",
+      "everyWidgetIsPlacedIn": "Jedes Widget wird in den eigenen Pixeln dieses Displays platziert.",
+      "stretch": "Strecken",
+      "lengthNotes": "Hinweise: {length}",
+      "theCanvasDrawsAtValue": "Die Arbeitsfläche zeichnet mit {value} logischen Pixeln.",
+      "movingToAnotherBoardKeeps": "Beim Wechsel auf ein anderes Board bleiben die Proportionen erhalten, und das Layout wird zentriert",
+      "movingToAnotherBoardScales": "Beim Wechsel auf ein anderes Board wird jede Achse einzeln skaliert, um das Display zu füllen"
+    },
+    "canvasStatusBar": {
+      "zoomOut": "Verkleinern",
+      "zoom": "Zoom",
+      "zoomIn": "Vergrößern",
+      "fitTheWholeDisplayCmd": "Ganzes Display einpassen (Cmd/Ctrl+0)",
+      "zoomToTheSelectionShift": "Auf die Auswahl zoomen (Shift+Cmd/Ctrl+0)",
+      "snapToAFixedStep": "In festen Schritten einrasten",
+      "gridStep": "Rasterschritt",
+      "lineUpWithTheEdges": "An Kanten und Mitten benachbarter Widgets ausrichten",
+      "repeatAGapTheRow": "Einen Abstand wiederholen, den die Reihe schon hat, damit Kacheln gleichmäßig verteilt bleiben",
+      "howCloseABoxHas": "Wie nah ein Rahmen kommen muss, bevor er einrastet",
+      "snapReach": "Fangbereich",
+      "resizingAWidgetScalesWhat": "Beim Ändern der Größe eines Widgets wird sein Inhalt mitskaliert – die Widgets eines Containers und mit ihnen jede Schriftgröße, jeder Radius und jede Dicke (Shift+Cmd/Ctrl+C)",
+      "lengthSelected": "Ausgewählt: {length} · ",
+      "xXYYW": "X {x}  Y {y}  B {width}  H {height}",
+      "gridSizePxChosenForThis": "{gridSize} px, passend zum Display dieses Boards",
+      "gridSizePx": "{gridSize} px",
+      "grid": "Raster",
+      "gaps": "Abstände",
+      "reach": "Fangbereich",
+      "scaleContents": "Inhalt skalieren"
+    },
+    "displayPreview": {
+      "displayPreview": "Display-Vorschau",
+      "undoCmdCtrlZ": "Rückgängig (Cmd/Ctrl+Z)",
+      "undo": "Rückgängig",
+      "redoShiftCmdCtrlZ": "Wiederholen (Shift+Cmd/Ctrl+Z)",
+      "redo": "Wiederholen",
+      "duplicateTheSelectionCmdCtrl": "Auswahl duplizieren (Cmd/Ctrl+D)",
+      "duplicate": "Duplizieren",
+      "deleteTheSelectionDelete": "Auswahl löschen (Delete)",
+      "noDashboardOpen": "Kein Dashboard geöffnet",
+      "newDashboard": "Neues Dashboard",
+      "browseTemplates": "Vorlagen durchsuchen",
+      "authoringForTheConnectedBoardid": "Gestaltung für das angeschlossene Board: {boardId}.",
+      "chooseABoardFirst": "Wählen Sie zuerst ein Board"
+    },
+    "previewCanvas": {
+      "dashboardDisplayPreview": "Display-Vorschau des Dashboards"
+    },
+    "previewChrome": {
+      "wrap": "Gruppieren",
+      "wrapTheSelectionInA": "Auswahl in einen Container packen (Cmd/Ctrl+G)",
+      "spaceEvenlyAcross": "Horizontal gleichmäßig verteilen",
+      "spaceEvenlyDown": "Vertikal gleichmäßig verteilen",
+      "lengthSelected": "Ausgewählt: {length}",
+      "alignLeftEdges": "Linke Kanten ausrichten",
+      "alignHorizontalCentres": "Horizontal zentrieren",
+      "alignRightEdges": "Rechte Kanten ausrichten",
+      "alignTopEdges": "Obere Kanten ausrichten",
+      "alignVerticalCentres": "Vertikal zentrieren",
+      "alignBottomEdges": "Untere Kanten ausrichten"
+    },
+    "screenTabs": {
+      "screens": "Bildschirme",
+      "screenName": "Bildschirmname",
+      "nameDoubleClickToRename": "{name} · Doppelklick zum Umbenennen · Ziehen zum Sortieren",
+      "nameDoubleClickToRename2": "{name} · Doppelklick zum Umbenennen",
+      "deleteActivescreenindexAndEverythingOn": "{activeScreenIndex} und alles darauf löschen"
+    },
+    "slotTabs": {
+      "addAPageToThis": "Diesem Slot eine Seite hinzufügen",
+      "inside": "Innerhalb",
+      "leaveEveryContainerEscape": "Alle Container verlassen",
+      "activeScreenIndex": "← {activeScreenIndex}",
+      "workInsideId": "In {id} arbeiten",
+      "pageNumberShownBy": "Seite {number}, eingeblendet durch {binding}",
+      "telemetry": "Telemetrie"
+    },
+    "toolPalette": {
+      "widgetTools": "Widget-Werkzeuge",
+      "select": "Auswählen",
+      "pickMoveAndResizeWidgets": "Widgets auswählen, verschieben und in der Größe ändern",
+      "aReadingDrawnFromTelemetry": "Ein Messwert aus der Telemetrie",
+      "aPlateAndTheContainer": "Eine Fläche – und der Container für andere Widgets",
+      "aFillingBarOverA": "Ein Balken, der sich über einen Wertebereich füllt",
+      "aRingGauge": "Ein Rundinstrument",
+      "lights": "Leuchten",
+      "aStripOfLamps": "Eine Leuchtenreihe",
+      "graph": "Graph",
+      "aTraceOverTime": "Eine Kurve über die Zeit",
+      "anUploadedBitmap": "Eine übertragene Bitmap",
+      "trackMap": "Streckenkarte",
+      "theTrackBeingDrivenWith": "Die gefahrene Strecke mit allen Autos darauf",
+      "slot": "Slot",
+      "anAreaThatSwitchesBetween": "Ein Bereich, der zwischen Seiten wechselt",
+      "tapZone": "Tippbereich",
+      "anInvisibleRectangleThatTakes": "Ein unsichtbares Rechteck, das auf Tippen reagiert",
+      "theDashboardAlreadyHoldsAs": "Das Dashboard enthält bereits so viele Widgets der Art „{toLowerCase}“, wie das Board Platz bietet.",
+      "labelHintDragABox": "{label} – {hint}. Ziehen Sie auf dem Display einen Rahmen auf, oder klicken Sie, um einen zu platzieren."
+    },
+    "menuEntries": {
+      "copy": "Kopieren",
+      "paste": "Einfügen",
+      "unwrapTheContainer": "Container auflösen",
+      "bringToFront": "In den Vordergrund",
+      "bringForward": "Eine Ebene nach vorn",
+      "sendBackward": "Eine Ebene nach hinten",
+      "sendToBack": "In den Hintergrund",
+      "locked": "Gesperrt",
+      "hiddenWhileEditing": "Beim Bearbeiten ausgeblendet",
+      "workInsideIt": "Darin arbeiten",
+      "rename": "Umbenennen…",
+      "add": "Hinzufügen",
+      "insertWidget": "Widget einfügen",
+      "theWidgetLibraryIsEmpty": "Die Widget-Bibliothek ist leer",
+      "insertScreen": "Bildschirm einfügen…",
+      "fromASavedDashboard": "aus einem gespeicherten Dashboard",
+      "selectAllOnThisScreen": "Alles auf diesem Bildschirm auswählen",
+      "snapToGrid": "Am Raster einrasten",
+      "snapToWidgets": "An Widgets einrasten",
+      "snapToEqualGaps": "An gleichen Abständen einrasten",
+      "resizingScalesContents": "Größenänderung skaliert den Inhalt",
+      "widthHeight": "{width} × {height}"
+    },
+    "canvasOverlays": {
+      "selectedWidgetsBounds": "Begrenzung der ausgewählten Widgets",
+      "selectedWidgetBounds": "Begrenzung des ausgewählten Widgets"
+    },
+    "imagePreview": {
+      "noImage": "kein Bild"
+    }
+  },
+  "shortcuts": {
+    "dragToRestackOrOntoTheMiddleOfAContainerToMoveItInside": "Ziehen zum Umsortieren oder auf die Mitte eines Containers zum Hineinschieben",
+    "cmdCtrlD": "Cmd/Ctrl+D",
+    "cmdCtrlC": "Cmd/Ctrl+C",
+    "cmdCtrlV": "Cmd/Ctrl+V",
+    "cmdCtrlG": "Cmd/Ctrl+G",
+    "shiftCmdCtrlG": "Shift+Cmd/Ctrl+G",
+    "cmdCtrl": "Cmd/Ctrl+[",
+    "cmdCtrlForward": "Cmd/Ctrl+]",
+    "doubleClick": "Doppelklick",
+    "del": "Delete",
+    "cmdCtrlA": "Cmd/Ctrl+A"
+  },
+  "ipc": {
+    "registerAssetHandlers": {
+      "familyCouldNotBeDownloaded": "{family} konnte nicht heruntergeladen werden. Prüfen Sie die Internetverbindung oder importieren Sie die Datei.",
+      "invalidFirmwareUploadRequest": "Ungültige Anfrage zur Firmware-Übertragung.",
+      "invalidImageUploadRequest": "Ungültige Anfrage zur Bildübertragung.",
+      "invalidFontLibraryRequest": "Ungültige Anfrage an die Schriftbibliothek."
+    },
+    "registerIpcHandlers": {
+      "invalidSaveRequest": "Ungültige Speicheranfrage.",
+      "invalidSerialConnectionRequest": "Ungültige Anfrage für die serielle Verbindung."
+    },
+    "registerLibraryHandlers": {
+      "invalidConfigurationFileRequest": "Ungültige Anfrage zur Konfigurationsdatei.",
+      "invalidConfigurationLibraryRequest": "Ungültige Anfrage an die Konfigurationsbibliothek.",
+      "invalidTemplateRequest": "Ungültige Vorlagenanfrage.",
+      "invalidDashboardFileRequest": "Ungültige Anfrage zur Dashboard-Datei."
+    },
+    "requestGuards": {
+      "invalidDeviceConfigurationRequest": "Ungültige Anfrage zur Gerätekonfiguration."
+    }
+  },
+  "validation": {
+    "fonts": {
+      "everyDashboardFontMustExplicitly": "Jede Schriftart im Dashboard muss ausdrücklich eine gültige Schriftfamilie und size_px festlegen.",
+      "configurationReferencesMoreThanMaximum": "Die Konfiguration verwendet mehr als {mAXIMUM_FONT_FAMILIES} Schriftfamilien."
+    },
+    "hardware": {
+      "labelIsAMatrixWhose": "{label} ist eine Matrix: Ihre Anordnung ist ihr Raster, keine Liste von Abschnitten.",
+      "labelArrangesArrangedLampsOver": "Leuchten in den Abschnitten von {label}: {arranged}; der LED-Streifen steuert aber {lamps} an.",
+      "ownerIsWiderThanAPanel": "{owner} ist breiter, als ein Panel sein kann: Ein Motiv für eine Matrix ist höchstens {side} breit.",
+      "ownerOnAStripIsOneRow": "{owner} liegt auf einem LED-Streifen und ist daher nur eine Leuchte hoch.",
+      "labelCarriesASpriteWith": "{label} enthält ein Sprite ohne ID.",
+      "labelCarriesTwoSpritesNamed": "{label} enthält zwei Sprites namens {id}.",
+      "ownerNamesNoPaletteColours": "{owner} nennt keine Palettenfarben.",
+      "ownerCarriesLengthPixelDigits": "Pixelziffern in {owner}: {length}; die Geometrie verlangt {expected}.",
+      "ownerCarriesDigitWhichIs": "{owner} enthält {digit}; das ist keine hexadezimale Pixelziffer.",
+      "layerOfLabel": "{layer} von {label}",
+      "theHardwareSectionMustBe": "Der Hardware-Abschnitt muss eine Liste von Peripheriegeräten sein.",
+      "theConfigurationDeclaresLengthDevices": "Geräte in der Konfiguration: {length}; dieses Board steuert höchstens {outputs} an, jedes über einen eigenen Sendekanal.",
+      "labelNamesNoTypeSo": "{label} nennt keinen „type“, daher ist unklar, um welches Peripheriegerät es sich handelt.",
+      "labelIsATypePeripheral": "{label} ist ein Peripheriegerät vom Typ „{type}“, für das diese Firmware keinen Treiber hat.",
+      "twoDevicesAreWiredTo": "Zwei Geräte sind an Pin {pin} angeschlossen.",
+      "labelIsRotatedByRotation": "{label} ist um {rotation_deg}° gedreht; nur 0, 90, 180 und 270 sind Vierteldrehungen.",
+      "labelDrivesLampsLampsOne": "{label} steuert zu viele Leuchten an: {lamps}; ein Gerät steuert höchstens {mAXIMUM_LEDS_PER_OUTPUT} an.",
+      "theConfigurationDrivesTotalLamps": "Die Konfiguration steuert zu viele Leuchten an: {total}; ein Board steuert höchstens {mAXIMUM_LEDS_TOTAL} an.",
+      "spriteId": "Sprite {id}",
+      "paletteColours": "Palettenfarben",
+      "layerId": "Ebene {id}",
+      "deviceId": "Gerät {id}",
+      "labelNamesPinPinBut": "{label} nennt Pin {pin}, aber dieses Board stellt noch keine freien Pins für LEDs bereit.",
+      "labelNamesPinPinThis": "{label} nennt Pin {pin}; dieses Board bietet {join}."
+    },
+    "ledValues": {
+      "labelMustCarryItsWhat": "Bei {label} müssen die {what} als Liste angegeben sein.",
+      "labelCarriesLengthWhatThe": "{what} in {label}: {length}; das Gerät fasst {capacity}.",
+      "labelDrawsASpriteNamed": "{label} zeichnet ein Sprite namens {sprite}, das dieses Gerät nicht enthält.",
+      "labelNamesFrameSpriteFrame": "{label} nennt Frame {sprite_frame}, das Sprite enthält aber nur {frames}.",
+      "labelNamesPanelPixelsWhich": "{label} nennt Panel-Pixel, die nur eine Matrix hat.",
+      "labelCarriesLengthMaskDigits": "Maskenziffern in {label}: {length}; ein Panel mit {width} × {height} braucht {expected}.",
+      "labelCarriesDigitInIts": "Die Maske von {label} enthält {digit}; das ist keine Hexadezimalziffer.",
+      "labelMustCarryItsSource": "Bei {label} müssen die Quellmodifikatoren als Liste angegeben sein.",
+      "labelCarriesASourceModifier": "{label} enthält einen Quellmodifikator, den eine LED-Ebene nicht anwenden kann.",
+      "labelIsATypeLayer": "{label} ist eine Ebene vom Typ „{type}“, die eine Matrix statt eines LED-Streifens braucht.",
+      "labelIsATypeLayer2": "{label} ist eine Ebene vom Typ „{type}“ und liest keine Telemetrie, die Quelle bliebe also ungelesen.",
+      "labelIsATypeLayer3": "{label} ist eine Ebene vom Typ „{type}“ und braucht Telemetrie, die sie abbilden kann.",
+      "labelNeedsAWatchedSource": "{label} braucht eine beobachtete Quelle, wenn Einschaltbedingung oder Farbregeln sie nutzen, und darf sonst keine haben.",
+      "labelSetsKeyToValue": "{label} setzt „{key}“ auf {value}; das Gerät kennt {join}.",
+      "labelCarriesStrayAmongIts": "{what} von {label}: {stray} ist kein gültiger Eintrag.",
+      "labelSetsKeyToSomething": "{label} setzt „{key}“ auf einen Wert, der keine Zahl ist.",
+      "labelIsAGradientWhich": "{label} ist eine Ebene vom Typ „gradient“ und braucht mindestens zwei Farbpunkte.",
+      "labelIsAStepsLayer": "{label} ist eine Ebene vom Typ „steps“ und braucht mindestens eine Stufe.",
+      "labelIsAGaugeWith": "{label} ist eine Ebene vom Typ „gauge“ mit nur einem Farbpunkt; geben Sie keinen oder mindestens zwei an.",
+      "labelIsATextLayer": "{label} ist eine Ebene vom Typ „text“ ohne Text und ohne Quelle zum Darstellen.",
+      "labelSelectsNoPixelsAt": "{label} wählt überhaupt keine Pixel aus.",
+      "colourStops": "Farbpunkte",
+      "colourRules": "Farbregeln",
+      "labelSetsKeyToValueWhole": "{label} setzt „{key}“ auf {value}; das Gerät liest den Wert als ganze Zahl.",
+      "labelHasStepNumberBelow": "Bei {label} liegt Stufe {number} unter der vorherigen; die Schwellenwerte müssen steigen.",
+      "colourRuleOfLabelCompares": "Farbregel {number} von {label} vergleicht mit einem Wert, der keine Zahl ist.",
+      "labelCoversLampsFromTo": "{label} deckt die Leuchten {from} bis {to} ab, das Gerät hat aber nur {lamps}.",
+      "labelListsStripLamps": "{label} listet Leuchten eines LED-Streifens auf, aber eine Ebene auf einem Panel legt mit ihren Pixeln fest, wo sie zeichnet.",
+      "partNumberOfLabel": "Abschnitt {number} von {label}",
+      "labelSetsANegativeSwitchOff": "{label} setzt einen negativen Ausschaltabstand; er kann nur 0 oder mehr betragen.",
+      "colourRuleOfLabel": "Farbregel {number} von {label}",
+      "ownerPaintsNothingGiveIt": "{owner} zeichnet nichts: Legen Sie eine Farbe, einen Hintergrund oder ein Blinken fest."
+    },
+    "ranges": {
+      "ownerSetsKeyToSomething": "{owner} setzt „{key}“ auf einen Wert, der keine Zahl ist.",
+      "ownerSetsKeyToValue": "{owner} setzt „{key}“ auf {value}; das Gerät akzeptiert {range}.",
+      "minimumToMaximum": "{minimum} bis {maximum}",
+      "text0OrWindow": "0 oder {window}",
+      "ruleOfLabel": "Regel {number} von {label}",
+      "pageOfLabel": "Seite {number} von {label}"
+    },
+    "schemaKeys": {
+      "unknownPropertyHereIsNot": "Die unbekannte Eigenschaft „{here}“ gehört nicht zum Konfigurationsschema.",
+      "pathMustBeAnArray": "„{path}“ muss ein Array von Widgets sein.",
+      "hereMustBeAnObject": "„{here}“ muss ein Objekt sein.",
+      "hereTypeMustBeOne": "„{here}.type“ muss einer dieser Werte sein: {join}.",
+      "hereIsBytesBytesThe": "„{here}“ ist {bytes} Byte groß; das Gerät speichert höchstens {capacity}."
+    },
+    "structure": {
+      "dashboardScreensMustBeAn": "„dashboard.screens“ muss ein Array von Bildschirmen sein.",
+      "aDashboardCarriesAtMost": "Bildschirme in diesem Dashboard: {length}; ein Dashboard enthält höchstens {mAXIMUM_SCREENS}.",
+      "thisBoardHasNoDisplay": "Dieses Board hat kein Display, daher kann das Dashboard keine Bildschirme enthalten.",
+      "whereHoldsLengthWidgetsThe": "{where} enthält zu viele Widgets: {length}; das Gerät fasst {cap}.",
+      "labelIsASlotInside": "{label} ist ein Slot in einem Container; ein Slot liegt direkt auf einem Bildschirm.",
+      "thisDashboardUsesCountType": "Widgets vom Typ „{type}“ in diesem Dashboard: {count}; das Gerät speichert {cap}.",
+      "thisDashboardHasActionsTap": "Tippziele in diesem Dashboard: {actions}; das Gerät verknüpft höchstens {mAXIMUM_ACTIONS}.",
+      "thisDashboardHasLaptimersSources": "Quellen mit Rundentimer in diesem Dashboard: {lapTimers}; das Gerät betreibt nur einen.",
+      "aContainer": "Ein Container",
+      "containersAreNestedDepthDeep": "Container sind {depth}-fach verschachtelt; das Gerät erlaubt höchstens {maximum}-fach.",
+      "widgetIdSitsEntirelyOff": "Widget „{id}“ liegt vollständig außerhalb des Displays.",
+      "twoWidgetsShareTheId": "Zwei Widgets haben dieselbe ID {id}; in einem Dashboard darf jede ID nur einmal vorkommen.",
+      "twoScreensShareTheId": "Zwei Bildschirme haben dieselbe ID {id}; ein Tippziel nennt einen Bildschirm über seine ID."
+    },
+    "transforms": {
+      "whatOfLabelIsA": "{what} von {label} ist eine Zeitumwandlung ohne Format; das Gerät braucht eines dieser Formate: „duration_ms“, „compact_duration_ms“, „clock_ms“, „compact_clock_ms“, „split_ms“, „signed_duration_ms“ oder „signed_digits_ms“.",
+      "whatOfLabelTimesBinding": "{what} von {label} formatiert „{binding}“ als Zeit, das Gerät führt das Feld aber als {type}; {_ms} ist {counted} ganze Zahl von Millisekunden.",
+      "whatOfLabelPutsA": "{what} von {label} wendet eine Zahlenumwandlung auf „{binding}“ an; das Feld ist wahr oder falsch und hat nichts zu skalieren.",
+      "whatOfLabelAsksFor": "{what} von {label} verlangt zu viele Kommastellen: {decimals}; das Gerät schreibt höchstens {mAXIMUM_TRANSFORM_DECIMALS}.",
+      "whatOfLabelScalesBinding": "{what} von {label} skaliert „{binding}“ mit einem Faktor, der keine endliche Zahl ist.",
+      "aSigned": "eine vorzeichenbehaftete",
+      "anUnsigned": "eine vorzeichenlose"
+    },
+    "transport": {
+      "telemetryTransportIdIsId": "„telemetry_transport.id“ ist {id}; das Gerät kennt {join}.",
+      "thisBoardHasNoNative": "Dieses Board hat keinen nativen USB-Port; die Telemetrie muss über seinen UART laufen.",
+      "thisBoardHasNoUart": "Dieses Board hat keinen UART für Telemetrie; es kommuniziert über seinen nativen USB-Port.",
+      "theUartRunsAtBaudrate": "Der UART läuft mit {baudRate} Bit pro Sekunde; das Gerät akzeptiert {mINIMUM_BAUD_RATE} bis {mAXIMUM_BAUD_RATE}."
+    },
+    "widgetGeometry": {
+      "labelPadsFurtherThanThe": "Der Innenabstand von {label} ist größer als die Breite des Displays.",
+      "labelPadsFurtherThanThe2": "Der Innenabstand von {label} ist größer als die Höhe des Displays.",
+      "labelHasNoSizeThe": "{label} hat keine Größe; das Gerät braucht eine Breite und eine Höhe über null.",
+      "labelSpendsClaimedPixelsOn": "Kontur und Einzug von {label} belegen {claimed} Pixel, für die der Rahmen mit {width}×{height} keinen Platz hat.",
+      "labelPadsPaddedPixelsOn": "Der Innenabstand von {label} belegt samt Kontur {padded} Pixel des Rahmens mit {width}×{height}, sodass nichts zum Zeichnen bleibt.",
+      "labelIsThicknessPixelsThick": "{label} ist {thickness} Pixel dick und passt damit nicht zweimal quer in den Rahmen mit {width}×{height}. Legen Sie einen eigenen Radius fest, oder vergrößern Sie den Rahmen.",
+      "labelIsThicknessPixelsThick2": "{label} ist {thickness} Pixel dick – mehr, als ein Radius von {radius} px tragen kann.",
+      "labelIsThicknessPixelsThick3": "{label} ist {thickness} Pixel dick und passt damit nicht zweimal quer in den Rahmen mit {width}×{height}. Legen Sie eine eigene Länge fest, oder vergrößern Sie den Rahmen.",
+      "labelIsThicknessPixelsThick4": "{label} ist {thickness} Pixel dick – mehr, als eine Länge von {radius} px tragen kann.",
+      "labelPaintsItsGradientFrom": "{label} zeichnet den Verlauf aus einer Bitmap in der Größe des Rings, und ein Ring mit {side} px Durchmesser ist breiter als das Display. Verkleinern Sie den Radius, oder verzichten Sie auf den Verlauf."
+    },
+    "widgetRules": {
+      "labelIsASlotWith": "{label} ist ein Slot mit eigenem Aussehen; ein Slot zeichnet nichts, legen Sie also eine Form dahinter.",
+      "labelIsASlotAnd": "{label} ist ein Slot und navigiert zusätzlich; bei einem Slot bedeutet Tippen bereits „Nächste Seite“.",
+      "labelIsASlotWith2": "{label} ist ein Slot ohne Seiten.",
+      "labelHasLengthPagesThe": "{label} hat zu viele Seiten: {length}; das Gerät fasst {mAXIMUM_SLOT_PAGES}.",
+      "labelHasNoPageIn": "{label} hat keine Seite im Umlauf, daher würde nach einem Ereignis nichts wieder eine Seite einblenden.",
+      "whereStaysUpForDuration": "{where} bleibt {duration} ms eingeblendet; das Gerät erlaubt höchstens {mAXIMUM_HOLD_MS}.",
+      "whereHasNoTriggerSo": "{where} hat keinen Auslöser, daher würden Telemetrie, Regeln und Dauer nie gelesen.",
+      "whereHasATriggerBut": "{where} hat einen Auslöser, beobachtet aber keine Telemetrie.",
+      "whereAppearsOnAChange": "{where} erscheint bei einer Wertänderung, aber ohne Anzeigedauer; legen Sie eine Dauer fest.",
+      "whereAppearsOnAChange2": "{where} erscheint bei einer Wertänderung, daher würden die Vergleichsregeln nie gelesen.",
+      "whereAppearsOnAComparison": "{where} erscheint bei einem Vergleich, hat aber keine Regel zum Vergleichen.",
+      "ownerNavigatesToAScreen": "{owner} navigiert zu einem Bildschirm, nennt aber keinen.",
+      "ownerNavigatesToScreenScreen": "{owner} navigiert zu Bildschirm „{screen}“, den dieses Dashboard nicht hat.",
+      "ownerNamesAScreenFor": "{owner} nennt einen Bildschirm für „{type}“, obwohl diese Aktion relativ navigiert; entfernen Sie den Bildschirm.",
+      "sourceOfLabelHasAModifiers": "Bei Quelle {number} von {label} ist „modifiers“ kein Array.",
+      "sourceOfLabelHasLengthModifiers": "Quelle {number} von {label} hat zu viele Modifikatoren: {length}; das Gerät fasst {maximum}.",
+      "sourceOfLabelUsesTheLap": "Quelle {number} von {label} nutzt den Rundentimer {lapTimers}-mal; mehr als einmal bewirkt nichts.",
+      "sourceOfLabelUsesTheLap2": "Quelle {number} von {label} nutzt den Rundentimer für „{binding}“; er ist aber nur als Ersatz für „{lapTimer}“ gedacht.",
+      "whereDismissesForATime": "{where} braucht dismiss_ms bei zeitgesteuertem Ausblenden und sonst kein dismiss_ms."
+    },
+    "widgetValues": {
+      "labelSetsAMiddleGradient": "{label} setzt eine mittlere Verlaufsfarbe ohne Endfarbe; schalten Sie zuerst den Verlauf ein.",
+      "whatOfLabelRunsMinimum": "{what} von {label} reicht von {minimum} bis {maximum}; das Gerät braucht ein Maximum über dem Minimum.",
+      "labelHasNoSourceSo": "{label} hat keine Quelle und würde daher nichts anzeigen.",
+      "labelComposesLengthSourcesThe": "{label} setzt zu viele Quellen zusammen: {length}; das Gerät setzt höchstens {mAXIMUM_TEXT_SOURCES} zusammen.",
+      "labelNamesTheImageImage": "{label} nennt das Bild „{image}“, aber das ist keine Bildkennung.",
+      "theCaptionOfLabelReads": "Die Beschriftung von {label} liest Telemetrie, hat aber keinen eigenen Text als Ersatz.",
+      "labelHasLengthStylingRules": "{label} hat zu viele Stilregeln: {length}; das Gerät fasst {mAXIMUM_WIDGET_CONDITIONS}.",
+      "labelHasAColourRamp": "{label} hat eine Farbskala mit nur einem Punkt; eine Farbskala überblendet zwischen zwei Punkten.",
+      "labelHasAColourRamp2": "Die Farbskala von {label} hat zu viele Punkte: {length}; das Gerät fasst {mAXIMUM_COLOR_STOPS}.",
+      "labelHasNoSegmentsSo": "{label} hat keine Segmente, daher würde nichts leuchten.",
+      "labelHasLengthSegmentsThe": "{label} hat zu viele Segmente: {length}; das Gerät fasst {mAXIMUM_INDICATOR_SEGMENTS}.",
+      "whatOfLabelHasNo": "{what} von {label} hat kein Telemetriefeld.",
+      "whatOfLabelReadsName": "{what} von {label} liest „{name}“, aber das ist kein Telemetriefeld.",
+      "theSource": "Die Quelle",
+      "theValueWindow": "Der Wertebereich",
+      "theSpriteFrameSource": "Die Frame-Quelle",
+      "theCaptionSource": "Die Quelle der Beschriftung",
+      "theWatchedSource": "Die beobachtete Quelle",
+      "labelHasAColourRampWhose": "In der Farbskala von {label} liegt Punkt {number} nicht über dem vorherigen.",
+      "ruleOfLabelComparesAgainst": "Regel {number} von {label} vergleicht mit einem Wert, der keine Zahl ist.",
+      "theTransformOnSourceNumber": "Die Umwandlung an Quelle {number}",
+      "labelDrawsLengthSourcesThe": "{label} zeichnet zu viele Quellen: {length}; das Gerät zeichnet höchstens {maximum}.",
+      "theWindowOfTraceNumber": "Der Wertebereich der Kurve {number}",
+      "labelHasSegmentNumberBelow": "Bei {label} liegt Segment {number} unter dem vorherigen; die Schwellenwerte müssen steigen.",
+      "labelHasSegmentNumberOutside": "Bei {label} liegt Segment {number} außerhalb von 0 bis 1; ein Schwellenwert ist ein Anteil des Bereichs, kein Rohwert."
+    },
+    "configuration": {
+      "theConfigurationCouldNotBe": "Die Konfiguration konnte nicht gelesen werden{detail}.",
+      "configurationMustBeAJson": "Die Konfiguration muss ein JSON-Objekt sein.",
+      "configurationMustTargetASupported": "Die Konfiguration muss für ein unterstütztes Board bestimmt sein."
+    },
+    "controls": {
+      "thePcButtons": "Die PC-Tastenbelegung",
+      "theDashboardSControls": "Die Steuerung des Dashboards",
+      "actionNumber": "Aktion {number}",
+      "screenRuleNumber": "Bildschirmregel {number}",
+      "ownerShowsAScreenThe": "{owner} zeigt Bildschirm „{screen}“, den das Dashboard nicht hat.",
+      "ownerNamesAScreenIt": "{owner} ({action}) nennt einen Bildschirm, den diese Aktion nicht verwendet.",
+      "ownerNamesASlotIt": "{owner} ({action}) nennt einen Slot, den diese Aktion nicht verwendet.",
+      "ownerWorksOnASlot": "{owner} wirkt auf Slot „{slot}“, den das Dashboard nicht hat.",
+      "ownerShowsPageOfA": "{owner} zeigt Seite {page}, Slot „{slot}“ hat aber nur {pages}.",
+      "ownerWatchesALapTimer": "{owner} beobachtet einen Rundentimer, was eine Bildschirmregel nicht kann.",
+      "ownerHasNoComparison": "{owner} hat keinen Vergleich zum Beobachten.",
+      "theSwitchTurnsSlotSlot": "Der Schalter blättert durch Slot „{slot}“, den das Dashboard nicht hat.",
+      "theHomeScreenScreenIs": "Der Startbildschirm „{screen}“ ist nicht im Dashboard."
+    }
+  },
+  "misc": {
+    "workspaceRail": {
+      "drawTheDashboardAndThe": "Das Dashboard gestalten, samt den Schriftarten, Bildern und Vorlagen, aus denen es besteht",
+      "ledsAndMatricesWiredTo": "LEDs und Matrizen, die am Board angeschlossen sind",
+      "whatYourWheelAndButtons": "Was Ihr Lenkrad und Ihre Button-Box am Board tun",
+      "telemetryLinkAndSimhub": "Telemetrie-Verbindung und SimHub",
+      "installAFirmwareImageOver": "Ein Firmware-Image über die serielle Verbindung installieren",
+      "whatTheConnectedBoardIs": "Welches Board verbunden ist"
+    },
+    "valueTransform": {
+      "rpmThousands": "rpm in Tausend"
+    }
+  },
+  "assets": {
+    "chooseFile": {
+      "fontTitle": "Schriftschnitt wählen",
+      "fontFilter": "Schriftarten"
+    }
+  },
+  "controls": {
+    "document": {
+      "buttonNumber": "Taste {number}"
+    },
+    "actions": {
+      "next_screen": "Nächster Bildschirm",
+      "previous_screen": "Vorheriger Bildschirm",
+      "show_screen": "Bildschirm zeigen",
+      "hold_screen": "Bildschirm beim Halten",
+      "home_screen": "Startbildschirm",
+      "next_page": "Nächste Seite",
+      "previous_page": "Vorherige Seite",
+      "show_page": "Seite zeigen",
+      "hold_page": "Seite beim Halten",
+      "dismiss_page": "Eingeblendete Seite schließen",
+      "display_brighter": "Display heller",
+      "display_dimmer": "Display dunkler",
+      "leds_brighter": "LEDs heller",
+      "leds_dimmer": "LEDs dunkler",
+      "leds_toggle": "LEDs ein/aus"
+    },
+    "inputParts": {
+      "assign": "Zuweisen",
+      "pressAButton": "Taste drücken…",
+      "removeInput": "{input} entfernen"
+    },
+    "buttonList": {
+      "noButtonsYet": "Noch keine Tasten. Klicken Sie auf „Taste hinzufügen“ und drücken Sie dann die Taste am Lenkrad oder an der Button-Box.",
+      "addButton": "Taste hinzufügen",
+      "allButtonsUsed": "Alle {count} Tasten sind belegt.",
+      "startSimhubToAssign": "Starten Sie SimHub mit dem Pitrig-Plugin, um Tasten zuzuweisen.",
+      "fourInputsAtMost": "Eine Taste nimmt höchstens {count} Eingaben auf.",
+      "pressAssignThenTheButton": "Klicken Sie auf „Zuweisen“ und drücken Sie dann die Taste am Lenkrad, an der Button-Box, am Gamepad oder auf der Tastatur.",
+      "notAssignedYet": "Noch nicht zugewiesen",
+      "chooseWhatItDoes": "Funktion wählen…",
+      "alsoDoSomethingElse": "+ Zusätzlich etwas anderes tun",
+      "removeName": "{name} entfernen"
+    },
+    "switchSection": {
+      "addPosition": "Position hinzufügen",
+      "removePositionNumber": "Position {number} entfernen",
+      "turnTheSwitchToThe": "Klicken Sie auf „Position hinzufügen“ und drehen Sie dann den Schalter auf die nächste Position.",
+      "noPositionsYet": "Noch keine Positionen. Klicken Sie auf „Position hinzufügen“ und drehen Sie den Schalter, jeweils um eine Position.",
+      "turnsThePagesOf": "Blättert die Seiten von",
+      "noSlot": "Kein Slot",
+      "morePositionsThanPages": "Positionen des Schalters: {positions}, Seiten des Slots: {pages}. Die zusätzlichen Positionen tun nichts."
+    },
+    "actionLine": {
+      "action": "Aktion",
+      "screen": "Bildschirm",
+      "slot": "Slot",
+      "page": "Seite",
+      "pageNumber": "Seite {number}",
+      "wrap": "Am Ende von vorn",
+      "repeatWhileHeld": "Beim Halten wiederholen",
+      "removeAction": "{action} entfernen"
+    },
+    "controlsPage": {
+      "controls": "Steuerung",
+      "whatTheButtonsOnYour": "Was die Tasten an Lenkrad, Button-Box und Tastatur auf dem Board bewirken.",
+      "buttons": "Tasten",
+      "pressAddButtonThen": "Klicken Sie auf „Taste hinzufügen“, drücken Sie die Taste am Lenkrad und wählen Sie dann ihre Funktion.",
+      "rotarySwitch": "Drehschalter",
+      "eachPositionShowsOne": "Jede Position zeigt eine Seite eines Slots.",
+      "alsoInSimhub": "Sie können PitrigPlugin.Button1 bis Button16 auch in SimHub unter „Controls and events“ zuweisen.",
+      "startANewSetupOn": "Beginnen Sie ein neues Setup oder öffnen Sie eine Datei auf der Seite „Setups“.",
+      "startSimhubWithThePlugin": "SimHub antwortet nicht. Starten Sie SimHub mit dem Pitrig-Plugin, um Ihre Tasten zu lesen.",
+      "pressTheButtonToAssign": "Drücken Sie die Taste, die Sie zuweisen möchten, oder Esc zum Abbrechen.",
+      "pressAnyButton": "Drücken Sie eine beliebige Taste, um sie hier zu sehen.",
+      "lastInput": "Letzte Eingabe: {input}, {state}",
+      "down": "gedrückt",
+      "up": "losgelassen"
+    },
+    "hints": {
+      "switchSlot": "Der Slot, durch dessen Seiten der Schalter blättert: Position 1 zeigt seine erste Seite."
+    }
+  },
+  "telemetry": {
+    "gameMarks": {
+      "sentBy": "Gesendet von {games}; die übrigen behalten den Platzhalter",
+      "noneOfTheGames": "ACC, AC, iRacing und LMU senden dieses Feld nicht"
+    }
+  },
+  "usage": {
+    "section": {
+      "title": "Anonyme Nutzungsstatistik",
+      "description": "Hilft bei der Entscheidung, was als Nächstes entwickelt wird. Der Konfigurator und das Pitrig-Plugin in SimHub senden eine zufällige Installationsnummer, ob Pitrig auf diesem Computer schon genutzt wurde, ihre Versionen, das System, das Board-Modell und die Firmware, die Spiele, die in SimHub laufen, und wann ein Speichervorgang endet oder die App abstürzt. Es werden keine Namen, Dateien, Dashboards oder Adressen gesendet. Dieser Schalter gilt auch für das SimHub-Plugin auf diesem Computer.",
+      "enabled": "Ein",
+      "disabled": "Aus",
+      "developmentBuild": "Entwicklungs-Build: keine Update-Prüfungen und keine Statistik.",
+      "noNamesFilesOrDashboards": "Keine Namen, Dateien oder Dashboards.",
+      "whatIsSent": "Was gesendet wird"
+    }
+  },
+  "language": {
+    "section": {
+      "title": "Sprache",
+      "description": "Die Sprache des Konfigurators.",
+      "system": "System ({language})",
+      "machineTranslated": "Diese Übersetzung wurde mit Hilfe von KI erstellt. Wenn Sie einen Fehler sehen, schreiben Sie uns: Die Kontaktdaten stehen unten.",
+      "restartToApply": "Die neue Sprache gilt nach einem Neustart von Pitrig.",
+      "restartNow": "Jetzt neu starten",
+      "restartClosesDraft": "Ein Neustart schließt den aktuellen Entwurf. Änderungen, die nicht auf dem Board oder in einer Datei sind, gehen verloren. Jetzt neu starten?"
+    }
+  },
+  "contact": {
+    "section": {
+      "title": "Kontakt",
+      "description": "Eine Frage, ein Board, das nicht startet, oder eine Idee – Ihre Nachricht geht direkt an den Entwickler. Fügen Sie bei einem Problem die Details für den Support in Ihre Nachricht ein.",
+      "form": "Kontaktformular",
+      "copyEmail": "E-Mail-Adresse kopieren",
+      "copied": "Kopiert"
+    }
+  },
+  "share": {
+    "button": {
+      "label": "Teilen…",
+      "title": "Dieses Dashboard mit seinen Bildern und Schriftarten als eine Datei speichern, die sich auf einem anderen PC unverändert öffnet"
+    },
+    "dialog": {
+      "saveTitle": "Dashboard teilen",
+      "saveWidgetTitle": "Widget teilen",
+      "saveButton": "Speichern",
+      "saveFile": "Datei speichern…",
+      "saving": "Wird gespeichert…",
+      "filter": "Pitrig-Dashboard",
+      "defaultName": "Mein Dashboard",
+      "intro": "Eine Datei mit dem Dashboard, seinen Bildern und den Schriftarten, die ein anderer PC vielleicht nicht hat. Beim Öffnen ersetzt sie dort das Dashboard; LED- und Verbindungseinstellungen bleiben, wie sie sind.",
+      "saved": "{fileName} gespeichert, {size}.",
+      "savedWithout": "Nicht enthalten, weil dieser PC sie nicht hat: {names}."
+    },
+    "summary": {
+      "images": "Bilder in der Datei: {count}.",
+      "fonts": "Schriftarten: {embedded} in der Datei, {google} auf dem anderen PC von Google Fonts heruntergeladen, {builtin} in Pitrig integriert.",
+      "size": "Etwa {size}.",
+      "missingImages": "Nicht auf diesem PC und daher nicht in der Datei: {images}. Sie erscheinen auf dem anderen PC als benannte Rahmen.",
+      "missingFonts": "Nicht in der Schriftbibliothek dieses PCs und daher nicht in der Datei: {fonts}."
+    },
+    "file": {
+      "damaged": "Diese Dashboard-Datei ist beschädigt oder unvollständig.",
+      "newer": "Diese Dashboard-Datei wurde mit einer neueren Pitrig-Version erstellt. Aktualisieren Sie Pitrig, um sie zu öffnen.",
+      "newerVersion": "Diese Dashboard-Datei wurde mit Pitrig {version} erstellt. Aktualisieren Sie Pitrig, um sie zu öffnen.",
+      "tooLarge": "Die Dashboard-Datei wäre größer als {limit} MB.",
+      "isWidget": "Diese Datei enthält ein Widget. Fügen Sie es auf der Seite „Vorlagen“ der Widget-Bibliothek hinzu.",
+      "isDashboard": "Diese Datei enthält ein ganzes Dashboard, kein Widget. Fügen Sie es der Dashboard-Bibliothek hinzu."
+    },
+    "errors": {
+      "name": "Ein Dashboard-Name hat 1 bis {maximum} Zeichen.",
+      "description": "Eine Beschreibung hat höchstens {maximum} Zeichen.",
+      "notSaved": "Die Dashboard-Datei wurde nicht gespeichert."
+    },
+    "open": {
+      "opened": "{name} geöffnet.",
+      "added": "Diesem PC hinzugefügt: {names}.",
+      "renamed": "Umbenannt, damit die eigenen Kopien dieses PCs erhalten bleiben: {names}.",
+      "imagesMissing": "Bilder, die weder in der Datei noch auf diesem PC sind: {images}.",
+      "fontsMissing": "Schriftarten nicht gefunden: {fonts}. Stellen Sie für Google Fonts eine Internetverbindung her, oder fügen Sie sie auf der Seite „Schriftarten“ hinzu.",
+      "scaled": "Die Datei wurde für eine andere Displaygröße erstellt und deshalb skaliert; Bilder behalten ihre Größe.",
+      "next": "„Auf Board speichern“ installiert alles, was das Dashboard braucht."
+    }
+  },
+  "simhub": {
+    "tabs": {
+      "status": "Status",
+      "settings": "Einstellungen",
+      "buttons": "Tasten",
+      "about": "Über"
+    },
+    "parts": {
+      "getConfigurator": "Konfigurator herunterladen",
+      "openConfigurator": "Pitrig-Konfigurator öffnen"
+    },
+    "status": {
+      "telemetry": "TELEMETRIE",
+      "boards": "BOARDS",
+      "configurator": "KONFIGURATOR",
+      "currentCar": "AKTUELLES FAHRZEUG",
+      "sendTelemetry": "Telemetrie an Boards senden",
+      "switchOffHint": "Schalten Sie die Option aus, um die Ports der Boards anderen Programmen zu überlassen.",
+      "notListeningFor": "Empfang für den Konfigurator nicht aktiv: {error}",
+      "leavesPortsAlone": "Das Plugin lässt alle Ports in Ruhe, bis Sie die Option einschalten.",
+      "shiftSource": "Schaltpunkte stammen aus: {source}.",
+      "switchedOff": "Ausgeschaltet",
+      "inConfigurator": "Im Pitrig-Konfigurator, der diese Telemetrie weitergibt.",
+      "portBusy": "Von einem anderen Programm belegt, vielleicht von einem „Custom Serial“-Gerät in SimHub. Entfernen Sie dieses Gerät.",
+      "noBoard": "Kein Pitrig-Board gefunden",
+      "noBoardHint": "Verbinden Sie eines per USB. Ein Guition ESP32-4848S040 wird gefunden, nachdem sich der Konfigurator einmal mit ihm verbunden hat.",
+      "streaming": "Verbunden · Firmware {firmware} · Werte: {values} · {speed} kB/s",
+      "safeMode": "Im abgesicherten Modus. Öffnen Sie den Konfigurator, um das Board zu reparieren.",
+      "connecting": "Wird verbunden…",
+      "notListening": "Kein Empfang",
+      "cannotReach": "Der Konfigurator kann das Plugin nicht erreichen.",
+      "notConnected": "Nicht verbunden",
+      "openToChange": "Öffnen Sie ihn, um zu ändern, was ein Board zeigt. Solange er läuft, übernimmt er das Board.",
+      "connected": "Verbunden",
+      "nothingToSend": "Noch nichts zu senden",
+      "nothingToSendTo": "Noch nichts an {host} zu senden",
+      "sending": "Werte werden gesendet: {count}",
+      "sendingTo": "Werte werden an {host} gesendet: {count}"
+    },
+    "shifts": {
+      "noGame": "Kein Spiel",
+      "iracingGear": "iRacing, dieser Gang",
+      "iracingCar": "iRacing, dieses Fahrzeug",
+      "raceroomUpshift": "RaceRoom-Hochschaltpunkt",
+      "simhubCarSettings": "SimHub-Fahrzeugeinstellungen",
+      "maximumRpm": "Max. RPM",
+      "noShiftData": "Keine Schaltdaten",
+      "f1RevLights": "F1-Drehzahlleuchten"
+    },
+    "buttons": {
+      "buttons": "TASTEN",
+      "switch": "SCHALTER",
+      "lastPress": "LETZTER TASTENDRUCK",
+      "wiring": "Tasten werden auf der Seite „Steuerung“ des Pitrig-Konfigurators zugewiesen oder in SimHub unter „Controls and events“ als PitrigPlugin.Button1 bis Button16 und SwitchPosition1 bis SwitchPosition12.",
+      "notWired": "Noch keine Tasten zugewiesen.",
+      "position": "Position {position}",
+      "noPosition": "Noch keine Position.",
+      "nothingPressed": "Noch nichts gedrückt. Drücken Sie eine Taste am Lenkrad, an einer Button-Box oder auf der Tastatur.",
+      "button": "Taste {number}",
+      "switchPosition": "Schalterposition {position}",
+      "notWiredToButton": "keiner Taste zugewiesen"
+    },
+    "settings": {
+      "fuel": "KRAFTSTOFF",
+      "averages": "DURCHSCHNITTSWERTE",
+      "advanced": "ERWEITERT",
+      "fuelMargin": "Kraftstoffreserve, Liter oder Gallonen",
+      "averageLaps": "Durchschnitt für Reifen und Bremsen, Runden",
+      "fuelHint": "Die Kraftstoffreserve wird zur nachzutankenden Menge addiert, in der Kraftstoffeinheit, die SimHub anzeigt; ein negativer Wert zieht Kraftstoff ab.",
+      "averagesHint": "Die Durchschnittswerte erfassen außerhalb der Boxengasse alle drei Sekunden einen Messwert und gelten bis zum Neustart von SimHub.",
+      "listenPort": "Empfangsport",
+      "listenPortHint": "Der Konfigurator sendet seine Anfragen an diesen Port; sein Plugin-Port muss übereinstimmen.",
+      "portRange": "Der Port muss eine Zahl zwischen {minimum} und {maximum} sein.",
+      "thisMachine": "Dieser Rechner: {addresses}"
+    },
+    "about": {
+      "title": "Pitrig-Telemetrie für SimHub",
+      "version": "Version {version}",
+      "intro": "Pitrig findet seine Boards selbst und sendet jedem die Telemetrie, die sein Dashboard nutzt. Solange der Pitrig-Konfigurator mit einem Board verbunden ist, übernimmt er das Board und gibt diese Telemetrie weiter; gibt er das Board frei, kommt es hierher zurück.",
+      "updates": "UPDATES",
+      "updatesText": "Updates kommen mit dem Pitrig-Konfigurator: Er sucht nach einer neuen Version und ersetzt dieses Plugin in SimHub.",
+      "links": "LINKS",
+      "website": "Website",
+      "guides": "Anleitungen",
+      "sourceCode": "Quellcode",
+      "reportProblem": "Problem melden",
+      "contact": "KONTAKT",
+      "contactText": "Eine Frage, ein Board, das nicht startet, oder eine Idee – Ihre Nachricht geht direkt an den Entwickler.",
+      "contactForm": "Kontaktformular",
+      "statistics": "STATISTIK",
+      "statisticsText": "Pitrig sendet eine anonyme Nutzungsstatistik: eine zufällige Installationsnummer, ob Pitrig auf diesem Computer schon genutzt wurde, die Versionen von Plugin und SimHub, das Board-Modell und das laufende Spiel. Keine Namen oder Dateien. Der Schalter ist auf der Seite „Info“ des Pitrig-Konfigurators.",
+      "license": "LIZENZ",
+      "licenseText": "Das Plugin ist Open Source unter der Apache License 2.0.",
+      "readLicense": "Lizenz lesen",
+      "technical": "TECHNIK",
+      "technicalText": "{cost} ms pro Aktualisierung, Aktualisierungen pro Sekunde: {rate}. Verbindung zum Konfigurator – Pakete: {packets}, Fehler: {errors}."
+    }
+  }
+}
