@@ -78,6 +78,12 @@ import {
   type FirmwareUploadProgress
 } from '../shared/firmware-update'
 import {
+  FIRST_INSTALL_CANCEL_CHANNEL,
+  FIRST_INSTALL_PROGRESS_CHANNEL,
+  FIRST_INSTALL_START_CHANNEL,
+  type FirstInstallProgress
+} from '../shared/first-install'
+import {
   FONT_CANCEL_UPLOAD_CHANNEL,
   FONT_CLEAR_CHANNEL
 } from '../shared/font-assets'
@@ -185,6 +191,8 @@ export const productApi: PitrigApi = {
   uploadFirmware: (request) => ipcRenderer.invoke(FIRMWARE_UPLOAD_CHANNEL, request),
   cancelFirmwareUpload: () => ipcRenderer.invoke(FIRMWARE_CANCEL_UPLOAD_CHANNEL),
   updateBoard: (request) => ipcRenderer.invoke(BOARD_UPDATE_CHANNEL, request),
+  installPitrig: (request) => ipcRenderer.invoke(FIRST_INSTALL_START_CHANNEL, request),
+  cancelPitrigInstall: () => ipcRenderer.invoke(FIRST_INSTALL_CANCEL_CHANNEL),
   getUpdateStatus: () => ipcRenderer.invoke(UPDATES_GET_STATUS_CHANNEL),
   checkForUpdates: () => ipcRenderer.invoke(UPDATES_CHECK_CHANNEL),
   installAppUpdate: () => ipcRenderer.invoke(UPDATES_INSTALL_APP_CHANNEL),
@@ -227,6 +235,12 @@ export const productApi: PitrigApi = {
       listener(progress)
     ipcRenderer.on(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
+  },
+  onPitrigInstallProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: FirstInstallProgress): void =>
+      listener(progress)
+    ipcRenderer.on(FIRST_INSTALL_PROGRESS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(FIRST_INSTALL_PROGRESS_CHANNEL, handler)
   },
   onSaveProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: SaveProgress): void => listener(progress)

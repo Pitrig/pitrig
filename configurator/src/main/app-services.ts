@@ -6,6 +6,7 @@ import { RecentConfigurations } from './configs/recent-configurations'
 import { ConfigurationFileService } from './configuration-files/configuration-file-service'
 import { DashboardFileService } from './dashboard-files/dashboard-file-service'
 import { DeviceService } from './device/device-service'
+import { FirstInstallService } from './first-install/first-install-service'
 import { BoardUpdateService } from './firmware-update/board-update-service'
 import { FirmwareUpdateService } from './firmware-update/firmware-update-service'
 import { FontAssetService } from './font-assets/font-asset-service'
@@ -20,6 +21,7 @@ import { BundledTemplateLibrary } from './templates/bundled-template-library'
 import { TemplateService } from './templates/template-service'
 import type { DeviceState } from '../shared/device'
 import type { BoardUpdateProgress, FirmwareUploadProgress } from '../shared/firmware-update'
+import type { FirstInstallProgress } from '../shared/first-install'
 import type { FontLibrarySnapshot } from '../shared/font-library'
 import type { ImageLibrarySnapshot } from '../shared/image-library'
 import type { SaveProgress } from '../shared/save-to-board'
@@ -29,6 +31,7 @@ export interface AppServiceBroadcasts {
   onDeviceState: (state: DeviceState) => void
   onFirmwareUploadProgress: (progress: FirmwareUploadProgress) => void
   onBoardUpdateProgress: (progress: BoardUpdateProgress) => void
+  onFirstInstallProgress: (progress: FirstInstallProgress) => void
   onSaveProgress: (progress: SaveProgress) => void
   onFontLibraryChanged?: (snapshot: FontLibrarySnapshot) => void
   onImageLibraryChanged?: (snapshot: ImageLibrarySnapshot) => void
@@ -45,6 +48,7 @@ export interface AppServices {
   imageAssetService: ImageAssetService
   firmwareUpdateService: FirmwareUpdateService
   boardUpdateService: BoardUpdateService
+  firstInstallService: FirstInstallService
   configLibraryService: ConfigLibraryService
   configurationFileService: ConfigurationFileService
   dashboardFileService: DashboardFileService
@@ -111,6 +115,11 @@ export function createAppServices(broadcasts: AppServiceBroadcasts): AppServices
       configLibraryService,
       broadcasts.onBoardUpdateProgress
     ),
+    firstInstallService: new FirstInstallService(
+      deviceService,
+      configLibraryService,
+      broadcasts.onFirstInstallProgress
+    ),
     configLibraryService,
     configurationFileService: new ConfigurationFileService(
       recentConfigurations,
@@ -132,6 +141,7 @@ export async function disposeAppServices(
   services.fontAssetService.cancel()
   services.imageAssetService.cancel()
   services.firmwareUpdateService.cancel()
+  services.firstInstallService.cancel()
   await services.deviceService.dispose()
   await telemetryBridge?.dispose()
 }

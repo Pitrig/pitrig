@@ -21,7 +21,6 @@ const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
 const PAGES: Record<UpdatePage, string> = {
   release: LATEST_RELEASE_PAGE,
   simhub: 'https://www.simhubdash.com/download-2/',
-  flasher: 'https://www.pitrig.com/flash',
   contact: 'https://www.pitrig.com/contact'
 }
 

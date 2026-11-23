@@ -1583,8 +1583,7 @@
       "restartWaiting": "Aktualizacja jest zainstalowana. Uruchom płytkę ponownie, aby ją dokończyć; konfiguracja zostanie.",
       "restartToFinish": "Uruchom ponownie, aby dokończyć",
       "notConfirmedYet": "Ten firmware nie jest jeszcze potwierdzony. Ponowne uruchomienie teraz przywróci na płytce poprzedni firmware.",
-      "cannotUpdateItself": "Ten firmware nie może zaktualizować się sam. Zaktualizuj go jeden raz kablem USB w instalatorze przeglądarkowym. To wymaże konfigurację płytki, więc najpierw zapisz ją do pliku.",
-      "openWebFlasher": "Otwórz instalator przeglądarkowy",
+      "cannotUpdateItself": "Ten firmware nie może zaktualizować się sam. Zainstaluj Pitrig jeden raz kablem USB. To wymaże płytkę, ale kopia jej konfiguracji zostanie na stronie Konfiguracje.",
       "whatChanges": "Co się zmienia · {count}"
     },
     "fileInstall": {
@@ -1624,6 +1623,56 @@
         "restore": "Przywrócenie",
         "verify": "Sprawdzenie"
       }
+    },
+    "firstInstall": {
+      "open": "Zainstaluj Pitrig…",
+      "factoryHint": "Płytka z fabrycznym firmware otrzymuje Pitrig przez kabel USB.",
+      "title": "Instalacja Pitrig",
+      "choose": "Wybierz…",
+      "noPorts": "Nie znaleziono portu szeregowego USB. Podłącz płytkę.",
+      "connector": {
+        "t_display_s3": "Podłącz złącze USB-C płytki.",
+        "guition_esp32_4848s040": "Podłącz złącze USB-C. Płytka pojawi się jako port szeregowy CH340.",
+        "guition_jc1060p470c": "Podłącz złącze, które pojawia się jako USB JTAG/serial. Po instalacji Pitrig działa przez drugie złącze.",
+        "esp32s3_devkit": "Podłącz dowolne złącze. Po instalacji Pitrig działa przez złącze oznaczone USB."
+      },
+      "eraseWarning": "Z płytki zostanie wymazane wszystko: firmware, konfiguracja, czcionki i obrazy. Konfiguracja płytki z Pitrig zostanie najpierw zapisana na stronie Konfiguracje. Pliki na komputerze zostają.",
+      "start": "Wymaż i zainstaluj",
+      "tryAgain": "Spróbuj ponownie",
+      "stage": {
+        "download": "Pobieranie",
+        "connect": "Połączenie",
+        "erase": "Wymazywanie",
+        "write": "Zapis",
+        "verify": "Sprawdzenie",
+        "restart": "Ponowne uruchomienie"
+      },
+      "downloading": "Pobieranie Pitrig {version}…",
+      "checkingBoard": "Sprawdzanie, co działa na płytce…",
+      "connecting": "Przełączanie płytki w tryb instalacji…",
+      "erasing": "Wymazywanie płytki…",
+      "writing": "Zapisywanie {name}…",
+      "checking": "Sprawdzanie zapisanych danych…",
+      "restarting": "Ponowne uruchamianie płytki…",
+      "waitingForPitrig": "Oczekiwanie na uruchomienie Pitrig…",
+      "moveCable": "Pitrig jest zainstalowany. Przełóż kabel do drugiego złącza USB płytki; konfigurator połączy się, gdy Pitrig tam odpowie.",
+      "bootHint": "Płytka nie weszła w tryb instalacji. Przytrzymaj BOOT, naciśnij i puść RST, a potem puść BOOT. Jeśli port się zmienił, wybierz go ponownie i naciśnij „Spróbuj ponownie”.",
+      "alreadyPitrig": "Na tej płytce działa już Pitrig, który aktualizuje się sam. Podłącz ją i zaktualizuj na stronie Firmware.",
+      "chipMismatch": "Ta płytka ma układ {found}, a ten firmware wymaga {expected}.",
+      "revisionUnsupported": "Ten {chip} ma rewizję v{revision}. Ten firmware działa tylko na v{minimum}–v{maximum}.",
+      "flashTooSmall": "Ta płytka ma {size} MB pamięci flash. Pitrig wymaga {needed} MB.",
+      "secured": "Włączony jest Secure Boot lub szyfrowanie flash, więc Pitrig nie można zainstalować przez kabel.",
+      "releaseMissing": "Pitrig {version} nie został jeszcze opublikowany, więc nie ma czego instalować.",
+      "archiveIncomplete": "W archiwum wydania brakuje {name}, więc niczego nie zapisano.",
+      "downloadFailed": "Nie udało się pobrać wydania: {reason}",
+      "writeFailed": "Płytka przestała odpowiadać przy {offset}. Odłącz ją, podłącz ponownie i zainstaluj jeszcze raz.",
+      "verifyFailed": "{name} odczytuje się inaczej niż zapisano. Zainstaluj ponownie lub spróbuj innego kabla.",
+      "stoppedAnswering": "Płytka przestała odpowiadać, zanim cokolwiek wymazano. Odłącz ją, podłącz ponownie i spróbuj jeszcze raz.",
+      "cancelled": "Instalację anulowano. Płytki nie zmieniono.",
+      "cancelledErased": "Instalację anulowano po wymazaniu płytki. Zainstaluj ponownie, aby przywrócić Pitrig.",
+      "installed": "Pitrig {version} jest zainstalowany.",
+      "installedCopy": "Pitrig {version} jest zainstalowany. Stara konfiguracja jest na stronie Konfiguracje jako „{backup}”.",
+      "notAnswering": "Pitrig {version} jest zainstalowany, ale płytka jeszcze nie odpowiedziała. Połącz ją, gdy się uruchomi."
     },
     "firmwareUpdateService": {
       "readingName": "Odczytywanie {name}",

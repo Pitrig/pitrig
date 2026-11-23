@@ -1564,8 +1564,7 @@
       "restartWaiting": "An update is installed. Restart the board to finish it; the setup stays.",
       "restartToFinish": "Restart to finish",
       "notConfirmedYet": "This firmware is not confirmed yet. A restart now returns the board to the previous one.",
-      "cannotUpdateItself": "This firmware cannot update itself. Update it once by USB cable in the web flasher. It erases the board's setup, so save it to a file first.",
-      "openWebFlasher": "Open web flasher",
+      "cannotUpdateItself": "This firmware cannot update itself. Install Pitrig once over the USB cable. It erases the board and keeps a copy of its setup in Configs.",
       "whatChanges": "What changes · {count}"
     },
     "fileInstall": {
@@ -1605,6 +1604,56 @@
         "restore": "Restore",
         "verify": "Check"
       }
+    },
+    "firstInstall": {
+      "open": "Install Pitrig…",
+      "factoryHint": "A board that still runs its factory firmware gets Pitrig over the USB cable.",
+      "title": "Install Pitrig",
+      "choose": "Choose…",
+      "noPorts": "No USB serial port found. Plug the board in.",
+      "connector": {
+        "t_display_s3": "Plug in the board's USB-C connector.",
+        "guition_esp32_4848s040": "Plug in the USB-C connector. The board shows up as a CH340 serial port.",
+        "guition_jc1060p470c": "Plug in the connector that shows up as USB JTAG/serial. Pitrig talks over the other one afterwards.",
+        "esp32s3_devkit": "Plug in either connector. Pitrig talks over the one marked USB afterwards."
+      },
+      "eraseWarning": "Everything on the board is erased: its firmware, setup, fonts and images. A Pitrig board's setup is kept in Configs first. Files on this PC stay.",
+      "start": "Erase and install",
+      "tryAgain": "Try again",
+      "stage": {
+        "download": "Download",
+        "connect": "Connect",
+        "erase": "Erase",
+        "write": "Write",
+        "verify": "Check",
+        "restart": "Restart"
+      },
+      "downloading": "Downloading Pitrig {version}…",
+      "checkingBoard": "Checking what runs on the board…",
+      "connecting": "Putting the board into install mode…",
+      "erasing": "Erasing the board…",
+      "writing": "Writing {name}…",
+      "checking": "Checking what was written…",
+      "restarting": "Restarting the board…",
+      "waitingForPitrig": "Waiting for Pitrig to start…",
+      "moveCable": "Pitrig is installed. Move the cable to the board's other USB connector; the configurator connects once Pitrig answers there.",
+      "bootHint": "The board did not enter install mode. Hold BOOT, press and release RST, then release BOOT. Choose its port again if it changed, then press Try again.",
+      "alreadyPitrig": "This board already runs Pitrig and updates itself. Connect it and use Update on the Firmware page.",
+      "chipMismatch": "This board has an {found} chip, but this firmware needs an {expected}.",
+      "revisionUnsupported": "This {chip} is revision v{revision}. This firmware runs on v{minimum} to v{maximum} only.",
+      "flashTooSmall": "This board has {size} MB of flash. Pitrig needs {needed} MB.",
+      "secured": "Secure boot or flash encryption is on, so Pitrig cannot be installed over the cable.",
+      "releaseMissing": "Pitrig {version} is not published yet, so there is nothing to install.",
+      "archiveIncomplete": "The release archive lacks {name}, so nothing was written.",
+      "downloadFailed": "The release could not be downloaded: {reason}",
+      "writeFailed": "The board stopped answering at {offset}. Unplug it, plug it back in and install again.",
+      "verifyFailed": "{name} reads back differently. Install again, or try another cable.",
+      "stoppedAnswering": "The board stopped answering before anything was erased. Unplug it, plug it back in and try again.",
+      "cancelled": "Install cancelled. The board was not changed.",
+      "cancelledErased": "Install cancelled after the board was erased. Install again to bring Pitrig back.",
+      "installed": "Pitrig {version} is installed.",
+      "installedCopy": "Pitrig {version} is installed. The old setup is in Configs as “{backup}”.",
+      "notAnswering": "Pitrig {version} is installed, but the board has not answered yet. Connect it once it has started."
     },
     "firmwareUpdateService": {
       "readingName": "Reading {name}",

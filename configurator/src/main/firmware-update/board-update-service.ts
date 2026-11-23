@@ -1,12 +1,10 @@
 import type { AssetUploadProgress } from '../../shared/asset-upload'
-import { MAXIMUM_CONFIGURATION_NAME } from '../../shared/config-library'
 import { documentsDiffering } from '../../shared/configuration-documents'
 import {
-  CONFIGURATION_DOCUMENT_IDS,
   CONFIGURATION_SCHEMA_VERSION,
   type ConfigurationDocumentId
 } from '../../shared/configuration-schema'
-import type { DeviceConfiguration, DeviceSession } from '../../shared/device'
+import type { DeviceSession } from '../../shared/device'
 import type {
   BoardUpdateError,
   BoardUpdateProgress,
@@ -17,15 +15,9 @@ import type {
 import { ConfigLibraryService } from '../configs/config-library-service'
 import { DeviceService } from '../device/device-service'
 import { SaveToBoardService } from '../save-to-board/save-to-board-service'
+import { backUpBoard, type BoardBackup } from './board-backup'
 import { FirmwareUpdateService } from './firmware-update-service'
 import { t } from '@shared/ui-text'
-
-interface Backup {
-  id: string
-  name: string
-  configuration: DeviceConfiguration
-  documents: ConfigurationDocumentId[]
-}
 
 interface Restored {
   documents: ConfigurationDocumentId[]
@@ -133,27 +125,14 @@ export class BoardUpdateService {
     }
   }
 
-  private async backUp(session: DeviceSession): Promise<Step<Backup | undefined>> {
-    const documents = CONFIGURATION_DOCUMENT_IDS.filter(
-      (document) => session.info.documents[document].outcome === 'valid'
+  private async backUp(session: DeviceSession): Promise<Step<BoardBackup | undefined>> {
+    const saved = await backUpBoard(this.library, session, () =>
+      this.report('backup', t('firmware.boardUpdate.keepingACopy'))
     )
-    if (documents.length === 0) return { ok: true, value: undefined }
-    this.report('backup', t('firmware.boardUpdate.keepingACopy'))
-    const name = t('firmware.boardUpdate.backupName', {
-      date: stamp(new Date()),
-      version: session.info.firmwareVersion
-    }).slice(0, MAXIMUM_CONFIGURATION_NAME)
-    const saved = await this.library.save({ name, json: JSON.stringify(session.configuration) })
-    if (!saved.ok) {
-      return failure('backup_failed', t('firmware.boardUpdate.backupFailed', { reason: saved.error.message }))
-    }
-    return {
-      ok: true,
-      value: { id: saved.value.id, name: saved.value.name, configuration: session.configuration, documents }
-    }
+    return saved.ok ? saved : failure('backup_failed', saved.message)
   }
 
-  private async restore(backup: Backup, after: DeviceSession): Promise<Restored> {
+  private async restore(backup: BoardBackup, after: DeviceSession): Promise<Restored> {
     if (after.info.schemaVersion !== CONFIGURATION_SCHEMA_VERSION) {
       return {
         documents: [],
@@ -189,7 +168,7 @@ export class BoardUpdateService {
     return { documents: saved.value.documents, applied: saved.value.applyFailed === undefined }
   }
 
-  private async verify(backup: Backup): Promise<boolean> {
+  private async verify(backup: BoardBackup): Promise<boolean> {
     this.report('verify', t('firmware.boardUpdate.checking'))
     const read = await this.deviceService.readConfiguration()
     if (!read.ok || !read.value.session) return false
@@ -212,13 +191,6 @@ export class BoardUpdateService {
   private report(step: BoardUpdateStep, message: string, completed = 0, total = 0): void {
     this.onProgress({ step, completed, total, message })
   }
-}
-
-function stamp(date: Date): string {
-  const pad = (value: number): string => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 function failure(code: BoardUpdateError['code'], message: string, backup?: string): Step<never> {

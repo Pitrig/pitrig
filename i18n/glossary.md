@@ -33,6 +33,7 @@ introduces it.
 | pin / output | пін / вихід | pin / wyjście | 핀 / 출력 | Pin / Ausgang | pin / salida |
 | shift light | індикатор перемикання передач | shift light | 시프트 라이트 | Shift-Light | shift light |
 | firmware / flash | прошивка / прошити | firmware / wgrać firmware | 펌웨어 / 플래시하다 | Firmware / flashen | firmware / flashear |
+| install mode / connector | режим встановлення / роз’єм | tryb instalacji / złącze | 설치 모드 / 커넥터 | Installationsmodus / Anschluss | modo de instalación / conector |
 | update / restart | оновити / перезапустити | zaktualizować / uruchomić ponownie | 업데이트 / 다시 시작 | aktualisieren / neu starten | actualizar / reiniciar |
 | safe mode | безпечний режим | tryb awaryjny | 안전 모드 | abgesicherter Modus | modo seguro |
 | Save to board / Load from board | Зберегти на плату / Завантажити з плати | Zapisz na płytce / Wczytaj z płytki | 보드에 저장 / 보드에서 불러오기 | Auf Board speichern / Vom Board laden | Guardar en la placa / Cargar desde la placa |

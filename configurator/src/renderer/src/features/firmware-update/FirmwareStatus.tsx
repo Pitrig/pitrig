@@ -9,10 +9,12 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { boardName } from '@/features/configuration/board-labels'
+import { useDeviceStore } from '@/features/device/device-store'
 import { FirmwareChangeList } from '@/features/updates/FirmwareChangeList'
 import { updateBoardFromRelease, useUpdateStore } from '@/features/updates/update-store'
 import { BoardUpdateSteps } from './BoardUpdateSteps'
 import { updateBoard, useBoardUpdateStore } from './board-update-store'
+import { openFirstInstall } from './first-install/first-install-store'
 
 const CARD = 'rounded-xl border bg-card px-4 py-3.5 text-xs text-card-foreground shadow-sm'
 
@@ -35,16 +37,17 @@ function VersionChip({ behind, released }: { behind: boolean; released?: string 
   )
 }
 
-function SelfUpdateNotice(): React.JSX.Element {
+function SelfUpdateNotice({ session }: { session: DeviceSession }): React.JSX.Element {
+  const portId = useDeviceStore((state) => state.connection?.portId)
   return (
     <section className="space-y-2 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 shadow-sm">
       <p>{t('firmware.firmwareStatus.cannotUpdateItself')}</p>
       <Button
         className="text-foreground"
         variant="outline"
-        onClick={() => void window.pitrig.openUpdatePage({ page: 'flasher' })}
+        onClick={() => openFirstInstall({ board: session.info.boardId, portId })}
       >
-        {t('firmware.firmwareStatus.openWebFlasher')}
+        {t('firmware.firstInstall.open')}
       </Button>
     </section>
   )
@@ -82,7 +85,7 @@ export function FirmwareStatus({ session }: { session: DeviceSession }): React.J
   const [changesOpen, setChangesOpen] = useState(false)
   const { boardId, firmwareVersion, schemaVersion } = session.info
   const firmware = session.firmware
-  if (firmware?.storageAvailable !== true) return <SelfUpdateNotice />
+  if (firmware?.storageAvailable !== true) return <SelfUpdateNotice session={session} />
   if (running) return <UpdateProgressCard />
 
   const released = status?.enabled ? status.releasedFirmware : undefined

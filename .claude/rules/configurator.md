@@ -14,7 +14,9 @@ file chooser; then the `font-library/` face store and Google Fonts catalog, the
 the old preview cache, `dashboard-files/` for `.pitrigdash` share and open
 (ADR 0041), the `save-to-board/` orchestrator with its font and image delivery,
 `firmware-update/` with the
-`Update board` sequence, the `telemetry-bridge/` relay, the `updates/` channel
+`Update board` sequence, `first-install/` (the cable install of a release
+through the chip's ROM loader, its client under `rom/`, ADR 0045), the
+`telemetry-bridge/` relay, the `updates/` channel
 (ADR 0037, registered by the product entry point only, like the bridge), the
 `usage/` reporter (ADR 0040, product entry point only, off in development), the
 `ipc/` registrations, config files, the dashboard `templates/` library, the
@@ -32,7 +34,7 @@ beside its request and result types, into `PitrigApi`, into the registration
 that owns the area — `main/ipc/register-ipc-handlers.ts` for the device and the
 save, `register-library-handlers.ts` for files, configurations, templates and
 dashboard files, `register-asset-handlers.ts` for fonts, images, the image
-library and firmware,
+library, firmware and the first install,
 `main/telemetry-bridge/register-telemetry-bridge.ts` for the bridge — and the
 preload bridge.
 
@@ -247,9 +249,10 @@ after; AppKit's AutoFill, Dictation and Emoji items are turned off by defaults
 registered before `ready`, and a menu with a submenu set before `ready` crashes
 Electron 44. On Windows `serialport` reports the driver's manufacturer
 (`Microsoft` for `usbser.sys`), not the board's USB string, so
-`port-registry.ts` names the two identities a board shows by VID:PID — `303a:4001`,
+`shared/usb-ports.ts` names the two identities a board shows by VID:PID — `303a:4001`,
 the application link fixed in `usb_descriptors.cpp`, and `303a:1001`, the
-USB-Serial/JTAG unit — as `tools/pick-serial-port.py` does.
+USB-Serial/JTAG unit — as `tools/pick-serial-port.py` does. `port.set` asserts
+any line it is not given, so the ROM-loader resets pass both `dtr` and `rts`.
 
 `pnpm run build` runs typecheck then `electron-vite build`; `pnpm run package`
 wraps the product in `electron-builder.yml` (`dist/`); `pnpm run build:debug`

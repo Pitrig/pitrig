@@ -32,6 +32,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** The interface in Ukrainian, Korean, Polish, German and Spanish, taken from the system language or chosen on the Info page.
 - **SimHub plugin.** Its pages in Ukrainian, Korean, Polish, German and Spanish, in the language the configurator uses.
 - **Configurator.** A saved template's card shares it as one file; Open on the Templates page adds a received one.
+- **Configurator.** Install Pitrig on the Firmware page flashes a board still on its factory firmware, or one whose firmware cannot update itself, over the USB cable.
 - **Development.** A firmware build fails when its static memory passes its board's ceiling in `tools/memory_budget.json`.
 - **Development.** The `@PR:` and `@PT:` line prefixes are generated from one file, and CI fails on a prefix written by hand.
 

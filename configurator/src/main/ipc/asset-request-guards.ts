@@ -1,5 +1,7 @@
 import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from '@shared/configuration-documents'
 import type { DashboardShareRequest } from '@shared/dashboard-files'
+import { PITRIG_BOARD_IDS } from '@shared/device'
+import type { FirstInstallRequest } from '@shared/first-install'
 import {
   IMAGE_COLOR_FORMATS,
   type ImageAssetInput
@@ -8,6 +10,20 @@ import type { ImageLibraryAddRequest, ImageLibraryIdRequest } from '@shared/imag
 import { MAXIMUM_TEMPLATE_DESCRIPTION, MAXIMUM_TEMPLATE_NAME } from '@shared/templates'
 
 const MAXIMUM_ADDED_IMAGES = 256
+const MAXIMUM_PORT_ID = 200
+
+export function isFirstInstallRequest(value: unknown): value is FirstInstallRequest {
+  if (typeof value !== 'object' || value === null) return false
+  const request = value as Partial<FirstInstallRequest>
+  return (
+    typeof request.board === 'string' &&
+    (PITRIG_BOARD_IDS as readonly string[]).includes(request.board) &&
+    typeof request.portId === 'string' &&
+    request.portId.length > 0 &&
+    request.portId.length <= MAXIMUM_PORT_ID &&
+    typeof request.manualBoot === 'boolean'
+  )
+}
 
 export function isImageLibraryAddRequest(value: unknown): value is ImageLibraryAddRequest {
   if (typeof value !== 'object' || value === null) return false

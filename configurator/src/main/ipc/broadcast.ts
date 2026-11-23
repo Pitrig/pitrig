@@ -7,6 +7,10 @@ import {
   type BoardUpdateProgress,
   type FirmwareUploadProgress
 } from '../../shared/firmware-update'
+import {
+  FIRST_INSTALL_PROGRESS_CHANNEL,
+  type FirstInstallProgress
+} from '../../shared/first-install'
 import { FONT_LIBRARY_CHANGED_CHANNEL, type FontLibrarySnapshot } from '../../shared/font-library'
 import {
   IMAGE_LIBRARY_CHANGED_CHANNEL,
@@ -41,6 +45,10 @@ export function broadcastFirmwareUploadProgress(progress: FirmwareUploadProgress
 
 export function broadcastBoardUpdateProgress(progress: BoardUpdateProgress): void {
   broadcastToWindows(BOARD_UPDATE_PROGRESS_CHANNEL, progress)
+}
+
+export function broadcastFirstInstallProgress(progress: FirstInstallProgress): void {
+  broadcastToWindows(FIRST_INSTALL_PROGRESS_CHANNEL, progress)
 }
 
 export function broadcastSaveProgress(progress: SaveProgress): void {

@@ -13,7 +13,7 @@ import type { ConfigurationDocumentId } from '../../shared/configuration-schema'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type { FontUploadProgress } from '../../shared/font-assets'
 import type { InstalledImage } from '../../shared/image-assets'
-import { failure, success, toDeviceError } from './device-errors'
+import { DeviceServiceError, failure, success, toDeviceError } from './device-errors'
 import {
   applyDeviceConfiguration,
   readDeviceConfiguration,
@@ -24,6 +24,7 @@ import {
 import { ConnectionManager } from './device-connection'
 import { DeviceHeartbeat } from './device-heartbeat'
 import { OperationRunner } from './device-operation'
+import { claimPortForInstall, type InstallClaim } from './install-claim'
 import type { PortClaims } from './port-leases'
 import { closePort } from './serial-port-lifecycle'
 import {
@@ -262,6 +263,13 @@ export class DeviceService {
 
   async runPipeline<T>(work: () => Promise<T>): Promise<T> {
     return this.runner.runPipeline(work)
+  }
+
+  async claimForInstall<T>(portId: string, work: (claim: InstallClaim) => Promise<T>): Promise<T> {
+    if (this.isBusy()) {
+      throw new DeviceServiceError('busy', t('device.deviceOperation.anotherDeviceOperationIsAlready'))
+    }
+    return this.runner.withLock(() => claimPortForInstall(this.connection, portId, work))
   }
 
   async reconnect(connection: DeviceConnection): Promise<DeviceResult<DeviceState>> {

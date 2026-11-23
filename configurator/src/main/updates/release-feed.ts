@@ -47,9 +47,13 @@ export async function releaseTagged(version: string): Promise<Release | undefine
 export async function downloadAsset(
   asset: ReleaseAsset,
   path: string,
-  onProgress: (fraction: number) => void
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal
 ): Promise<void> {
-  const response = await net.fetch(asset.url, { headers: { 'User-Agent': userAgent() } })
+  const response = await net.fetch(asset.url, {
+    headers: { 'User-Agent': userAgent() },
+    ...(signal ? { signal } : {})
+  })
   if (!response.ok || !response.body) {
     throw new Error(t('updates.releaseFeed.downloadFailed', { name: asset.name, status: response.status }))
   }

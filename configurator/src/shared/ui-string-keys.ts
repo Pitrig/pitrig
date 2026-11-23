@@ -616,7 +616,6 @@ export type UiStringKey =
   | 'firmware.firmwareStatus.cannotUpdateItself'
   | 'firmware.firmwareStatus.firmwareVersion'
   | 'firmware.firmwareStatus.notConfirmedYet'
-  | 'firmware.firmwareStatus.openWebFlasher'
   | 'firmware.firmwareStatus.restartToFinish'
   | 'firmware.firmwareStatus.restartWaiting'
   | 'firmware.firmwareStatus.setupStays'
@@ -642,6 +641,50 @@ export type UiStringKey =
   | 'firmware.firmwareUpdateService.thisDeviceHasNoSecond'
   | 'firmware.firmwareUpdateService.unknownError'
   | 'firmware.firmwareUpdateService.wrappedBytelengthBytesForBoardid'
+  | 'firmware.firstInstall.alreadyPitrig'
+  | 'firmware.firstInstall.archiveIncomplete'
+  | 'firmware.firstInstall.bootHint'
+  | 'firmware.firstInstall.cancelled'
+  | 'firmware.firstInstall.cancelledErased'
+  | 'firmware.firstInstall.checking'
+  | 'firmware.firstInstall.checkingBoard'
+  | 'firmware.firstInstall.chipMismatch'
+  | 'firmware.firstInstall.choose'
+  | 'firmware.firstInstall.connecting'
+  | 'firmware.firstInstall.connector.esp32s3_devkit'
+  | 'firmware.firstInstall.connector.guition_esp32_4848s040'
+  | 'firmware.firstInstall.connector.guition_jc1060p470c'
+  | 'firmware.firstInstall.connector.t_display_s3'
+  | 'firmware.firstInstall.downloadFailed'
+  | 'firmware.firstInstall.downloading'
+  | 'firmware.firstInstall.eraseWarning'
+  | 'firmware.firstInstall.erasing'
+  | 'firmware.firstInstall.factoryHint'
+  | 'firmware.firstInstall.flashTooSmall'
+  | 'firmware.firstInstall.installed'
+  | 'firmware.firstInstall.installedCopy'
+  | 'firmware.firstInstall.moveCable'
+  | 'firmware.firstInstall.noPorts'
+  | 'firmware.firstInstall.notAnswering'
+  | 'firmware.firstInstall.open'
+  | 'firmware.firstInstall.releaseMissing'
+  | 'firmware.firstInstall.restarting'
+  | 'firmware.firstInstall.revisionUnsupported'
+  | 'firmware.firstInstall.secured'
+  | 'firmware.firstInstall.stage.connect'
+  | 'firmware.firstInstall.stage.download'
+  | 'firmware.firstInstall.stage.erase'
+  | 'firmware.firstInstall.stage.restart'
+  | 'firmware.firstInstall.stage.verify'
+  | 'firmware.firstInstall.stage.write'
+  | 'firmware.firstInstall.start'
+  | 'firmware.firstInstall.stoppedAnswering'
+  | 'firmware.firstInstall.title'
+  | 'firmware.firstInstall.tryAgain'
+  | 'firmware.firstInstall.verifyFailed'
+  | 'firmware.firstInstall.waitingForPitrig'
+  | 'firmware.firstInstall.writeFailed'
+  | 'firmware.firstInstall.writing'
   | 'fonts.catalog.weightCount'
   | 'fonts.catalogSection.addFromGoogleFonts'
   | 'fonts.catalogSection.addedNameToTheLibrary'
@@ -2193,6 +2236,19 @@ export interface UiStringParameters {
   'firmware.firmwareUpdateService.nameIsSizeBytesWhich': { name: string | number, size: string | number }
   'firmware.firmwareUpdateService.readingName': { name: string | number }
   'firmware.firmwareUpdateService.wrappedBytelengthBytesForBoardid': { boardId: string | number, byteLength: string | number }
+  'firmware.firstInstall.archiveIncomplete': { name: string | number }
+  'firmware.firstInstall.chipMismatch': { expected: string | number, found: string | number }
+  'firmware.firstInstall.downloadFailed': { reason: string | number }
+  'firmware.firstInstall.downloading': { version: string | number }
+  'firmware.firstInstall.flashTooSmall': { needed: string | number, size: string | number }
+  'firmware.firstInstall.installed': { version: string | number }
+  'firmware.firstInstall.installedCopy': { backup: string | number, version: string | number }
+  'firmware.firstInstall.notAnswering': { version: string | number }
+  'firmware.firstInstall.releaseMissing': { version: string | number }
+  'firmware.firstInstall.revisionUnsupported': { chip: string | number, maximum: string | number, minimum: string | number, revision: string | number }
+  'firmware.firstInstall.verifyFailed': { name: string | number }
+  'firmware.firstInstall.writeFailed': { offset: string | number }
+  'firmware.firstInstall.writing': { name: string | number }
   'fonts.catalog.weightCount': { count: number }
   'fonts.catalogSection.addedNameToTheLibrary': { name: string | number }
   'fonts.fontAssetService.atMostMaximumFontFamilies': { mAXIMUM_FONT_FAMILIES: string | number }

@@ -42,6 +42,11 @@ import type {
   FirmwareUploadProgress,
   FirmwareUploadRequest
 } from './firmware-update'
+import type {
+  FirstInstallProgress,
+  FirstInstallRequest,
+  FirstInstallResult
+} from './first-install'
 import type { FontAssetResult } from './font-assets'
 import type {
   FontCatalogFamily,
@@ -170,6 +175,8 @@ export interface PitrigApi {
   uploadFirmware: (request: FirmwareUploadRequest) => Promise<FirmwareUpdateResult<void>>
   cancelFirmwareUpload: () => Promise<FirmwareUpdateResult<void>>
   updateBoard: (request: BoardUpdateRequest) => Promise<BoardUpdateResult>
+  installPitrig: (request: FirstInstallRequest) => Promise<FirstInstallResult>
+  cancelPitrigInstall: () => Promise<void>
   getUpdateStatus: () => Promise<UpdateStatus>
   checkForUpdates: () => Promise<UpdateStatus>
   installAppUpdate: () => Promise<boolean>
@@ -202,6 +209,7 @@ export interface PitrigApi {
     listener: (progress: FirmwareUploadProgress) => void
   ) => () => void
   onBoardUpdateProgress: (listener: (progress: BoardUpdateProgress) => void) => () => void
+  onPitrigInstallProgress: (listener: (progress: FirstInstallProgress) => void) => () => void
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void

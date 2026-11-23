@@ -111,7 +111,7 @@ Editor gaps against SimHub are in
 - [ ] Safe mode shown on screen
 - [*] Firmware version awareness
 - [*] Firmware downloaded from the latest release and installed in the app
-- [ ] First install from the app on a board still running its factory firmware
+- [*] First install from the app on a board still running its factory firmware
 
 # Phase 7 — Telemetry
 

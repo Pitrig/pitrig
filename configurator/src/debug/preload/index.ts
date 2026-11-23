@@ -43,6 +43,7 @@ const debugApi: PitrigDebugApi = {
   uploadFirmware: holdingBench(productApi.uploadFirmware),
   cancelFirmwareUpload: holdingBench(productApi.cancelFirmwareUpload),
   updateBoard: holdingBench(productApi.updateBoard),
+  installPitrig: holdingBench(productApi.installPitrig),
   sendControlCommand: holdingBench((request: ControlCommandRequest) =>
     ipcRenderer.invoke(CONTROL_COMMAND_CHANNEL, request)
   ),

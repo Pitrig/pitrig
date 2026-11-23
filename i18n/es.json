@@ -1571,8 +1571,7 @@
       "restartWaiting": "Hay una actualización instalada. Reinicia la placa para terminarla; la configuración se conserva.",
       "restartToFinish": "Reiniciar para terminar",
       "notConfirmedYet": "Este firmware aún no está confirmado. Si reinicias ahora, la placa vuelve al anterior.",
-      "cannotUpdateItself": "Este firmware no puede actualizarse solo. Actualízalo una vez por cable USB con el flasheador web. Esto borra la configuración de la placa, así que primero guárdala en un archivo.",
-      "openWebFlasher": "Abrir el flasheador web",
+      "cannotUpdateItself": "Este firmware no puede actualizarse solo. Instala Pitrig una vez por cable USB. Esto borra la placa, pero guarda una copia de su configuración en «Configuraciones».",
       "whatChanges": "Cambios · {count}"
     },
     "fileInstall": {
@@ -1612,6 +1611,56 @@
         "restore": "Restaurar",
         "verify": "Comprobar"
       }
+    },
+    "firstInstall": {
+      "open": "Instalar Pitrig…",
+      "factoryHint": "Una placa con su firmware de fábrica recibe Pitrig por el cable USB.",
+      "title": "Instalar Pitrig",
+      "choose": "Elegir…",
+      "noPorts": "No se encontró ningún puerto serie USB. Conecta la placa.",
+      "connector": {
+        "t_display_s3": "Conecta el conector USB-C de la placa.",
+        "guition_esp32_4848s040": "Conecta el conector USB-C. La placa aparece como un puerto serie CH340.",
+        "guition_jc1060p470c": "Conecta el conector que aparece como USB JTAG/serial. Después, Pitrig se comunica por el otro.",
+        "esp32s3_devkit": "Conecta cualquiera de los dos conectores. Después, Pitrig se comunica por el marcado como USB."
+      },
+      "eraseWarning": "Se borra todo lo que hay en la placa: firmware, configuración, fuentes e imágenes. La configuración de una placa con Pitrig se guarda antes en «Configuraciones». Los archivos de este PC se conservan.",
+      "start": "Borrar e instalar",
+      "tryAgain": "Reintentar",
+      "stage": {
+        "download": "Descargar",
+        "connect": "Conectar",
+        "erase": "Borrar",
+        "write": "Escribir",
+        "verify": "Comprobar",
+        "restart": "Reiniciar"
+      },
+      "downloading": "Descargando Pitrig {version}…",
+      "checkingBoard": "Comprobando qué ejecuta la placa…",
+      "connecting": "Poniendo la placa en modo de instalación…",
+      "erasing": "Borrando la placa…",
+      "writing": "Escribiendo {name}…",
+      "checking": "Comprobando lo escrito…",
+      "restarting": "Reiniciando la placa…",
+      "waitingForPitrig": "Esperando a que Pitrig arranque…",
+      "moveCable": "Pitrig está instalado. Pasa el cable al otro conector USB de la placa; el configurador se conecta cuando Pitrig responda allí.",
+      "bootHint": "La placa no entró en modo de instalación. Mantén pulsado BOOT, pulsa y suelta RST y después suelta BOOT. Si el puerto cambió, vuelve a elegirlo y pulsa «Reintentar».",
+      "alreadyPitrig": "Esta placa ya ejecuta Pitrig y se actualiza sola. Conéctala y actualízala en la página «Firmware».",
+      "chipMismatch": "Esta placa tiene un chip {found}, pero este firmware necesita un {expected}.",
+      "revisionUnsupported": "Este {chip} es de la revisión v{revision}. Este firmware solo funciona en v{minimum} a v{maximum}.",
+      "flashTooSmall": "Esta placa tiene {size} MB de flash. Pitrig necesita {needed} MB.",
+      "secured": "Secure Boot o el cifrado de flash están activados, así que Pitrig no se puede instalar por el cable.",
+      "releaseMissing": "Pitrig {version} aún no está publicado, así que no hay nada que instalar.",
+      "archiveIncomplete": "Al archivo de la versión le falta {name}, así que no se escribió nada.",
+      "downloadFailed": "No se pudo descargar la versión: {reason}",
+      "writeFailed": "La placa dejó de responder en {offset}. Desconéctala, vuelve a conectarla e instala de nuevo.",
+      "verifyFailed": "{name} se lee distinto de lo escrito. Instala de nuevo o prueba otro cable.",
+      "stoppedAnswering": "La placa dejó de responder antes de borrar nada. Desconéctala, vuelve a conectarla e inténtalo de nuevo.",
+      "cancelled": "Instalación cancelada. La placa no se modificó.",
+      "cancelledErased": "Instalación cancelada después de borrar la placa. Instala de nuevo para recuperar Pitrig.",
+      "installed": "Pitrig {version} está instalado.",
+      "installedCopy": "Pitrig {version} está instalado. La configuración anterior está en «Configuraciones» como «{backup}».",
+      "notAnswering": "Pitrig {version} está instalado, pero la placa aún no ha respondido. Conéctala cuando haya arrancado."
     },
     "firmwareUpdateService": {
       "readingName": "Leyendo {name}",

@@ -1559,8 +1559,7 @@
       "restartWaiting": "Ein Update ist installiert. Starten Sie das Board neu, um es abzuschließen; das Setup bleibt erhalten.",
       "restartToFinish": "Neu starten und abschließen",
       "notConfirmedYet": "Diese Firmware ist noch nicht bestätigt. Wenn Sie jetzt neu starten, kehrt das Board zur vorherigen Firmware zurück.",
-      "cannotUpdateItself": "Diese Firmware kann sich nicht selbst aktualisieren. Aktualisieren Sie sie einmal per USB-Kabel im Web-Flasher. Dabei wird das Setup des Boards gelöscht, speichern Sie es also vorher in eine Datei.",
-      "openWebFlasher": "Web-Flasher öffnen",
+      "cannotUpdateItself": "Diese Firmware kann sich nicht selbst aktualisieren. Installieren Sie Pitrig einmal per USB-Kabel. Dabei wird das Board gelöscht, eine Kopie seines Setups bleibt unter „Setups“.",
       "whatChanges": "Änderungen · {count}"
     },
     "fileInstall": {
@@ -1600,6 +1599,56 @@
         "restore": "Zurückspielen",
         "verify": "Prüfen"
       }
+    },
+    "firstInstall": {
+      "open": "Pitrig installieren…",
+      "factoryHint": "Ein Board mit Werksfirmware erhält Pitrig über das USB-Kabel.",
+      "title": "Pitrig installieren",
+      "choose": "Auswählen…",
+      "noPorts": "Kein serieller USB-Port gefunden. Schließen Sie das Board an.",
+      "connector": {
+        "t_display_s3": "Schließen Sie den USB-C-Anschluss des Boards an.",
+        "guition_esp32_4848s040": "Schließen Sie den USB-C-Anschluss an. Das Board erscheint als serieller CH340-Port.",
+        "guition_jc1060p470c": "Schließen Sie den Anschluss an, der als USB JTAG/serial erscheint. Danach spricht Pitrig über den anderen.",
+        "esp32s3_devkit": "Schließen Sie einen der beiden Anschlüsse an. Danach spricht Pitrig über den mit USB beschrifteten."
+      },
+      "eraseWarning": "Alles auf dem Board wird gelöscht: Firmware, Setup, Schriften und Bilder. Das Setup eines Pitrig-Boards wird vorher unter „Setups“ abgelegt. Dateien auf diesem PC bleiben erhalten.",
+      "start": "Löschen und installieren",
+      "tryAgain": "Erneut versuchen",
+      "stage": {
+        "download": "Herunterladen",
+        "connect": "Verbinden",
+        "erase": "Löschen",
+        "write": "Schreiben",
+        "verify": "Prüfen",
+        "restart": "Neu starten"
+      },
+      "downloading": "Pitrig {version} wird heruntergeladen…",
+      "checkingBoard": "Es wird geprüft, was auf dem Board läuft…",
+      "connecting": "Board wird in den Installationsmodus versetzt…",
+      "erasing": "Board wird gelöscht…",
+      "writing": "{name} wird geschrieben…",
+      "checking": "Geschriebene Daten werden geprüft…",
+      "restarting": "Board wird neu gestartet…",
+      "waitingForPitrig": "Warten auf den Start von Pitrig…",
+      "moveCable": "Pitrig ist installiert. Stecken Sie das Kabel in den anderen USB-Anschluss des Boards; der Konfigurator verbindet sich, sobald Pitrig dort antwortet.",
+      "bootHint": "Das Board ist nicht in den Installationsmodus gewechselt. Halten Sie BOOT gedrückt, drücken Sie kurz RST und lassen Sie dann BOOT los. Wählen Sie den Port erneut, falls er sich geändert hat, und klicken Sie auf „Erneut versuchen“.",
+      "alreadyPitrig": "Auf diesem Board läuft bereits Pitrig, und es aktualisiert sich selbst. Verbinden Sie es und aktualisieren Sie es auf der Seite „Firmware“.",
+      "chipMismatch": "Dieses Board hat einen {found}-Chip, diese Firmware braucht aber einen {expected}.",
+      "revisionUnsupported": "Dieser {chip} hat die Revision v{revision}. Diese Firmware läuft nur auf v{minimum} bis v{maximum}.",
+      "flashTooSmall": "Dieses Board hat {size} MB Flash. Pitrig braucht {needed} MB.",
+      "secured": "Secure Boot oder Flash-Verschlüsselung ist aktiv, deshalb lässt sich Pitrig nicht über das Kabel installieren.",
+      "releaseMissing": "Pitrig {version} ist noch nicht veröffentlicht, daher gibt es nichts zu installieren.",
+      "archiveIncomplete": "Im Release-Archiv fehlt {name}, daher wurde nichts geschrieben.",
+      "downloadFailed": "Das Release konnte nicht heruntergeladen werden: {reason}",
+      "writeFailed": "Das Board antwortet bei {offset} nicht mehr. Trennen Sie es, schließen Sie es wieder an und installieren Sie erneut.",
+      "verifyFailed": "{name} liest sich anders zurück. Installieren Sie erneut oder versuchen Sie ein anderes Kabel.",
+      "stoppedAnswering": "Das Board hat nicht mehr geantwortet, bevor etwas gelöscht wurde. Trennen Sie es, schließen Sie es wieder an und versuchen Sie es erneut.",
+      "cancelled": "Installation abgebrochen. Das Board wurde nicht verändert.",
+      "cancelledErased": "Installation nach dem Löschen des Boards abgebrochen. Installieren Sie erneut, um Pitrig zurückzuholen.",
+      "installed": "Pitrig {version} ist installiert.",
+      "installedCopy": "Pitrig {version} ist installiert. Das alte Setup liegt unter „Setups“ als „{backup}“.",
+      "notAnswering": "Pitrig {version} ist installiert, aber das Board hat noch nicht geantwortet. Verbinden Sie es, sobald es gestartet ist."
     },
     "firmwareUpdateService": {
       "readingName": "{name} wird gelesen",

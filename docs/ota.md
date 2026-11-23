@@ -40,12 +40,14 @@ image pixels are deflated, and a dashboard's worth of them is usually a few
 hundred kilobytes against seven megabytes of partition.
 
 There is no `factory` partition: a board whose two slots are both unusable is
-recovered over USB with `idf.py flash`.
+recovered over USB, with **Install Pitrig** in the configurator or `idf.py flash`.
 
 **Installing this table is a full erase.** Every data partition moved from
 where it was before, so the stored configuration, the font package and the
 image package are all discarded. Erase and flash, then re-save the
-configuration and re-upload the assets:
+configuration and re-upload the assets; the configurator's **Install Pitrig**
+erases and flashes the same way from the release
+([ADR 0045](adr/0045-first-install-from-the-configurator.md)):
 
 ```bash
 idf.py -B build-t-display -p <port> erase-flash flash monitor
@@ -163,8 +165,10 @@ of the configurator's own version carries newer firmware for that board, one
 **Update to …** button and what changes. **Install from a file** takes a
 `pitrig.bin`, wraps it for the connected board and installs it; it stays folded.
 Firmware built before this partition layout answers `unknown_command`, and a
-board without a second slot reports `storage=0`; for both the page points to the
-web flasher, because the board cannot update itself over serial. The running and
+board without a second slot reports `storage=0`; neither can update itself over
+serial, so for both the page offers **Install Pitrig**, the cable install of
+[ADR 0045](adr/0045-first-install-from-the-configurator.md), which also serves a
+board still on its factory firmware when nothing is connected. The running and
 target slots are on the Info page.
 
 `Update board` is one sequence in the main process: read the three documents
