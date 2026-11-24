@@ -37,7 +37,7 @@ export class DeviceHeartbeat {
 
   private async tick(): Promise<void> {
     if (this.skip()) return
-    await this.runner.run(async ({ port, session, traffic }) => {
+    await this.runner.runPoll(async ({ port, session, traffic }) => {
       const onTraffic = this.runner.operationTraffic(traffic)
       const line = await requestResponse(
         port,

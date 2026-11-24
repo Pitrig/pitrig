@@ -43,6 +43,10 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** The T-Display lap timer starter has the Endurance look, with larger last and best times.
 - **Configurator.** Saved templates, widgets too, keep their images and fonts in one file; removing an image from the PC no longer breaks them.
 
+**Fixed**
+
+- **Configurator.** Save to board, Update board, uploads, a restart and the other actions on a board no longer stop now and then with "another device operation is already running" when they start during the board check every five seconds.
+
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need firmware 0.4.1, and an older configurator cannot open a board that holds one.

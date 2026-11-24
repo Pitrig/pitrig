@@ -89,7 +89,9 @@ chip the Protocol page and the Modules preview draw). The store keeps
 `runningConfiguration` (shown); a live `@PR:APPLY` moves the second and a save
 moves both. The main process polls `@PR:INFO` every five seconds while the link
 is idle, so a document written from elsewhere is noticed rather than
-overwritten.
+overwritten. The poll goes through `OperationRunner.runPoll`, and an operation
+that starts meanwhile waits for it instead of answering `busy`, so work inside
+the poll never goes through `run()`.
 
 ## Live telemetry
 

@@ -9,6 +9,7 @@ import { t } from '@shared/ui-text'
 export class OperationRunner {
   private deviceOperationActive = false
   private pipelineActive = false
+  private poll: Promise<unknown> = Promise.resolve()
   private readonly pipelineScope = new AsyncLocalStorage<true>()
 
   constructor(private readonly connection: ConnectionManager) {}
@@ -22,6 +23,23 @@ export class OperationRunner {
   }
 
   async run<T>(work: (device: OpenedDevice) => Promise<DeviceResult<T>>): Promise<DeviceResult<T>> {
+    await this.waitForPoll()
+    return this.start(work)
+  }
+
+  async runPoll<T>(work: (device: OpenedDevice) => Promise<DeviceResult<T>>): Promise<DeviceResult<T>> {
+    const operation = this.start(work)
+    this.poll = operation
+    return operation
+  }
+
+  async waitForPoll(): Promise<void> {
+    if (this.deviceOperationActive) await this.poll
+  }
+
+  private async start<T>(
+    work: (device: OpenedDevice) => Promise<DeviceResult<T>>
+  ): Promise<DeviceResult<T>> {
     const active = this.getActiveDevice()
     if (!active.ok) return failure(active.error)
     this.deviceOperationActive = true
@@ -47,6 +65,7 @@ export class OperationRunner {
     if (this.pipelineScope.getStore()) return work()
     this.pipelineActive = true
     try {
+      await this.waitForPoll()
       return await this.pipelineScope.run(true, work)
     } finally {
       this.pipelineActive = false

@@ -33,6 +33,7 @@ export async function uploadPackage(
   signal: AbortSignal,
   advance: (session: DeviceSession, packageBytes: Uint8Array) => DeviceSession | undefined
 ): Promise<void> {
+  await runner.waitForPoll()
   const port = connection.port
   const state = connection.getState()
   const session = state.session

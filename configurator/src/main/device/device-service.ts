@@ -85,6 +85,7 @@ export class DeviceService {
   }
 
   async disconnect(): Promise<DeviceResult<DeviceState>> {
+    await this.runner.waitForPoll()
     if (this.runner.operationActive) {
       return failure({
         code: 'busy',
@@ -177,6 +178,7 @@ export class DeviceService {
   }
 
   async reboot(): Promise<DeviceResult<DeviceState>> {
+    await this.runner.waitForPoll()
     const port = this.connection.port
     const connection = this.getState().connection
     const traffic = this.connection.traffic
@@ -266,6 +268,7 @@ export class DeviceService {
   }
 
   async claimForInstall<T>(portId: string, work: (claim: InstallClaim) => Promise<T>): Promise<T> {
+    await this.runner.waitForPoll()
     if (this.isBusy()) {
       throw new DeviceServiceError('busy', t('device.deviceOperation.anotherDeviceOperationIsAlready'))
     }
