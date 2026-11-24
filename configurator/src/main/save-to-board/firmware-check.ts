@@ -19,6 +19,9 @@ export async function refusedByOlderFirmware(input: {
   input.report(t('save.firmwareCheck.checking', { version: running }))
   const checked = await input.deviceService.validateConfiguration(input.json, [...input.changed])
   if (checked.ok) return undefined
+  if (checked.error.code !== 'configuration_rejected') {
+    return saveFailure('device_error', checked.error.message)
+  }
   return saveFailure(
     'firmware_behind',
     t('save.firmwareCheck.refused', {

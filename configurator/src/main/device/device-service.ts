@@ -21,7 +21,7 @@ import {
   saveDeviceConfiguration,
   validateDeviceConfiguration
 } from './device-config-commands'
-import { ConnectionManager } from './device-connection'
+import { ConnectionManager, type OpenedDevice } from './device-connection'
 import { DeviceHeartbeat } from './device-heartbeat'
 import { OperationRunner } from './device-operation'
 import { claimPortForInstall, type InstallClaim } from './install-claim'
@@ -137,17 +137,17 @@ export class DeviceService {
     return resetDeviceConfiguration(this.connection, this.runner, document)
   }
 
-  async sendControlCommand(command: string): Promise<DeviceResult<ControlCommandValue>> {
+  async sendControlCommand(
+    command: string,
+    options: { poll?: boolean } = {}
+  ): Promise<DeviceResult<ControlCommandValue>> {
     const refusal = controlCommandRefusal(command)
     if (refusal) return failure({ code: 'invalid_request', message: refusal })
-    return this.runner.run(async ({ port, traffic }) => {
-      const lines = await sendControlCommand(
-        port,
-        command.trim(),
-        this.runner.operationTraffic(traffic)
-      )
-      return success({ lines })
-    })
+    const send = async (device: OpenedDevice): Promise<DeviceResult<ControlCommandValue>> => {
+      const traffic = this.runner.operationTraffic(device.traffic)
+      return success({ lines: await sendControlCommand(device.port, command.trim(), traffic) })
+    }
+    return options.poll ? this.runner.runPoll(send) : this.runner.run(send)
   }
 
   writeTelemetry(text: string | Uint8Array, onWritten?: (error?: Error) => void): boolean {
@@ -263,8 +263,8 @@ export class DeviceService {
     await this.connection.closeDevicePorts()
   }
 
-  async runPipeline<T>(work: () => Promise<T>): Promise<T> {
-    return this.runner.runPipeline(work)
+  async runPipeline<T>(work: () => Promise<T>, busy: () => T): Promise<T> {
+    return this.runner.runPipeline(work, busy)
   }
 
   async claimForInstall<T>(portId: string, work: (claim: InstallClaim) => Promise<T>): Promise<T> {

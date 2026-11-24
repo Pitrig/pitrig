@@ -54,8 +54,9 @@ export class BoardUpdateService {
     }
     this.running = true
     try {
-      return await this.deviceService.runPipeline(() =>
-        this.run(pending ? undefined : request.sourceId)
+      return await this.deviceService.runPipeline(
+        () => this.run(pending ? undefined : request.sourceId),
+        () => failure('busy', t('device.deviceOperation.theBoardIsBusyWith'))
       )
     } finally {
       this.running = false

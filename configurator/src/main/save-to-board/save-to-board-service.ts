@@ -143,7 +143,7 @@ export class SaveToBoardService {
         imagesUploaded: images.value,
         imagesKept: keptImages(planned.value.images)
       })
-    })
+    }, () => saveFailure('busy', t('device.deviceOperation.theBoardIsBusyWith')))
   }
 
   private async writeDocuments(

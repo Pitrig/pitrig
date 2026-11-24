@@ -19,6 +19,7 @@ import { ensureBenchAssets, type BenchAssetServices } from './bench-assets'
 import { BenchPoller } from './bench-poll'
 import { TelemetryFeed, type TelemetryLink } from './telemetry-feed'
 
+const PIPELINE_BUSY = 'The board is busy with a multi-step operation. Try again when it finishes.'
 const NO_DISPLAY = 'This board has no display, so there is no render pattern to measure.'
 const LINK_LOST = 'The serial link went away, so the feed stopped.'
 const APPLY_ATTEMPTS = 3
@@ -169,7 +170,7 @@ export class BenchService {
         this.pattern = pattern
         this.message = assets.value.notes.join(' ') || undefined
         return success(undefined)
-      })
+      }, () => failure({ code: 'busy', message: PIPELINE_BUSY }))
     } finally {
       this.patternBusy = false
       this.patternStage = undefined

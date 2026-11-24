@@ -47,6 +47,8 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 - **Configurator.** Save to board, Update board, uploads, a restart and the other actions on a board no longer stop now and then with "another device operation is already running" when they start during the board check every five seconds.
 - **Configurator.** Messages about the font limit, update recovery, picture colours and board sync are correct and translated.
+- **Configurator.** A save started while Update board runs stops with "the board is busy" instead of sending its commands in between.
+- **Configurator.** Saving to a board on older firmware that does not answer, or stays busy, says so instead of asking for a firmware update.
 
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 

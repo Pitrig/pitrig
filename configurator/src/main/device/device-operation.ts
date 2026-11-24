@@ -24,11 +24,15 @@ export class OperationRunner {
 
   async run<T>(work: (device: OpenedDevice) => Promise<DeviceResult<T>>): Promise<DeviceResult<T>> {
     await this.waitForPoll()
-    return this.start(work)
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    return this.hold(active.value, work)
   }
 
   async runPoll<T>(work: (device: OpenedDevice) => Promise<DeviceResult<T>>): Promise<DeviceResult<T>> {
-    const operation = this.start(work)
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    const operation = this.hold(active.value, work)
     this.poll = operation
     return operation
   }
@@ -37,14 +41,13 @@ export class OperationRunner {
     if (this.deviceOperationActive) await this.poll
   }
 
-  private async start<T>(
+  private async hold<T>(
+    device: OpenedDevice,
     work: (device: OpenedDevice) => Promise<DeviceResult<T>>
   ): Promise<DeviceResult<T>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
     this.deviceOperationActive = true
     try {
-      return await work(active.value)
+      return await work(device)
     } catch (error) {
       return failure(toDeviceError(error))
     } finally {
@@ -61,8 +64,9 @@ export class OperationRunner {
     }
   }
 
-  async runPipeline<T>(work: () => Promise<T>): Promise<T> {
+  async runPipeline<T>(work: () => Promise<T>, busy: () => T): Promise<T> {
     if (this.pipelineScope.getStore()) return work()
+    if (this.pipelineActive) return busy()
     this.pipelineActive = true
     try {
       await this.waitForPoll()

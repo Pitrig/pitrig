@@ -106,14 +106,27 @@ export async function validateConfiguration(
   payload: string,
   onTraffic: TrafficCallback
 ): Promise<void> {
-  await requestResponse(
-    port,
-    `${CONTROL_PREFIX}VALIDATE:${document}:${payload}\n`,
-    `${CONTROL_PREFIX}OK:VALID:${document}`,
-    writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
-    onTraffic,
-    'configuration_rejected'
-  )
+  try {
+    await requestResponse(
+      port,
+      `${CONTROL_PREFIX}VALIDATE:${document}:${payload}\n`,
+      `${CONTROL_PREFIX}OK:VALID:${document}`,
+      writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
+      onTraffic,
+      'configuration_rejected'
+    )
+  } catch (error) {
+    throw linkFault(error)
+  }
+}
+
+function linkFault(error: unknown): unknown {
+  if (!(error instanceof DeviceServiceError) || error.code !== 'configuration_rejected') {
+    return error
+  }
+  if (error.token === undefined) return new DeviceServiceError('serial_error', error.message)
+  if (error.token === 'busy') return new DeviceServiceError('busy', error.message, error.token)
+  return error
 }
 
 export async function saveConfiguration(

@@ -91,7 +91,9 @@ export class BenchPoller {
 
   private async readDiagnostics(): Promise<BenchSample['diagnostics']> {
     if (this.support === 'unsupported') return undefined
-    const result = await this.host.deviceService.sendControlCommand(DIAGNOSTICS_COMMAND)
+    const result = await this.host.deviceService.sendControlCommand(DIAGNOSTICS_COMMAND, {
+      poll: true
+    })
     if (!result.ok) return undefined
     const reply = result.value.lines.find(isDiagnosticsReply)
     if (reply === undefined) {

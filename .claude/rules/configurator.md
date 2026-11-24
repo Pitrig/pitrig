@@ -91,7 +91,8 @@ moves both. The main process polls `@PR:INFO` every five seconds while the link
 is idle, so a document written from elsewhere is noticed rather than
 overwritten. The poll goes through `OperationRunner.runPoll`, and an operation
 that starts meanwhile waits for it instead of answering `busy`, so work inside
-the poll never goes through `run()`.
+the poll never goes through `run()`. Only one top-level `runPipeline` runs at a
+time: a second one returns its caller's busy result at once.
 
 ## Live telemetry
 
