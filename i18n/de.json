@@ -48,7 +48,6 @@
       }
     },
     "boardSyncDialog": {
-      "theBoardAndTheDraft": "Board und Entwurf unterscheiden sich",
       "boardAndDraftDiffer": "Board und Entwurf weichen ab",
       "showTheDraftOnThe": "Entwurf auf dem Board anzeigen",
       "saveTheDraftToThe": "Entwurf auf dem Board speichern",
@@ -56,6 +55,10 @@
       "onBoardid": " auf {boardId}",
       "takeTheBoardSConfiguration": "Konfiguration des Boards übernehmen",
       "explanation": "{reason} Bisher wurde{board} nichts geschrieben oder angewendet. Wählen Sie, wonach sich beide Seiten richten sollen.",
+      "reason": {
+        "connected": "Das Board hat eine andere Konfiguration als der geöffnete Entwurf.",
+        "board_changed": "Der Inhalt des Boards hat sich während Ihrer Bearbeitung geändert."
+      },
       "documentDiffers": "„{label}“ weicht ab",
       "mirrorTheDraftOnThe": "Entwurf auf dem Board spiegeln, ohne ihn zu schreiben",
       "writeTheDraftToThe": "Entwurf auf das Board schreiben und dort behalten"
@@ -374,7 +377,7 @@
       "mostUsedFirstSearchTo": "Die meistgenutzten zuerst – über die Suche erreichen Sie die übrigen der insgesamt {length}.",
       "nothingMatches": "Nichts passt zu „{query}“. Importieren Sie eine Datei, um eigene Schriftarten hinzuzufügen.",
       "theBoardHoldsMaximumFont": "Das Board fasst {maximum} Schriftfamilien gleichzeitig.",
-      "addingThisFaceWouldPush": "Mit diesem Schnitt würde das Schriftpaket 2 MiB überschreiten.",
+      "addingThisFaceWouldPush": "Mit diesem Schnitt würde das Schriftpaket 3 MiB überschreiten.",
       "aWeightIsItsOwn": "Jeder Schnitt gilt hier als eigene Schriftart, denn das Board speichert einen Schnitt pro Schriftfamilie.",
       "downloading": "Wird heruntergeladen…"
     },
@@ -479,7 +482,7 @@
       "notAnObject": "kein Objekt",
       "notAFontLibrary": "keine Schriftbibliothek",
       "thatFileIsTooSmall": "Diese Datei ist zu klein für einen Schriftschnitt.",
-      "thatFaceIsLargerThan": "Dieser Schnitt ist größer als die gesamte Schriftpartition von 2 MiB."
+      "thatFaceIsLargerThan": "Dieser Schnitt ist größer als die gesamte Schriftpartition von 3 MiB."
     },
     "footprint": "{families} von {maximum} Schriftfamilien · {kilobytes} von 3 MiB",
     "dialog": {
@@ -975,7 +978,7 @@
         "pictures": "Motive, die dieses Panel zeichnen kann, jeweils ein Raster aus Pixeln, die auf Farben einer Palette verweisen, mit bis zu sechzehn Frames. Sie werden im Moduldokument mitgeführt statt übertragen und kosten daher keine Partition, keine Übertragung und keinen Neustart – und eine gespeicherte Konfiguration bringt ihre eigenen Grafiken mit.",
         "name": "Der Name, unter dem Ebenen dieses Motiv ansprechen. Eine Umbenennung wird in jede Ebene übernommen, die es zeichnet. Zwei Motive auf einem Panel dürfen nicht denselben Namen haben.",
         "size": "Spalten und Zeilen des Motivs selbst, die nicht zum Panel passen müssen: Ein kleineres Motiv erscheint mittig in dem Bereich, in dem die Ebene zeichnet. Je größer es ist, desto weniger Frames passen hinein, denn jedes Motiv hat ein eigenes Budget von 1024 Ziffern.",
-        "palette": "Farben, aus denen dieses Motiv gezeichnet wird, höchstens fünfzehn. Wählen Sie eine zum Malen oder „Transparent“, um ein Pixel unbemalt zu lassen, damit die Ebenen darunter sichtbar bleiben – das ist keine Farbe, sondern eine Ziffer hinter dem Ende der Palette, deshalb bleibt die letzte Ziffer frei. Eintrag 1 steht per Konvention, nicht per Regel, für die dunkle Leuchte: Er malt Schwarz über alles, was darunter liegt.",
+        "palette": "Farben, aus denen dieses Motiv gezeichnet wird. Ein Motiv legt höchstens sechzehn Farben fest, eine pro Ziffer; hier lassen sich fünfzehn hinzufügen, weil die letzte Ziffer für „Transparent“ frei bleibt. Wählen Sie eine zum Malen oder „Transparent“, um ein Pixel unbemalt zu lassen, damit die Ebenen darunter sichtbar bleiben – das ist keine Farbe, sondern eine Ziffer hinter dem Ende der Palette. Eintrag 1 steht per Konvention, nicht per Regel, für die dunkle Leuchte: Er malt Schwarz über alles, was darunter liegt.",
         "stripSize": "Wie viele Leuchten ein Frame dieser Animation umfasst. Eine Ebene spielt sie ab ihrer ersten abgedeckten Leuchte in ihrer eigenen Richtung ab, sodass dieselbe Zeichnung für beide Enden eines Lenkrads taugt. Je länger die Reihe, desto weniger Frames passen hinein, denn jedes Motiv hat ein eigenes Budget von 1024 Ziffern.",
         "frames": "Frames der Animation, die eine Ebene mit eingeschaltetem „Frames abspielen“ der Reihe nach abspielt. Wie viele passen, hängt von der Größe ab: sechzehn bei 8 × 8, vier bei 16 × 16. Duplizieren Sie einen Frame, um daraus den nächsten zu zeichnen.",
         "mirror": "Spielt dieses Motiv beim Zeichnen allein auf dem verbundenen Board ab, so wie die Vorschau einer Ebene. Erfordert ein verbundenes Board, das dem Entwurf folgt; wird dies ausgeschaltet, zeigt das Panel wieder die gesamte Konfiguration."
@@ -1255,9 +1258,9 @@
       "inks": "Malfarben",
       "clear": "Transparent",
       "colorEntry1IsThe": "{color} – Eintrag 1 ist per Konvention die dunkle Leuchte",
-      "aPictureNamesUsablePalette": "Ein Motiv kann {uSABLE_PALETTE} Farben festlegen; die letzte Ziffer bleibt für „Transparent“ frei",
+      "aPictureNamesUsablePalette": "Hier lassen sich höchstens {uSABLE_PALETTE} Farben hinzufügen; die letzte der sechzehn Ziffern bleibt für „Transparent“ frei",
       "addsAnotherColourToThis": "Fügt diesem Motiv eine weitere Farbe hinzu",
-      "thisPictureNamesAllSixteen": "Dieses Motiv legt alle sechzehn Farben fest, daher bleibt keine Ziffer für „Transparent“ übrig",
+      "thisPictureNamesAllSixteen": "Dieses Motiv legt sechzehn Farben fest, das Maximum für ein Motiv, daher bleibt keine Ziffer für „Transparent“ übrig",
       "clearsAPixelLeavingThe": "Macht ein Pixel transparent, sodass die Ebenen darunter sichtbar bleiben",
       "ink": "Malfarbe",
       "inkNumber": "Malfarbe {number}",
@@ -1584,7 +1587,7 @@
       "backupName": "Vor Update · {date} · Firmware {version}",
       "backupFailed": "Das Board wurde nicht verändert: Seine Konfiguration konnte nicht nach „Setups“ kopiert werden. {reason}",
       "restarting": "Board wird neu gestartet…",
-      "didNotComeBack": "Das Board hat sich nach dem Neustart nicht wieder gemeldet. Verbinden Sie es neu, öffnen Sie dann auf der Seite „Setups“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
+      "didNotComeBack": "Das Board hat sich nach dem Neustart nicht wieder gemeldet. Verbinden Sie es neu, öffnen Sie dann auf der Seite „Setups“ unter „Zuletzt verwendet“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
       "rolledBack": "Die neue Firmware ist nicht gestartet, daher ist das Board zu {version} zurückgekehrt. Seine Konfiguration ist unverändert.",
       "puttingBack": "Konfiguration wird zurückgespielt: {documents}…",
       "checking": "Inhalt des Boards wird geprüft…",
@@ -1592,8 +1595,8 @@
       "updatedNothingStored": "Auf dem Board läuft {version}. Es hatte keine gespeicherte Konfiguration, daher gab es nichts zurückzuspielen.",
       "updatedAndRestored": "Auf dem Board läuft {version}, seine Konfiguration ist zurückgespielt. Eine Kopie bleibt unter „Setups“ als „{backup}“.",
       "updatedUnchanged": "Auf dem Board läuft {version}, seine Konfiguration ist erhalten geblieben. Eine Kopie bleibt unter „Setups“ als „{backup}“.",
-      "restoreFailed": "Auf dem Board läuft {version}, aber seine Konfiguration konnte nicht zurückgespielt werden: {reason} Öffnen Sie auf der Seite „Setups“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
-      "notVerified": "Auf dem Board läuft {version}, aber sein Inhalt weicht von der Kopie ab. Öffnen Sie auf der Seite „Setups“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
+      "restoreFailed": "Auf dem Board läuft {version}, aber seine Konfiguration konnte nicht zurückgespielt werden: {reason} Öffnen Sie auf der Seite „Setups“ unter „Zuletzt verwendet“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
+      "notVerified": "Auf dem Board läuft {version}, aber sein Inhalt weicht von der Kopie ab. Öffnen Sie auf der Seite „Setups“ unter „Zuletzt verwendet“ die gespeicherte Kopie „{backup}“ und speichern Sie sie auf dem Board.",
       "restoredNotShown": "Auf dem Board läuft {version}, und es hat seine Konfiguration wieder, zeigt sie aber erst nach dem nächsten Neustart. Eine Kopie bleibt unter „Setups“ als „{backup}“.",
       "step": {
         "backup": "Kopieren",
@@ -2317,7 +2320,7 @@
       "anAreaThatSwitchesBetween": "Ein Bereich, der zwischen Seiten wechselt",
       "tapZone": "Tippbereich",
       "anInvisibleRectangleThatTakes": "Ein unsichtbares Rechteck, das auf Tippen reagiert",
-      "theDashboardAlreadyHoldsAs": "Das Dashboard enthält bereits so viele Widgets der Art „{toLowerCase}“, wie das Board Platz bietet.",
+      "theDashboardAlreadyHoldsAs": "Das Dashboard enthält bereits so viele Widgets der Art „{label}“, wie das Board Platz bietet.",
       "labelHintDragABox": "{label} – {hint}. Ziehen Sie auf dem Display einen Rahmen auf, oder klicken Sie, um einen zu platzieren."
     },
     "menuEntries": {

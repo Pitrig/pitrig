@@ -55,7 +55,7 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
             disabled={!enabled || full}
             title={
               full
-                ? t('canvas.toolPalette.theDashboardAlreadyHoldsAs', { toLowerCase: label.toLowerCase() })
+                ? t('canvas.toolPalette.theDashboardAlreadyHoldsAs', { label })
                 : tool === 'select'
                   ? hint
                   : t('canvas.toolPalette.labelHintDragABox', { label: label, hint: hint })

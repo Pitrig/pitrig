@@ -49,7 +49,6 @@
       }
     },
     "boardSyncDialog": {
-      "theBoardAndTheDraft": "La placa y el borrador no coinciden",
       "boardAndDraftDiffer": "Placa y borrador no coinciden",
       "showTheDraftOnThe": "Mostrar el borrador en la placa",
       "saveTheDraftToThe": "Guardar el borrador en la placa",
@@ -57,6 +56,10 @@
       "onBoardid": " en {boardId}",
       "takeTheBoardSConfiguration": "Usar la configuración de la placa",
       "explanation": "{reason} Aún no se ha escrito ni aplicado nada{board}. Elige cuál deben seguir ambos lados.",
+      "reason": {
+        "connected": "La placa tiene una configuración distinta de la del borrador que tienes delante.",
+        "board_changed": "Lo que contiene la placa cambió mientras editabas."
+      },
       "documentDiffers": "{label}: hay diferencias",
       "mirrorTheDraftOnThe": "Reflejar el borrador en la placa sin escribirlo",
       "writeTheDraftToThe": "Escribir el borrador en la placa y conservarlo allí"
@@ -379,7 +382,7 @@
       "mostUsedFirstSearchTo": "Primero las más usadas; busca para ver el resto de las {length}.",
       "nothingMatches": "Nada coincide con «{query}». Importa un archivo para añadir la tuya.",
       "theBoardHoldsMaximumFont": "La placa admite {maximum} familias de fuentes a la vez.",
-      "addingThisFaceWouldPush": "Añadir esta variante haría que el paquete de fuentes superara los 2 MiB.",
+      "addingThisFaceWouldPush": "Añadir esta variante haría que el paquete de fuentes superara los 3 MiB.",
       "aWeightIsItsOwn": "Aquí cada variante es una fuente aparte, porque la placa guarda una sola variante por familia.",
       "downloading": "Descargando…"
     },
@@ -486,7 +489,7 @@
       "notAnObject": "no es un objeto",
       "notAFontLibrary": "no es una biblioteca de fuentes",
       "thatFileIsTooSmall": "Ese archivo es demasiado pequeño para ser una variante de fuente.",
-      "thatFaceIsLargerThan": "Esa variante ocupa más que toda la partición de fuentes de 2 MiB."
+      "thatFaceIsLargerThan": "Esa variante ocupa más que toda la partición de fuentes de 3 MiB."
     },
     "footprint": "{families} de {maximum} familias · {kilobytes} de 3 MiB",
     "dialog": {
@@ -984,7 +987,7 @@
         "pictures": "Dibujos que puede mostrar este panel: cada uno es una cuadrícula de píxeles indexados por paleta, con hasta dieciséis fotogramas. Viajan dentro del documento de módulos en lugar de enviarse aparte, así que no ocupan ninguna partición ni necesitan envío ni reinicio, y una configuración guardada lleva sus propios dibujos.",
         "name": "El nombre con el que las capas se refieren a este dibujo. Si lo cambias, el cambio llega a todas las capas que lo muestran. Dos dibujos de un mismo panel no pueden tener el mismo nombre.",
         "size": "Columnas y filas del propio dibujo, que no tienen por qué coincidir con las del panel: un dibujo más pequeño se muestra centrado en la zona en la que pinta la capa. Cuanto más grande es, menos fotogramas caben, porque cada dibujo tiene su propio límite de 1024 dígitos.",
-        "palette": "Colores con los que está hecho este dibujo, quince como máximo. Elige uno para pintar, o «Transparente» para dejar un píxel sin pintar y que se sigan viendo las capas de debajo: es un dígito más allá del final de la paleta, no un color, y por eso el último se deja libre. Por convención, y no por regla, la entrada 1 es la luz apagada: pinta de negro lo que haya debajo.",
+        "palette": "Colores con los que está hecho este dibujo. Un dibujo admite dieciséis como máximo, uno por dígito; aquí puedes añadir quince, porque el último dígito se reserva para «Transparente». Elige uno para pintar, o «Transparente» para dejar un píxel sin pintar y que se sigan viendo las capas de debajo: es un dígito más allá del final de la paleta, no un color. Por convención, y no por regla, la entrada 1 es la luz apagada: pinta de negro lo que haya debajo.",
         "stripSize": "Luces que abarca un fotograma de esta animación. Una capa la reproduce desde la primera luz que cubre, en su propia dirección, así que el mismo dibujo sirve para los dos extremos de un volante. Cuanto más larga es la fila, menos fotogramas caben, porque cada dibujo tiene su propio límite de 1024 dígitos.",
         "frames": "Fotogramas de la animación, que reproduce en orden una capa con «Reproducir fotogramas» activado. Cuántos caben depende del tamaño: dieciséis de ocho por ocho, cuatro de dieciséis por dieciséis. Duplica un fotograma para dibujar el siguiente a partir de él.",
         "mirror": "Reproduce solo este dibujo en la placa conectada mientras dibujas, igual que la vista previa de una capa. Necesita una placa conectada que esté siguiendo el borrador; al desactivarlo, el panel vuelve a mostrar toda la configuración."
@@ -1264,9 +1267,9 @@
       "inks": "Tintas",
       "clear": "Transparente",
       "colorEntry1IsThe": "{color}: por convención, la entrada 1 es la luz apagada",
-      "aPictureNamesUsablePalette": "Un dibujo admite {uSABLE_PALETTE} colores; el último dígito se reserva para «Transparente»",
+      "aPictureNamesUsablePalette": "Aquí puedes añadir hasta {uSABLE_PALETTE} colores; el último de los dieciséis dígitos se reserva para «Transparente»",
       "addsAnotherColourToThis": "Añade otro color a este dibujo",
-      "thisPictureNamesAllSixteen": "Este dibujo usa los dieciséis colores, así que no queda ningún dígito para «Transparente»",
+      "thisPictureNamesAllSixteen": "Este dibujo usa dieciséis colores, el máximo que admite un dibujo, así que no queda ningún dígito para «Transparente»",
       "clearsAPixelLeavingThe": "Borra un píxel y deja visibles las capas de debajo",
       "ink": "Tinta",
       "inkNumber": "Tinta {number}",
@@ -1596,7 +1599,7 @@
       "backupName": "Antes de actualizar · {date} · firmware {version}",
       "backupFailed": "No se tocó la placa: su configuración no se pudo copiar en «Configuraciones». {reason}",
       "restarting": "Reiniciando la placa…",
-      "didNotComeBack": "La placa no volvió a aparecer después de reiniciarse. Vuelve a conectarla, abre «{backup}» en «Configuraciones» → «Configuraciones guardadas» y guárdala en la placa.",
+      "didNotComeBack": "La placa no volvió a aparecer después de reiniciarse. Vuelve a conectarla, abre «{backup}» en la lista «Recientes» de la página «Configuraciones» y guárdala en la placa.",
       "rolledBack": "El firmware nuevo no arrancó, así que la placa volvió a la versión {version}. Su configuración no se ha tocado.",
       "puttingBack": "Restaurando la configuración de {documents}…",
       "checking": "Comprobando lo que contiene la placa…",
@@ -1604,8 +1607,8 @@
       "updatedNothingStored": "La placa ejecuta la versión {version}. No tenía ninguna configuración guardada, así que no había nada que restaurar.",
       "updatedAndRestored": "La placa ejecuta la versión {version} con su configuración restaurada. Queda una copia en «Configuraciones» como «{backup}».",
       "updatedUnchanged": "La placa ejecuta la versión {version} y conservó su configuración. Queda una copia en «Configuraciones» como «{backup}».",
-      "restoreFailed": "La placa ejecuta la versión {version}, pero su configuración no se pudo restaurar: {reason} Abre «{backup}» en «Configuraciones» → «Configuraciones guardadas» y guárdala en la placa.",
-      "notVerified": "La placa ejecuta la versión {version}, pero lo que contiene no coincide con la copia. Abre «{backup}» en «Configuraciones» → «Configuraciones guardadas» y guárdala en la placa.",
+      "restoreFailed": "La placa ejecuta la versión {version}, pero su configuración no se pudo restaurar: {reason} Abre «{backup}» en la lista «Recientes» de la página «Configuraciones» y guárdala en la placa.",
+      "notVerified": "La placa ejecuta la versión {version}, pero lo que contiene no coincide con la copia. Abre «{backup}» en la lista «Recientes» de la página «Configuraciones» y guárdala en la placa.",
       "restoredNotShown": "La placa ejecuta la versión {version} y vuelve a tener su configuración, pero solo la mostrará después del próximo reinicio. Queda una copia en «Configuraciones» como «{backup}».",
       "step": {
         "backup": "Copiar",
@@ -2339,7 +2342,7 @@
       "anAreaThatSwitchesBetween": "Una zona que cambia entre páginas",
       "tapZone": "Zona táctil",
       "anInvisibleRectangleThatTakes": "Un rectángulo invisible que recibe un toque",
-      "theDashboardAlreadyHoldsAs": "El dashboard ya tiene tantos widgets de tipo {toLowerCase} como caben en la placa.",
+      "theDashboardAlreadyHoldsAs": "El dashboard ya tiene tantos widgets de tipo «{label}» como caben en la placa.",
       "labelHintDragABox": "{label} — {hint}. Arrastra un recuadro en la pantalla o haz clic para colocar uno."
     },
     "menuEntries": {

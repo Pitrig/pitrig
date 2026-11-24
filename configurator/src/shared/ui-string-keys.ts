@@ -356,10 +356,11 @@ export type UiStringKey =
   | 'device.boardSyncDialog.explanation'
   | 'device.boardSyncDialog.mirrorTheDraftOnThe'
   | 'device.boardSyncDialog.onBoardid'
+  | 'device.boardSyncDialog.reason.board_changed'
+  | 'device.boardSyncDialog.reason.connected'
   | 'device.boardSyncDialog.saveTheDraftToThe'
   | 'device.boardSyncDialog.showTheDraftOnThe'
   | 'device.boardSyncDialog.takeTheBoardSConfiguration'
-  | 'device.boardSyncDialog.theBoardAndTheDraft'
   | 'device.boardSyncDialog.writeTheDraftToThe'
   | 'device.bridgeErrors.theConfigurationBridgeIsNot'
   | 'device.bridgeErrors.theConfigurationFileOperationFailed'
@@ -2097,7 +2098,7 @@ export interface UiStringParameters {
   'canvas.slotTabs.pageNumberShownBy': { binding: string | number, number: string | number }
   'canvas.slotTabs.workInsideId': { id: string | number }
   'canvas.toolPalette.labelHintDragABox': { hint: string | number, label: string | number }
-  'canvas.toolPalette.theDashboardAlreadyHoldsAs': { toLowerCase: string | number }
+  'canvas.toolPalette.theDashboardAlreadyHoldsAs': { label: string | number }
   'common.listAndMore': { rest: string | number, shown: string | number }
   'common.pageNumber': { number: string | number }
   'common.screenNumber': { number: string | number }

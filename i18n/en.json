@@ -51,7 +51,6 @@
       }
     },
     "boardSyncDialog": {
-      "theBoardAndTheDraft": "The board and the draft differ",
       "boardAndDraftDiffer": "Board and draft differ",
       "showTheDraftOnThe": "Show the draft on the board",
       "saveTheDraftToThe": "Save the draft to the board",
@@ -59,6 +58,10 @@
       "onBoardid": " on {boardId}",
       "takeTheBoardSConfiguration": "Take the board’s configuration",
       "explanation": "{reason} Nothing has been written or applied yet{board}. Pick which one both sides should follow.",
+      "reason": {
+        "connected": "The board holds a different configuration than the draft in front of you.",
+        "board_changed": "What the board holds changed while you were editing."
+      },
       "documentDiffers": "{label} differs",
       "mirrorTheDraftOnThe": "Mirror the draft on the board without writing it",
       "writeTheDraftToThe": "Write the draft to the board and keep it there"
@@ -378,7 +381,7 @@
       "mostUsedFirstSearchTo": "Most used first — search to reach the rest of the {length}.",
       "nothingMatches": "Nothing matches “{query}”. Import a file to add your own.",
       "theBoardHoldsMaximumFont": "The board holds {maximum} font families at a time.",
-      "addingThisFaceWouldPush": "Adding this face would push the font package past 2 MiB.",
+      "addingThisFaceWouldPush": "Adding this face would push the font package past 3 MiB.",
       "aWeightIsItsOwn": "A weight is its own font here, because the board holds one face per family.",
       "downloading": "Downloading…"
     },
@@ -483,7 +486,7 @@
       "notAnObject": "not an object",
       "notAFontLibrary": "not a font library",
       "thatFileIsTooSmall": "That file is too small to be a font face.",
-      "thatFaceIsLargerThan": "That face is larger than the whole 2 MiB font partition."
+      "thatFaceIsLargerThan": "That face is larger than the whole 3 MiB font partition."
     },
     "footprint": "{families} of {maximum} families · {kilobytes} of 3 MiB",
     "dialog": {
@@ -580,7 +583,7 @@
         "inverted": "Lights from the far end instead of the near one, which is what makes a mirrored pair of rev bars out of one authored strip. Which lamp lights when does not change."
       },
       "graph": {
-        "points": "How many samples each trace keeps and how often one is taken — together they are the window the plot shows. One clock for the whole widget, so several traces line up along it. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.",
+        "points": "How many samples each trace keeps and how often one is taken — together they are the window the plot shows. One clock for the whole widget, so several traces line up along it. The graph is the most expensive widget to draw, so keep the point count only as high as it needs to be.",
         "traces": "Further sources drawn over the same plot, up to three in all counting the widget’s own. Each carries its own range, which is what lets speed and throttle share one plot without either flattening against an edge.",
         "width": "Thickness of every trace. Half of it is kept clear inside the plot on each side — plus whatever a rounded frame needs for the corners to clear the curve — so a value at the top or the bottom of its range is drawn whole rather than cut by the frame."
       },
@@ -979,7 +982,7 @@
         "pictures": "Pictures this panel can draw, each a grid of palette-indexed pixels and up to sixteen frames of it. They travel inside the modules document rather than being uploaded, so they cost no partition, no upload and no restart — and a saved configuration carries its own artwork.",
         "name": "What layers name this picture by. Renaming it follows through to every layer that draws it. Two pictures on one panel may not share a name.",
         "size": "Columns and rows of the picture itself, which need not match the panel: a smaller picture is drawn centred on whatever the layer paints on. The bigger it is the fewer frames fit, because each picture has a 1024-digit budget of its own.",
-        "palette": "Colours this picture is drawn from, at most fifteen of them. Pick one to paint with, or Clear to leave a pixel unpainted so the layers below stay visible — that is a digit past the end of the palette rather than a colour, which is why the last one is kept free. Entry 1 is the unlit lamp by convention rather than by rule: it paints black over whatever is under it.",
+        "palette": "Colours this picture is drawn from. A picture names at most sixteen, one per digit; you can add fifteen here, because the last digit is kept for Clear. Pick one to paint with, or Clear to leave a pixel unpainted so the layers below stay visible — that is a digit past the end of the palette rather than a colour. Entry 1 is the unlit lamp by convention rather than by rule: it paints black over whatever is under it.",
         "stripSize": "Lamps one frame of this animation spans. A layer plays it from the first lamp it covers, in its own direction, so the same drawing serves both ends of a wheel. The longer the row, the fewer frames fit, because each picture has a 1024-digit budget of its own.",
         "frames": "Frames of the animation, played in order by a layer with Play frames switched on. How many fit follows the size: sixteen of eight by eight, four of sixteen by sixteen. Duplicate a frame to draw the next one from it.",
         "mirror": "Plays this picture on the connected board while you draw, on its own, the way a layer previews. Needs a connected board that is following the draft; the panel goes back to the whole configuration when this is switched off."
@@ -1259,9 +1262,9 @@
       "inks": "Inks",
       "clear": "Clear",
       "colorEntry1IsThe": "{color} — entry 1 is the unlit lamp by convention",
-      "aPictureNamesUsablePalette": "A picture names {uSABLE_PALETTE} colours; the last digit is kept for clear",
+      "aPictureNamesUsablePalette": "You can add at most {uSABLE_PALETTE} colours here; the last of the sixteen digits is kept for clear",
       "addsAnotherColourToThis": "Adds another colour to this picture",
-      "thisPictureNamesAllSixteen": "This picture names all sixteen colours, so no digit is left over to mean clear",
+      "thisPictureNamesAllSixteen": "This picture names sixteen colours, the most a picture can hold, so no digit is left over to mean clear",
       "clearsAPixelLeavingThe": "Clears a pixel, leaving the layers below it visible",
       "ink": "Ink",
       "inkNumber": "Ink {number}",
@@ -1589,7 +1592,7 @@
       "backupName": "Before update · {date} · firmware {version}",
       "backupFailed": "The board was not touched: its configuration could not be copied to Configs. {reason}",
       "restarting": "Restarting the board…",
-      "didNotComeBack": "The board did not come back after restarting. Reconnect it, then open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "didNotComeBack": "The board did not come back after restarting. Reconnect it, then open “{backup}” in the Recent list on the Configs page and save it to the board.",
       "rolledBack": "The new firmware did not start, so the board went back to {version}. Its configuration is untouched.",
       "puttingBack": "Putting back the {documents} configuration…",
       "checking": "Checking what the board holds…",
@@ -1597,8 +1600,8 @@
       "updatedNothingStored": "The board runs {version}. It held no saved configuration, so there was nothing to put back.",
       "updatedAndRestored": "The board runs {version} with its configuration put back. A copy stays in Configs as “{backup}”.",
       "updatedUnchanged": "The board runs {version} and kept its configuration. A copy stays in Configs as “{backup}”.",
-      "restoreFailed": "The board runs {version}, but its configuration could not be put back: {reason} Open “{backup}” under Configs → Saved configurations and save it to the board.",
-      "notVerified": "The board runs {version}, but what it holds differs from the copy. Open “{backup}” under Configs → Saved configurations and save it to the board.",
+      "restoreFailed": "The board runs {version}, but its configuration could not be put back: {reason} Open “{backup}” in the Recent list on the Configs page and save it to the board.",
+      "notVerified": "The board runs {version}, but what it holds differs from the copy. Open “{backup}” in the Recent list on the Configs page and save it to the board.",
       "restoredNotShown": "The board runs {version} and holds its configuration again, but shows it only after the next restart. A copy stays in Configs as “{backup}”.",
       "step": {
         "backup": "Copy",
@@ -2326,7 +2329,7 @@
       "anAreaThatSwitchesBetween": "An area that switches between pages",
       "tapZone": "Tap zone",
       "anInvisibleRectangleThatTakes": "An invisible rectangle that takes a tap",
-      "theDashboardAlreadyHoldsAs": "The dashboard already holds as many {toLowerCase} widgets as the board has room for.",
+      "theDashboardAlreadyHoldsAs": "The dashboard already holds as many {label} widgets as the board has room for.",
       "labelHintDragABox": "{label} — {hint}. Drag a box on the display, or click to place one."
     },
     "menuEntries": {
