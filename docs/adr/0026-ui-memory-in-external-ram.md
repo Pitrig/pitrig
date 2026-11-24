@@ -69,8 +69,8 @@ places the translation units a frame runs through — the software blender, the
 rect, border, label and glyph paths, the refresh loop, the style and text
 lookups — in internal RAM through a linker fragment. That fragment buys ~20% of
 the render time for ~62 KB of internal RAM, which the board has to spare once
-LVGL's heap lives in external memory. The ESP32-P4 gets none of it: it is not cache-bound, its L2 at 256 KB changes nothing, and `-Os` costs it
-12%. Ten software-renderer sources are the exception to compiling for size:
+LVGL's heap lives in external memory. The ESP32-P4 gets none of it: its L2
+cache runs at 256 KB instead (ADR 0027), and `-Os` costs it 12%. Ten software-renderer sources are the exception to compiling for size:
 `cmake/apply_lvgl_sw_patch.cmake` builds them with `-O2` on a size-optimised
 build, for about 9 % of a heavy round frame; the six of them in the fragment
 take 4.8 KB more internal RAM.
@@ -173,10 +173,11 @@ another 128 KB. Validation's scratch grew by 1,536 bytes, so the main task went 
 7,168 bytes and the configuration control task to 9,728, the one rise in static
 internal RAM on every board. Since then that scratch lives in the configuration
 memory in external RAM, so a cap no longer reaches a task stack: the control
-task's deepest measured use fell from 7,276 to 2,748 bytes. The command line, the
-command and the stored record share one payload-sized buffer, and fonts, images and
-firmware upload on one task, which left every board 12.4 KB more internal RAM and
-about 380 KB more external RAM.
+task's deepest measured use fell from 7,276 to 2,748 bytes for a stored dashboard
+and 4,540 for the deepest `APPLY` of the bench patterns, so its stack is now
+7,680. The command line, the command and the stored record share one
+payload-sized buffer, and fonts, images and firmware upload on one task, which
+left every board 14 KB more internal RAM and about 380 KB more external RAM.
 
 What the pools do not buy is a screen filled to 255. Widgets spread across four
 screens are free while three of them are not shown, but every object on the
@@ -210,11 +211,14 @@ records the current setting rather than the older blanket rejection.
   snapshots cost a full render each on top. See
   [runtime-performance.md](../runtime-performance.md).
 - **Flash QIO instead of DIO, cache line 32 → 64 B, cache wrap mode, a 16 ms
-  refresh period, the ESP32-P4's L2 cache at 256 KB**: all within noise, and the
-  L2 change costs 130 KB of internal RAM for it. QIO measured 5 % on the
+  refresh period**: all within noise. QIO measured 5 % on the
   heaviest round-dial frame later, still too little for a bootloader that only
   a cable can replace.
 - **Smaller ring repaint pieces and a 64-entry invalidation buffer**: every
   piece size from 6° to 25°, uniform or only near the diagonals, drew
   `round-dial-480` slower than 30° pieces, because every redrawn area costs
   about 1 ms of object and task work whatever its size.
+- **`GET` reading the stored document back from NVS** instead of keeping a copy,
+  for 225 KB of external RAM: NVS reads stall the cache of both cores, so on the
+  ESP32-P4 a `GET` of a 159 KB dashboard took 0.72 s instead of 0.35 and drew 50
+  frames instead of 59 in that second.

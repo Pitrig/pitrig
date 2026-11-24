@@ -85,7 +85,10 @@ waited for scan-out, so it is unchanged.
   cache at 256 KB instead of 128 (`sdkconfig.defaults.esp32p4`), together
   +38–47% before the flush move — the render core was starving on code and
   frame-buffer fetch, not on arithmetic. The 256 KB cache costs 128 KB of
-  internal RAM. In the partial mode that was measured under, it was paid for by
+  internal RAM, and it still earns them in the full-strips mode: back at 128 KB
+  the sixteen bench patterns drew 35 % slower on average (text_16 8.2 → 12.6 ms,
+  graphs_6 27.3 → 39.9 ms), measured on 2026-11-23. In the partial mode that was
+  measured under, it was paid for by
   shrinking the render strips from 60 to 40 lines (measured free: −0–2%),
   because with 60-line strips the second LVGL buffer no longer fits and startup
   lands in safe mode. That trade is the partial mode's alone: the default
