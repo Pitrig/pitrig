@@ -1686,6 +1686,7 @@ export type UiStringKey =
   | 'save.imageDelivery.tooLarge'
   | 'save.imageDelivery.tooMany'
   | 'save.imageDelivery.unavailable'
+  | 'save.memoryCheck.tooLarge'
   | 'save.saveToBoardService.checkingTheFontsThisDashboard'
   | 'save.saveToBoardService.noPitrigBoardIsConnected'
   | 'save.saveToBoardService.nothingToSaveTheBoard'
@@ -2468,6 +2469,7 @@ export interface UiStringParameters {
   'save.imageDelivery.tooLarge': { limit: string | number, size: string | number }
   'save.imageDelivery.tooMany': { count: number, maximum: string | number }
   'save.imageDelivery.unavailable': { images: string | number }
+  'save.memoryCheck.tooLarge': { available: string | number, fonts: string | number, images: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
   'share.dialog.saved': { fileName: string | number, size: string | number }
   'share.dialog.savedWithout': { names: string | number }

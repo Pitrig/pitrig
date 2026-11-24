@@ -104,6 +104,7 @@ export interface LedDescriptor {
 
 export interface BoardProfile {
   display?: DisplayDescriptor
+  assetMemoryBytes?: number
   telemetryUartBaudRate?: number
   transports: { uart: boolean; nativeUsbCdc: boolean }
   led: LedDescriptor
@@ -117,12 +118,14 @@ export const BOARD_PROFILES: Record<PitrigBoardId, BoardProfile> = {
   },
   guition_esp32_4848s040: {
     display: { width: 480, height: 480, configurable: false },
+    assetMemoryBytes: 2_175 * 1_024,
     telemetryUartBaudRate: 460_800,
     transports: { uart: true, nativeUsbCdc: false },
     led: { outputs: 4, pins: [1, 2, 40, 41, 42] }
   },
   guition_jc1060p470c: {
     display: { width: 1024, height: 600, configurable: false },
+    assetMemoryBytes: 20 * 1_024 * 1_024,
     transports: { uart: false, nativeUsbCdc: true },
     led: { outputs: 4, pins: [1, 2, 3, 4, 5, 20, 32, 33, 45, 46, 47] }
   },

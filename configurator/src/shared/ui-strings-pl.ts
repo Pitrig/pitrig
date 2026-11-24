@@ -1749,6 +1749,7 @@ export const PL_UI_STRINGS: Readonly<Record<string, string>> = {
   'save.imageDelivery.tooLarge': 'Obrazy tego dashboardu potrzebują {size} KB, a płytka mieści {limit} KB obrazów.',
   'save.imageDelivery.tooMany': 'Liczba obrazów w tym dashboardzie: {count}, a płytka mieści najwyżej {maximum}.',
   'save.imageDelivery.unavailable': 'Ten dashboard rysuje obrazy, których nie ma ani na tym komputerze, ani na płytce: {images}. Dodaj je na stronie Obrazy.',
+  'save.memoryCheck.tooLarge': 'Czcionki tego dashboardu zajmują {fonts} KB, a obrazy {images} KB pamięci operacyjnej płytki. Płytka ma na nie tylko {available} KB. Użyj mniej czcionek albo mniejszych obrazów.',
   'save.saveToBoardService.checkingTheFontsThisDashboard': 'Sprawdzanie czcionek i obrazów potrzebnych temu dashboardowi',
   'save.saveToBoardService.noPitrigBoardIsConnected': 'Nie połączono żadnej płytki Pitrig.',
   'save.saveToBoardService.nothingToSaveTheBoard': 'Nie ma nic do zapisania — płytka ma już tę konfigurację.',

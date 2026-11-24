@@ -4,12 +4,12 @@ import {
   MAXIMUM_FONT_FAMILIES,
   MAXIMUM_FONT_PACKAGE_SIZE
 } from '../../shared/font-assets'
+import { FONT_PACKAGE_DATA_OFFSET } from '../../shared/font-library'
 import { t } from '@shared/ui-text'
 import { PackageTooLargeError } from '../assets/asset-service-base'
 
 const HEADER_SIZE = 32
 const MANIFEST_ENTRY_SIZE = 48
-const ASSET_DATA_OFFSET = 4096
 const FORMAT_VERSION = 3
 const MINIMUM_FACE_SIZE = 128
 const SFNT_SIGNATURES = [0x00010000, 0x4f54544f, 0x74727565, 0x74746366] as const
@@ -32,7 +32,7 @@ export function buildFontPackage(assets: FontFamilyAsset[]): BuiltFontPackage {
   validateAssets(ordered)
 
   const placements: Array<{ asset: FontFamilyAsset; offset: number }> = []
-  let packageSize = ASSET_DATA_OFFSET
+  let packageSize = FONT_PACKAGE_DATA_OFFSET
   for (const asset of ordered) {
     packageSize = align4(packageSize)
     placements.push({ asset, offset: packageSize })
@@ -66,7 +66,7 @@ export function buildFontPackage(assets: FontFamilyAsset[]): BuiltFontPackage {
   }
 
   const manifest = output.subarray(HEADER_SIZE, HEADER_SIZE + ordered.length * MANIFEST_ENTRY_SIZE)
-  const payloadCrc = crc32(output.subarray(ASSET_DATA_OFFSET))
+  const payloadCrc = crc32(output.subarray(FONT_PACKAGE_DATA_OFFSET))
   view.setUint32(20, crc32(manifest), true)
   view.setUint32(24, payloadCrc, true)
   view.setUint32(28, crc32(output.subarray(0, 28)), true)
@@ -78,7 +78,7 @@ function validateAssets(assets: FontFamilyAsset[]): void {
   if (assets.length > MAXIMUM_FONT_FAMILIES) {
     throw new Error(t('fonts.fontPackage.aFontPackageSupportsAt', { mAXIMUM_FONT_FAMILIES: MAXIMUM_FONT_FAMILIES }))
   }
-  if (HEADER_SIZE + assets.length * MANIFEST_ENTRY_SIZE > ASSET_DATA_OFFSET) {
+  if (HEADER_SIZE + assets.length * MANIFEST_ENTRY_SIZE > FONT_PACKAGE_DATA_OFFSET) {
     throw new Error(t('fonts.fontPackage.theFontPackageManifestExceeds'))
   }
   const families = new Set<string>()

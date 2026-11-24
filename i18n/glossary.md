@@ -17,6 +17,7 @@ introduces it.
 | face, weight (a font file) | накреслення | krój | 글꼴 파일 | Schnitt | variante |
 | image (picture, the Image widget) | зображення | obraz | 이미지 | Bild | imagen |
 | firmware image | образ прошивки | obraz firmware | 펌웨어 이미지 | Firmware-Image | imagen de firmware |
+| working memory (RAM) | оперативна пам’ять | pamięć operacyjna | RAM | Arbeitsspeicher | memoria RAM |
 | picture (LED picture) | малюнок | obrazek | 그림 | Motiv | dibujo |
 | Shape widget / Lights widget | Фігура / Вогні | Kształt / Lampki | 도형 / 라이트 | Form / Leuchten | Forma / Luces |
 | canvas / box | полотно / прямокутник | płótno / obszar | 캔버스 / 박스 | Arbeitsfläche / Rahmen | lienzo / recuadro |

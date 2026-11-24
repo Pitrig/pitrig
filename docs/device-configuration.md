@@ -383,7 +383,12 @@ identifier is the id of an entry in the image library the same way
 ([ADR 0018](adr/0018-uploaded-image-assets.md#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs)):
 the save installs exactly the images the dashboard draws, keeps the board's own
 copy of one this PC lacks, and stops before writing when an image is on neither
-or when installing would remove a picture only the board holds.
+or when installing would remove a picture only the board holds. The board copies
+every face of its package and decodes every image the dashboard draws into
+external RAM at startup, so a save also stops when the fonts and images the
+board would hold pass the `assetMemoryBytes` measured for its board and more
+than it holds now; only the ESP32-4848S040 and the JC1060P470C have a figure so
+far.
 Firmware checks fonts and images alike before it lets a configuration replace
 the running dashboard.
 

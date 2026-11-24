@@ -1686,6 +1686,7 @@ export const KO_UI_STRINGS: Readonly<Record<string, string>> = {
   'save.imageDelivery.tooLarge': '이 대시보드의 이미지에는 {size} KB가 필요하지만 보드에는 이미지를 {limit} KB까지만 담을 수 있습니다.',
   'save.imageDelivery.tooMany': '이 대시보드는 이미지 {count}개를 그리지만 보드에는 최대 {maximum}개까지 담을 수 있습니다.',
   'save.imageDelivery.unavailable': '이 대시보드가 그리는 이미지 중 이 PC에도 보드에도 없는 이미지가 있습니다: {images}. “이미지” 페이지에서 추가하십시오.',
+  'save.memoryCheck.tooLarge': '이 대시보드의 글꼴과 이미지에는 보드 RAM이 각각 {fonts} KB, {images} KB 필요하지만 보드에는 이를 위한 공간이 {available} KB뿐입니다. 글꼴 수를 줄이거나 더 작은 이미지를 사용하십시오.',
   'save.saveToBoardService.checkingTheFontsThisDashboard': '이 대시보드에 필요한 글꼴과 이미지 확인 중',
   'save.saveToBoardService.noPitrigBoardIsConnected': '연결된 Pitrig 보드가 없습니다.',
   'save.saveToBoardService.nothingToSaveTheBoard': '저장할 내용이 없습니다 — 보드에 이미 이 구성이 있습니다.',

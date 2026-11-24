@@ -1547,6 +1547,9 @@
       "tooLarge": "Obrazy tego dashboardu potrzebują {size} KB, a płytka mieści {limit} KB obrazów.",
       "boardOnly": "Tylko płytka ma obrazy {images}, a ten komputer nie ma ich kopii, więc nie można zainstalować {pending} bez ich usunięcia. Najpierw dodaj {images} na stronie Obrazy.",
       "fontsWithoutImages": "Czcionki zostały zainstalowane, ale obrazy nie: {error} Jeszcze raz użyj „Zapisz na płytce”, zanim płytka uruchomi się ponownie, inaczej uruchomi się bez swoich obrazów."
+    },
+    "memoryCheck": {
+      "tooLarge": "Czcionki tego dashboardu zajmują {fonts} KB, a obrazy {images} KB pamięci operacyjnej płytki. Płytka ma na nie tylko {available} KB. Użyj mniej czcionek albo mniejszych obrazów."
     }
   },
   "common": {

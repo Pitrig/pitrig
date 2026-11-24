@@ -1728,6 +1728,7 @@ export const ES_UI_STRINGS: Readonly<Record<string, string>> = {
   'save.imageDelivery.tooLarge': 'Las imágenes de este dashboard necesitan {size} KB, y una placa admite {limit} KB de imágenes.',
   'save.imageDelivery.tooMany': 'Imágenes que dibuja este dashboard: {count}. Una placa admite como máximo {maximum}.',
   'save.imageDelivery.unavailable': 'Este dashboard dibuja imágenes que no están ni en este PC ni en la placa: {images}. Añádelas en la página «Imágenes».',
+  'save.memoryCheck.tooLarge': 'Las fuentes de este dashboard necesitan {fonts} KB y sus imágenes {images} KB de la memoria RAM de la placa, que solo tiene {available} KB para ellas. Usa menos fuentes o imágenes más pequeñas.',
   'save.saveToBoardService.checkingTheFontsThisDashboard': 'Comprobando las fuentes e imágenes que necesita este dashboard',
   'save.saveToBoardService.noPitrigBoardIsConnected': 'No hay ninguna placa Pitrig conectada.',
   'save.saveToBoardService.nothingToSaveTheBoard': 'No hay nada que guardar: la placa ya tiene esta configuración.',

@@ -1523,6 +1523,9 @@
       "tooLarge": "Die Bilder dieses Dashboards brauchen {size} KB, ein Board fasst {limit} KB an Bildern.",
       "boardOnly": "Nur das Board hat {images}, und dieser PC hat keine Kopie. Daher ist die Installation von {pending} nicht möglich, ohne diese Bilder vom Board zu entfernen. Fügen Sie zuerst {images} auf der Seite „Bilder“ hinzu.",
       "fontsWithoutImages": "Die Schriftarten wurden installiert, die Bilder aber nicht: {error} Führen Sie „Auf Board speichern“ erneut aus, bevor das Board neu startet, sonst startet es ohne seine Bilder."
+    },
+    "memoryCheck": {
+      "tooLarge": "Die Schriftarten dieses Dashboards brauchen {fonts} KB und seine Bilder {images} KB Arbeitsspeicher, das Board hat dafür nur {available} KB. Verwenden Sie weniger Schriftarten oder kleinere Bilder."
     }
   },
   "common": {

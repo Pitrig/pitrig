@@ -1528,6 +1528,9 @@
       "tooLarge": "This dashboard's images need {size} KB, and a board holds {limit} KB of images.",
       "boardOnly": "Only the board holds {images}, and this PC has no copy, so it cannot install {pending} without removing them. Add {images} on the Images page first.",
       "fontsWithoutImages": "The fonts were installed but the images were not: {error} Save to board again before the board restarts, or it starts without its images."
+    },
+    "memoryCheck": {
+      "tooLarge": "This dashboard's fonts need {fonts} KB and its images {images} KB of the board's working memory, and the board has {available} KB for them. Use fewer fonts or smaller images."
     }
   },
   "common": {

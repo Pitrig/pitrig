@@ -1707,6 +1707,7 @@ export const EN_UI_STRINGS: Readonly<Record<string, string>> = {
   'save.imageDelivery.tooLarge': 'This dashboard\'s images need {size} KB, and a board holds {limit} KB of images.',
   'save.imageDelivery.tooMany': 'This dashboard draws {count} images, and a board holds at most {maximum}.',
   'save.imageDelivery.unavailable': 'This dashboard draws images that are neither on this PC nor on the board: {images}. Add them on the Images page.',
+  'save.memoryCheck.tooLarge': 'This dashboard\'s fonts need {fonts} KB and its images {images} KB of the board\'s working memory, and the board has {available} KB for them. Use fewer fonts or smaller images.',
   'save.saveToBoardService.checkingTheFontsThisDashboard': 'Checking the fonts and images this dashboard needs',
   'save.saveToBoardService.noPitrigBoardIsConnected': 'No Pitrig board is connected.',
   'save.saveToBoardService.nothingToSaveTheBoard': 'Nothing to save — the board already holds this configuration.',

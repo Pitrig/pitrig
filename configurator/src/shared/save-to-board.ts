@@ -51,6 +51,7 @@ export interface SaveToBoardError {
     | 'font_upload_failed'
     | 'image_upload_failed'
     | 'images_unavailable'
+    | 'assets_too_large'
     | 'firmware_behind'
   message: string
 }

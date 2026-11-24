@@ -159,7 +159,9 @@ there too. An unresolvable family stops the save and asks for a file, an image
 on neither this PC nor the board stops it with the names, as does one the save
 could install only by dropping a picture just the board holds, and live apply is
 suppressed while the board lacks a family or an image, because firmware rejects
-the document whole. `family` **is** the library id — bundled, Google or
+the document whole. A save also stops in `memory-check.ts` when the faces and
+decoded images the board would hold pass the board profile's `assetMemoryBytes`
+and more than it holds now. `family` **is** the library id — bundled, Google or
 imported — and a weight is its own entry and one of the eight slots; an image id
 is an image-library id the same way.
 

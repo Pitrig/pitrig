@@ -1749,6 +1749,7 @@ export const UK_UI_STRINGS: Readonly<Record<string, string>> = {
   'save.imageDelivery.tooLarge': 'Зображення цього дашборда займають {size} KB, а плата вміщує {limit} KB зображень.',
   'save.imageDelivery.tooMany': 'Зображень у цьому дашборді: {count}, а плата вміщує щонайбільше {maximum}.',
   'save.imageDelivery.unavailable': 'Цей дашборд показує зображення, яких немає ні на цьому комп’ютері, ні на платі: {images}. Додайте їх на сторінці «Зображення».',
+  'save.memoryCheck.tooLarge': 'Шрифти цього дашборда займають {fonts} KB, а зображення {images} KB оперативної пам’яті плати. Плата має для них лише {available} KB. Використайте менше шрифтів або менші зображення.',
   'save.saveToBoardService.checkingTheFontsThisDashboard': 'Перевірка шрифтів і зображень, потрібних цьому дашборду',
   'save.saveToBoardService.noPitrigBoardIsConnected': 'Плату Pitrig не під’єднано.',
   'save.saveToBoardService.nothingToSaveTheBoard': 'Немає чого зберігати — плата вже містить цю конфігурацію.',

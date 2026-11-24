@@ -25,8 +25,9 @@ import { FontAssetService } from '../font-assets/font-asset-service'
 import type { ImageAssetService } from '../image-assets/image-asset-service'
 import type { ImageLibraryService } from '../image-library/image-library-service'
 import { refusedByOlderFirmware } from './firmware-check'
-import { deliverFonts, plannedFamilies, type FontSources } from './font-delivery'
-import { deliverImages, plannedImages } from './image-delivery'
+import { packageAssets, planAssets } from './asset-plan'
+import { deliverFonts, type FontSources } from './font-delivery'
+import { deliverImages } from './image-delivery'
 import { messageOf, saveFailure, withMessage, type RestartOutcome } from './save-results'
 
 export interface SaveOptions {
@@ -36,11 +37,6 @@ export interface SaveOptions {
 export interface ImageSources {
   imageAssets: ImageAssetService
   library: ImageLibraryService
-}
-
-interface AssetPlan {
-  families: string[]
-  images: ImageDeliveryPlan | undefined
 }
 
 export class SaveToBoardService {
@@ -94,18 +90,34 @@ export class SaveToBoardService {
 
     this.report('preparing', 0, 1, t('save.saveToBoardService.checkingTheFontsThisDashboard'))
     const planned = assetsInScope
-      ? await this.planAssets(configuration, session, changed, options)
+      ? await planAssets({
+          configuration,
+          session,
+          changed,
+          keepBoardAssets: options.keepBoardAssets ?? false,
+          fonts: this.fonts,
+          library: this.images.library
+        })
       : { ok: true as const, value: { families: [], images: undefined } }
     if (!planned.ok) return planned.result
 
     return this.deviceService.runPipeline(async () => {
       const step = (message: string): void => this.report('building', 0, 1, message)
+      const fontPackage = assetsInScope
+        ? await packageAssets({
+            plan: planned.value,
+            session,
+            fontAssets: this.fontAssets,
+            library: this.images.library,
+            report: step
+          })
+        : { ok: true as const, value: undefined }
+      if (!fontPackage.ok) return fontPackage.result
       const fonts = await deliverFonts({
-        families: planned.value.families,
+        fontPackage: fontPackage.value,
         session,
         fontAssets: this.fontAssets,
         restart: () => this.restart(),
-        report: step,
         onProgress: this.forwardUploadProgress
       })
       if (!fonts.ok) return fonts.result
@@ -132,30 +144,6 @@ export class SaveToBoardService {
         imagesKept: keptImages(planned.value.images)
       })
     })
-  }
-
-  private async planAssets(
-    configuration: DeviceConfiguration,
-    session: DeviceSession,
-    changed: readonly ConfigurationDocumentId[],
-    options: SaveOptions
-  ): Promise<{ ok: true; value: AssetPlan } | { ok: false; result: SaveToBoardResult }> {
-    const families = await plannedFamilies({
-      configuration,
-      session,
-      changed,
-      keepBoardFonts: options.keepBoardAssets ?? false,
-      sources: this.fonts
-    })
-    if (!families.ok) return families
-    const images = await plannedImages({
-      configuration,
-      session,
-      keepBoardImages: options.keepBoardAssets ?? false,
-      library: this.images.library
-    })
-    if (!images.ok) return images
-    return { ok: true, value: { families: families.value, images: images.value } }
   }
 
   private async writeDocuments(

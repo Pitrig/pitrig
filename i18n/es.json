@@ -1535,6 +1535,9 @@
       "tooLarge": "Las imágenes de este dashboard necesitan {size} KB, y una placa admite {limit} KB de imágenes.",
       "boardOnly": "Solo la placa tiene {images} y este PC no tiene ninguna copia, así que no se puede instalar {pending} sin quitarlas. Primero añade {images} en la página «Imágenes».",
       "fontsWithoutImages": "Las fuentes se instalaron, pero las imágenes no: {error} Vuelve a guardar en la placa antes de que se reinicie, o arrancará sin sus imágenes."
+    },
+    "memoryCheck": {
+      "tooLarge": "Las fuentes de este dashboard necesitan {fonts} KB y sus imágenes {images} KB de la memoria RAM de la placa, que solo tiene {available} KB para ellas. Usa menos fuentes o imágenes más pequeñas."
     }
   },
   "common": {

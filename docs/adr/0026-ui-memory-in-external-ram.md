@@ -179,6 +179,17 @@ and 4,540 for the deepest `APPLY` of the bench patterns, so its stack is now
 payload-sized buffer, and fonts, images and firmware upload on one task, which
 left every board 14 KB more internal RAM and about 380 KB more external RAM.
 
+What external RAM is left bounds the fonts and images: at startup a board copies
+every face of its package and decodes every image the dashboard draws into it.
+The configurator stops a save when the fonts and images the board would hold
+pass `assetMemoryBytes` in the board profile and more than it holds now: the
+lowest free external RAM with the board's own dashboard, plus the fonts and
+images that dashboard holds, less a margin for the glyph caches and objects of a
+heavier one. On the ESP32-4848S040 that is 2,367 + 400 − about 590 = 2,175 KB;
+the JC1060P470C's lowest was 22.5 MB and its figure is 20 MB; the other boards
+have none yet. Firmware 0.4.1 has about 380 KB less free, so a 4848 still on it
+keeps a margin of about 200 KB.
+
 What the pools do not buy is a screen filled to 255. Widgets spread across four
 screens are free while three of them are not shown, but every object on the
 screen that is shown is walked once per drawn area, so a single dense screen
