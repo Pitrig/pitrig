@@ -47,6 +47,17 @@ extern volatile std::uint32_t lvgl_port_acc_miss_all;
 extern volatile std::uint32_t lvgl_port_sched_fired;
 extern volatile std::uint32_t lvgl_port_feed_jitter_us;
 extern volatile std::uint32_t lvgl_port_acc_wake_nothing;
+extern volatile std::uint32_t lvgl_port_copy_jobs;
+extern volatile std::uint32_t lvgl_port_copy_busy_us;
+extern volatile std::uint32_t lvgl_port_copy_strip_us;
+extern volatile std::uint32_t lvgl_port_copy_strip_bytes;
+extern volatile std::uint32_t lvgl_port_copy_dma_us;
+extern volatile std::uint32_t lvgl_port_copy_dma_bytes;
+extern volatile std::uint32_t lvgl_port_copy_recon_us;
+extern volatile std::uint32_t lvgl_port_copy_recon_bytes;
+extern volatile std::uint32_t lvgl_port_copy_recon_dma_bytes;
+extern volatile std::uint32_t lvgl_port_copy_recon_wait_us;
+extern volatile std::uint32_t lvgl_port_copy_latch_us;
 }
 
 namespace pitrig::debug::diagnostics {
@@ -157,6 +168,28 @@ int write(char* const out, const std::size_t size) {
         static_cast<unsigned>(lvgl_port_acc_miss_all), static_cast<unsigned>(lvgl_port_sched_fired),
         static_cast<unsigned>(lvgl_port_feed_jitter_us),
         static_cast<unsigned>(lvgl_port_acc_wake_nothing));
+    written = append(out, size, field > 0 ? written + field : 0);
+  }
+
+  if (written > 0) {
+    const int field = std::snprintf(
+        out + written, size - static_cast<std::size_t>(written),
+        ",copy_jobs=%u,copy_busy_us=%u,copy_strip_us=%u"
+        ",copy_strip_bytes=%u,copy_dma_us=%u,copy_dma_bytes=%u"
+        ",copy_recon_us=%u,copy_recon_bytes=%u"
+        ",copy_recon_dma_bytes=%u,copy_recon_wait_us=%u"
+        ",copy_latch_us=%u",
+        static_cast<unsigned>(lvgl_port_copy_jobs),
+        static_cast<unsigned>(lvgl_port_copy_busy_us),
+        static_cast<unsigned>(lvgl_port_copy_strip_us),
+        static_cast<unsigned>(lvgl_port_copy_strip_bytes),
+        static_cast<unsigned>(lvgl_port_copy_dma_us),
+        static_cast<unsigned>(lvgl_port_copy_dma_bytes),
+        static_cast<unsigned>(lvgl_port_copy_recon_us),
+        static_cast<unsigned>(lvgl_port_copy_recon_bytes),
+        static_cast<unsigned>(lvgl_port_copy_recon_dma_bytes),
+        static_cast<unsigned>(lvgl_port_copy_recon_wait_us),
+        static_cast<unsigned>(lvgl_port_copy_latch_us));
     written = append(out, size, field > 0 ? written + field : 0);
   }
 

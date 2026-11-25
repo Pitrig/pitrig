@@ -103,6 +103,12 @@ Fields:
   one. This is the figure the display latency work is judged by: it covers the
   wake, the render and the flush together, so a change that moves none of the
   parts but reorders them still shows up here;
+- `copy_*` are running totals of the display port's flush worker, wrapping at
+  2³², so a host reads them as differences between two replies: strip jobs
+  handled, time the worker was busy, time and bytes of strip copies by the CPU
+  and by DMA, of copies that bring the hidden frame buffer up to date (CPU and
+  DMA bytes), the time strips waited for those, and the time spent waiting for
+  the panel to take a frame;
 - `stack_*` is the free stack of each monitored task in bytes. Font, image and
   firmware uploads run on one task, `stack_upload`, because only one of them can
   own the link at a time;

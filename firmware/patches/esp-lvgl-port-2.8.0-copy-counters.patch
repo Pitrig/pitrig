@@ -1,0 +1,197 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -230,6 +230,27 @@ typedef struct {
+ static QueueHandle_t s_flush_queue = NULL;
+ static volatile uint32_t s_flush_pending = 0;
+ 
++#ifdef CONFIG_PITRIG_DEBUG
++volatile uint32_t lvgl_port_copy_jobs = 0;
++volatile uint32_t lvgl_port_copy_busy_us = 0;
++volatile uint32_t lvgl_port_copy_strip_us = 0;
++volatile uint32_t lvgl_port_copy_strip_bytes = 0;
++volatile uint32_t lvgl_port_copy_dma_us = 0;
++volatile uint32_t lvgl_port_copy_dma_bytes = 0;
++volatile uint32_t lvgl_port_copy_recon_us = 0;
++volatile uint32_t lvgl_port_copy_recon_bytes = 0;
++volatile uint32_t lvgl_port_copy_recon_dma_bytes = 0;
++volatile uint32_t lvgl_port_copy_recon_wait_us = 0;
++volatile uint32_t lvgl_port_copy_latch_us = 0;
++#define LVGL_PORT_COPY_STAMP(name) const int64_t name = esp_timer_get_time()
++#define LVGL_PORT_COPY_ADD(counter, value) ((counter) += (uint32_t)(value))
++#define LVGL_PORT_COPY_SINCE(counter, name) ((counter) += (uint32_t)(esp_timer_get_time() - (name)))
++#else
++#define LVGL_PORT_COPY_STAMP(name) ((void)0)
++#define LVGL_PORT_COPY_ADD(counter, value) ((void)0)
++#define LVGL_PORT_COPY_SINCE(counter, name) ((void)0)
++#endif
++
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+ static bool lvgl_port_flush_mcp_done_callback(async_memcpy_handle_t mcp,
+                                               async_memcpy_event_t *event, void *cb_args)
+@@ -284,6 +305,7 @@ static void lvgl_port_recon_worker(void *arg)
+                                  lvgl_port_recon_mcp_done_callback, ctx) == ESP_OK) {
+                 if (xSemaphoreTake(ctx->mcp_recon_done, pdMS_TO_TICKS(500)) == pdTRUE) {
+                     copied = true;
++                    LVGL_PORT_COPY_ADD(lvgl_port_copy_recon_dma_bytes, (uint32_t)(item.y2 - item.y1) * stride);
+                 } else {
+                     ctx->mcp_recon = NULL;
+                 }
+@@ -294,6 +316,7 @@ static void lvgl_port_recon_worker(void *arg)
+             const uint8_t *src_fb = (const uint8_t *)ctx->panel_fbs[item.source];
+             const uint32_t row_offset = (uint32_t)item.x1 * px_size;
+             const uint32_t row_bytes = (uint32_t)(item.x2 - item.x1) * px_size;
++            LVGL_PORT_COPY_STAMP(recon_from);
+             for (uint16_t y = item.y1; y < item.y2; y++) {
+                 memcpy(dst_fb + (uint32_t)y * stride + row_offset,
+                        src_fb + (uint32_t)y * stride + row_offset, row_bytes);
+@@ -301,6 +324,8 @@ static void lvgl_port_recon_worker(void *arg)
+             esp_cache_msync(dst_fb + (uint32_t)item.y1 * stride,
+                             (size_t)(item.y2 - item.y1) * stride,
+                             ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
++            LVGL_PORT_COPY_SINCE(lvgl_port_copy_recon_us, recon_from);
++            LVGL_PORT_COPY_ADD(lvgl_port_copy_recon_bytes, row_bytes * (uint32_t)(item.y2 - item.y1));
+         }
+         ctx->recon_completed = (uint8_t)(ctx->recon_completed + 1U);
+         xSemaphoreGive(ctx->recon_progress);
+@@ -768,8 +793,11 @@ static bool lvgl_port_rgb_recon_step(lvgl_port_display_ctx_t *ctx, uint32_t stri
+         if (next >= areas) {
+             const uint16_t rows = (uint16_t)LV_MIN((uint32_t)(y2 - y1), budget_rows);
+             const uint16_t rect[4] = {x1, y1, x2, (uint16_t)(y1 + rows)};
++            LVGL_PORT_COPY_STAMP(recon_from);
+             lvgl_port_rgb_copy(target_fb, source_fb + (uint32_t)y1 * stride + (uint32_t)x1 * px_size,
+                                stride, stride, px_size, rect);
++            LVGL_PORT_COPY_SINCE(lvgl_port_copy_recon_us, recon_from);
++            LVGL_PORT_COPY_ADD(lvgl_port_copy_recon_bytes, (uint32_t)(x2 - x1) * px_size * rows);
+             if (rect[3] < y2) {
+                 piece[1] = rect[3];
+                 piece[4] = areas;
+@@ -819,6 +847,7 @@ static bool lvgl_port_rgb_latched(lvgl_port_display_ctx_t *ctx)
+ 
+ static void lvgl_port_rgb_wait_latch(lvgl_port_display_ctx_t *ctx)
+ {
++    LVGL_PORT_COPY_STAMP(latch_from);
+     for (uint32_t waits = 0; !lvgl_port_rgb_latched(ctx) && waits < 8U; waits++) {
+         xSemaphoreTake(ctx->vsync_sem, pdMS_TO_TICKS(50));
+     }
+@@ -826,6 +855,7 @@ static void lvgl_port_rgb_wait_latch(lvgl_port_display_ctx_t *ctx)
+         ctx->active_fb = ctx->rgb->queued;
+         ctx->rgb->queued = UINT8_MAX;
+     }
++    LVGL_PORT_COPY_SINCE(lvgl_port_copy_latch_us, latch_from);
+ }
+ 
+ static void lvgl_port_rgb_rate(lvgl_port_rgb_strips_t *rgb, const lvgl_port_flush_job_t *job,
+@@ -898,8 +928,12 @@ static void lvgl_port_rgb_strip(const lvgl_port_flush_job_t *job)
+         rgb->drawn_px = 0;
+     }
+     const uint16_t rect[4] = {(uint16_t)job->x1, (uint16_t)job->y1, (uint16_t)job->x2, (uint16_t)job->y2};
++    LVGL_PORT_COPY_STAMP(strip_from);
+     lvgl_port_rgb_copy((uint8_t *)ctx->panel_fbs[rgb->target], job->color_map,
+                        (uint32_t)(job->x2 - job->x1) * px_size, stride, px_size, rect);
++    LVGL_PORT_COPY_SINCE(lvgl_port_copy_strip_us, strip_from);
++    LVGL_PORT_COPY_ADD(lvgl_port_copy_strip_bytes,
++                       (uint32_t)(job->x2 - job->x1) * px_size * (uint32_t)(job->y2 - job->y1));
+     lvgl_port_rgb_note(rgb->drawn, &rgb->drawn_count, rect);
+     rgb->drawn_px += (uint32_t)(job->x2 - job->x1) * (uint32_t)(job->y2 - job->y1);
+     lv_disp_flush_ready(job->drv);
+@@ -1104,14 +1138,19 @@ static void lvgl_port_flush_worker(void *arg)
+             if (rgb_ctx != NULL && rgb_ctx->rgb->recon_pending) {
+                 const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(rgb_ctx->disp_drv));
+                 const uint32_t stride = (uint32_t)lv_disp_get_hor_res(rgb_ctx->disp_drv) * px_size;
++                LVGL_PORT_COPY_STAMP(idle_from);
+                 (void)lvgl_port_rgb_recon_step(rgb_ctx, stride, px_size, 32U);
++                LVGL_PORT_COPY_SINCE(lvgl_port_copy_busy_us, idle_from);
+             }
+ #endif
+             continue;
+         }
+ #if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+         if (job.rgb) {
++            LVGL_PORT_COPY_STAMP(rgb_from);
+             lvgl_port_rgb_strip(&job);
++            LVGL_PORT_COPY_SINCE(lvgl_port_copy_busy_us, rgb_from);
++            LVGL_PORT_COPY_ADD(lvgl_port_copy_jobs, 1U);
+             __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
+             xSemaphoreGive(job.ctx->rgb->done);
+             continue;
+@@ -1126,6 +1165,7 @@ static void lvgl_port_flush_worker(void *arg)
+             uint8_t *dst_fb = (uint8_t *)ctx->panel_fbs[job.target] + band_offset;
+             uint8_t *src_fb = (uint8_t *)ctx->panel_fbs[job.source] + band_offset;
+             bool copied = false;
++            LVGL_PORT_COPY_STAMP(band_from);
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+             if (ctx->mcp != NULL) {
+                 const size_t chunk = 320U * 1024U;
+@@ -1150,10 +1190,14 @@ static void lvgl_port_flush_worker(void *arg)
+                                 ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
+ #endif
+             }
++            LVGL_PORT_COPY_ADD(lvgl_port_copy_recon_bytes, copied ? 0U : band_bytes);
++            LVGL_PORT_COPY_ADD(lvgl_port_copy_recon_dma_bytes, copied ? band_bytes : 0U);
++            LVGL_PORT_COPY_SINCE(lvgl_port_copy_busy_us, band_from);
+             __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
+             continue;
+         }
+         if (job.strip) {
++            LVGL_PORT_COPY_STAMP(strip_job_from);
+             lvgl_port_display_ctx_t *ctx = job.ctx;
+             uint8_t *fb = (uint8_t *)ctx->panel_fbs[job.target];
+             const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(job.drv));
+@@ -1163,9 +1207,12 @@ static void lvgl_port_flush_worker(void *arg)
+             uint8_t *dst = fb + ((uint32_t)job.y1 * hres + (uint32_t)job.x1) * px_size;
+             bool copied = false;
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++            LVGL_PORT_COPY_STAMP(recon_wait_from);
+             lvgl_port_recon_wait(ctx, (uint16_t)job.x1, (uint16_t)job.y1,
+                                  (uint16_t)job.x2, (uint16_t)job.y2);
++            LVGL_PORT_COPY_SINCE(lvgl_port_copy_recon_wait_us, recon_wait_from);
+             if (ctx->mcp != NULL && row_bytes == hres * px_size) {
++                LVGL_PORT_COPY_STAMP(dma_from);
+                 if (esp_async_memcpy(ctx->mcp, dst, (void *)job.color_map,
+                                      (size_t)row_bytes * rows,
+                                      lvgl_port_flush_mcp_done_callback, ctx) == ESP_OK) {
+@@ -1175,8 +1222,11 @@ static void lvgl_port_flush_worker(void *arg)
+                         ctx->mcp = NULL;
+                     }
+                 }
++                LVGL_PORT_COPY_SINCE(lvgl_port_copy_dma_us, dma_from);
++                LVGL_PORT_COPY_ADD(lvgl_port_copy_dma_bytes, copied ? row_bytes * rows : 0U);
+             }
+ #endif
++            LVGL_PORT_COPY_STAMP(cpu_from);
+             if (!copied) {
+                 const uint8_t *src_row = job.color_map;
+                 for (int y = job.y1; y < job.y2; y++) {
+@@ -1188,10 +1238,14 @@ static void lvgl_port_flush_worker(void *arg)
+                                 (size_t)rows * hres * px_size,
+                                 ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
+ #endif
++                LVGL_PORT_COPY_SINCE(lvgl_port_copy_strip_us, cpu_from);
++                LVGL_PORT_COPY_ADD(lvgl_port_copy_strip_bytes, row_bytes * rows);
+             }
+             if (job.swap) {
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++                LVGL_PORT_COPY_STAMP(final_wait_from);
+                 lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
++                LVGL_PORT_COPY_SINCE(lvgl_port_copy_recon_wait_us, final_wait_from);
+ #endif
+ #ifdef CONFIG_PITRIG_DISPLAY_UNCAPPED
+                 ctx->last_swap_wait_us = 0;
+@@ -1206,6 +1260,7 @@ static void lvgl_port_flush_worker(void *arg)
+                     waits++;
+                 }
+                 ctx->last_swap_wait_us = (uint32_t)(esp_timer_get_time() - wait_start);
++                LVGL_PORT_COPY_ADD(lvgl_port_copy_latch_us, ctx->last_swap_wait_us);
+ #ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
+                 const bool latch_passed =
+                     (ctx->refresh_count - ctx->sched_start_refresh) >= 2U;
+@@ -1246,6 +1301,8 @@ static void lvgl_port_flush_worker(void *arg)
+                 lvgl_port_acc_swaps++;
+             }
+             lv_disp_flush_ready(job.drv);
++            LVGL_PORT_COPY_SINCE(lvgl_port_copy_busy_us, strip_job_from);
++            LVGL_PORT_COPY_ADD(lvgl_port_copy_jobs, 1U);
+             __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
+             continue;
+         }

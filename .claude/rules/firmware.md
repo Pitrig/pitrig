@@ -111,7 +111,7 @@ both chips.
 
 ## Vendored patches
 
-The `esp_lvgl_port` patches are a **stack**: ten files under
+The `esp_lvgl_port` patches are a **stack**: eleven files under
 `firmware/patches/`, one concern each, applied in the order
 `cmake/apply_esp_lvgl_port_dsi_patch.cmake` lists them. One further patch
 there, `lvgl-9.6.0-ppa-small-fill-threshold.patch`, patches LVGL itself and is

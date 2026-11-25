@@ -38,6 +38,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Development.** A firmware build fails when its static memory passes its board's ceiling in `tools/memory_budget.json`.
 - **Development.** The `@PR:` and `@PT:` line prefixes are generated from one file, and CI fails on a prefix written by hand.
 - **Development.** The debugger's bench has a Graphs 6 pattern that sweeps.
+- **Development.** Debug builds report in `@PR:DIAG` how much the display port copies, by CPU and by DMA, and how long strips wait for it.
 
 **Changed**
 
