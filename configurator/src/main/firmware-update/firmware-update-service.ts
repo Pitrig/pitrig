@@ -29,7 +29,6 @@ const kFirmware: AssetKind = {
   filters: [{ name: t('firmware.dialog.filter'), extensions: ['bin'] }],
   extensions: ['.bin'],
   wrongExtension: t('firmware.firmwareUpdateService.selectThePitrigBinProduced'),
-  busy: t('firmware.firmwareUpdateService.aFirmwareUploadIsAlready'),
   unsupported: t('firmware.firmwareUpdateService.theConnectedFirmwareCannotUpdate'),
   storageUnavailable: t('firmware.firmwareUpdateService.thisDeviceHasNoSecond'),
   rebootRequired: t('firmware.firmwareUpdateService.restartTheDeviceToRun')
@@ -90,8 +89,7 @@ export class FirmwareUpdateService extends AssetServiceBase {
       return failure('device_error', t('device.deviceOperation.noPitrigDeviceIsConnected'))
     }
 
-    const operation = new AbortController()
-    this.activeOperation = operation
+    const operation = this.begin()
     let stage: 'reading' | 'building' | 'uploading' = 'reading'
     try {
       onProgress({

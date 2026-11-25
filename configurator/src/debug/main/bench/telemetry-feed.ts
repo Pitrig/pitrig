@@ -139,10 +139,15 @@ export class TelemetryFeed {
     if (batch.length === 0) return
 
     this.pending += 1
-    link.write(batch, (error) => {
+    const accepted = link.write(batch, (error) => {
       this.pending = Math.max(0, this.pending - 1)
       if (error) this.writeErrors += 1
     })
+    if (!accepted) {
+      this.pending -= 1
+      this.droppedTicks += 1
+      return
+    }
     const bucket = this.bucketIndex
     this.tickBuckets[bucket] = (this.tickBuckets[bucket] ?? 0) + 1
     this.lineBuckets[bucket] = (this.lineBuckets[bucket] ?? 0) + this.signals.length

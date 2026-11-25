@@ -129,9 +129,7 @@
       "theSerialPortIsNo": "Der serielle Port ist nicht mehr verfügbar."
     },
     "deviceOperation": {
-      "noPitrigDeviceIsConnected": "Es ist kein Pitrig-Gerät verbunden.",
-      "anotherDeviceOperationIsAlready": "Es läuft bereits ein anderer Gerätevorgang.",
-      "theBoardIsBusyWith": "Das Board ist mit einem mehrstufigen Vorgang beschäftigt. Versuchen Sie es erneut, wenn er abgeschlossen ist."
+      "noPitrigDeviceIsConnected": "Es ist kein Pitrig-Gerät verbunden."
     },
     "deviceScan": {
       "theBoardRestartedButDid": "Das Board wurde neu gestartet, hat sich aber nicht wieder an seinem Port gemeldet. Verbinden Sie es manuell neu.",
@@ -141,9 +139,6 @@
       "noPitrigDeviceWasFound": "Es wurde kein Pitrig-Gerät gefunden."
     },
     "deviceService": {
-      "cancelTheActiveDeviceOperation": "Brechen Sie den laufenden Gerätevorgang ab, bevor Sie die Verbindung trennen.",
-      "aSaveIsRunningOn": "Auf dem verbundenen Gerät läuft gerade ein Speichervorgang.",
-      "theConnectedDeviceIsBusy": "Das verbundene Gerät ist belegt oder nicht verfügbar.",
       "font": "Schriftart",
       "image": "Bild",
       "firmware": "Firmware"
@@ -165,7 +160,8 @@
       "theDeviceDidNotAnswer": "Das Gerät hat nicht auf {trim} geantwortet.",
       "serialPortClosedDuringRequest": "Der serielle Port wurde während der Anfrage geschlossen.",
       "serialPortClosedDuringThe": "Der serielle Port wurde während des Befehls geschlossen.",
-      "theSerialPortIsClosed": "Der serielle Port ist geschlossen."
+      "theSerialPortIsClosed": "Der serielle Port ist geschlossen.",
+      "theBoardStayedBusy": "Das Board war weiterhin beschäftigt und hat {request} nicht angenommen. Versuchen Sie es gleich noch einmal."
     },
     "error": {
       "validation": {
@@ -342,6 +338,18 @@
       "linkValue": "{path} · {baudRate} Baud",
       "notConnected": "nicht verbunden",
       "system": "System"
+    },
+    "linkOwner": {
+      "busy": {
+        "connect": "Pitrig verbindet sich mit dem Board. Versuchen Sie es erneut, wenn es verbunden ist.",
+        "disconnect": "Pitrig trennt das Board. Versuchen Sie es erneut, wenn der Vorgang abgeschlossen ist.",
+        "restart": "Das Board startet neu. Versuchen Sie es erneut, wenn es wieder verbunden ist.",
+        "save": "Das Speichern auf dem Board läuft. Versuchen Sie es erneut, wenn es abgeschlossen ist.",
+        "update": "Die Aktualisierung des Boards läuft. Versuchen Sie es erneut, wenn sie abgeschlossen ist.",
+        "install": "Pitrig wird auf einem Board installiert. Versuchen Sie es erneut, wenn der Vorgang abgeschlossen ist.",
+        "upload": "Eine Datei wird auf das Board übertragen. Versuchen Sie es erneut, wenn der Vorgang abgeschlossen ist.",
+        "bench": "Der Prüfstand ändert das Dashboard. Versuchen Sie es erneut, wenn der Vorgang abgeschlossen ist."
+      }
     }
   },
   "fonts": {
@@ -442,7 +450,6 @@
       "fontUploadWasCancelled": "Die Übertragung der Schriftarten wurde abgebrochen.",
       "selectFontSource": "Schriftquelle wählen",
       "selectFont": "Schriftart wählen",
-      "aFontUploadIsAlready": "Eine Übertragung von Schriftarten läuft bereits.",
       "theConnectedFirmwareDoesNot": "Die Firmware des verbundenen Geräts unterstützt das Übertragen von Schriftarten nicht.",
       "fontAssetStorageIsUnavailable": "Auf diesem Gerät ist kein Speicher für Schriftarten verfügbar.",
       "restartTheDeviceBeforeUploading": "Starten Sie das Gerät neu, bevor Sie ein weiteres Schriftpaket übertragen.",
@@ -1419,7 +1426,6 @@
       "theConnectedDeviceChangedDuring": "Das verbundene Gerät wurde während der Übertragung gewechselt.",
       "selectImageSource": "Bildquelle wählen",
       "selectAPngJpegOr": "Wählen Sie ein PNG-, JPEG- oder BMP-Bild.",
-      "anImageUploadIsAlready": "Eine Bildübertragung läuft bereits.",
       "theConnectedFirmwareDoesNot": "Die Firmware des verbundenen Geräts unterstützt keine Bildübertragung.",
       "imageStorageIsUnavailableOn": "Auf diesem Gerät ist kein Bildspeicher verfügbar.",
       "restartTheDeviceBeforeUploading": "Starten Sie das Gerät neu, bevor Sie ein weiteres Bildpaket übertragen."
@@ -1510,7 +1516,9 @@
     },
     "firmwareCheck": {
       "checking": "Es wird geprüft, ob die Firmware {version} des Boards diese Konfiguration annimmt",
-      "refused": "Auf dem Board läuft die Firmware {running}, die diese Konfiguration nicht annimmt: Nötig ist die Firmware {released}. Auf dem Board hat sich nichts geändert. Aktualisieren Sie das Board und speichern Sie dann erneut. Das Board meldete: {reason}"
+      "refused": "Auf dem Board läuft die Firmware {running}, die diese Konfiguration nicht annimmt: Nötig ist die Firmware {released}. Auf dem Board hat sich nichts geändert. Aktualisieren Sie das Board und speichern Sie dann erneut. Das Board meldete: {reason}",
+      "unreadable": "Auf dem Board läuft die Firmware {running}, die diese Konfiguration nicht lesen konnte: Die Daten kamen beschädigt an oder sind größer, als diese Firmware zulässt. Auf dem Board hat sich nichts geändert. Speichern Sie erneut. Wenn das wieder passiert, aktualisieren Sie das Board auf die Firmware {released}.",
+      "unfinished": "Auf dem Board läuft die Firmware {running}, die diese Konfiguration nicht zu Ende geprüft hat. Das Board wurde möglicherweise neu gestartet. Aktualisieren Sie das Board auf die Firmware {released} und speichern Sie dann erneut."
     },
     "fontDelivery": {
       "building": "Schriftpaket wird erstellt",
@@ -1581,7 +1589,6 @@
       "resetToFactory": "Auf Werkszustand zurücksetzen"
     },
     "boardUpdate": {
-      "alreadyRunning": "Es läuft bereits ein Board-Update.",
       "readingTheBoard": "Inhalt des Boards wird gelesen…",
       "keepingACopy": "Kopie der Board-Konfiguration wird unter „Setups“ abgelegt…",
       "backupName": "Vor Update · {date} · Firmware {version}",
@@ -1667,7 +1674,6 @@
       "selectFirmwareImage": "Firmware-Image wählen",
       "selectImage": "Image wählen",
       "selectThePitrigBinProduced": "Wählen Sie die Datei pitrig.bin, die ein Firmware-Build erzeugt hat.",
-      "aFirmwareUploadIsAlready": "Es läuft bereits eine Firmware-Übertragung.",
       "theConnectedFirmwareCannotUpdate": "Die verbundene Firmware kann sich nicht über die serielle Verbindung selbst aktualisieren.",
       "thisDeviceHasNoSecond": "Dieses Gerät hat keinen zweiten Firmware-Slot für das Update.",
       "restartTheDeviceToRun": "Starten Sie das Gerät neu, um die bereits installierte Firmware auszuführen.",

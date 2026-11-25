@@ -89,10 +89,11 @@ chip the Protocol page and the Modules preview draw). The store keeps
 `runningConfiguration` (shown); a live `@PR:APPLY` moves the second and a save
 moves both. The main process polls `@PR:INFO` every five seconds while the link
 is idle, so a document written from elsewhere is noticed rather than
-overwritten. The poll goes through `OperationRunner.runPoll`, and an operation
-that starts meanwhile waits for it instead of answering `busy`, so work inside
-the poll never goes through `run()`. Only one top-level `runPipeline` runs at a
-time: a second one returns its caller's busy result at once.
+overwritten. Every use of the port takes a turn from `LinkOwner` (ADR 0046): a
+poll skips while anything else waits, a command waits its turn, an operation
+(Save, Update board, upload, restart, connect) is the only one running or
+waiting, and a command or operation started inside one runs as its step. Read
+the board inside the turn, never before it.
 
 ## Live telemetry
 
@@ -104,7 +105,7 @@ otherwise, the panel offering no network option to ask with — and validates th
 seven-byte header, counting loss from the sequence and resyncing on a restarted
 sender rather than reading it as reordering; a datagram carries whole lines, so
 what it hands on can be written to the board as it stands. The relay yields
-while `OperationRunner` holds the link and drops what arrives meanwhile, and
+while `LinkOwner` gives the link to a turn and drops what arrives meanwhile, and
 the plugin's once-a-second repeat is what repairs the gap; it drops the plugin's
 datagrams too while the Modules simulator drives the board through
 `telemetry-bridge:simulate` (`features/modules/board-simulation.ts`). `telemetry-tap.ts`

@@ -35,7 +35,6 @@ if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-allow-origins', 'http://localhost')
 }
 
-registerUiLanguage()
 const usage = registerUsage()
 const services: AppServices = createAppServices({
   onDeviceState: (state) => {
@@ -52,6 +51,7 @@ const services: AppServices = createAppServices({
     usage.observeSave(progress)
   }
 })
+registerUiLanguage(() => services.deviceService.whenIdle())
 const telemetryBridge = registerTelemetryBridge(services.deviceService)
 const updates = registerUpdates(services.deviceService, services.firmwareUpdateService)
 const CLEANUP_TIMEOUT_MS = 4000

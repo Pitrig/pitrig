@@ -388,21 +388,16 @@ export type UiStringKey =
   | 'device.deviceErrors.permissionToOpenTheSerial'
   | 'device.deviceErrors.theSerialPortIsBusy'
   | 'device.deviceErrors.theSerialPortIsNo'
-  | 'device.deviceOperation.anotherDeviceOperationIsAlready'
   | 'device.deviceOperation.noPitrigDeviceIsConnected'
-  | 'device.deviceOperation.theBoardIsBusyWith'
   | 'device.deviceProbe.theDeviceConfigurationBoardDoes'
   | 'device.deviceScan.multiplePitrigDevicesWereFound'
   | 'device.deviceScan.noCompatiblePitrigDeviceResponded'
   | 'device.deviceScan.noPitrigDeviceWasFound'
   | 'device.deviceScan.noUsbSerialPortsWere'
   | 'device.deviceScan.theBoardRestartedButDid'
-  | 'device.deviceService.aSaveIsRunningOn'
-  | 'device.deviceService.cancelTheActiveDeviceOperation'
   | 'device.deviceService.firmware'
   | 'device.deviceService.font'
   | 'device.deviceService.image'
-  | 'device.deviceService.theConnectedDeviceIsBusy'
   | 'device.deviceUploads.theConnectedDeviceChangedDuring'
   | 'device.deviceUploads.theConnectedDeviceChangedDuring2'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot'
@@ -505,6 +500,14 @@ export type UiStringKey =
   | 'device.infoPage.version'
   | 'device.infoPage.versionsUpdatesAndWhat'
   | 'device.lineExchange.theRequestWasCancelled'
+  | 'device.linkOwner.busy.bench'
+  | 'device.linkOwner.busy.connect'
+  | 'device.linkOwner.busy.disconnect'
+  | 'device.linkOwner.busy.install'
+  | 'device.linkOwner.busy.restart'
+  | 'device.linkOwner.busy.save'
+  | 'device.linkOwner.busy.update'
+  | 'device.linkOwner.busy.upload'
   | 'device.liveApplyIndicator.applyingToTheBoard'
   | 'device.liveApplyIndicator.livePreviewFailedError'
   | 'device.liveApplyIndicator.resolve'
@@ -536,6 +539,7 @@ export type UiStringKey =
   | 'device.schemaBanner.updateTheBoardFirmware'
   | 'device.serialRequest.serialPortClosedDuringRequest'
   | 'device.serialRequest.serialPortClosedDuringThe'
+  | 'device.serialRequest.theBoardStayedBusy'
   | 'device.serialRequest.theDeviceDidNotAnswer'
   | 'device.serialRequest.theSerialPortIsClosed'
   | 'device.status.connected'
@@ -573,7 +577,6 @@ export type UiStringKey =
   | 'documents.labelLower.dashboard'
   | 'documents.labelLower.modules'
   | 'documents.labelLower.protocol'
-  | 'firmware.boardUpdate.alreadyRunning'
   | 'firmware.boardUpdate.backupFailed'
   | 'firmware.boardUpdate.backupName'
   | 'firmware.boardUpdate.cancelled'
@@ -624,7 +627,6 @@ export type UiStringKey =
   | 'firmware.firmwareStatus.updateTo'
   | 'firmware.firmwareStatus.versionAvailable'
   | 'firmware.firmwareStatus.whatChanges'
-  | 'firmware.firmwareUpdateService.aFirmwareUploadIsAlready'
   | 'firmware.firmwareUpdateService.cannotReadName'
   | 'firmware.firmwareUpdateService.firmwareInstalledIntoTargetRestart'
   | 'firmware.firmwareUpdateService.firmwareUploadCancelled'
@@ -699,7 +701,6 @@ export type UiStringKey =
   | 'fonts.dialog.filter'
   | 'fonts.faceSpecimen.fixedWidth'
   | 'fonts.faceSpecimen.varyingWidth'
-  | 'fonts.fontAssetService.aFontUploadIsAlready'
   | 'fonts.fontAssetService.atMostMaximumFontFamilies'
   | 'fonts.fontAssetService.buildingOneFontPackageFrom'
   | 'fonts.fontAssetService.builtFontPackageBytelengthBytes'
@@ -794,7 +795,6 @@ export type UiStringKey =
   | 'images.format.alpha8'
   | 'images.format.rgb565'
   | 'images.format.rgb565a8'
-  | 'images.imageAssetService.anImageUploadIsAlready'
   | 'images.imageAssetService.buildingTheImagePackage'
   | 'images.imageAssetService.imageNameIsListedTwice'
   | 'images.imageAssetService.imageStorageIsUnavailableOn'
@@ -1676,6 +1676,8 @@ export type UiStringKey =
   | 'protocol.transportSection.whichLinkCarriesTelemetryAnd'
   | 'save.firmwareCheck.checking'
   | 'save.firmwareCheck.refused'
+  | 'save.firmwareCheck.unfinished'
+  | 'save.firmwareCheck.unreadable'
   | 'save.fontDelivery.building'
   | 'save.fontDelivery.noFaceCalled'
   | 'save.fontDelivery.noFaceForSome'
@@ -2207,6 +2209,7 @@ export interface UiStringParameters {
   'device.saveToBoardStore.keptBoardImages': { images: string | number }
   'device.saveToBoardStore.savedTheBoardKeepsShowing': { applyFailed: string | number }
   'device.schemaBanner.explanation': { expected: string | number, schema: string | number }
+  'device.serialRequest.theBoardStayedBusy': { request: string | number }
   'device.serialRequest.theDeviceDidNotAnswer': { trim: string | number }
   'device.supportDetails.boardValue': { board: string | number, display: string | number }
   'device.supportDetails.documentState': { document: string | number, state: string | number }
@@ -2463,6 +2466,8 @@ export interface UiStringParameters {
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
   'save.firmwareCheck.checking': { version: string | number }
   'save.firmwareCheck.refused': { reason: string | number, released: string | number, running: string | number }
+  'save.firmwareCheck.unfinished': { released: string | number, running: string | number }
+  'save.firmwareCheck.unreadable': { released: string | number, running: string | number }
   'save.fontDelivery.noFaceCalled': { family: string | number }
   'save.fontDelivery.noFaceForSome': { count: number }
   'save.imageDelivery.boardOnly': { images: string | number, pending: string | number }

@@ -17,7 +17,12 @@ const LIVE_DOCUMENTS = CONFIGURATION_DOCUMENT_IDS.filter(
   (id) => !CONFIGURATION_DOCUMENTS[id].rebootRequired
 )
 const LIVE_SECTIONS = LIVE_DOCUMENTS.flatMap((id) => CONFIGURATION_DOCUMENTS[id].sections)
-const RUNNING_HELD: DeviceErrorCode[] = ['busy', 'configuration_rejected']
+const RUNNING_HELD: DeviceErrorCode[] = [
+  'busy',
+  'board_busy',
+  'configuration_rejected',
+  'invalid_request'
+]
 
 export interface LiveApplyState {
   pending: boolean

@@ -38,15 +38,16 @@ async function choose(language: UiLanguage | null): Promise<void> {
   }
 }
 
-export function registerUiLanguage(): void {
+export function registerUiLanguage(whenBoardIdle: () => Promise<void>): void {
   ipcMain.handle(UI_LANGUAGE_GET_CHANNEL, settings)
   ipcMain.handle(UI_LANGUAGE_SET_CHANNEL, async (_event, request: unknown) => {
     const language = (request as Partial<UiLanguageSetRequest> | null)?.language
     if (language === null || isUiLanguage(language)) await choose(language)
     return settings()
   })
-  ipcMain.handle(UI_LANGUAGE_RESTART_CHANNEL, () => {
+  ipcMain.handle(UI_LANGUAGE_RESTART_CHANNEL, async () => {
     if (isDevelopment()) return false
+    await whenBoardIdle()
     app.relaunch()
     app.quit()
     return true

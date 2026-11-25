@@ -9,6 +9,7 @@ import { readConfiguration } from './pitrig-protocol'
 import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 const PROBE_TIMEOUT_MS = 1_000
+const STARTUP_BUSY_MS = 12_000
 const INFO_REQUEST = `\n${CONTROL_PREFIX}INFO\n`
 const IMAGE_INFO_REQUEST = `${CONTROL_PREFIX}IMAGE:INFO\n`
 const FONT_INFO_REQUEST = `${CONTROL_PREFIX}FONT:INFO\n`
@@ -77,7 +78,9 @@ async function probeCapability<T>(
       request,
       responsePrefix,
       PROBE_TIMEOUT_MS,
-      onTraffic
+      onTraffic,
+      'not_pitrig',
+      STARTUP_BUSY_MS
     )
     return parse(line)
   } catch (error) {

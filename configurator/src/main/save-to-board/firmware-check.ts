@@ -19,15 +19,17 @@ export async function refusedByOlderFirmware(input: {
   input.report(t('save.firmwareCheck.checking', { version: running }))
   const checked = await input.deviceService.validateConfiguration(input.json, [...input.changed])
   if (checked.ok) return undefined
-  if (checked.error.code !== 'configuration_rejected') {
-    return saveFailure('device_error', checked.error.message)
+  const { code, token, message } = checked.error
+  const versions = { running, released: RELEASED_FIRMWARE_VERSION }
+  if (code === 'configuration_rejected' && token?.split(':')[0] === 'malformed') {
+    return saveFailure('firmware_behind', t('save.firmwareCheck.unreadable', versions))
   }
-  return saveFailure(
-    'firmware_behind',
-    t('save.firmwareCheck.refused', {
-      running,
-      released: RELEASED_FIRMWARE_VERSION,
-      reason: checked.error.message
-    })
-  )
+  if (code === 'configuration_rejected') {
+    return saveFailure('firmware_behind', t('save.firmwareCheck.refused', { ...versions, reason: message }))
+  }
+  if (code === 'no_answer' || code === 'serial_error') {
+    return saveFailure('firmware_behind', t('save.firmwareCheck.unfinished', versions))
+  }
+  if (code === 'board_busy' || code === 'busy') return saveFailure('busy', message)
+  return saveFailure('device_error', message)
 }

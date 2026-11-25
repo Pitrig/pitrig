@@ -20,7 +20,9 @@ import { prepareDeviceConfigurationJson } from './configuration-json'
 import { parseDeviceInfo } from './protocol-parsers'
 import { requestResponse } from './serial-request'
 import type { ConnectionManager, OpenedDevice } from './device-connection'
-import type { OperationRunner } from './device-operation'
+import type { LinkOwner } from './link-owner'
+import { sentTraffic } from './serial-traffic-reporter'
+import type { TrafficCallback } from './serial-request'
 import {
   applyConfiguration,
   readConfiguration,
@@ -34,13 +36,13 @@ import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 export async function readDeviceConfiguration(
   connection: ConnectionManager,
-  runner: OperationRunner
+  owner: LinkOwner
 ): Promise<DeviceResult<DeviceState>> {
-  return runner.run(async ({ port, session, traffic }) => {
+  return owner.command(async ({ port, session, traffic }) => {
     const configuration = await readConfiguration(
       port,
       session.info.boardId,
-      runner.operationTraffic(traffic)
+      sentTraffic(traffic)
     )
     if (connection.port !== port || connection.getState().session !== session) {
       throw new DeviceServiceError('serial_error', t('device.deviceConfigCommands.theConnectedDeviceChangedDuring'))
@@ -52,11 +54,11 @@ export async function readDeviceConfiguration(
 
 export async function applyDeviceConfiguration(
   connection: ConnectionManager,
-  runner: OperationRunner,
+  owner: LinkOwner,
   json: string,
   documents?: ConfigurationDocumentId[]
 ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
-  return runner.run(async ({ port, session, traffic }) => {
+  return owner.command(async ({ port, session, traffic }) => {
     const prepared = prepareConfiguration(json, session)
     if (!prepared.ok) return prepared
     const selected = (documents ?? [...CONFIGURATION_DOCUMENT_IDS]).filter(
@@ -67,7 +69,7 @@ export async function applyDeviceConfiguration(
         port,
         document,
         prepared.value.payloads[document],
-        runner.operationTraffic(traffic)
+        sentTraffic(traffic)
       )
     }
     return success({ configuration: prepared.value.configuration, documents: selected })
@@ -75,14 +77,14 @@ export async function applyDeviceConfiguration(
 }
 
 export async function validateDeviceConfiguration(
-  runner: OperationRunner,
+  owner: LinkOwner,
   json: string,
   documents: ConfigurationDocumentId[]
 ): Promise<DeviceResult<ConfigurationDocumentId[]>> {
-  return runner.run(async ({ port, session, traffic }) => {
+  return owner.command(async ({ port, session, traffic }) => {
     const prepared = prepareConfiguration(json, session)
     if (!prepared.ok) return prepared
-    const onTraffic = runner.operationTraffic(traffic)
+    const onTraffic = sentTraffic(traffic)
     for (const document of documents) {
       await validateConfiguration(port, document, prepared.value.payloads[document], onTraffic)
     }
@@ -92,22 +94,22 @@ export async function validateDeviceConfiguration(
 
 export async function saveDeviceConfiguration(
   connection: ConnectionManager,
-  runner: OperationRunner,
+  owner: LinkOwner,
   json: string,
   documents?: ConfigurationDocumentId[]
 ): Promise<DeviceResult<DeviceConfigurationSaveResult>> {
-  return runner.run(async ({ port, session, traffic }) => {
+  return owner.command(async ({ port, session, traffic }) => {
     const prepared = prepareConfiguration(json, session)
     if (!prepared.ok) return prepared
     const requested = documents ?? [...CONFIGURATION_DOCUMENT_IDS]
     const selected = CONFIGURATION_DOCUMENT_IDS.filter((document) =>
       requested.includes(document)
     ).reverse()
-    const onTraffic = runner.operationTraffic(traffic)
+    const onTraffic = sentTraffic(traffic)
     const written: ConfigurationDocumentId[] = []
     try {
       for (const document of selected) {
-        await saveConfiguration(port, document, prepared.value.payloads[document], onTraffic)
+        await writeDocument(port, session, document, prepared.value.payloads[document], onTraffic)
         written.push(document)
       }
     } finally {
@@ -134,11 +136,11 @@ export async function saveDeviceConfiguration(
 
 export async function resetDeviceConfiguration(
   connection: ConnectionManager,
-  runner: OperationRunner,
+  owner: LinkOwner,
   document?: ConfigurationDocumentId
 ): Promise<DeviceResult<DeviceConfigurationResetResult>> {
-  return runner.run(async ({ port, session, traffic }) => {
-    const onTraffic = runner.operationTraffic(traffic)
+  return owner.command(async ({ port, session, traffic }) => {
+    const onTraffic = sentTraffic(traffic)
     const erased = document ? [document] : [...CONFIGURATION_DOCUMENT_IDS]
     if (document) await resetConfigurationDocument(port, document, onTraffic)
     else await resetConfiguration(port, onTraffic)
@@ -151,12 +153,30 @@ export async function resetDeviceConfiguration(
   })
 }
 
+async function writeDocument(
+  port: OpenedDevice['port'],
+  session: DeviceSession,
+  document: ConfigurationDocumentId,
+  payload: string,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  try {
+    await saveConfiguration(port, document, payload, onTraffic)
+  } catch (error) {
+    if (!(error instanceof DeviceServiceError) || error.code !== 'no_answer') throw error
+    const info = await readInfo(port, session, onTraffic)
+    const before = session.info.documents[document]
+    const after = info.documents[document]
+    if (after.generation === before.generation || after.outcome !== 'valid') throw error
+  }
+}
+
 async function commitSession(
   connection: ConnectionManager,
   port: OpenedDevice['port'],
   session: DeviceSession,
   configuration: DeviceConfiguration,
-  onTraffic: (direction: 'rx' | 'tx', data: string) => void,
+  onTraffic: TrafficCallback,
   restartOwed: boolean
 ): Promise<void> {
   if (connection.port !== port || connection.getState().session !== session) return
@@ -180,16 +200,16 @@ function owesRestart(documents: readonly ConfigurationDocumentId[]): boolean {
 async function readInfo(
   port: OpenedDevice['port'],
   session: DeviceSession,
-  onTraffic: (direction: 'rx' | 'tx', data: string) => void
+  onTraffic: TrafficCallback
 ): Promise<DeviceInfo> {
   try {
     const line = await requestResponse(
       port,
-      `\n${CONTROL_PREFIX}INFO\n`,
+      `${CONTROL_PREFIX}INFO\n`,
       `${CONTROL_PREFIX}OK:INFO:`,
       1_000,
       onTraffic,
-      'serial_error'
+      'board_refused'
     )
     return parseDeviceInfo(line)
   } catch {
@@ -206,7 +226,7 @@ function prepareConfiguration(
 }> {
   if (session.info.schemaVersion !== CONFIGURATION_SCHEMA_VERSION) {
     return failure({
-      code: 'configuration_rejected',
+      code: 'invalid_request',
       message: t('device.draftState.theBoardFirmwareReadsSchema', {
         schema: session.info.schemaVersion,
         expected: CONFIGURATION_SCHEMA_VERSION
@@ -217,7 +237,7 @@ function prepareConfiguration(
     return success(prepareDeviceConfigurationJson(json, session.info.boardId))
   } catch (error) {
     return failure({
-      code: 'configuration_rejected',
+      code: 'invalid_request',
       message: error instanceof Error ? error.message : 'Invalid device configuration.'
     })
   }

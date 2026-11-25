@@ -21,6 +21,7 @@ export async function plannedFamilies(input: {
   changed: readonly ConfigurationDocumentId[]
   keepBoardFonts: boolean
   sources: FontSources
+  download: boolean
 }): Promise<SaveStep<string[]>> {
   const required = documentFamilyIds(input.configuration)
   const installed = input.session.fontAssets?.families ?? []
@@ -28,7 +29,7 @@ export async function plannedFamilies(input: {
   const needed = input.changed.includes('dashboard') || lacking ? required : []
   const families = input.keepBoardFonts && boardHolds(input.session, needed) ? [] : needed
   let unresolved = await input.sources.library.unresolved(families)
-  if (unresolved.length > 0) {
+  if (unresolved.length > 0 && input.download) {
     const added = await downloadFromCatalog(unresolved, input.sources)
     if (added) unresolved = await input.sources.library.unresolved(families)
   }

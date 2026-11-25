@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { writeEventLog } from '@/lib/event-log'
+import { activityReason } from '@/features/device/board-activity'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useFirstInstallStore } from '@/features/firmware-update/first-install/first-install-store'
 import { t } from '@shared/ui-text'
@@ -90,6 +91,11 @@ export function DeviceConnection({
   }, [applyDeviceState, applyPortResult])
 
   const installing = useFirstInstallStore((state) => state.phase === 'running')
+  const activity = useDeviceStore((state) => state.activity)
+  const cancellable =
+    activity === 'connect' ||
+    (activity === 'restart' && (status === 'scanning' || status === 'connecting'))
+  const blockedReason = cancellable ? undefined : activityReason(activity)
   const isWorking = installing || ['scanning', 'connecting', 'disconnecting'].includes(status)
   const statusText = formatStatus({ connection, scan, error })
   const statusBadgeStyle = STATUS_BADGE_STYLES[status]
@@ -180,7 +186,8 @@ export function DeviceConnection({
       </Button>
       <Button
         className="w-28 flex-none"
-        disabled={installing || status === 'disconnecting'}
+        disabled={installing || status === 'disconnecting' || blockedReason !== undefined}
+        title={blockedReason}
         onClick={() => void primaryAction()}
       >
         {actionLabel}

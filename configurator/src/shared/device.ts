@@ -62,11 +62,15 @@ export type DeviceStatus =
   | 'error'
 
 export type DeviceErrorCode =
+  | 'board_busy'
+  | 'board_refused'
   | 'busy'
   | 'cancelled'
   | 'configuration_rejected'
+  | 'damaged_reply'
   | 'invalid_request'
   | 'multiple_devices'
+  | 'no_answer'
   | 'no_device'
   | 'not_pitrig'
   | 'permission_denied'
@@ -77,7 +81,21 @@ export type DeviceErrorCode =
 export interface DeviceError {
   code: DeviceErrorCode
   message: string
+  token?: string
 }
+
+export const DEVICE_ACTIVITIES = [
+  'connect',
+  'disconnect',
+  'restart',
+  'save',
+  'update',
+  'install',
+  'upload',
+  'bench'
+] as const
+
+export type DeviceActivity = (typeof DEVICE_ACTIVITIES)[number]
 
 export interface DeviceConnection {
   portId: string
@@ -233,6 +251,7 @@ export interface DeviceState {
   session?: DeviceSession
   scan?: DeviceScanProgress
   error?: DeviceError
+  activity?: DeviceActivity
 }
 
 export interface ConnectDeviceRequest {

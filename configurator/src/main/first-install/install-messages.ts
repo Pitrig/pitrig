@@ -26,7 +26,7 @@ export function describeFailure(failure: InstallFailure, erased: boolean): strin
   const detail = (key: string): string => String(failure.details[key] ?? '')
   switch (failure.code) {
     case 'busy':
-      return t('device.deviceOperation.anotherDeviceOperationIsAlready')
+      return detail('reason') || t('device.linkOwner.busy.install')
     case 'invalid_request':
       return t('ipc.registerAssetHandlers.invalidFirmwareUploadRequest')
     case 'port_missing':

@@ -24,6 +24,7 @@ import {
   collectFontRequirements,
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
+import { useBoardActivityReason } from './board-activity'
 import { useDeviceStore } from './device-store'
 import { t } from '@shared/ui-text'
 
@@ -53,6 +54,7 @@ export function useDraftState(): DraftState {
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const runningConfiguration = useDeviceStore((state) => state.runningConfiguration)
   const imageLibrary = useImageLibraryStore((state) => state.snapshot)
+  const busyReason = useBoardActivityReason()
 
   const { parsed, missingFamilies } = inspect(draft, hasLocalDraft, session?.fontAssets?.families)
 
@@ -86,11 +88,12 @@ export function useDraftState(): DraftState {
           ? 'Persistent configuration storage is unavailable on this board.'
           : undefined
   const saveBlockedReason =
+    busyReason ??
     documentSaveBlockedReason ??
     imageBlocker ??
     (!dirty && !assetsPending ? 'The draft already matches what the board holds.' : undefined)
 
-  const liveApplyBlockedReason = outdated ?? liveApplyBlocker({
+  const liveApplyBlockedReason = busyReason ?? outdated ?? liveApplyBlocker({
     connected,
     safeMode,
     parsed,

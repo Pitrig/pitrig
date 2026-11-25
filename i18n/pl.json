@@ -131,9 +131,7 @@
       "theSerialPortIsNo": "Port szeregowy nie jest już dostępny."
     },
     "deviceOperation": {
-      "noPitrigDeviceIsConnected": "Nie połączono żadnego urządzenia Pitrig.",
-      "anotherDeviceOperationIsAlready": "Trwa już inna operacja na urządzeniu.",
-      "theBoardIsBusyWith": "Płytka wykonuje operację wieloetapową. Spróbuj ponownie po jej zakończeniu."
+      "noPitrigDeviceIsConnected": "Nie połączono żadnego urządzenia Pitrig."
     },
     "deviceScan": {
       "theBoardRestartedButDid": "Płytka uruchomiła się ponownie, ale nie wróciła na swój port. Połącz ją ponownie ręcznie.",
@@ -143,9 +141,6 @@
       "noPitrigDeviceWasFound": "Nie znaleziono urządzenia Pitrig."
     },
     "deviceService": {
-      "cancelTheActiveDeviceOperation": "Przed rozłączeniem anuluj bieżącą operację na urządzeniu.",
-      "aSaveIsRunningOn": "Na połączonym urządzeniu trwa zapisywanie.",
-      "theConnectedDeviceIsBusy": "Połączone urządzenie jest zajęte lub niedostępne.",
       "font": "czcionek",
       "image": "obrazów",
       "firmware": "firmware"
@@ -167,7 +162,8 @@
       "theDeviceDidNotAnswer": "Urządzenie nie odpowiedziało na {trim}.",
       "serialPortClosedDuringRequest": "Port szeregowy został zamknięty w trakcie żądania.",
       "serialPortClosedDuringThe": "Port szeregowy został zamknięty w trakcie polecenia.",
-      "theSerialPortIsClosed": "Port szeregowy jest zamknięty."
+      "theSerialPortIsClosed": "Port szeregowy jest zamknięty.",
+      "theBoardStayedBusy": "Płytka pozostawała zajęta i nie przyjęła {request}. Spróbuj ponownie za chwilę."
     },
     "error": {
       "validation": {
@@ -350,6 +346,18 @@
       "linkValue": "{path} · {baudRate} bodów",
       "notConnected": "nie połączono",
       "system": "System"
+    },
+    "linkOwner": {
+      "busy": {
+        "connect": "Pitrig łączy się z płytką. Spróbuj ponownie, gdy połączenie zostanie nawiązane.",
+        "disconnect": "Pitrig rozłącza się z płytką. Spróbuj ponownie po zakończeniu.",
+        "restart": "Płytka uruchamia się ponownie. Spróbuj ponownie, gdy znów zostanie połączona.",
+        "save": "Trwa zapisywanie na płytce. Spróbuj ponownie po jego zakończeniu.",
+        "update": "Trwa aktualizacja płytki. Spróbuj ponownie po jej zakończeniu.",
+        "install": "Trwa instalacja Pitrig na płytce. Spróbuj ponownie po jej zakończeniu.",
+        "upload": "Trwa przesyłanie pliku na płytkę. Spróbuj ponownie po jego zakończeniu.",
+        "bench": "Stanowisko testowe zmienia dashboard. Spróbuj ponownie po zakończeniu."
+      }
     }
   },
   "fonts": {
@@ -456,7 +464,6 @@
       "fontUploadWasCancelled": "Przesyłanie czcionek zostało anulowane.",
       "selectFontSource": "Wybierz źródło czcionki",
       "selectFont": "Wybierz czcionkę",
-      "aFontUploadIsAlready": "Przesyłanie czcionek już trwa.",
       "theConnectedFirmwareDoesNot": "Firmware połączonego urządzenia nie obsługuje przesyłania czcionek.",
       "fontAssetStorageIsUnavailable": "Pamięć na czcionki jest niedostępna na tym urządzeniu.",
       "restartTheDeviceBeforeUploading": "Uruchom urządzenie ponownie przed przesłaniem kolejnego pakietu czcionek.",
@@ -1437,7 +1444,6 @@
       "theConnectedDeviceChangedDuring": "Połączone urządzenie zmieniło się w trakcie przesyłania.",
       "selectImageSource": "Wybierz obraz źródłowy",
       "selectAPngJpegOr": "Wybierz obraz PNG, JPEG lub BMP.",
-      "anImageUploadIsAlready": "Przesyłanie obrazów już trwa.",
       "theConnectedFirmwareDoesNot": "Firmware połączonego urządzenia nie obsługuje przesyłania obrazów.",
       "imageStorageIsUnavailableOn": "Pamięć na obrazy jest niedostępna na tym urządzeniu.",
       "restartTheDeviceBeforeUploading": "Uruchom urządzenie ponownie przed przesłaniem kolejnego pakietu obrazów."
@@ -1534,7 +1540,9 @@
     },
     "firmwareCheck": {
       "checking": "Sprawdzanie, czy firmware płytki {version} akceptuje tę konfigurację",
-      "refused": "Płytka działa na firmware {running}, który nie akceptuje tej konfiguracji: potrzebny jest firmware {released}. Na płytce nic się nie zmieniło. Zaktualizuj płytkę, a potem zapisz ponownie. Odpowiedź płytki: {reason}"
+      "refused": "Płytka działa na firmware {running}, który nie akceptuje tej konfiguracji: potrzebny jest firmware {released}. Na płytce nic się nie zmieniło. Zaktualizuj płytkę, a potem zapisz ponownie. Odpowiedź płytki: {reason}",
+      "unreadable": "Płytka działa na firmware {running}, który nie mógł odczytać tej konfiguracji: dane dotarły uszkodzone albo są większe, niż ten firmware akceptuje. Na płytce nic się nie zmieniło. Zapisz ponownie. Jeśli to się powtórzy, zaktualizuj płytkę do firmware {released}.",
+      "unfinished": "Płytka działa na firmware {running}, który nie dokończył sprawdzania tej konfiguracji. Płytka mogła uruchomić się ponownie. Zaktualizuj płytkę do firmware {released}, a potem zapisz ponownie."
     },
     "fontDelivery": {
       "building": "Budowanie pakietu czcionek",
@@ -1605,7 +1613,6 @@
       "resetToFactory": "Przywróć ustawienia fabryczne"
     },
     "boardUpdate": {
-      "alreadyRunning": "Aktualizacja płytki już trwa.",
       "readingTheBoard": "Odczytywanie zawartości płytki…",
       "keepingACopy": "Zapisywanie kopii konfiguracji płytki na stronie Konfiguracje…",
       "backupName": "Przed aktualizacją · {date} · firmware {version}",
@@ -1691,7 +1698,6 @@
       "selectFirmwareImage": "Wybierz obraz firmware",
       "selectImage": "Wybierz obraz",
       "selectThePitrigBinProduced": "Wybierz plik pitrig.bin utworzony przez kompilację firmware.",
-      "aFirmwareUploadIsAlready": "Przesyłanie firmware już trwa.",
       "theConnectedFirmwareCannotUpdate": "Firmware połączonego urządzenia nie może zaktualizować się przez port szeregowy.",
       "thisDeviceHasNoSecond": "To urządzenie nie ma drugiego slotu firmware, do którego można zainstalować aktualizację.",
       "restartTheDeviceToRun": "Uruchom urządzenie ponownie, aby zaczęło działać na już zainstalowanym firmware.",

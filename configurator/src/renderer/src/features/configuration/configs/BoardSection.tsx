@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { t } from '@shared/ui-text'
 
 import { Button } from '@/components/ui/button'
+import { useBoardActivityReason } from '@/features/device/board-activity'
 import { useDraftState } from '@/features/device/draft-state'
 import { readConfigurationFromBoard, type ActionFeedback } from '../configuration-actions'
 import { FeedbackNote } from './FeedbackNote'
@@ -14,6 +15,7 @@ export function BoardSection({
   onAct: (action: () => Promise<ActionFeedback | undefined>) => Promise<void>
 }): React.JSX.Element | null {
   const { connected, dirty, boardMismatch } = useDraftState()
+  const busyReason = useBoardActivityReason()
   const [feedback, setFeedback] = useState<ActionFeedback>()
 
   if (!connected) return null
@@ -37,8 +39,8 @@ export function BoardSection({
         <Button
           className="flex-none"
           variant="outline"
-          disabled={working}
-          title={t('configs.boardSection.loadFromBoardHint')}
+          disabled={working || busyReason !== undefined}
+          title={busyReason ?? t('configs.boardSection.loadFromBoardHint')}
           onClick={() => void load()}
         >
           {t('configs.boardSection.loadFromBoard')}</Button>

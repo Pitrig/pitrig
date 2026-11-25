@@ -8,6 +8,7 @@ import { documentFonts } from '@shared/document-fonts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
+import { useBoardActivityReason } from '@/features/device/board-activity'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FaceSpecimen } from './FaceSpecimen'
 import { isIconFace } from './icon-face'
@@ -31,6 +32,7 @@ export function FontsPage(): React.JSX.Element {
   const loaded = useFontFaceStore((state) => state.loaded)
   const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
   const [busy, setBusy] = useState(false)
+  const busyReason = useBoardActivityReason()
   const [message, setMessage] = useState<string>()
 
   useEffect(() => {
@@ -101,8 +103,8 @@ export function FontsPage(): React.JSX.Element {
           <Button
             className="text-red-400 hover:text-red-300"
             variant="outline"
-            disabled={busy || !session?.fontAssets?.storageAvailable}
-            title={t('fonts.fontsPage.eraseThePackageInstalledOn')}
+            disabled={busy || busyReason !== undefined || !session?.fontAssets?.storageAvailable}
+            title={busyReason ?? t('fonts.fontsPage.eraseThePackageInstalledOn')}
             onClick={() => void clearBoard()}
           >
             {t('fonts.fontsPage.eraseOnBoard')}</Button>

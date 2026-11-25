@@ -45,6 +45,9 @@ export function App(): React.JSX.Element {
   const saving = useSaveToBoardStore((state) => state.running)
   const updating = useBoardUpdateStore((state) => state.running)
   const syncQuestion = useBoardSyncStore((state) => state.question)
+  const writingBoard = useDeviceStore(
+    (state) => state.activity === 'save' || state.activity === 'update'
+  )
   const { liveApplyAllowed, dirtyDocuments } = useDraftState()
   const layerPreview = useModulesStore((state) => state.preview)
 
@@ -54,7 +57,7 @@ export function App(): React.JSX.Element {
   useEffect(() => subscribeToTelemetryBridge(), [])
   useEffect(() => startLiveTelemetry(), [])
   useTelemetryInterest()
-  useBoardSync(dirtyDocuments, updating)
+  useBoardSync(dirtyDocuments, updating || saving || writingBoard)
 
   const mirroring = liveApplyAllowed && !saving && !updating && syncQuestion === undefined
   useLiveApply(mirroring && layerPreview.length === 0, reportLiveApply)

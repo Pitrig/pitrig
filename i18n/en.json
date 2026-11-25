@@ -132,9 +132,7 @@
       "theSerialPortIsNo": "The serial port is no longer available."
     },
     "deviceOperation": {
-      "noPitrigDeviceIsConnected": "No Pitrig device is connected.",
-      "anotherDeviceOperationIsAlready": "Another device operation is already running.",
-      "theBoardIsBusyWith": "The board is busy with a multi-step operation. Try again when it finishes."
+      "noPitrigDeviceIsConnected": "No Pitrig device is connected."
     },
     "deviceScan": {
       "theBoardRestartedButDid": "The board restarted but did not come back on its port. Reconnect it by hand.",
@@ -144,9 +142,6 @@
       "noPitrigDeviceWasFound": "No Pitrig device was found."
     },
     "deviceService": {
-      "cancelTheActiveDeviceOperation": "Cancel the active device operation before disconnecting.",
-      "aSaveIsRunningOn": "A save is running on the connected device.",
-      "theConnectedDeviceIsBusy": "The connected device is busy or unavailable.",
       "font": "font",
       "image": "image",
       "firmware": "firmware"
@@ -168,7 +163,8 @@
       "theDeviceDidNotAnswer": "The device did not answer {trim}.",
       "serialPortClosedDuringRequest": "Serial port closed during request.",
       "serialPortClosedDuringThe": "Serial port closed during the command.",
-      "theSerialPortIsClosed": "The serial port is closed."
+      "theSerialPortIsClosed": "The serial port is closed.",
+      "theBoardStayedBusy": "The board stayed busy and did not take {request}. Try again in a moment."
     },
     "error": {
       "validation": {
@@ -345,6 +341,18 @@
       "linkValue": "{path} · {baudRate} baud",
       "notConnected": "not connected",
       "system": "System"
+    },
+    "linkOwner": {
+      "busy": {
+        "connect": "Pitrig is connecting to the board. Try again when it is connected.",
+        "disconnect": "Pitrig is disconnecting the board. Try again when it has finished.",
+        "restart": "The board is restarting. Try again when it is connected again.",
+        "save": "Save to board is running. Try again when it has finished.",
+        "update": "Update board is running. Try again when it has finished.",
+        "install": "Pitrig is being installed on a board. Try again when it has finished.",
+        "upload": "A file is being uploaded to the board. Try again when it has finished.",
+        "bench": "The bench is changing the dashboard. Try again when it has finished."
+      }
     }
   },
   "fonts": {
@@ -446,7 +454,6 @@
       "fontUploadWasCancelled": "Font upload was cancelled.",
       "selectFontSource": "Select font source",
       "selectFont": "Select font",
-      "aFontUploadIsAlready": "A font upload is already running.",
       "theConnectedFirmwareDoesNot": "The connected firmware does not support font asset upload.",
       "fontAssetStorageIsUnavailable": "Font asset storage is unavailable on this device.",
       "restartTheDeviceBeforeUploading": "Restart the device before uploading another font package.",
@@ -1424,7 +1431,6 @@
       "theConnectedDeviceChangedDuring": "The connected device changed during the upload.",
       "selectImageSource": "Select image source",
       "selectAPngJpegOr": "Select a PNG, JPEG or BMP image.",
-      "anImageUploadIsAlready": "An image upload is already running.",
       "theConnectedFirmwareDoesNot": "The connected firmware does not support image upload.",
       "imageStorageIsUnavailableOn": "Image storage is unavailable on this device.",
       "restartTheDeviceBeforeUploading": "Restart the device before uploading another image package."
@@ -1515,7 +1521,9 @@
     },
     "firmwareCheck": {
       "checking": "Checking that the board's firmware {version} accepts this configuration",
-      "refused": "The board runs firmware {running}, which does not accept this configuration: it needs firmware {released}. Nothing on the board has changed. Update the board, then save again. The board said: {reason}"
+      "refused": "The board runs firmware {running}, which does not accept this configuration: it needs firmware {released}. Nothing on the board has changed. Update the board, then save again. The board said: {reason}",
+      "unreadable": "The board runs firmware {running}, which could not read this configuration: it arrived damaged, or it is larger than that firmware accepts. Nothing on the board has changed. Save again. If this repeats, update the board to firmware {released}.",
+      "unfinished": "The board runs firmware {running}, which did not finish checking this configuration. The board may have restarted. Update the board to firmware {released}, then save again."
     },
     "fontDelivery": {
       "building": "Building the font package",
@@ -1586,7 +1594,6 @@
       "resetToFactory": "Reset to factory"
     },
     "boardUpdate": {
-      "alreadyRunning": "A board update is already running.",
       "readingTheBoard": "Reading what the board holds…",
       "keepingACopy": "Keeping a copy of the board's configuration in Configs…",
       "backupName": "Before update · {date} · firmware {version}",
@@ -1672,7 +1679,6 @@
       "selectFirmwareImage": "Select firmware image",
       "selectImage": "Select image",
       "selectThePitrigBinProduced": "Select the pitrig.bin produced by a firmware build.",
-      "aFirmwareUploadIsAlready": "A firmware upload is already running.",
       "theConnectedFirmwareCannotUpdate": "The connected firmware cannot update itself over serial.",
       "thisDeviceHasNoSecond": "This device has no second firmware slot to update into.",
       "restartTheDeviceToRun": "Restart the device to run the firmware already installed.",

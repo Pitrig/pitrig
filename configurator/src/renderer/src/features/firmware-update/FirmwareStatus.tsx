@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { boardName } from '@/features/configuration/board-labels'
+import { useBoardActivityReason } from '@/features/device/board-activity'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FirmwareChangeList } from '@/features/updates/FirmwareChangeList'
 import { updateBoardFromRelease, useUpdateStore } from '@/features/updates/update-store'
@@ -82,6 +83,7 @@ export function FirmwareStatus({ session }: { session: DeviceSession }): React.J
   const status = useUpdateStore((state) => state.status)
   const preparing = useUpdateStore((state) => state.preparing)
   const running = useBoardUpdateStore((state) => state.running)
+  const busyReason = useBoardActivityReason()
   const [changesOpen, setChangesOpen] = useState(false)
   const { boardId, firmwareVersion, schemaVersion } = session.info
   const firmware = session.firmware
@@ -112,11 +114,21 @@ export function FirmwareStatus({ session }: { session: DeviceSession }): React.J
       {pending ? (
         <div className="mt-3 space-y-2">
           <p className="text-amber-400">{t('firmware.firmwareStatus.restartWaiting')}</p>
-          <Button onClick={() => void updateBoard()}>{t('firmware.firmwareStatus.restartToFinish')}</Button>
+          <Button
+            disabled={busyReason !== undefined}
+            title={busyReason}
+            onClick={() => void updateBoard()}
+          >
+            {t('firmware.firmwareStatus.restartToFinish')}
+          </Button>
         </div>
       ) : behind ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button disabled={preparing} onClick={() => void updateBoardFromRelease()}>
+          <Button
+            disabled={preparing || busyReason !== undefined}
+            title={busyReason}
+            onClick={() => void updateBoardFromRelease()}
+          >
             {t('firmware.firmwareStatus.updateTo', { version: released })}
           </Button>
           {count > 0 ? (

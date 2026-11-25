@@ -28,8 +28,6 @@ interface Restored {
 type Step<T> = { ok: true; value: T } | { ok: false; error: BoardUpdateError }
 
 export class BoardUpdateService {
-  private running = false
-
   constructor(
     private readonly deviceService: DeviceService,
     private readonly firmware: FirmwareUpdateService,
@@ -39,31 +37,16 @@ export class BoardUpdateService {
   ) {}
 
   async update(request: BoardUpdateRequest): Promise<BoardUpdateResult> {
-    if (this.running) return failure('busy', t('firmware.boardUpdate.alreadyRunning'))
-    const session = this.deviceService.getState().session
-    if (!session) return failure('device_error', t('device.deviceOperation.noPitrigDeviceIsConnected'))
-    if (!session.firmware) {
-      return failure('unsupported_firmware', t('firmware.firmwareUpdateService.theConnectedFirmwareCannotUpdate'))
-    }
-    if (!session.firmware.storageAvailable) {
-      return failure('device_error', t('firmware.firmwareUpdateService.thisDeviceHasNoSecond'))
-    }
-    const pending = session.firmware.rebootRequired
-    if (!pending && request.sourceId === undefined) {
-      return failure('source_missing', t('firmware.firmwareUpdateService.theSelectedFirmwareImageIs'))
-    }
-    this.running = true
-    try {
-      return await this.deviceService.runPipeline(
-        () => this.run(pending ? undefined : request.sourceId),
-        () => failure('busy', t('device.deviceOperation.theBoardIsBusyWith'))
-      )
-    } finally {
-      this.running = false
-    }
+    return this.deviceService.operation(
+      'update',
+      () => this.run(request),
+      (error) => failure('busy', error.message)
+    )
   }
 
-  private async run(sourceId: string | undefined): Promise<BoardUpdateResult> {
+  private async run(request: BoardUpdateRequest): Promise<BoardUpdateResult> {
+    const source = this.sourceFor(request, this.deviceService.getState().session)
+    if (!source.ok) return source
     this.report('backup', t('firmware.boardUpdate.readingTheBoard'))
     const read = await this.deviceService.readConfiguration()
     const before = read.ok ? read.value.session : undefined
@@ -74,8 +57,8 @@ export class BoardUpdateService {
     const backup = await this.backUp(before)
     if (!backup.ok) return backup
 
-    if (sourceId !== undefined) {
-      const installed = await this.firmware.upload({ sourceId }, this.forwardInstall)
+    if (source.value !== undefined) {
+      const installed = await this.firmware.upload({ sourceId: source.value }, this.forwardInstall)
       if (!installed.ok) {
         if (backup.value) await this.library.remove(backup.value.id)
         return failure(installed.error.code, installed.error.message)
@@ -124,6 +107,24 @@ export class BoardUpdateService {
         ...(restored.failed ? { restoreFailed: restored.failed } : {})
       }
     }
+  }
+
+  private sourceFor(
+    request: BoardUpdateRequest,
+    session: DeviceSession | undefined
+  ): Step<string | undefined> {
+    if (!session) return failure('device_error', t('device.deviceOperation.noPitrigDeviceIsConnected'))
+    if (!session.firmware) {
+      return failure('unsupported_firmware', t('firmware.firmwareUpdateService.theConnectedFirmwareCannotUpdate'))
+    }
+    if (!session.firmware.storageAvailable) {
+      return failure('device_error', t('firmware.firmwareUpdateService.thisDeviceHasNoSecond'))
+    }
+    if (session.firmware.rebootRequired) return { ok: true, value: undefined }
+    if (request.sourceId === undefined) {
+      return failure('source_missing', t('firmware.firmwareUpdateService.theSelectedFirmwareImageIs'))
+    }
+    return { ok: true, value: request.sourceId }
   }
 
   private async backUp(session: DeviceSession): Promise<Step<BoardBackup | undefined>> {

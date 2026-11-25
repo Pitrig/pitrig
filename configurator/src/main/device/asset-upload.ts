@@ -4,6 +4,7 @@ import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { describeDeviceError } from '../../shared/device-error-message'
 import { crc32 } from './asset-crc'
 import { exchangeLines } from './line-exchange'
+import { isBusyToken } from './serial-request'
 import { t } from '@shared/ui-text'
 import { CONTROL_PREFIX } from '@shared/control-protocol'
 
@@ -37,10 +38,8 @@ interface UploadCallbacks {
   onTransmit?: (data: string, encoding: 'utf8' | 'hex') => void
 }
 
-function isBusyRefusal(namespace: AssetNamespace, error: unknown): boolean {
-  if (!(error instanceof DeviceRejectedUploadError)) return false
-  const token = error.token.trim()
-  return token === 'busy' || token === `${namespace.command}:busy`
+function isBusyRefusal(begin: Buffer, error: unknown): boolean {
+  return error instanceof DeviceRejectedUploadError && isBusyToken(begin.toString('utf8'), error.token)
 }
 
 async function pause(milliseconds: number, signal: AbortSignal): Promise<void> {
@@ -68,7 +67,7 @@ export async function uploadAssetPackage(
       message: t('device.assetUpload.preparingLabelStorage', { label: namespace.label })
     })
     const begin = Buffer.from(
-      `${CONTROL_PREFIX}${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`,
+      `\n${CONTROL_PREFIX}${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`,
       'utf8'
     )
     const ready = `${CONTROL_PREFIX}OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`
@@ -81,7 +80,7 @@ export async function uploadAssetPackage(
         break
       } catch (error) {
         beginMayBeActive = false
-        if (!isBusyRefusal(namespace, error) || Date.now() >= busyDeadline) throw error
+        if (!isBusyRefusal(begin, error) || Date.now() >= busyDeadline) throw error
         await pause(retryMs, signal)
         retryMs = Math.min(retryMs * 2, BEGIN_RETRY_MAXIMUM_MS)
       }
@@ -204,14 +203,15 @@ function exchangeLine(
     onTimeout: () => ({ error: new Error(t('device.assetUpload.theDeviceDidNotAnswer', { responsePrefix: responsePrefix })) }),
     onClose: () => new Error(t('device.assetUpload.theSerialPortClosedDuring')),
     onAbort: () => new Error(t('device.assetUpload.theUploadWasCancelled')),
-    send: (fail) => {
+    send: ({ fail, arm }) => {
+      arm()
       port.write(request, (error) => {
         if (error) {
           fail(error)
           return
         }
         if (callbacks.onTransmit) {
-          const utf8 = request[0] === 0x40
+          const utf8 = request[0] !== FRAME_MAGIC[0]
           callbacks.onTransmit(
             utf8 ? request.toString('utf8') : request.toString('hex'),
             utf8 ? 'utf8' : 'hex'

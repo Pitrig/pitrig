@@ -21,13 +21,15 @@ export async function planAssets(input: {
   keepBoardAssets: boolean
   fonts: FontSources
   library: ImageLibraryService
+  download: boolean
 }): Promise<SaveStep<AssetPlan>> {
   const families = await plannedFamilies({
     configuration: input.configuration,
     session: input.session,
     changed: input.changed,
     keepBoardFonts: input.keepBoardAssets,
-    sources: input.fonts
+    sources: input.fonts,
+    download: input.download
   })
   if (!families.ok) return families
   const images = await plannedImages({

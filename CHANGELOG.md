@@ -45,10 +45,14 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 **Fixed**
 
-- **Configurator.** Save to board, Update board, uploads, a restart and the other actions on a board no longer stop now and then with "another device operation is already running" when they start during the board check every five seconds.
+- **Configurator.** Save to board, Update board, uploads and a restart wait for a board check or a live change instead of stopping with "another device operation is already running".
 - **Configurator.** Messages about the font limit, update recovery, picture colours and board sync are correct and translated.
-- **Configurator.** A save started while Update board runs stops with "the board is busy" instead of sending its commands in between.
-- **Configurator.** Saving to a board on older firmware that does not answer, or stays busy, says so instead of asking for a firmware update.
+- **Configurator.** While Save to board, Update board or a restart runs, the other board actions are disabled and say what is running, and none can send its commands in between.
+- **Configurator.** Saving to a board on older firmware says whether the board refused the dashboard, could not read it, did not finish the check or stayed busy.
+- **Configurator.** Connecting right after a board starts no longer fails while it is still loading its fonts.
+- **Configurator.** A board that answered late or stayed busy no longer reads as one that refused the dashboard, and a save the board stored without answering is not reported as failed.
+- **Configurator.** Turning the Modules preview off always clears its values on the board.
+- **Configurator.** A language change or an app update waits for a running board action before the app restarts.
 - **Development.** Debug builds of the Guition ESP32-4848S040 no longer lose serial bytes, which broke font uploads and long commands.
 
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1

@@ -11,6 +11,7 @@ import { WidgetInspector } from '@/features/configuration/inspector/WidgetInspec
 import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 import { useEditorShortcuts } from '@/features/configuration/editor/use-editor-shortcuts'
 import { restartBoard } from '@/features/configuration/configuration-actions'
+import { useBoardActivityReason } from '@/features/device/board-activity'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useDraftState } from '@/features/device/draft-state'
 import { LiveApplyIndicator } from '@/features/device/LiveApplyIndicator'
@@ -89,15 +90,17 @@ export function DashboardWorkspace(): React.JSX.Element {
 function RestartBoardButton(): React.JSX.Element {
   const { connected } = useDraftState()
   const saving = useSaveToBoardStore((state) => state.running)
+  const busyReason = useBoardActivityReason()
   return (
     <Button
       className="flex-none"
       variant="outline"
-      disabled={!connected || saving}
+      disabled={!connected || saving || busyReason !== undefined}
       title={
-        connected
+        busyReason ??
+        (connected
           ? t('dashboard.dashboardWorkspace.restartTheConnectedBoard')
-          : t('dashboard.dashboardWorkspace.connectABoardToRestart')
+          : t('dashboard.dashboardWorkspace.connectABoardToRestart'))
       }
       onClick={() => void restartBoard()}
     >

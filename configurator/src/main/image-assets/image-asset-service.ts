@@ -37,7 +37,6 @@ const kImages: AssetKind = {
   filters: [{ name: t('images.dialog.filter'), extensions: ['png', 'jpg', 'jpeg', 'bmp'] }],
   extensions: ['.png', '.jpg', '.jpeg', '.bmp'],
   wrongExtension: t('images.imageAssetService.selectAPngJpegOr'),
-  busy: t('images.imageAssetService.anImageUploadIsAlready'),
   unsupported: t('images.imageAssetService.theConnectedFirmwareDoesNot'),
   storageUnavailable: t('images.imageAssetService.imageStorageIsUnavailableOn'),
   rebootRequired: t('images.imageAssetService.restartTheDeviceBeforeUploading')
@@ -155,8 +154,7 @@ export class ImageAssetService extends AssetServiceBase {
     const blocked = this.preflight()
     if (blocked) return blocked
     const session = this.deviceService.getState().session
-    const operation = new AbortController()
-    this.activeOperation = operation
+    const operation = this.begin()
     try {
       report({
         stage: 'building',

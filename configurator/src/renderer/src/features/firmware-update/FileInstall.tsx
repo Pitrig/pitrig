@@ -4,12 +4,14 @@ import { useState } from 'react'
 import type { DeviceSession } from '@shared/device'
 import { t } from '@shared/ui-text'
 import { Button } from '@/components/ui/button'
+import { useBoardActivityReason } from '@/features/device/board-activity'
 import { updateBoard, useBoardUpdateStore } from './board-update-store'
 import { useFirmwareUpdateStore } from './firmware-update-store'
 
 export function FileInstall({ session }: { session: DeviceSession }): React.JSX.Element {
   const source = useFirmwareUpdateStore((state) => state.source)
   const running = useBoardUpdateStore((state) => state.running)
+  const busyReason = useBoardActivityReason()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const firmware = session.firmware
@@ -18,7 +20,8 @@ export function FileInstall({ session }: { session: DeviceSession }): React.JSX.
     !firmware?.rebootRequired &&
     source !== undefined &&
     !running &&
-    !busy
+    !busy &&
+    busyReason === undefined
 
   const select = async (): Promise<void> => {
     setBusy(true)
@@ -60,7 +63,11 @@ export function FileInstall({ session }: { session: DeviceSession }): React.JSX.
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" disabled={busy || running} onClick={() => void select()}>
             {t('firmware.fileInstall.selectFile')}</Button>
-          <Button disabled={!installable} onClick={() => void updateBoard(source?.id)}>
+          <Button
+            disabled={!installable}
+            title={busyReason}
+            onClick={() => void updateBoard(source?.id)}
+          >
             {t('firmware.fileInstall.install')}</Button>
         </div>
       </div>

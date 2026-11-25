@@ -56,3 +56,11 @@ export class SerialTrafficReporter {
     this.emit?.({ direction, path: this.path, baudRate: this.baudRate, data, encoding })
   }
 }
+
+export function sentTraffic(
+  traffic: SerialTrafficReporter
+): (direction: 'rx' | 'tx', data: string) => void {
+  return (direction, data) => {
+    if (direction === 'tx') traffic.write(direction, data)
+  }
+}

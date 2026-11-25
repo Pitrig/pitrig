@@ -72,7 +72,8 @@ export class UpdateService {
     return this.status()
   }
 
-  installApp(): boolean {
+  async installApp(): Promise<boolean> {
+    await this.deviceService.whenIdle()
     return this.appUpdates.install()
   }
 

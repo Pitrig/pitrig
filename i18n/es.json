@@ -130,9 +130,7 @@
       "theSerialPortIsNo": "El puerto serie ya no está disponible."
     },
     "deviceOperation": {
-      "noPitrigDeviceIsConnected": "No hay ningún dispositivo Pitrig conectado.",
-      "anotherDeviceOperationIsAlready": "Ya hay otra operación en curso en el dispositivo.",
-      "theBoardIsBusyWith": "La placa está ocupada con una operación de varios pasos. Vuelve a intentarlo cuando termine."
+      "noPitrigDeviceIsConnected": "No hay ningún dispositivo Pitrig conectado."
     },
     "deviceScan": {
       "theBoardRestartedButDid": "La placa se reinició, pero no volvió a aparecer en su puerto. Vuelve a conectarla a mano.",
@@ -142,9 +140,6 @@
       "noPitrigDeviceWasFound": "No se encontró ningún dispositivo Pitrig."
     },
     "deviceService": {
-      "cancelTheActiveDeviceOperation": "Cancela la operación en curso en el dispositivo antes de desconectar.",
-      "aSaveIsRunningOn": "Hay un guardado en curso en el dispositivo conectado.",
-      "theConnectedDeviceIsBusy": "El dispositivo conectado está ocupado o no disponible.",
       "font": "fuentes",
       "image": "imágenes",
       "firmware": "firmware"
@@ -166,7 +161,8 @@
       "theDeviceDidNotAnswer": "El dispositivo no respondió a {trim}.",
       "serialPortClosedDuringRequest": "El puerto serie se cerró durante la solicitud.",
       "serialPortClosedDuringThe": "El puerto serie se cerró durante el comando.",
-      "theSerialPortIsClosed": "El puerto serie está cerrado."
+      "theSerialPortIsClosed": "El puerto serie está cerrado.",
+      "theBoardStayedBusy": "La placa siguió ocupada y no aceptó {request}. Vuelve a intentarlo en un momento."
     },
     "error": {
       "validation": {
@@ -346,6 +342,18 @@
       "linkValue": "{path} · {baudRate} baudios",
       "notConnected": "sin conexión",
       "system": "Sistema"
+    },
+    "linkOwner": {
+      "busy": {
+        "connect": "Pitrig se está conectando a la placa. Vuelve a intentarlo cuando esté conectada.",
+        "disconnect": "Pitrig está desconectando la placa. Vuelve a intentarlo cuando termine.",
+        "restart": "La placa se está reiniciando. Vuelve a intentarlo cuando vuelva a estar conectada.",
+        "save": "Se está guardando en la placa. Vuelve a intentarlo cuando termine.",
+        "update": "Se está actualizando la placa. Vuelve a intentarlo cuando termine.",
+        "install": "Se está instalando Pitrig en una placa. Vuelve a intentarlo cuando termine.",
+        "upload": "Se está enviando un archivo a la placa. Vuelve a intentarlo cuando termine.",
+        "bench": "El banco de pruebas está cambiando el dashboard. Vuelve a intentarlo cuando termine."
+      }
     }
   },
   "fonts": {
@@ -449,7 +457,6 @@
       "fontUploadWasCancelled": "Se canceló el envío de fuentes.",
       "selectFontSource": "Seleccionar archivo de fuente",
       "selectFont": "Seleccionar fuente",
-      "aFontUploadIsAlready": "Ya hay un envío de fuentes en curso.",
       "theConnectedFirmwareDoesNot": "El firmware del dispositivo conectado no admite el envío de fuentes.",
       "fontAssetStorageIsUnavailable": "El almacenamiento de fuentes no está disponible en este dispositivo.",
       "restartTheDeviceBeforeUploading": "Reinicia el dispositivo antes de enviar otro paquete de fuentes.",
@@ -1428,7 +1435,6 @@
       "theConnectedDeviceChangedDuring": "El dispositivo conectado cambió durante el envío.",
       "selectImageSource": "Seleccionar imagen de origen",
       "selectAPngJpegOr": "Selecciona una imagen PNG, JPEG o BMP.",
-      "anImageUploadIsAlready": "Ya hay un envío de imágenes en curso.",
       "theConnectedFirmwareDoesNot": "El firmware del dispositivo conectado no admite el envío de imágenes.",
       "imageStorageIsUnavailableOn": "El almacenamiento de imágenes no está disponible en este dispositivo.",
       "restartTheDeviceBeforeUploading": "Reinicia el dispositivo antes de enviar otro paquete de imágenes."
@@ -1522,7 +1528,9 @@
     },
     "firmwareCheck": {
       "checking": "Comprobando que el firmware {version} de la placa acepta esta configuración",
-      "refused": "La placa ejecuta el firmware {running}, que no acepta esta configuración: necesita el firmware {released}. No ha cambiado nada en la placa. Actualiza la placa y vuelve a guardar. La placa respondió: {reason}"
+      "refused": "La placa ejecuta el firmware {running}, que no acepta esta configuración: necesita el firmware {released}. No ha cambiado nada en la placa. Actualiza la placa y vuelve a guardar. La placa respondió: {reason}",
+      "unreadable": "La placa ejecuta el firmware {running}, que no pudo leer esta configuración: llegó dañada o es más grande de lo que acepta ese firmware. No ha cambiado nada en la placa. Vuelve a guardar. Si se repite, actualiza la placa al firmware {released}.",
+      "unfinished": "La placa ejecuta el firmware {running}, que no terminó de comprobar esta configuración. Puede que la placa se haya reiniciado. Actualiza la placa al firmware {released} y vuelve a guardar."
     },
     "fontDelivery": {
       "building": "Creando el paquete de fuentes",
@@ -1593,7 +1601,6 @@
       "resetToFactory": "Restablecer de fábrica"
     },
     "boardUpdate": {
-      "alreadyRunning": "Ya hay una actualización de placa en curso.",
       "readingTheBoard": "Leyendo lo que contiene la placa…",
       "keepingACopy": "Guardando una copia de la configuración de la placa en «Configuraciones»…",
       "backupName": "Antes de actualizar · {date} · firmware {version}",
@@ -1679,7 +1686,6 @@
       "selectFirmwareImage": "Seleccionar imagen de firmware",
       "selectImage": "Seleccionar imagen",
       "selectThePitrigBinProduced": "Selecciona el pitrig.bin generado por una compilación del firmware.",
-      "aFirmwareUploadIsAlready": "Ya hay un envío de firmware en curso.",
       "theConnectedFirmwareCannotUpdate": "El firmware del dispositivo conectado no puede actualizarse por el puerto serie.",
       "thisDeviceHasNoSecond": "Este dispositivo no tiene una segunda ranura de firmware en la que instalar la actualización.",
       "restartTheDeviceToRun": "Reinicia el dispositivo para ejecutar el firmware ya instalado.",

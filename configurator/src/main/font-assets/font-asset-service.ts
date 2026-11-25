@@ -25,7 +25,6 @@ const kFonts: AssetKind = {
   filters: [{ name: t('fonts.dialog.filter'), extensions: ['ttf', 'otf'] }],
   extensions: ['.ttf', '.otf'],
   wrongExtension: t('fonts.fontLibraryService.selectATtfOrOtf'),
-  busy: t('fonts.fontAssetService.aFontUploadIsAlready'),
   unsupported: t('fonts.fontAssetService.theConnectedFirmwareDoesNot'),
   storageUnavailable: t('fonts.fontAssetService.fontAssetStorageIsUnavailable'),
   rebootRequired: t('fonts.fontAssetService.restartTheDeviceBeforeUploading')
@@ -69,8 +68,7 @@ export class FontAssetService extends AssetServiceBase {
     if (blocked) return blocked
     const deviceSession = this.deviceService.getState().session
 
-    const operation = new AbortController()
-    this.activeOperation = operation
+    const operation = this.begin()
     try {
       report({
         stage: 'building',
@@ -119,11 +117,6 @@ export class FontAssetService extends AssetServiceBase {
     } finally {
       this.release(operation)
     }
-  }
-
-  cancel(): FontAssetResult<void> {
-    this.activeOperation?.abort()
-    return success(undefined)
   }
 }
 

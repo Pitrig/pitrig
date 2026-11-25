@@ -24,7 +24,7 @@ import { CONTROL_PREFIX } from '@shared/control-protocol'
 export { requestResponse, sendControlCommand } from './serial-request'
 
 const CONFIGURATION_TIMEOUT_MS = 2_000
-const STARTUP_HOLD_TIMEOUT_MS = 12_000
+const COMPOSITION_HOLD_MS = 10_000
 const ASSET_CLEAR_TIMEOUT_MS = 30_000
 
 function configurationTimeout(port: SerialPort, payloadBytes: number): number {
@@ -34,7 +34,7 @@ function configurationTimeout(port: SerialPort, payloadBytes: number): number {
 }
 
 function writeTimeout(port: SerialPort, payloadBytes: number): number {
-  return Math.max(STARTUP_HOLD_TIMEOUT_MS, configurationTimeout(port, payloadBytes))
+  return configurationTimeout(port, payloadBytes) + COMPOSITION_HOLD_MS
 }
 
 async function readConfigurationDocument(
@@ -53,26 +53,34 @@ async function readConfigurationDocument(
     onTraffic,
     rejectionCode
   )
+  let configuration: DeviceConfiguration
   try {
-    const configuration = parseDeviceConfigurationJson(line.slice(prefix.length))
-    if (configuration.board !== expectedBoard) {
-      throw new Error(t('device.pitrigProtocol.theDeviceConfigurationBoardDoes'))
-    }
-    return configuration
+    configuration = parseDeviceConfigurationJson(line.slice(prefix.length))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown configuration error.'
-    throw new DeviceServiceError(rejectionCode, message)
+    throw new DeviceServiceError('damaged_reply', message)
   }
+  if (configuration.board !== expectedBoard) {
+    throw new DeviceServiceError(
+      rejectionCode,
+      t('device.pitrigProtocol.theDeviceConfigurationBoardDoes')
+    )
+  }
+  return configuration
 }
 
 export async function readConfiguration(
   port: SerialPort,
   expectedBoard: PitrigBoardId,
   onTraffic: TrafficCallback,
-  rejectionCode: DeviceErrorCode = 'configuration_rejected'
+  rejectionCode: DeviceErrorCode = 'configuration_rejected',
+  yielding: () => boolean = () => false
 ): Promise<DeviceConfiguration> {
   const documents = {} as Record<ConfigurationDocumentId, DeviceConfiguration>
   for (const document of CONFIGURATION_DOCUMENT_IDS) {
+    if (yielding()) {
+      throw new DeviceServiceError('cancelled', t('device.lineExchange.theRequestWasCancelled'))
+    }
     documents[document] = await readConfigurationDocument(
       port,
       document,
@@ -106,27 +114,14 @@ export async function validateConfiguration(
   payload: string,
   onTraffic: TrafficCallback
 ): Promise<void> {
-  try {
-    await requestResponse(
-      port,
-      `${CONTROL_PREFIX}VALIDATE:${document}:${payload}\n`,
-      `${CONTROL_PREFIX}OK:VALID:${document}`,
-      writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
-      onTraffic,
-      'configuration_rejected'
-    )
-  } catch (error) {
-    throw linkFault(error)
-  }
-}
-
-function linkFault(error: unknown): unknown {
-  if (!(error instanceof DeviceServiceError) || error.code !== 'configuration_rejected') {
-    return error
-  }
-  if (error.token === undefined) return new DeviceServiceError('serial_error', error.message)
-  if (error.token === 'busy') return new DeviceServiceError('busy', error.message, error.token)
-  return error
+  await requestResponse(
+    port,
+    `${CONTROL_PREFIX}VALIDATE:${document}:${payload}\n`,
+    `${CONTROL_PREFIX}OK:VALID:${document}`,
+    writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
+    onTraffic,
+    'configuration_rejected'
+  )
 }
 
 export async function saveConfiguration(
@@ -184,7 +179,7 @@ export async function clearImageAssets(
     `${CONTROL_PREFIX}OK:IMAGE:CLEARED:reboot_required=1`,
     ASSET_CLEAR_TIMEOUT_MS,
     onTraffic,
-    'serial_error'
+    'board_refused'
   )
 }
 
@@ -198,6 +193,6 @@ export async function clearFontAssets(
     `${CONTROL_PREFIX}OK:FONT:CLEARED:reboot_required=1`,
     ASSET_CLEAR_TIMEOUT_MS,
     onTraffic,
-    'serial_error'
+    'board_refused'
   )
 }

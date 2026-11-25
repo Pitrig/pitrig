@@ -1,7 +1,8 @@
-import { SerialPort } from 'serialport'
+import type { SerialPort } from 'serialport'
 
 import type { SerialTrafficLog } from '../../shared/serial-traffic'
 import type {
+  DeviceActivity,
   DeviceConnection,
   DeviceError,
   DeviceResult,
@@ -11,13 +12,13 @@ import type {
 } from '../../shared/device'
 import { listenToActivePort } from './active-port-listeners'
 import { DeviceServiceError, failure, success, toDeviceError } from './device-errors'
-import { PortLeases, openWhenFree, probeAfterHandover, probeWhileHeld } from './port-leases'
+import { PortLeases } from './port-leases'
+import { openPortFor, type PortOpening } from './port-opening'
 import { PortRegistry, type PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
-import { SerialTrafficReporter } from './serial-traffic-reporter'
+import type { SerialTrafficReporter } from './serial-traffic-reporter'
 import { identifyPitrig, probePitrig } from './device-probe'
 import { reconnectToBoard, scanForDevice } from './device-scan'
-import type { TrafficCallback } from './serial-request'
 import { t } from '@shared/ui-text'
 
 export interface OpenedDevice {
@@ -35,19 +36,37 @@ export class ConnectionManager {
   private detachActiveListeners: (() => void) | undefined
   private pendingPort: SerialPort | undefined
   private operationToken = 0
+  private activity: DeviceActivity | undefined
+  private readonly opening: PortOpening
 
   constructor(
     private readonly onStateChanged: (state: DeviceState) => void,
-    private readonly onSerialTraffic?: (log: SerialTrafficLog) => void
-  ) {}
+    onSerialTraffic?: (log: SerialTrafficLog) => void
+  ) {
+    this.opening = {
+      leases: this.leases,
+      onSerialTraffic,
+      ensureCurrent: (token) => this.ensureCurrent(token),
+      holdPending: (port) => {
+        this.pendingPort = port
+      },
+      pending: () => this.pendingPort
+    }
+  }
 
   getState(): DeviceState {
     return this.state
   }
 
   setState(state: DeviceState): void {
-    this.state = state
-    this.onStateChanged(state)
+    this.state = withActivity(state, this.activity)
+    this.onStateChanged(this.state)
+  }
+
+  setActivity(activity: DeviceActivity | undefined): void {
+    if (this.activity === activity) return
+    this.activity = activity
+    this.setState(this.state)
   }
 
   get port(): SerialPort | undefined {
@@ -190,7 +209,7 @@ export class ConnectionManager {
     token: number,
     holdUntil?: number
   ): Promise<OpenedDevice> {
-    const opened = await this.openPortFor(record, baudRate, token, probePitrig, holdUntil)
+    const opened = await openPortFor(this.opening, record, baudRate, token, probePitrig, holdUntil)
     return { port: opened.port, session: opened.value, traffic: opened.traffic }
   }
 
@@ -199,52 +218,8 @@ export class ConnectionManager {
     baudRate: number,
     token: number
   ): Promise<{ port: SerialPort; traffic: SerialTrafficReporter }> {
-    const opened = await this.openPortFor(record, baudRate, token, identifyPitrig)
+    const opened = await openPortFor(this.opening, record, baudRate, token, identifyPitrig)
     return { port: opened.port, traffic: opened.traffic }
-  }
-
-  private async openPortFor<T>(
-    record: PortRecord,
-    baudRate: number,
-    token: number,
-    probe: (port: SerialPort, onTraffic: TrafficCallback) => Promise<T>,
-    holdUntil?: number
-  ): Promise<{ port: SerialPort; traffic: SerialTrafficReporter; value: T }> {
-    this.ensureCurrent(token)
-    const fromPlugin = await this.leases.take(record.path)
-    this.ensureCurrent(token)
-    const port = new SerialPort({
-      path: record.path,
-      baudRate,
-      autoOpen: false,
-      lock: true
-    })
-    this.pendingPort = port
-    const traffic = new SerialTrafficReporter(this.onSerialTraffic, record.path, baudRate)
-
-    try {
-      await openWhenFree(port, fromPlugin)
-      this.ensureCurrent(token)
-      const value = await probeWhileHeld(
-        () =>
-          probeAfterHandover(
-            () => probe(port, (direction, data) => traffic.write(direction, data)),
-            fromPlugin
-          ),
-        port,
-        holdUntil
-      )
-      this.ensureCurrent(token)
-      this.pendingPort = undefined
-      return { port, traffic, value }
-    } catch (error) {
-      if (this.pendingPort === port) {
-        this.pendingPort = undefined
-      }
-      await closePort(port)
-      traffic.flush()
-      throw error
-    }
   }
 
   private attachActivePort(opened: OpenedDevice, record: PortRecord, baudRate: number): void {
@@ -301,4 +276,12 @@ export class ConnectionManager {
       throw new DeviceServiceError('cancelled', t('device.deviceConnection.deviceScanWasCancelled'))
     }
   }
+}
+
+function withActivity(state: DeviceState, activity: DeviceActivity | undefined): DeviceState {
+  if (state.activity === activity) return state
+  const next = { ...state }
+  if (activity === undefined) delete next.activity
+  else next.activity = activity
+  return next
 }
