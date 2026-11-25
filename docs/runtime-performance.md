@@ -198,6 +198,11 @@ per-screen tuning:
   Smaller pieces are slower, not faster, because each redrawn area carries
   about 1 ms of fixed cost. An arc with a gradient instead of a ramp repaints
   only the part its value moves.
+- **A bar repaints only the part its value moves**: the run between its old and
+  new ends and the corner of a rounded end, so 24 bars changing every frame
+  draw at 60 fps instead of 40 on the Guition ESP32-4848S040 and 59 instead of
+  48 on the JC1060P470C. A bar with both rounded corners and a gradient still
+  repaints its whole fill.
 - **A scrolling graph redraws its whole plot at every sample**, so a short
   `sample_interval_ms` on a large plot costs a full redraw of it every frame,
   and steep, busy traces cost the most to draw; one that sets `sweep` redraws

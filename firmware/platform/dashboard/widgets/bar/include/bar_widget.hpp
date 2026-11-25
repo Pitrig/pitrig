@@ -30,6 +30,8 @@ struct State {
   bool free_running{};
   lv_obj_t* container{};
   lv_obj_t* fill{};
+  std::int32_t radius{};
+  bool anchored{};
   std::int32_t inner_width{};
   std::int32_t inner_height{};
   std::int32_t origin_x{};

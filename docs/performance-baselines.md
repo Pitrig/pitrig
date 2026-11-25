@@ -35,6 +35,42 @@ document that holds the panel rate, and ±1 fps below it.
 
 ## Guition JC1060P470C (ESP32-P4)
 
+### 2026-11-25 — graphs drawn from their samples, bars that repaint what moves
+
+The debugger's seventeen patterns only, on a build with
+`sdkconfig.defaults.jtag-fallback` appended, because this board's native
+connector is gone. *Before* is the same bench on the same day with the graph
+still copying a canvas (ADR 0012) and each bar resizing its fill. A range is the
+spread of the two runs.
+
+| Document | fps | render ms | latency ms | before fps | before render ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `text_only` | 58.9 | 1.94–1.99 | 23.2–24.1 | 58.8–58.9 | 1.99–2.00 |
+| `text_16` | 58.9 | 8.13–8.24 | 24.6–25.0 | 58.9 | 8.11–8.21 |
+| `text_32` | 49.0–49.1 | 13.74–13.78 | 28.4–28.8 | 49.2 | 13.72–13.73 |
+| `text_32_plain` | 51.2–51.5 | 12.67–12.70 | 27.5–28.0 | 51.6 | 12.62–12.71 |
+| `text_32_shapes` | 43.0–43.2 | 15.65–15.71 | 32.0 | 43.3 | 15.55–15.60 |
+| `text_64` | 27.7–28.4 | 31.03–31.95 | 45.1–46.8 | 27.8–28.3 | 31.04–31.64 |
+| `huge_text_4` | 58.9 | 6.98–7.10 | 24.5–25.4 | 58.8–58.9 | 6.95–6.97 |
+| `shapes_96` | 58.8–58.9 | 7.11–7.16 | 24.2–25.2 | 58.9 | 6.99–7.08 |
+| `arcs_12` | 58.8–58.9 | 5.30–5.56 | — | 58.9 | 5.46–5.52 |
+| `bars_24` | 58.6–58.7 | 8.26–8.27 | — | 47.2–48.3 | 11.48–11.87 |
+| `full_screen_bar` | 42.0–43.4 | 17.08–18.50 | 29.8–31.2 | 38.0–41.5 | 18.38–18.58 |
+| `indicators_12` | 54.4–54.8 | 8.67–8.90 | — | 53.7–54.5 | 8.86–8.92 |
+| `graphs_6` | 28.3–29.0 | 27.66–27.93 | — | 26.6–26.7 | 26.82–26.94 |
+| `graphs_6_sweep` | 58.9 | 3.14–3.15 | — | 58.9 | 4.76 |
+| `sprites_24` | 55.0–55.1 | 11.57–11.61 | 26.3–26.5 | 55.5–55.7 | 11.52–11.56 |
+| `nested_containers` | 55.8 | 11.19–11.20 | 25.7–25.9 | 56.5 | 11.08–11.09 |
+| `all_widgets` | 49.2–49.6 | 10.29–10.42 | 26.8–27.2 | 42.6–43.4 | 12.32–12.65 |
+
+Faster: `bars_24` 48 → 59 fps (render 11.7 → 8.3 ms), `all_widgets` 43 → 49
+fps, `full_screen_bar` 40 → 43, `graphs_6` 26.7 → 28.7 and `graphs_6_sweep`
+4.8 → 3.1 ms. `graphs_6` renders 3 % longer because its plot is now drawn
+during the render instead of into a canvas before it; six graphs scrolling
+smooth traces draw in 20.4 ms. Every other document renders within 1.5 % either
+way, less than moving LVGL in flash alone spreads this board's renders (up to
+4 %).
+
 ### 2026-11-17 — a four-second gate and no pacing before a measurement
 
 The tree of the entry below with the settle gate timed in seconds instead of
@@ -184,6 +220,39 @@ gap is older than this change and not that commit. Those figures used
 this entry is the baseline instead.
 
 ## Guition ESP32-4848S040 (ESP32-S3)
+
+### 2026-11-25 — graphs drawn from their samples, bars that repaint what moves
+
+The debugger's seventeen patterns only; the templates were not run. *Before* is
+the same bench on the same day with the graph still copying a canvas (ADR 0012)
+and each bar resizing its fill, so both sides carry whatever moved since the
+entry below. A range is the spread of the two runs.
+
+| Document | fps | render ms | latency ms | before fps | before render ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `text_only` | 60.0–60.1 | 2.66–2.68 | 11.1–11.9 | 60.2–60.4 | 2.67–2.73 |
+| `text_16` | 60.3–60.4 | 9.46–9.56 | 23.7–24.7 | 60.3–60.4 | 9.79–9.85 |
+| `text_32` | 39.3–39.4 | 18.42–18.53 | 34.6–34.9 | 38.5–38.7 | 19.02–19.10 |
+| `text_32_plain` | 41.5–42.6 | 16.67–17.15 | 32.7–33.5 | 41.8 | 17.08–17.11 |
+| `text_32_shapes` | 27.3–28.0 | 25.26–25.65 | 46.9–47.1 | 27.3–27.5 | 25.81–26.03 |
+| `text_64` | 13.1–13.6 | 60.77–63.24 | 100.4–105.8 | 13.0–13.3 | 61.85–63.81 |
+| `huge_text_4` | 60.3 | 7.40–7.58 | 23.4–23.5 | 60.1–60.4 | 7.87–7.97 |
+| `shapes_96` | 60.0–60.2 | 9.73–9.88 | 13.0–13.4 | 60.0 | 9.93–9.98 |
+| `arcs_12` | 60.4 | 7.14–7.23 | — | 60.4 | 7.16–7.24 |
+| `bars_24` | 60.3–60.4 | 9.22–9.27 | — | 39.3–40.3 | 12.90–13.45 |
+| `full_screen_bar` | 47.4–49.1 | 12.67–13.34 | 27.1–28.2 | 46.4–46.6 | 13.60–14.12 |
+| `indicators_12` | 32.2–33.5 | 12.76–14.16 | — | 31.1–32.3 | 13.85–13.99 |
+| `graphs_6` | 28.8–29.1 | 29.46–29.75 | — | 25.0–25.1 | 29.45–29.59 |
+| `graphs_6_sweep` | 60.4–60.5 | 5.03–5.07 | — | 59.1 | 7.38–7.47 |
+| `sprites_24` | 53.0–53.1 | 13.49–13.54 | 27.7–27.8 | 51.4 | 14.13 |
+| `nested_containers` | 43.6–43.7 | 16.29–16.30 | 32.1–32.2 | 42.2–42.3 | 16.94–16.96 |
+| `all_widgets` | 53.1–54.4 | 13.02–13.51 | 24.9–25.3 | 44.7–46.0 | 14.41–14.84 |
+
+Faster: `bars_24` 40 → 60 fps (render 13.2 → 9.2 ms), `all_widgets` 45 → 54
+fps, `full_screen_bar` 46.5 → 48.3, `graphs_6` 25 → 29 and `graphs_6_sweep` 7.4
+→ 5.1 ms; six graphs scrolling smooth traces draw in 21.4 ms and flat ones in
+18.5, against the canvas copy's 29.5 whatever the traces held. Every other
+document is at most 6 % shorter.
 
 ### 2026-11-18 — code and read-only data in PSRAM
 

@@ -18,6 +18,7 @@ set(component_sources
     "utilities/render_trigger/src/render_trigger.cpp"
     "widgets/arc/src/arc_gradient.cpp"
     "widgets/arc/src/arc_widget.cpp"
+    "widgets/bar/src/bar_fill.cpp"
     "widgets/bar/src/bar_widget.cpp"
     "widgets/graph/src/graph_binding.cpp"
     "widgets/graph/src/graph_draw.cpp"

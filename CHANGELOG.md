@@ -43,6 +43,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 - **All boards.** About 14 KB more internal memory and 380 KB more external memory stay free for dashboards, fonts and images.
 - **Display boards.** A graph keeps its samples instead of a picture of its plot, so it takes 2 KB of external memory at any size and draws faster, scrolling or sweeping.
+- **Display boards.** A bar redraws only the part its value moves, unless it has both rounded corners and a gradient, so screens with many bars draw faster.
 - **Configurator.** The T-Display lap timer starter has the Endurance look, with larger last and best times.
 - **Configurator.** Saved templates, widgets too, keep their images and fonts in one file; removing an image from the PC no longer breaks them.
 
