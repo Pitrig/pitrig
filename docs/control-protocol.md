@@ -81,10 +81,12 @@ Fields:
 
 - `internal_*` and `psram_*` are the total, current free, lowest free since
   boot, and largest free block of each heap, in bytes. `psram_total` is `0` on a
-  board without external RAM. They are read when the command arrives rather than
-  taken from the one-second snapshot, so a host that just applied a document
-  reads what that document costs now; `*_min` is the low-water mark since boot,
-  which is what a memory budget is set against;
+  board without external RAM. All but the two largest blocks are read when the
+  command arrives rather than taken from the one-second snapshot, so a host that
+  just applied a document reads what that document costs now. The largest blocks
+  come from the sampler's last walk, at most 30 seconds old, and read `0` until
+  its first walk five seconds after start. `*_min` is the low-water mark since
+  boot, which is what a memory budget is set against;
 - `fps`, `cpu0` and `cpu1` carry one decimal, and every `*_us` field is
   microseconds. They mean exactly what the same names mean in
   [runtime-performance.md](runtime-performance.md), and they come from the

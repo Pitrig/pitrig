@@ -52,8 +52,9 @@ one frozen block per second. Sums (frames, render, flush, sync, latency, areas)
 span the window; the maxima (`frame_max_us`, `work_max_us`, `gap_max_us`,
 `lat_max_us`) are the largest in it, so a spike appears at once and ages out a
 second later rather than being cleared on a boundary. Heap, PSRAM and the stack
-high-water marks keep the original once-a-second cadence — walking the heap costs
-far more than the frame counters do, and neither figure moves within a window.
+high-water marks keep the original once-a-second cadence, since none of them
+moves within a window, and the largest free blocks a 30-second one, because
+finding one walks the whole heap.
 
 - **FPS:** number of LVGL refreshes that performed rendering, divided by the
   window's own measured duration. Idle refresh callbacks are not counted, so a
@@ -103,15 +104,20 @@ far more than the frame counters do, and neither figure moves within a window.
   and `cost_span` against `cost_wait` is how much of a frame's span was the
   flush wait ([ADR 0032](adr/0032-burst-scheduled-frames.md)).
 - **Heap:** current free internal 8-bit heap and its largest free block. The two
-  largest-free-block figures are refreshed only every five seconds, and `@PR:DIAG`
-  serves them from that sample rather than measuring them itself: finding the
-  largest free block walks every block of the pool with the heap spinlock held,
-  which disables interrupts for the whole walk. Called per poll on the PSRAM pool
-  — which holds every LVGL allocation — it delayed the display driver's
+  largest-free-block figures are refreshed five seconds after start and then every
+  30 seconds by the sampler, which runs on the render core, and `@PR:DIAG` serves
+  them from that sample rather than measuring them itself: finding the largest
+  free block walks every block of the pool with the heap spinlock held, which
+  disables interrupts for the whole walk. Called per poll on the PSRAM pool —
+  which holds every LVGL allocation — it delayed the display driver's
   end-of-frame interrupt past the frame boundary often enough to blank single
-  frames on the panel. `heap_caps_get_free_size` and `heap_caps_get_minimum_free_size`
-  read counters and stay per-poll; nothing reaching `heap_caps_get_info` may go on
-  a periodic path while the display runs.
+  frames on the panel. The sampler's own walk, about 5 ms on the Guition
+  ESP32-4848S040, overflowed the UART's 128-byte receive FIFO at 460800 baud while
+  it ran on the link core, dropping bytes from uploads and long commands; an
+  allocation or a free in PSRAM on the link core during a walk still waits for the
+  rest of it with interrupts off. `heap_caps_get_free_size` and
+  `heap_caps_get_minimum_free_size` read counters and stay per-poll; nothing else
+  reaching `heap_caps_get_info` may go on a periodic path while the display runs.
 - **PSRAM:** current free SPIRAM heap, or zero when SPIRAM is unavailable.
 - **Uptime**, and the transport counters **Link** (bytes and reads per second),
   **Queue**, **Overflow**, **Gap**/**Handler** (worst read gap and handler time

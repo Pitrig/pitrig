@@ -10,6 +10,7 @@
 #include "freertos/task.h"
 #include "performance.hpp"
 #include "performance_internal.hpp"
+#include "pitrig_features.hpp"
 
 namespace pitrig::performance {
 
@@ -20,10 +21,11 @@ namespace {
 constexpr std::uint32_t kSamplePeriodMs = 50;
 constexpr std::size_t kWindowSamples = 20;
 constexpr std::size_t kHeapRefreshSamples = 20;
-constexpr std::size_t kFragmentationRefreshSamples = 100;
+constexpr std::size_t kFirstFragmentationRefreshSamples = 100;
+constexpr std::size_t kFragmentationRefreshSamples = 600;
 constexpr std::uint32_t kTaskStackDepth = 2'048;
 constexpr UBaseType_t kTaskPriority = 1;
-constexpr BaseType_t kTaskCore = 0;
+constexpr BaseType_t kTaskCore = PITRIG_RENDER_CORE;
 
 struct Sample {
   Measurements measurements;
@@ -44,7 +46,7 @@ StackType_t task_stack[kTaskStackDepth];
 EXT_RAM_BSS_ATTR std::array<Sample, kWindowSamples> window;
 std::size_t oldest_sample;
 std::size_t heap_refresh_countdown;
-std::size_t fragmentation_refresh_countdown;
+std::size_t fragmentation_refresh_countdown = kFirstFragmentationRefreshSamples;
 PerformanceStats last_published;
 
 std::uint32_t stack_free_bytes(const TaskHandle_t task) {

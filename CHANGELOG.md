@@ -49,6 +49,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** Messages about the font limit, update recovery, picture colours and board sync are correct and translated.
 - **Configurator.** A save started while Update board runs stops with "the board is busy" instead of sending its commands in between.
 - **Configurator.** Saving to a board on older firmware that does not answer, or stays busy, says so instead of asking for a firmware update.
+- **Development.** Debug builds of the Guition ESP32-4848S040 no longer lose serial bytes, which broke font uploads and long commands.
 
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 
