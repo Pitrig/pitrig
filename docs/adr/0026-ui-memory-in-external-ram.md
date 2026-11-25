@@ -76,17 +76,15 @@ build, for about 9 % of a heavy round frame; the six of them in the fragment
 take 4.8 KB more internal RAM.
 
 **LVGL's software renderer is patched for round shapes** on every board
-(`lvgl-9.5.0-sw-round-shapes.patch`). On an RGB565 layer it writes the rows of
+(`lvgl-9.6.0-sw-round-shapes.patch`). On an RGB565 layer it writes the rows of
 circles and rings straight into the buffer instead of building a mask row and
-blending it, narrows a ring arc to the box of its own angles, decides an arc's
-angle mask once per area side where the kept region is convex, and skips a fill
-or border with a corner radius of 16 px or more that an area lies fully inside
-of; for smaller corners the check cost the ESP32-P4's text screens more than it
-saved. Every pixel stays as LVGL drew it, including two of LVGL's own habits
-the patch must keep: the angle mask can report full cover after writing edge
-values, so a row is judged by its values, and an arc with a hole under 3 px
-draws stray pixels up to 2.2 px from its centre, so only arcs with a hole of 8
-px or more are narrowed.
+blending it, decides an arc's angle mask once per area side where the kept
+region is convex, and skips a fill or border with a corner radius of 16 px or
+more that an area lies fully inside of; for smaller corners the check cost the
+ESP32-P4's text screens more than it saved. LVGL 9.6 narrows an arc to the box
+of its own angles itself. Every pixel stays as LVGL drew it, including one of
+LVGL's own habits the patch must keep: the angle mask can report full cover
+after writing edge values, so a row is judged by its values.
 
 **The T-Display's draw buffers are 40 lines** rather than 80, which is where the
 worst-case frame stops improving.

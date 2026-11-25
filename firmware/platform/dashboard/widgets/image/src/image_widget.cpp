@@ -81,8 +81,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.image = lv_image_create(box.container);
   lv_obj_remove_style_all(state.image);
   lv_obj_center(state.image);
-  lv_obj_remove_flag(state.image, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(state.image, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(state.image, false);
+  lv_obj_set_clickable(state.image, false);
   state.descriptor = sheet->descriptor;
   state.frames = static_cast<const std::uint8_t*>(sheet->descriptor.data);
   state.frame_stride = sheet->frame_stride;

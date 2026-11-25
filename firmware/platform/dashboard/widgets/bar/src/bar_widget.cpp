@@ -62,8 +62,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
     return false;
   }
   lv_obj_remove_style_all(state.fill);
-  lv_obj_remove_flag(state.fill, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(state.fill, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(state.fill, false);
+  lv_obj_set_clickable(state.fill, false);
   lv_obj_set_pos(state.fill, state.origin_x, state.origin_y);
   lv_obj_set_size(state.fill, state.inner_width, state.inner_height);
   if (state.gradient) {

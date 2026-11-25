@@ -113,15 +113,15 @@ both chips.
 
 The `esp_lvgl_port` patches are a **stack**: ten files under
 `firmware/patches/`, one concern each, applied in the order
-`cmake/apply_esp_lvgl_port_dsi_patch.cmake` lists them. Three further patches
-there, `lvgl-9.5.0-ppa-*`, patch LVGL itself and are applied by
-`cmake/apply_lvgl_ppa_patch.cmake` for `esp32p4` only, which also refuses any
-LVGL but 9.5.0. A fourth, `lvgl-9.5.0-sw-round-shapes.patch`, is applied for
-every target by `cmake/apply_lvgl_sw_patch.cmake`: on RGB565 it draws circle
-and ring rows straight into the buffer, narrows a ring arc to its own angles
-and skips masks an area cannot need, every pixel the same as before — ADR 0026
-names the two LVGL habits an edit must keep. It touches
-only the renderer's fill, border, arc and mask files, so it and the PPA stack
+`cmake/apply_esp_lvgl_port_dsi_patch.cmake` lists them. One further patch
+there, `lvgl-9.6.0-ppa-small-fill-threshold.patch`, patches LVGL itself and is
+applied by `cmake/apply_lvgl_ppa_patch.cmake` for `esp32p4` only, which also
+refuses any LVGL but 9.6.0. A second, `lvgl-9.6.0-sw-round-shapes.patch`, is
+applied for every target by `cmake/apply_lvgl_sw_patch.cmake`: on RGB565 it
+draws circle and ring rows straight into the buffer and skips masks an area
+cannot need, every pixel the same as before — ADR 0026 names the LVGL habit an
+edit must keep. It touches
+only the renderer's fill, border, arc and mask files, so it and the PPA patch
 are checked independently on the one LVGL tree all boards share; on the
 size-optimised S3 builds the same file compiles ten hot renderer sources with
 `-O2` (ADR 0026). `cmake/apply_patch_stack.cmake` checks the whole stack —

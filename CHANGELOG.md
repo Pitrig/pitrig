@@ -41,6 +41,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 
 **Changed**
 
+- **Display boards.** LVGL 9.6 draws text faster, and busy screens show up to four more frames a second.
 - **All boards.** About 14 KB more internal memory and 380 KB more external memory stay free for dashboards, fonts and images.
 - **Display boards.** A graph keeps its samples instead of a picture of its plot, so it takes 2 KB of external memory at any size and draws faster, scrolling or sweeping.
 - **Display boards.** A bar redraws only the part its value moves, unless it has both rounded corners and a gradient, so screens with many bars draw faster.

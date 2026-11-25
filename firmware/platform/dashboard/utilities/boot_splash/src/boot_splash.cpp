@@ -98,8 +98,8 @@ bool Splash::build(lv_display_t* const display, lv_obj_t* const layer,
   lv_obj_set_size(container_, width, height);
   lv_obj_set_style_bg_color(container_, lv_color_black(), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(container_, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_remove_flag(container_, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(container_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(container_, false);
+  lv_obj_set_clickable(container_, false);
 
   lv_obj_t* const logo = lv_image_create(container_);
   lv_image_set_src(logo, &asset);

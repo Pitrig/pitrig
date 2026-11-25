@@ -37,8 +37,8 @@ void release_history(lv_event_t* const event) { lv_free(lv_event_get_user_data(e
   lv_obj_add_event_cb(plot, release_history, LV_EVENT_DELETE, history);
   state.history = history;
   lv_obj_remove_style_all(plot);
-  lv_obj_remove_flag(plot, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(plot, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(plot, false);
+  lv_obj_set_clickable(plot, false);
   draw::attach(plot, state);
   return plot;
 }

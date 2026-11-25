@@ -58,7 +58,7 @@ void Painter::configure(const Config& config, const Box& box, const std::uint32_
   visible_ = true;
   const auto show = [](lv_obj_t* const object) {
     if (object != nullptr) {
-      lv_obj_remove_flag(object, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_hidden(object, false);
     }
   };
   show(box.container);
@@ -211,11 +211,7 @@ void Painter::apply_visibility() {
     if (object == nullptr) {
       return;
     }
-    if (visible) {
-      lv_obj_remove_flag(object, LV_OBJ_FLAG_HIDDEN);
-    } else {
-      lv_obj_add_flag(object, LV_OBJ_FLAG_HIDDEN);
-    }
+    lv_obj_set_hidden(object, !visible);
   };
   set(box_.container);
   for (std::size_t index = 0; index < attachment_count_; ++index) {

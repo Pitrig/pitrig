@@ -39,8 +39,8 @@ bool Collection::place_pages(State& state, const std::size_t index, const Config
         return false;
       }
       lv_obj_remove_style_all(object);
-      lv_obj_remove_flag(object, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_remove_flag(object, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_set_clickable(object, false);
+      lv_obj_set_scrollable(object, false);
       pages_[base + page] = object;
       ++state.page_count;
     }

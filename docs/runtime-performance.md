@@ -238,8 +238,8 @@ since it, the "sending" term is a strip copy and no board waits for scan-out.
 
 `LV_USE_PPA` is off in `sdkconfig.defaults.esp32p4`: with QIO flash and the
 256 KB cache the software blender beats the blocking PPA fill at every size
-measured, and the figures are in ADR 0027. The three PPA patches under
-`firmware/patches/` stay, so re-evaluating the accelerator later — or making it
+measured, and the figures are in ADR 0027. The PPA patch under
+`firmware/patches/` stays, so re-evaluating the accelerator later — or making it
 non-blocking — is a one-line Kconfig change. With it off a transparent widget
 background is the cheapest of all.
 

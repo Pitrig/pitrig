@@ -49,8 +49,8 @@ void style_container(const Config& config, const Rect& bounds, lv_obj_t* const c
   lv_obj_set_style_pad_top(container, config.padding.top, LV_PART_MAIN);
   lv_obj_set_style_pad_right(container, config.padding.right, LV_PART_MAIN);
   lv_obj_set_style_pad_bottom(container, config.padding.bottom, LV_PART_MAIN);
-  lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(container, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(container, false);
+  lv_obj_set_clickable(container, false);
   apply_debug_widget_outline(container);
 }
 
@@ -68,8 +68,8 @@ void style_background_fill(const Config& config, const Rect& bounds, lv_obj_t* c
     apply_background_gradient(config, fill);
   }
   lv_obj_set_style_bg_opa(fill, has_background ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(fill, false);
+  lv_obj_set_clickable(fill, false);
 }
 
 telemetry::TelemetryRead read_telemetry(void* const context) {

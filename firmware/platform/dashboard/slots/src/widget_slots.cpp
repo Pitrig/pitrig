@@ -84,7 +84,7 @@ bool Controller::add(lv_obj_t* const container, const std::span<lv_obj_t* const>
 bool Controller::start() {
   bool watches_telemetry = false;
   for (std::size_t index = 0; index < count_; ++index) {
-    lv_obj_add_flag(slots_[index].container, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(slots_[index].container, true);
     lv_obj_add_event_cb(slots_[index].container, on_click, LV_EVENT_CLICKED, this);
     watches_telemetry = watches_telemetry || slots_[index].home_after_ms != 0;
   }
@@ -110,7 +110,7 @@ void Controller::clear() {
       continue;
     }
     (void)lv_obj_remove_event_cb_with_user_data(container, on_click, this);
-    lv_obj_remove_flag(container, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(container, false);
   }
   count_ = 0;
   page_count_ = 0;
@@ -232,11 +232,7 @@ void Controller::refresh(const bool shown_only) {
     const std::uint8_t showing = selection(slot);
     for (std::uint8_t offset = 0; offset < slot.page_count; ++offset) {
       const std::uint8_t page = static_cast<std::uint8_t>(slot.first_page + offset);
-      if (page == showing) {
-        lv_obj_remove_flag(pages_[page].object, LV_OBJ_FLAG_HIDDEN);
-      } else {
-        lv_obj_add_flag(pages_[page].object, LV_OBJ_FLAG_HIDDEN);
-      }
+      lv_obj_set_hidden(pages_[page].object, page != showing);
     }
   }
 }

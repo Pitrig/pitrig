@@ -138,7 +138,7 @@ waited for scan-out, so it is unchanged.
   rate on square-fill dashboards with the accelerator on, and a 32-readout
   grid of square panels at 22.8 ms a frame against 16.3 without. While it
   was on, rounded corners measured *faster* than square ones, because a
-  rounded fill cannot go to the PPA. The PPA patches stay in
+  rounded fill cannot go to the PPA. The PPA patch stays in
   `firmware/patches/` for a later re-evaluation.
 - The JC1060P470C's buffering is a build-time choice
   (`PITRIG_DISPLAY_RENDER_MODE`): the strip-composed tear-free mode by default

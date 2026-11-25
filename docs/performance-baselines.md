@@ -35,6 +35,39 @@ document that holds the panel rate, and ±1 fps below it.
 
 ## Guition JC1060P470C (ESP32-P4)
 
+### 2026-11-25 — LVGL 9.6
+
+The debugger's seventeen patterns on the `lvgl-9.6` branch: LVGL 9.6.0~1 with
+the round-shapes patch carried over, on a build with
+`sdkconfig.defaults.jtag-fallback` appended. *Before* is 7cc9c6d0 on LVGL 9.5.0,
+the same bench the same evening; latency was not recorded. A range is the
+spread of the two runs.
+
+| Document | fps | render ms | before fps | before render ms |
+| --- | ---: | ---: | ---: | ---: |
+| `text_only` | 58.8–58.9 | 1.91–1.97 | 58.9 | 1.96–1.99 |
+| `text_16` | 58.9 | 7.86–7.87 | 58.9 | 8.16–8.26 |
+| `text_32` | 51.0–51.1 | 13.15–13.22 | 49.0–49.1 | 13.77–13.80 |
+| `text_32_plain` | 53.3–53.5 | 12.19–12.20 | 51.3–51.4 | 12.68–12.70 |
+| `text_32_shapes` | 46.1–46.2 | 15.15–15.26 | 43.0–43.2 | 15.70–15.77 |
+| `text_64` | 29.5–29.7 | 30.29–30.68 | 27.7–28.4 | 30.99–31.95 |
+| `huge_text_4` | 58.8 | 6.66 | 58.9 | 6.95–7.14 |
+| `shapes_96` | 58.8–58.9 | 6.74–6.80 | 58.8–58.9 | 7.09–7.17 |
+| `arcs_12` | 58.8–58.9 | 5.37–5.67 | 58.8–58.9 | 5.61–5.67 |
+| `bars_24` | 58.9 | 8.47–8.56 | 58.5–58.7 | 8.39 |
+| `full_screen_bar` | 43.1 | 17.67–18.03 | 40.5–43.0 | 17.14–18.66 |
+| `indicators_12` | 52.8–54.1 | 8.64–8.86 | 52.8–53.5 | 8.56–8.88 |
+| `graphs_6` | 28.0–28.6 | 28.16–28.20 | 28.2–28.7 | 27.67–28.11 |
+| `graphs_6_sweep` | 58.9 | 3.25–3.26 | 58.8–58.9 | 3.14 |
+| `sprites_24` | 56.6 | 11.11–11.15 | 55.1–55.2 | 11.59–11.61 |
+| `nested_containers` | 57.0 | 10.64–10.66 | 56.0 | 11.16–11.17 |
+| `all_widgets` | 50.5–51.4 | 10.12–10.43 | 49.3–49.6 | 10.21–10.45 |
+
+Faster: text renders 3–5.5 % shorter, so `text_32` runs 49 → 51 fps,
+`text_32_shapes` 43 → 46 and `text_64` 28 → 29.6. `graphs_6_sweep` renders
+3.4 % longer, `bars_24` and `graphs_6` 1–1.5 %, all within the 4 % that moving
+LVGL in flash spreads this board's renders.
+
 ### 2026-11-25 — graphs drawn from their samples, bars that repaint what moves
 
 The debugger's seventeen patterns only, on a build with
@@ -220,6 +253,41 @@ gap is older than this change and not that commit. Those figures used
 this entry is the baseline instead.
 
 ## Guition ESP32-4848S040 (ESP32-S3)
+
+### 2026-11-25 — LVGL 9.6
+
+The debugger's seventeen patterns on the `lvgl-9.6` branch: LVGL 9.6.0~1 with
+the round-shapes patch carried over. *Before* is 7cc9c6d0 on LVGL 9.5.0, the
+same bench the same evening; latency was not recorded. A range is the spread
+of the two runs.
+
+| Document | fps | render ms | before fps | before render ms |
+| --- | ---: | ---: | ---: | ---: |
+| `text_only` | 60.0–60.2 | 2.51–2.56 | 60.2–60.4 | 2.60–2.68 |
+| `text_16` | 60.4 | 9.17–9.26 | 60.3–60.4 | 9.46–9.58 |
+| `text_32` | 41.1–41.2 | 18.28–18.33 | 39.3–39.4 | 18.43–18.49 |
+| `text_32_plain` | 43.7–44.0 | 16.69–16.83 | 41.6–42.6 | 16.69–17.05 |
+| `text_32_shapes` | 30.9–31.7 | 24.86–25.52 | 27.3–28.0 | 25.23–25.65 |
+| `text_64` | 14.0–14.5 | 59.51–62.07 | 13.1–13.5 | 60.67–63.22 |
+| `huge_text_4` | 60.0–60.2 | 6.80–6.91 | 60.2–60.4 | 7.53–7.83 |
+| `shapes_96` | 59.9–60.0 | 9.45–9.70 | 60.0 | 9.66–9.93 |
+| `arcs_12` | 60.4–60.5 | 7.31–7.50 | 60.4–60.5 | 7.18–7.23 |
+| `bars_24` | 60.2–60.3 | 9.73–9.90 | 60.4–60.5 | 9.31–9.60 |
+| `full_screen_bar` | 47.3–49.0 | 12.78–13.98 | 46.9–49.4 | 12.84–14.16 |
+| `indicators_12` | 32.1–33.9 | 13.05–13.30 | 32.6–33.4 | 13.30–13.45 |
+| `graphs_6` | 28.9–29.0 | 29.95–30.02 | 28.7–28.8 | 29.92–30.01 |
+| `graphs_6_sweep` | 60.3–60.5 | 5.17–5.21 | 60.4–60.5 | 5.07–5.10 |
+| `sprites_24` | 55.7–55.9 | 13.03–13.13 | 53.1–53.2 | 13.47–13.52 |
+| `nested_containers` | 46.1–46.3 | 15.70–15.71 | 43.4–43.5 | 16.31–16.32 |
+| `all_widgets` | 57.3–57.6 | 12.88–12.90 | 53.6–55.3 | 12.86–13.30 |
+
+Faster in frame rate more than in render time: LVGL 9.6 spends less of each
+frame outside drawing and invalidates fewer areas (`arcs_12` 47 → 31 a frame),
+so `text_32_shapes` runs 27.6 → 31.3 fps, `nested_containers` 43.5 → 46.2 and
+`all_widgets` 54 → 57.5. `huge_text_4` renders 11 % shorter; `bars_24`,
+`arcs_12` and `graphs_6_sweep` render 2–4 % longer at the same 60 fps. Internal
+RAM rises 5.4 KB: the RGB565 blender and LVGL's argument checks in the
+`lvgl_hot.lf` objects.
 
 ### 2026-11-25 — graphs drawn from their samples, bars that repaint what moves
 

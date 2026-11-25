@@ -230,8 +230,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_remove_style_all(state.arc);
   lv_obj_set_pos(state.arc, ring.left, ring.top);
   lv_obj_set_size(state.arc, ring.side, ring.side);
-  lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_clickable(state.arc, false);
+  lv_obj_set_scrollable(state.arc, false);
   lv_arc_set_mode(state.arc, config.inverted ? LV_ARC_MODE_REVERSE : LV_ARC_MODE_NORMAL);
   lv_arc_set_bg_angles(state.arc, static_cast<lv_value_precise_t>(sector_start),
                        static_cast<lv_value_precise_t>(sector_start + drawn_sector(config)));
