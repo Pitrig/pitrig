@@ -20,7 +20,9 @@ set(component_sources
     "widgets/arc/src/arc_widget.cpp"
     "widgets/bar/src/bar_widget.cpp"
     "widgets/graph/src/graph_binding.cpp"
+    "widgets/graph/src/graph_draw.cpp"
     "widgets/graph/src/graph_plot.cpp"
+    "widgets/graph/src/graph_raster.cpp"
     "widgets/graph/src/graph_sampling.cpp"
     "widgets/graph/src/graph_widget.cpp"
     "widgets/image/src/image_widget.cpp"
@@ -86,3 +88,8 @@ foreach(symbol lv_mem_init lv_mem_deinit lv_mem_add_pool lv_mem_remove_pool
 endforeach()
 
 target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)
+
+if(CONFIG_COMPILER_OPTIMIZATION_SIZE)
+    set_source_files_properties("widgets/graph/src/graph_raster.cpp"
+        PROPERTIES COMPILE_OPTIONS "-O2")
+endif()

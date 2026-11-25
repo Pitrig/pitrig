@@ -47,8 +47,10 @@ class Service final {
   [[nodiscard]] bool start(configuration::ValueSmoothing policy);
   void stop();
   [[nodiscard]] bool active() const { return subscription_.valid; }
+  [[nodiscard]] bool attached() const { return !followers_.empty(); }
 
   [[nodiscard]] Follower* follow(telemetry::Handle handle);
+  [[nodiscard]] Follower* follow_always(telemetry::Handle handle);
   [[nodiscard]] static telemetry::TelemetryRead read(void* context);
 
  private:
@@ -63,6 +65,8 @@ class Service final {
     bool sampled{};
   };
 
+  [[nodiscard]] bool subscribe();
+  [[nodiscard]] Follower* arm(telemetry::Handle handle);
   static void on_telemetry_updated(const events::Event& event, void* context);
   static Motion snapshot(const Follower& follower);
   [[nodiscard]] float shown(const Motion& motion, std::int64_t now_us) const;

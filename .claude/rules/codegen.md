@@ -27,7 +27,10 @@ banner.
   `configurator/src/shared/configuration-schema.ts`,
   `docs/configuration-schema.md`. The schema's `documents` block must partition
   every serialized root section; the generator emits the enum, the key
-  allow-lists, the bounds and the restart flags for both sides.
+  allow-lists, the bounds and the restart flags for both sides. The firmware's
+  readers in `firmware/services/configuration/src/json_*.cpp` are written by
+  hand, so a new field also needs its read there: without it the key is
+  accepted and the value silently stays at its default.
   A struct marked `host_only` (the modules document's `inputs`) stays out of
   the firmware contract: firmware accepts its key and never parses it.
   `tools/codegen/configuration_schema/markdown.py` hardcodes the links to

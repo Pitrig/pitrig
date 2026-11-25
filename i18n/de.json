@@ -586,9 +586,10 @@
         "inverted": "Schaltet vom anderen Ende aus ein statt vom Anfang – so wird aus einer gestalteten Leuchtenreihe ein gespiegeltes Paar Drehzahlbalken. Welche Leuchte bei welchem Wert angeht, bleibt gleich."
       },
       "graph": {
-        "points": "Wie viele Messpunkte jede Kurve speichert und wie oft einer aufgenommen wird – zusammen ergeben sie das Zeitfenster des Diagramms. Ein gemeinsamer Takt gilt für das ganze Widget, damit mehrere Kurven auf derselben Zeitachse liegen. Der Graph ist das am aufwendigsten zu zeichnende Widget: Halten Sie die Zahl der Messpunkte also nur so hoch wie nötig.",
+        "points": "Wie viele Messpunkte jede Kurve speichert und wie oft einer aufgenommen wird – zusammen ergeben sie das Zeitfenster des Diagramms. Ein gemeinsamer Takt gilt für das ganze Widget, damit mehrere Kurven auf derselben Zeitachse liegen. Ohne Durchlauf zeichnet der Graph bei jedem Messpunkt das ganze Diagramm neu: Wählen Sie das Intervall also nicht kürzer als nötig.",
         "traces": "Weitere Quellen im selben Diagramm, bis zu drei insgesamt, die eigene des Widgets mitgezählt. Jede hat ihren eigenen Bereich – so teilen sich Geschwindigkeit und Gas ein Diagramm, ohne dass eine davon am Rand platt gedrückt wird.",
-        "width": "Die Dicke aller Kurven. Die Hälfte davon bleibt im Diagramm auf jeder Seite frei – plus der Platz, den ein abgerundeter Rahmen braucht, damit die Ecken die Kurve nicht berühren –, sodass ein Wert ganz oben oder ganz unten in seinem Bereich vollständig gezeichnet und nicht vom Rahmen abgeschnitten wird."
+        "width": "Die Dicke aller Kurven. Die Hälfte davon bleibt im Diagramm auf jeder Seite frei – plus der Platz, den ein abgerundeter Rahmen braucht, damit die Ecken die Kurve nicht berühren –, sodass ein Wert ganz oben oder ganz unten in seinem Bereich vollständig gezeichnet und nicht vom Rahmen abgeschnitten wird.",
+        "sweep": "Zeichnet die Kurven wie ein EKG-Monitor von links nach rechts über die ältesten Messpunkte, mit einer Lücke vor dem neuesten, statt das ganze Diagramm zu scrollen. Jeder Messpunkt zeichnet dann nur die wenigen Spalten neu, die er ändert, sodass ein solcher Graph viel weniger aufwendig zu zeichnen ist."
       },
       "image": {
         "image": "Bilder liegen in der Bildbibliothek dieses PCs, umgerechnet auf die Größe, mit der sie gezeichnet werden; „Auf Board speichern“ installiert die Bilder, die das Dashboard zeichnet. Das Gerät skaliert und dreht nicht – passen Sie daher den Widget-Rahmen der Bitmap an.",
@@ -633,7 +634,7 @@
       },
       "dashboard": {
         "transition": "Wie das Board einen Bildschirm gegen einen anderen tauscht, egal ob Wischen oder Tippen den Wechsel auslöst. „slide“ ist die Schiebeanimation; „none“ ersetzt den Bildschirm in einem einzigen Frame. Die Schiebeanimation zeichnet in jedem ihrer Frames beide Bildschirme – bei einem Bildschirm voller Widgets macht sich das bemerkbar. Stellen Sie „none“ ein, wenn das Wischen ruckelt.",
-        "smoothing": "Ob Balken, Bögen, Zeiger, Graph-Kurven und als Zahl formatierter Text sich zwischen den Telemetriepaketen bewegen, statt mit ihnen zu springen. „interpolate“ gleitet zu jedem Paket und kommt an, wenn das nächste fällig ist: völlig flüssig, aber eine Paketperiode hinterher (16 ms bei 60 Hz, 50 ms bei 20 Hz). „predict“ bewegt sich mit der gemessenen Rate weiter und korrigiert, wenn das Paket eintrifft: im Mittel ohne Rückstand, mit leichtem Überschwingen bei Richtungswechseln. Eine Pause von mehr als 250 ms zwischen Paketen wird als Sprung gezeichnet, daher gleiten Werte, die sich bei Ereignissen ändern, nie. Leuchten-Widgets, Bedingungen und Beschriftungen lesen immer das Paket selbst.",
+        "smoothing": "Ob Balken, Bögen, Zeiger und als Zahl formatierter Text sich zwischen den Telemetriepaketen bewegen, statt mit ihnen zu springen. „interpolate“ gleitet zu jedem Paket und kommt an, wenn das nächste fällig ist: völlig flüssig, aber eine Paketperiode hinterher (16 ms bei 60 Hz, 50 ms bei 20 Hz). „predict“ bewegt sich mit der gemessenen Rate weiter und korrigiert, wenn das Paket eintrifft: im Mittel ohne Rückstand, mit leichtem Überschwingen bei Richtungswechseln. Eine Pause von mehr als 250 ms zwischen Paketen wird als Sprung gezeichnet, daher gleiten Werte, die sich bei Ereignissen ändern, nie. Leuchten-Widgets, Bedingungen und Beschriftungen lesen immer das Paket selbst. Graph-Kurven gleiten immer zwischen den Paketen, bei „off“ wie bei „interpolate“, damit ein Graph, der öfter abtastet, als Telemetrie eintrifft, ein wiederholtes Paket nie als Stufe zeigt.",
         "font": "Die Schriftfamilie für neue Widgets. Das ist eine Einstellung nur des Editors – das Gerät bestimmt die Schriftart je Widget, daher enthält das Dokument keine für das ganze Dashboard.",
         "budget": "Was die gewählten Schriftfamilien auf dem Board belegen. Schnitte werden vollständig übertragen, und die Partition fasst 3 MiB davon."
       },
@@ -782,6 +783,7 @@
       "points": "Messpunkte",
       "intervalMs": "Intervall (ms)",
       "lineWidth": "Linienbreite",
+      "sweep": "Durchlauf",
       "fromOrigin": "Ab Ursprung",
       "origin": "Ursprung",
       "bar": "Balken",

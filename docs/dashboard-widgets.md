@@ -40,12 +40,13 @@ packet's worth of motion. The period is measured on the device per field, so
 `fast` and `normal` fields each glide at their own pace, and a pause longer
 than 250 ms between two packets of a field is drawn as a jump, which is why a
 value that changes on events — a lap count, a best time — never glides. It
-reaches bars, arcs, needles, graph traces and text sources with a `number`
-transform, and only sources without a modifier; conditions, colour ramps,
-captions, slot triggers and indicators read the packet itself, because a
-threshold wants the moment rather than the motion. Every widget on the same
-field shares one follower, and a widget that follows redraws every frame while
-its value moves ([runtime-performance.md](runtime-performance.md#what-a-frame-costs)).
+reaches bars, arcs, needles and text sources with a `number` transform, and
+only sources without a modifier; conditions, colour ramps, captions, slot
+triggers and indicators read the packet itself, because a threshold wants the
+moment rather than the motion. A graph trace glides whatever the setting says.
+Every widget on the same field shares one follower, and a widget that follows
+redraws every frame while its value moves
+([runtime-performance.md](runtime-performance.md#what-a-frame-costs)).
 
 A **shape** widget may hold widgets of its own, which makes it a container. The
 geometry of the widgets inside it is relative to its box, and they nest up to
@@ -409,15 +410,22 @@ the table cannot state.
 - `graph` samples on a clock of its own, not when the screen repaints and not
   when telemetry arrives: sampling on the repaint silently halved a 16 ms
   interval on a dashboard drawing at 32 fps, and sampling on arrival handed the
-  plot the feed's jitter. Each sample keeps a sixteenth of a pixel vertically,
-  so a slow trace slopes instead of stepping. `traces` adds up to two more
-  sources over the same plot, sharing the point count and the clock with
-  windows of their own. Two allowances are kept clear inside the plot: half the
-  line width, so a value at either end of its window is drawn whole, and,
-  when `border.radius_px` rounds the frame, enough for the plot's corners to
-  clear the curve. A styling rule that
-  names a `color` repaints every trace at once. The history is presentation
-  state; nothing else can read it.
+  plot the feed's jitter. Each trace reads its source through the value
+  follower whatever `dashboard.smoothing` says, interpolating when it is `off`,
+  so a sample taken between two packets lies between them instead of repeating
+  the last one. A trace passes through each sample at its exact height, with
+  round joins, so it neither steps on a gentle slope nor notches at a bend.
+  `sweep` draws the traces across the plot over their oldest samples instead of
+  scrolling the plot under them, with a gap ahead of the newest of three line
+  widths, or a quarter of the plot if that is less, widened to whole samples: a
+  sample then redraws the columns it changes, not the whole plot. `traces` adds
+  up to two more sources over the same plot, sharing the point count and the
+  clock with windows of their own. Two allowances are kept clear inside the
+  plot: half the line width, so a value at either end of its window is drawn
+  whole, and, when `border.radius_px` rounds the frame, enough for the plot's
+  corners to clear the curve. A styling rule that names a `color` repaints
+  every trace at once. The history is presentation state; nothing else can read
+  it.
 - `shape` and `image` bind no telemetry of their own, except that an image
   whose asset is a **sprite sheet** draws one frame: `sprite_frame` picks it
   outright, or `sprite_frame_source` picks it from telemetry, rounded and

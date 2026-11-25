@@ -45,7 +45,7 @@ class Binder final {
                               const telemetry::ITelemetryReader& telemetry,
                               const ModifierReaders& modifier_readers,
                               value_smoothing::Service* smoothing, std::size_t context_index,
-                              frame::BoundSource& bound);
+                              frame::BoundSource& bound, frame::Following following);
 
   [[nodiscard]] bool bind_sources(const Config& configuration, std::size_t instance,
                                   const telemetry::ITelemetryRegistry& registry,

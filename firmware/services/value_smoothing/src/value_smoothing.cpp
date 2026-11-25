@@ -62,14 +62,17 @@ bool Service::attach(const std::span<std::uint8_t> storage) {
 bool Service::start(const configuration::ValueSmoothing policy) {
   stop();
   policy_.store(policy, std::memory_order_relaxed);
-  if (policy == configuration::ValueSmoothing::off) {
-    return true;
-  }
+  return policy == configuration::ValueSmoothing::off || subscribe();
+}
+
+bool Service::subscribe() {
   if (followers_.empty()) {
     return false;
   }
-  subscription_ =
-      event_bus_.subscribe(telemetry::kTelemetryUpdatedEvent, &Service::on_telemetry_updated, this);
+  if (!subscription_.valid) {
+    subscription_ = event_bus_.subscribe(telemetry::kTelemetryUpdatedEvent,
+                                         &Service::on_telemetry_updated, this);
+  }
   return subscription_.valid;
 }
 
@@ -84,8 +87,19 @@ void Service::stop() {
 }
 
 Follower* Service::follow(const telemetry::Handle handle) {
-  if (!active() || handle.index >= followers_.size() ||
-      handle.type == telemetry::ValueType::boolean ||
+  if (policy_.load(std::memory_order_relaxed) == configuration::ValueSmoothing::off ||
+      !active()) {
+    return nullptr;
+  }
+  return arm(handle);
+}
+
+Follower* Service::follow_always(const telemetry::Handle handle) {
+  return subscribe() ? arm(handle) : nullptr;
+}
+
+Follower* Service::arm(const telemetry::Handle handle) {
+  if (handle.index >= followers_.size() || handle.type == telemetry::ValueType::boolean ||
       followers_[handle.index].handle.type != handle.type) {
     return nullptr;
   }

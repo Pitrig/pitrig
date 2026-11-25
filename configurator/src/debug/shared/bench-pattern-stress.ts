@@ -49,6 +49,7 @@ const BENCH_STRESS_IDS = [
   'bars_24',
   'arcs_12',
   'graphs_6',
+  'graphs_6_sweep',
   'sprites_24',
   'indicators_12',
   'nested_containers'
@@ -88,6 +89,8 @@ export function benchStressScreen(
       return arcs(context)
     case 'graphs_6':
       return graphs(context)
+    case 'graphs_6_sweep':
+      return graphs(context, true)
     case 'sprites_24':
       return sprites(context)
     case 'indicators_12':
@@ -190,7 +193,7 @@ function arcs(context: BenchPatternContext): WidgetConfiguration[] {
   })
 }
 
-function graphs(context: BenchPatternContext): WidgetConfiguration[] {
+function graphs(context: BenchPatternContext, sweep = false): WidgetConfiguration[] {
   const { family, fonts } = context
   return cells(context, 6, 2).map(({ index, placement }) => {
     const signal = numericAt(index)
@@ -208,6 +211,7 @@ function graphs(context: BenchPatternContext): WidgetConfiguration[] {
       sample_interval_ms: 16,
       line_color: colorAt(index),
       line_width_px: 2,
+      ...(sweep ? { sweep: true } : {}),
       traces: [
         {
           source: { binding: other.binding },

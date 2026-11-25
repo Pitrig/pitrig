@@ -102,7 +102,7 @@ bool bind_source(const std::string_view name, const std::uint8_t modifier_count,
                  const telemetry::ITelemetryReader& telemetry,
                  const ModifierReaders& modifier_readers, value_smoothing::Service* const smoothing,
                  SourceContext& context, ValueReadCallback& read, void*& read_context,
-                 bool& fast_updates) {
+                 bool& fast_updates, const Following following) {
   const telemetry::Handle handle = registry.resolve(name);
   if (!handle.valid()) {
     return false;
@@ -114,8 +114,11 @@ bool bind_source(const std::string_view name, const std::uint8_t modifier_count,
     fast_updates = true;
     return read != nullptr && read_context != nullptr;
   }
-  value_smoothing::Follower* const follower =
-      smoothing != nullptr ? smoothing->follow(handle) : nullptr;
+  value_smoothing::Follower* follower = nullptr;
+  if (smoothing != nullptr) {
+    follower = following == Following::always ? smoothing->follow_always(handle)
+                                              : smoothing->follow(handle);
+  }
   if (follower != nullptr) {
     read = &value_smoothing::Service::read;
     read_context = follower;

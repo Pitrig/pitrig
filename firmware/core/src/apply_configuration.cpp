@@ -26,7 +26,7 @@ value_smoothing::Service* start_value_smoothing(
   if (!service.start(configuration.dashboard.smoothing)) {
     log::error(kTag, "Value smoothing could not subscribe to telemetry");
   }
-  return service.active() ? &service : nullptr;
+  return service.attached() ? &service : nullptr;
 }
 
 track_map::Service* track_map_service(Application& application) {

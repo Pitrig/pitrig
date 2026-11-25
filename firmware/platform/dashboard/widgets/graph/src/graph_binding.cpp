@@ -7,7 +7,7 @@ bool Binder::bind_one(const configuration::ValueSourceConfiguration& source,
                       const telemetry::ITelemetryReader& telemetry,
                       const ModifierReaders& modifier_readers,
                       value_smoothing::Service* const smoothing, const std::size_t context_index,
-                      frame::BoundSource& bound) {
+                      frame::BoundSource& bound, const frame::Following following) {
   if (context_index >= source_contexts_.size()) {
     return false;
   }
@@ -15,7 +15,7 @@ bool Binder::bind_one(const configuration::ValueSourceConfiguration& source,
   return frame::bind_source(configuration::value_binding_view(source.binding),
                             source.modifier_count, source.modifiers, registry, telemetry,
                             modifier_readers, smoothing, context, bound.read, bound.read_context,
-                            bound.fast_updates);
+                            bound.fast_updates, following);
 }
 
 bool Binder::bind_sources(const Config& configuration, const std::size_t instance,
@@ -28,13 +28,14 @@ bool Binder::bind_sources(const Config& configuration, const std::size_t instanc
   }
   const std::size_t base = instance * kContextsPerInstance;
   if (!bind_one(configuration.source, registry, telemetry, modifier_readers, smoothing, base,
-                binding.sources[0])) {
+                binding.sources[0], frame::Following::always)) {
     return false;
   }
   binding.count = 1;
   for (std::size_t index = 0; index < configuration.trace_count; ++index) {
     if (!bind_one(configuration.traces[index].source, registry, telemetry, modifier_readers,
-                  smoothing, base + binding.count, binding.sources[binding.count])) {
+                  smoothing, base + binding.count, binding.sources[binding.count],
+                  frame::Following::always)) {
       return false;
     }
     ++binding.count;
@@ -43,12 +44,12 @@ bool Binder::bind_sources(const Config& configuration, const std::size_t instanc
   const configuration::WidgetFrame& widget_frame = configuration.frame;
   if (frame::watches_value(widget_frame) &&
       !bind_one(widget_frame.condition_source, registry, telemetry, modifier_readers, nullptr,
-                base + kMaximumSources, binding.condition)) {
+                base + kMaximumSources, binding.condition, frame::Following::with_policy)) {
     return false;
   }
   return !frame::binds_caption(widget_frame) ||
          bind_one(widget_frame.title.source, registry, telemetry, modifier_readers, nullptr,
-                  base + kMaximumSources + 1, binding.caption);
+                  base + kMaximumSources + 1, binding.caption, frame::Following::with_policy);
 }
 
 bool Binder::bind(const std::span<const Config> configurations,

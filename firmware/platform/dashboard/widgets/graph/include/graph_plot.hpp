@@ -13,9 +13,12 @@ namespace pitrig::dashboard::graph_widget::plot {
 
 inline constexpr float kSubPixel = 16.0F;
 
-void clear_columns(const State& state, lv_layer_t& layer, std::int32_t from, std::int32_t count);
+[[nodiscard]] float line_radius(const State& state);
 
-void draw_segment(const State& state, lv_layer_t& layer, std::uint32_t rgb, std::int32_t x0,
-                  float y0, std::int32_t x1, float y1);
+[[nodiscard]] std::int32_t sweep_oldest_age(const State& state);
+
+[[nodiscard]] float sweep_x(const State& state, std::uint32_t sequence);
+
+void invalidate(const State& state, std::uint32_t previous_sequence);
 
 }

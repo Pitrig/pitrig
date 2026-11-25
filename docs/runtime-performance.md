@@ -198,6 +198,13 @@ per-screen tuning:
   Smaller pieces are slower, not faster, because each redrawn area carries
   about 1 ms of fixed cost. An arc with a gradient instead of a ramp repaints
   only the part its value moves.
+- **A scrolling graph redraws its whole plot at every sample**, so a short
+  `sample_interval_ms` on a large plot costs a full redraw of it every frame,
+  and steep, busy traces cost the most to draw; one that sets `sweep` redraws
+  only the columns a sample changes. Six graphs sampled every 16 ms draw a
+  frame in 5.1 ms sweeping, 21.4 ms scrolling smooth traces and 29.6 ms
+  scrolling noise on the Guition ESP32-4848S040, and in 3.1, 20.4 and 27.8 ms
+  on the JC1060P470C.
 - **Screens that are not shown cost nothing**, so splitting a dense dashboard
   across screens buys frame budget directly; transitions are tear-free and do
   not tax the steady state. Widget timers and the slot controller skip instances

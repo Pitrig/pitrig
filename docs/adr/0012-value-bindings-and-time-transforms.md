@@ -99,7 +99,10 @@ dashboard until the next upload, not a configuration anyone rewrites by hand.
 
 A widget may keep a bounded history of the values it has read, for its own
 drawing only. The graph widget does: it samples its sources on its own timer
-into fixed ring buffers and draws the result as traces.
+into fixed ring buffers and draws the result as traces. It reads each source
+through the value follower of [ADR 0033](0033-value-smoothing-between-packets.md)
+whatever the dashboard's smoothing says, so its clock and the feed's never meet
+as a repeated packet.
 
 This does not make the widget a stateful modifier. A modifier produces a value
 the pipeline hands to whoever asked for it, which is why `lap_timer` is module
@@ -126,6 +129,35 @@ are the shape every value widget binds through, and a graph that spelled them
 differently would be the one exception to it. The cost is that the array holds
 one fewer entry than the widget draws, which is why `kMaximumGraphTraces` is
 stated beside `kMaximumGraphSources` instead of being derived at each reader.
+
+Amended: the history is what the plot is drawn from, not a picture of it. The
+graph keeps each sample's height to a sixteenth of a pixel and, whenever LVGL
+draws the plot, paints it straight into the strip being rendered: the
+background, then every trace as round-capped segments through its samples at
+their exact positions, each pixel covered by its distance from the nearest
+segment. Where two segments meet, the bisector of their angle splits the pixels
+between them, and a pixel past the far end of the neighbour goes to whichever
+of the two is nearer, so a trace has no steps on a gentle slope, no notches at
+a bend and no gaps in a steep zigzag. LVGL's own lines snap both ends to whole
+pixels, and the canvas they were drawn into was a picture in external RAM
+copied out whole at every sample: 68 KB for one of the debugger's six graphs on
+the Guition ESP32-4848S040 and 190 KB on the JC1060P470C, where the history now
+takes 2 KB at any size. The plot reports that it covers its area, so nothing
+under it is drawn first. On the ESP32-S3 a float division is a library call, so
+the painter divides once per plot and finds each segment's reciprocals without
+dividing. A draw unit of the graph's own was built first and removed: a second
+unit moves LVGL to its multi-unit dispatch for every draw task on the screen.
+
+Amended without a schema version change: `sweep` draws the newest sample across
+the plot over the oldest, with a gap ahead of it, instead of scrolling the plot
+under a fixed head, so a sample redraws only the columns it changes; a
+scrolling plot is redrawn whole at every sample, and its busiest traces cost
+the most. On the debugger's six graphs at a 16 ms interval a frame takes 5.1 ms
+sweeping against 29.6 ms scrolling noise and 21.4 ms scrolling smooth traces on
+the Guition ESP32-4848S040, and 3.1, 27.8 and 20.4 ms on the JC1060P470C; the
+canvas took 29.5 and 26.9 ms scrolling whatever the traces held, at 25 and 26.7
+fps against 29 and 28.7 now. It is an optional field a stored document does not
+carry, and firmware without it refuses a document that sets it.
 
 ## Consequences
 

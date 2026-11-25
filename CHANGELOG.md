@@ -23,10 +23,11 @@ a release says when either applies.
 
 ## Unreleased
 
-Same schema and partition table: a board update keeps the configuration. Dashboards with the new field need this firmware. An older configurator does not list the templates this one saves.
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new field or a sweeping graph need this firmware. An older configurator does not list the templates this one saves.
 
 **Added**
 
+- **Display boards, Configurator.** A graph can sweep across its plot like a heart monitor instead of scrolling, which costs far less to draw.
 - **All boards, SimHub plugin.** New field: the distance left to the end of the lap or the rally stage.
 - **Configurator, SimHub plugin.** The Info page and the plugin's About tab link to the contact form on pitrig.com and show the email address.
 - **Configurator.** The interface in Ukrainian, Korean, Polish, German and Spanish, taken from the system language or chosen on the Info page.
@@ -36,15 +37,18 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** Save to board stops when a dashboard's fonts and images will not fit in the working memory of a Guition ESP32-4848S040 or JC1060P470C, and says how much they need.
 - **Development.** A firmware build fails when its static memory passes its board's ceiling in `tools/memory_budget.json`.
 - **Development.** The `@PR:` and `@PT:` line prefixes are generated from one file, and CI fails on a prefix written by hand.
+- **Development.** The debugger's bench has a Graphs 6 pattern that sweeps.
 
 **Changed**
 
 - **All boards.** About 14 KB more internal memory and 380 KB more external memory stay free for dashboards, fonts and images.
+- **Display boards.** A graph keeps its samples instead of a picture of its plot, so it takes 2 KB of external memory at any size and draws faster, scrolling or sweeping.
 - **Configurator.** The T-Display lap timer starter has the Endurance look, with larger last and best times.
 - **Configurator.** Saved templates, widgets too, keep their images and fonts in one file; removing an image from the PC no longer breaks them.
 
 **Fixed**
 
+- **Display boards.** Graph lines are smooth: no steps on gentle slopes or where the graph samples faster than its telemetry arrives, no notches at bends, and each sample sits exactly at its value.
 - **Configurator.** Save to board, Update board, uploads and a restart wait for a board check or a live change instead of stopping with "another device operation is already running".
 - **Configurator.** Messages about the font limit, update recovery, picture colours and board sync are correct and translated.
 - **Configurator.** While Save to board, Update board or a restart runs, the other board actions are disabled and say what is running, and none can send its commands in between.

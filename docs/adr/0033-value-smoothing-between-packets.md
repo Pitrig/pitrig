@@ -39,11 +39,15 @@ so a repeated packet does not stretch it, and a gap over 250 ms is a jump drawn
 at once. Changing the setting rebinds every widget, so a live apply that
 changes it takes the full rebuild path.
 
-Eligibility is the consumer's decision: bars, arcs, needles, graph traces and
-text sources with a `number` transform follow; conditions, colour ramps,
-captions, slot triggers, indicators and modified sources read the packet
-itself, and booleans never follow. The LED module does not follow either — its
-effects read the raw state, and joining them is a separate decision.
+Eligibility is the consumer's decision: bars, arcs, needles and text sources
+with a `number` transform follow; conditions, colour ramps, captions, slot
+triggers, indicators and modified sources read the packet itself, and booleans
+never follow. The LED module does not follow either — its effects read the raw
+state, and joining them is a separate decision. A graph trace follows whatever
+the setting says, interpolating when it is `off`: the graph samples on a clock
+of its own, and a raw value read on it repeats a packet whenever the graph
+samples faster than the field arrives, which drew a 16 ms graph of a 60 Hz feed
+with a flat step every 25th sample.
 
 ## Consequences
 
@@ -55,7 +59,8 @@ effects read the raw state, and joining them is a separate decision.
 - The 251 followers cost about 15 KB, placed in external RAM by the core the
   way font faces and images are, because on the ESP32-P4 that much internal RAM
   is the difference between the LVGL render strips fitting and the display not
-  coming up. Nothing runs while the option is off.
+  coming up. While the option is off only the fields graphs have plotted since
+  the last full rebuild are followed.
 - Widgets, modules and the transport keep their shape: the follower is reached
   through the existing read callback, and the transport task does one bounded
   update per armed field.

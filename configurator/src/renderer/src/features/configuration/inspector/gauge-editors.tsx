@@ -136,6 +136,7 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
           <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>{t('inspector.gaugeEditors.points')}</span><span>{t('inspector.gaugeEditors.intervalMs')}</span></div>
         </PropertyRow>
         <NumberField label={t('inspector.gaugeEditors.lineWidth')} hint={t('inspector.hints.graph.width')} suffix="px" value={widget.line_width_px ?? 2} {...fieldBounds('graph', 'line_width_px')} modified={authored(widget.line_width_px, 2)} onReset={() => update((next) => { delete next.line_width_px })} onChange={(value) => update((next) => { next.line_width_px = value })} />
+        <CheckboxField label={t('inspector.gaugeEditors.sweep')} hint={t('inspector.hints.graph.sweep')} checked={widget.sweep ?? false} modified={authored(widget.sweep, false)} onReset={() => update((next) => { delete next.sweep })} onChange={(checked) => update((next) => { if (checked) next.sweep = true; else delete next.sweep })} />
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />

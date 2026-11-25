@@ -22,6 +22,8 @@ introduces it.
 | Shape widget / Lights widget | Фігура / Вогні | Kształt / Lampki | 도형 / 라이트 | Form / Leuchten | Forma / Luces |
 | canvas / box | полотно / прямокутник | płótno / obszar | 캔버스 / 박스 | Arbeitsfläche / Rahmen | lienzo / recuadro |
 | trace (a graph line) | крива | przebieg | 트레이스 | Kurve | curva |
+| sweep (a graph drawn over its oldest samples) | розгортка | przemiatanie | 스윕 | Durchlauf | barrido |
+| sweep (a value the LED simulator moves up and down on its own) | прогін | przemiatanie | 스윕 | Durchlauf | barrido |
 | telemetry / field / value | телеметрія / поле / значення | telemetria / pole / wartość | 텔레메트리 / 필드 / 값 | Telemetrie / Feld / Wert | telemetría / campo / valor |
 | source / binding | джерело / прив’язка | źródło / powiązanie | 소스 / 바인딩 | Quelle / Verknüpfung | origen / vínculo |
 | caption | підпис | podpis | 캡션 | Beschriftung | rótulo |

@@ -682,6 +682,7 @@ struct GraphWidgetConfiguration {
   std::uint16_t sample_interval_ms{100};
   std::uint32_t line_color{0x38BDF8};
   std::uint16_t line_width_px{2};
+  bool sweep{false};
   std::uint8_t trace_count{};
   std::array<GraphTraceConfiguration, kMaximumGraphTraces> traces{};
 };

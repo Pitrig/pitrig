@@ -33,27 +33,35 @@ struct Trace {
   void* read_context{};
   configuration::ValueRange range{};
   std::uint32_t color{};
-  float previous_y{};
-  bool has_previous{};
+};
+
+struct History {
+  std::array<std::array<float, kMaximumPoints>, kMaximumSources> y;
+  std::array<std::uint32_t, kMaximumPoints> line_rgb;
 };
 
 struct State {
   frame::Painter painter{};
   lv_obj_t* container{};
-  lv_obj_t* canvas{};
+  lv_obj_t* plot{};
+  History* history{};
   std::array<Trace, kMaximumSources> traces{};
   std::size_t trace_count{};
   std::uint16_t sample_interval_ms{};
   std::uint16_t line_width_px{};
+  std::uint16_t points{};
+  std::uint16_t stored{};
+  std::uint16_t newest{};
+  std::uint32_t sequence{};
   std::uint32_t last_sample_tick{};
   std::uint32_t override_rgb{};
   std::uint32_t background_rgb{};
   std::int32_t plot_width{};
   std::int32_t plot_height{};
   std::int32_t line_inset{};
-  std::int32_t head_x{};
+  std::int32_t sweep_gap{};
   float step_px{};
-  float step_carry{};
+  bool sweep{};
   bool initialized{};
   std::array<std::array<std::int16_t, kMaximumSources>, kPendingSamples> pending{};
   std::atomic<std::uint8_t> pending_write{};
@@ -84,7 +92,7 @@ class Collection final : public frame::Collection<Collection, State, kMaximumIns
   void start_sampling();
   void stop_sampling();
   static void sample_state(State& state);
-  static void draw_sample(State& state, lv_layer_t& layer, std::span<const std::int16_t> sample);
+  static void store_sample(State& state, std::span<const std::int16_t> sample);
   [[nodiscard]] bool build(State& state, const Layout& layout, const Config& configuration,
                            const WidgetBinding& binding, const fonts::Registry& fonts);
 

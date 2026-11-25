@@ -11,7 +11,7 @@ measurement history of a single decision stays in its ADR (0026, 0027, 0032).
 
 - A debug build of the board's default profile, `sdkconfig.defaults.debug`
   appended, drawing the FPS chip it draws by default.
-- The debugger's sixteen bench patterns, built by `buildBenchDashboard` at the
+- The debugger's seventeen bench patterns, built by `buildBenchDashboard` at the
   panel's resolution with a font family the board holds, fed the fourteen
   `bench-signals.ts` waveforms at 60 Hz. Bundled templates are cut to one
   screen and fed only their own bindings, each a slow sine sent at its catalog

@@ -583,6 +583,7 @@ export interface GraphWidgetConfiguration {
   sample_interval_ms?: number
   line_color?: RgbColor
   line_width_px?: number
+  sweep?: boolean
   traces?: GraphTraceConfiguration[]
 }
 
@@ -848,7 +849,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   IndicatorSegment: ['threshold', 'color'],
   IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'shape', 'orientation', 'center_angle_deg', 'sector_deg', 'thickness_px', 'radius_px', 'x_offset_px', 'y_offset_px', 'centering', 'segment_gap_px', 'segment_radius_px', 'inverted', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
   GraphTraceConfiguration: ['source', 'minimum', 'maximum', 'line_color'],
-  GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px', 'traces'],
+  GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px', 'sweep', 'traces'],
   ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'sprite_frame', 'sprite_frame_source', 'recolor', 'recolor_opa'],
   TrackMapWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'line_color', 'line_width_px', 'sector_mark_color', 'pit_lane_color', 'finish_line_color', 'car_color', 'car_size_px', 'player_color', 'player_size_px', 'player_border_color', 'ahead_color', 'behind_color', 'lapping_color', 'lapped_color', 'pit_car_color', 'class_1_color', 'class_2_color', 'class_3_color', 'class_4_color', 'fit_rotation', 'rotation_deg', 'refresh_ms'],
   ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind', 'clip_children', 'widgets'],

@@ -600,9 +600,10 @@
         "inverted": "Zapala lampki od dalszego końca zamiast od bliższego — tak z jednego zaprojektowanego rzędu lampek powstaje lustrzana para pasków obrotów. To, kiedy zapala się która lampka, pozostaje bez zmian."
       },
       "graph": {
-        "points": "Ile próbek przechowuje każdy przebieg i jak często pobierana jest próbka — razem wyznacza to okno pokazywane na wykresie. Cały widżet ma jeden zegar, więc kilka przebiegów jest ze sobą wyrównanych w czasie. Wykres to widżet najdroższy w rysowaniu, więc nie ustawiaj więcej próbek, niż potrzeba.",
+        "points": "Ile próbek przechowuje każdy przebieg i jak często pobierana jest próbka — razem wyznacza to okno pokazywane na wykresie. Cały widżet ma jeden zegar, więc kilka przebiegów jest ze sobą wyrównanych w czasie. Bez przemiatania wykres jest przerysowywany w całości przy każdej próbce, więc nie ustawiaj krótszego interwału, niż potrzeba.",
         "traces": "Kolejne źródła rysowane na tym samym wykresie — razem z własnym źródłem widżetu najwyżej trzy. Każde ma własny zakres, dzięki czemu prędkość i gaz mogą dzielić jeden wykres i żadne z nich nie spłaszcza się przy krawędzi.",
-        "width": "Grubość każdego przebiegu. Połowa tej grubości jest zostawiana wolna wewnątrz wykresu z każdej strony — plus tyle, ile potrzebuje zaokrąglona ramka, by narożniki ominęły krzywą — więc wartość na górze lub na dole zakresu jest rysowana w całości, a nie ucinana przez ramkę."
+        "width": "Grubość każdego przebiegu. Połowa tej grubości jest zostawiana wolna wewnątrz wykresu z każdej strony — plus tyle, ile potrzebuje zaokrąglona ramka, by narożniki ominęły krzywą — więc wartość na górze lub na dole zakresu jest rysowana w całości, a nie ucinana przez ramkę.",
+        "sweep": "Rysuje przebiegi od lewej do prawej w miejscu najstarszych próbek, jak kardiomonitor, z przerwą przed najnowszą, zamiast przewijać cały wykres. Każda próbka przerysowuje wtedy tylko kilka kolumn, które zmienia, więc taki wykres jest znacznie tańszy w rysowaniu."
       },
       "image": {
         "image": "Obrazy są przechowywane w bibliotece obrazów na tym komputerze, przekonwertowane do rozmiaru, w jakim są rysowane, a „Zapisz na płytce” instaluje te, które rysuje dashboard. Urządzenie nie skaluje ani nie obraca obrazów, więc dopasuj obszar widżetu do bitmapy.",
@@ -647,7 +648,7 @@
       },
       "dashboard": {
         "transition": "Jak płytka zamienia jeden ekran na drugi — zarówno po przesunięciu palcem, jak i po dotknięciu. slide to animacja przesuwania; none podmienia ekran w jednej klatce. Animacja slide rysuje oba ekrany w każdej swojej klatce, więc najbardziej odczuwa się ją na ekranie pełnym widżetów — ustaw none, jeśli przesuwanie się zacina.",
-        "smoothing": "Czy paski, łuki, wskazówki, przebiegi wykresów i tekst w formacie liczbowym poruszają się między pakietami telemetrii, zamiast przeskakiwać z każdym pakietem. interpolate płynnie dochodzi do wartości każdego pakietu tak, by osiągnąć ją, gdy powinien nadejść następny: idealnie płynnie, z opóźnieniem jednego okresu pakietu (16 ms przy 60 Hz, 50 ms przy 20 Hz). predict porusza się dalej ze zmierzonym tempem i koryguje się po nadejściu pakietu: średnio bez opóźnienia, z niewielkim przestrzeleniem przy zmianie kierunku. Przerwa dłuższa niż 250 ms między pakietami jest rysowana jako skok, więc wartości zmieniające się przy zdarzeniach nigdy nie przesuwają się płynnie. Lampki, warunki i podpisy zawsze odczytują sam pakiet.",
+        "smoothing": "Czy paski, łuki, wskazówki i tekst w formacie liczbowym poruszają się między pakietami telemetrii, zamiast przeskakiwać z każdym pakietem. interpolate płynnie dochodzi do wartości każdego pakietu tak, by osiągnąć ją, gdy powinien nadejść następny: idealnie płynnie, z opóźnieniem jednego okresu pakietu (16 ms przy 60 Hz, 50 ms przy 20 Hz). predict porusza się dalej ze zmierzonym tempem i koryguje się po nadejściu pakietu: średnio bez opóźnienia, z niewielkim przestrzeleniem przy zmianie kierunku. Przerwa dłuższa niż 250 ms między pakietami jest rysowana jako skok, więc wartości zmieniające się przy zdarzeniach nigdy nie przesuwają się płynnie. Lampki, warunki i podpisy zawsze odczytują sam pakiet. Przebiegi wykresów zawsze poruszają się między pakietami, a przy off tak jak przy interpolate, więc wykres próbkujący częściej, niż przychodzi telemetria, nigdy nie pokazuje powtórzonego pakietu jako schodka.",
         "font": "Rodzina, którą otrzymują nowe widżety. To ustawienie samego edytora — urządzenie ustala czcionkę osobno dla każdego widżetu, więc dokument nie zawiera czcionki wspólnej dla całego dashboardu.",
         "budget": "Ile miejsca na płytce zajmują wybrane rodziny. Kroje są przesyłane w całości, a partycja mieści ich 3 MiB."
       },
@@ -796,6 +797,7 @@
       "points": "Próbki",
       "intervalMs": "Interwał (ms)",
       "lineWidth": "Grubość linii",
+      "sweep": "Przemiatanie",
       "fromOrigin": "Od punktu wyjścia",
       "origin": "Punkt wyjścia",
       "bar": "Pasek",

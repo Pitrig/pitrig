@@ -47,13 +47,16 @@ struct SourceContext {
   return !configuration::value_binding_view(frame.title.source.binding).empty();
 }
 
+enum class Following : std::uint8_t { with_policy, always };
+
 [[nodiscard]] bool bind_source(std::string_view name, std::uint8_t modifier_count,
                                std::span<const configuration::ValueModifier> modifiers,
                                const telemetry::ITelemetryRegistry& registry,
                                const telemetry::ITelemetryReader& telemetry,
                                const ModifierReaders& modifier_readers,
                                value_smoothing::Service* smoothing, SourceContext& context,
-                               ValueReadCallback& read, void*& read_context, bool& fast_updates);
+                               ValueReadCallback& read, void*& read_context, bool& fast_updates,
+                               Following following = Following::with_policy);
 
 struct BoundSource {
   ValueReadCallback read{};

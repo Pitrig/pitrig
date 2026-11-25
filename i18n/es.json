@@ -593,9 +593,10 @@
         "inverted": "Enciende desde el extremo lejano en lugar del cercano, que es como se obtiene un par de barras de revoluciones en espejo a partir de una sola fila de luces. No cambia qué luz se enciende ni cuándo."
       },
       "graph": {
-        "points": "Cuántas muestras guarda cada curva y cada cuánto se toma una: juntas forman la ventana que muestra el trazado. Hay un solo reloj para todo el widget, así que varias curvas quedan alineadas en él. El gráfico es el widget más costoso de dibujar, así que no uses más muestras de las necesarias.",
+        "points": "Cuántas muestras guarda cada curva y cada cuánto se toma una: juntas forman la ventana que muestra el trazado. Hay un solo reloj para todo el widget, así que varias curvas quedan alineadas en él. Sin barrido, el gráfico vuelve a dibujar todo el trazado en cada muestra, así que no uses un intervalo más corto de lo necesario.",
         "traces": "Orígenes adicionales que se dibujan sobre el mismo trazado, hasta tres en total contando el del propio widget. Cada uno tiene su propio rango, que es lo que permite que la velocidad y el acelerador compartan un trazado sin que ninguno quede aplastado contra un borde.",
-        "width": "El grosor de todas las curvas. La mitad se deja libre dentro del trazado en cada lado (más lo que necesite un marco redondeado para que las esquinas no toquen la curva), así que un valor en lo más alto o lo más bajo de su rango se dibuja entero en lugar de quedar cortado por el marco."
+        "width": "El grosor de todas las curvas. La mitad se deja libre dentro del trazado en cada lado (más lo que necesite un marco redondeado para que las esquinas no toquen la curva), así que un valor en lo más alto o lo más bajo de su rango se dibuja entero en lugar de quedar cortado por el marco.",
+        "sweep": "Dibuja las curvas de izquierda a derecha sobre las muestras más antiguas, como un monitor cardíaco, con un hueco delante de la más reciente, en lugar de desplazar todo el trazado. Así, cada muestra solo vuelve a dibujar las pocas columnas que cambia, por lo que un gráfico con barrido es mucho menos costoso de dibujar."
       },
       "image": {
         "image": "Las imágenes están en la biblioteca de imágenes de este PC, convertidas al tamaño con el que se dibujan, y «Guardar en la placa» instala las que dibuja el dashboard. El dispositivo no escala ni gira, así que ajusta el recuadro del widget al mapa de bits.",
@@ -640,7 +641,7 @@
       },
       "dashboard": {
         "transition": "Cómo cambia la placa de una pantalla a otra, tanto si se pide deslizando el dedo como con un toque. Con slide se usa la animación de deslizamiento; con none, la pantalla se sustituye en un solo fotograma. El deslizamiento dibuja ambas pantallas en cada uno de sus fotogramas, así que se nota en una pantalla llena de widgets: elige none si al deslizar el dedo el cambio va a saltos.",
-        "smoothing": "Si las barras, los arcos, las agujas, las curvas de los gráficos y el texto con formato numérico se mueven entre paquetes de telemetría en lugar de avanzar a saltos con ellos. Con interpolate se desliza hacia cada paquete para llegar justo cuando toca el siguiente: totalmente fluido, con un periodo de paquete de retraso (16 ms a 60 Hz, 50 ms a 20 Hz). Con predict sigue moviéndose al ritmo medido y se corrige cuando llega el paquete: sin retraso de media, con un pequeño exceso en los cambios de sentido. Una pausa de más de 250 ms entre paquetes se dibuja como un salto, así que los valores que cambian con eventos nunca se deslizan. Los widgets Luces, las condiciones y los rótulos siempre leen el propio paquete.",
+        "smoothing": "Si las barras, los arcos, las agujas y el texto con formato numérico se mueven entre paquetes de telemetría en lugar de avanzar a saltos con ellos. Con interpolate se desliza hacia cada paquete para llegar justo cuando toca el siguiente: totalmente fluido, con un periodo de paquete de retraso (16 ms a 60 Hz, 50 ms a 20 Hz). Con predict sigue moviéndose al ritmo medido y se corrige cuando llega el paquete: sin retraso de media, con un pequeño exceso en los cambios de sentido. Una pausa de más de 250 ms entre paquetes se dibuja como un salto, así que los valores que cambian con eventos nunca se deslizan. Los widgets Luces, las condiciones y los rótulos siempre leen el propio paquete. Las curvas de los gráficos siempre se deslizan entre paquetes, con off igual que con interpolate, así que un gráfico que toma muestras más a menudo de lo que llega la telemetría nunca muestra un paquete repetido como un escalón.",
         "font": "La familia que toman los widgets nuevos. Es un ajuste propio del editor: el dispositivo resuelve una fuente por widget, así que el documento no lleva ninguna para todo el dashboard.",
         "budget": "Lo que cuestan en la placa las familias elegidas. Las variantes se envían completas y la partición admite 3 MiB de ellas."
       },
@@ -789,6 +790,7 @@
       "points": "Muestras",
       "intervalMs": "Intervalo (ms)",
       "lineWidth": "Ancho de línea",
+      "sweep": "Barrido",
       "fromOrigin": "Desde la base",
       "origin": "Base",
       "bar": "Barra",
