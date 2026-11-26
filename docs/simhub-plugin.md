@@ -167,8 +167,9 @@ tyre wear. Tyre pressure, tyre wear, brake temperature and the fuel level and
 percentage read as missing while the game reports 0, which it does at a session
 start.
 The laps left in a timed session run on the best lap, else the last lap clear of
-the pit lane, else the all-time best; the fuel figures run on the last lap clear
-of the pit lane, else the best lap. The Settings tab's fuel margin and averages start
+the pit lane, else the all-time best. The fuel figures cover those laps less the
+part of the current lap already driven, and only the rest of that lap once the
+time has run out. The Settings tab's fuel margin and averages start
 from the defaults the mapping's `parameters` name.
 
 ## Buttons

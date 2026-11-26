@@ -89,8 +89,14 @@ namespace Pitrig.SimHub
             var status = state.Status;
             if (status == null) return null;
             if (status.TotalLaps > 0) return RaceLapsRemaining(state);
+            return LapsToFlag(state);
+        }
+
+        public static double? LapsToFlag(TelemetryState state)
+        {
+            var status = state.Status;
             var lap = LapSeconds(state);
-            if (lap == null) return null;
+            if (status == null || lap == null) return null;
             var left = status.SessionTimeLeft.TotalSeconds;
             if (left <= 0) return 1;
             var driven = state.LapTimerStale ? 0 : status.CurrentLapTime.TotalSeconds;

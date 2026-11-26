@@ -45,17 +45,21 @@ namespace Pitrig.SimHub
             switch (SessionComputations.TimedSession(state))
             {
                 case true:
-                    return state.Status.SessionTimeLeft.TotalSeconds / Pace(state);
+                    return TimingComputations.LapsToFlag(state) - LapDriven(state);
                 case false:
                     return TimingComputations.RaceLapsRemaining(state);
                 default:
-                    return null;
+                    return state.Status != null && state.TimedSessionSeen ? 1 - LapDriven(state) : (double?)null;
             }
         }
 
-        private static double? Pace(TelemetryState state)
+        private static double LapDriven(TelemetryState state)
         {
-            return state.CleanLapSeconds ?? Computed.Seconds(state.Status.BestLapTime);
+            if (state.LapTimerStale) return 0;
+            var position = Math.Max(0, Math.Min(1, state.Status.TrackPositionPercent));
+            var lap = TimingComputations.LapSeconds(state);
+            if (lap == null || !(lap > 0)) return position;
+            return Math.Min(position, Math.Max(0, Math.Min(1, state.Status.CurrentLapTime.TotalSeconds / lap.Value)));
         }
 
         private static double? PerLapFuel(TelemetryState state)
