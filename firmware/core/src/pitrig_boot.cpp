@@ -9,7 +9,10 @@
 #include "boot_guard.hpp"
 #include "communication_composition.hpp"
 #include "configuration_service.hpp"
+#include "dashboard_composition.hpp"
 #include "display_color.hpp"
+#include "display_driver.hpp"
+#include "esp_system.h"
 #include "font_asset_service.hpp"
 #include "image_asset_service.hpp"
 #include "logger.hpp"
@@ -56,6 +59,26 @@ void report_document(const configuration::ConfigurationDocument document,
   }
 }
 
+void finish_panel_check(const bool confirmed, const std::uint8_t panel, void* const context) {
+  auto& configuration = static_cast<Application*>(context)->services.configuration;
+  if (confirmed) {
+    if (!configuration.confirm_panel(panel)) {
+      log::warn(kTag, "Display panel %u could not be stored", static_cast<unsigned>(panel));
+    }
+    return;
+  }
+  if (!configuration.try_next_panel()) {
+    log::warn(kTag, "The next display panel could not be stored; keeping panel %u",
+              static_cast<unsigned>(panel));
+    return;
+  }
+  esp_restart();
+}
+
+bool host_busy(void* const context) {
+  return static_cast<Application*>(context)->communication.host_busy();
+}
+
 }
 
 ConfigurationBuffers reserve_configuration_memory(Application& application) {
@@ -90,8 +113,32 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
   };
 }
 
+configuration::PanelChoice begin_panel(Application& application,
+                                       const board_registry::BoardDefinition& board) {
+  if (board.display == nullptr) {
+    return {};
+  }
+  const std::uint8_t panel_count = display::driver::panel_count(*board.display);
+  if (panel_count <= 1) {
+    return {};
+  }
+  if (!application.platform.configuration_storage.initialize()) {
+    log::warn(kTag, "Configuration storage unavailable; driving display panel 0");
+    return {};
+  }
+  const boot_guard::ResetCause cause = boot_guard::status().cause;
+  const bool continues_check = cause == boot_guard::ResetCause::software ||
+                               cause == boot_guard::ResetCause::panic ||
+                               cause == boot_guard::ResetCause::task_watchdog;
+  const configuration::PanelChoice panel = configuration::begin_panel(
+      application.platform.configuration_storage, panel_count, continues_check);
+  log::info(kTag, "Display panel %u of %u%s", static_cast<unsigned>(panel.panel + 1U),
+            static_cast<unsigned>(panel_count), panel.check ? ", on trial" : "");
+  return panel;
+}
+
 void load_configuration(Application& application, const board_registry::BoardDefinition& board,
-                        const ConfigurationBuffers& buffers) {
+                        const ConfigurationBuffers& buffers, const std::uint8_t panel) {
   configuration::ConfigurationService::FactoryPayloads factory{};
   for (std::size_t index = 0; index < configuration::kConfigurationDocumentCount; ++index) {
     const std::string_view json = board.factory_configuration_json[index];
@@ -103,8 +150,10 @@ void load_configuration(Application& application, const board_registry::BoardDef
     apply_stored[static_cast<std::size_t>(configuration::ConfigurationDocument::protocol)] = false;
   }
   configuration::ValidationContext validation = board.validation;
-  if (board.display != nullptr && board.display->color_profile != nullptr) {
-    application.color_correction.emplace(*board.display->color_profile);
+  const display::driver::ColorProfile* const profile =
+      board.display != nullptr ? display::driver::color_profile(*board.display, panel) : nullptr;
+  if (profile != nullptr) {
+    application.color_correction.emplace(*profile);
     if (application.color_correction->valid()) {
       validation.dashboard_colors = &*application.color_correction;
     } else {
@@ -130,6 +179,22 @@ void open_asset_storage(Application& application) {
   }
   if (!application.services.image_assets.initialize(application.platform.image_asset_storage)) {
     log::warn(kTag, "Image asset storage unavailable");
+  }
+}
+
+void start_panel_check(Application& application, const board_registry::BoardDefinition& board,
+                       const configuration::PanelChoice panel, const bool touch) {
+  if (!panel.check || application.display == nullptr || board.display == nullptr) {
+    return;
+  }
+  if (!touch) {
+    log::warn(kTag, "No touch input on this start; the display panel check waits for the next");
+    return;
+  }
+  if (!dashboard_composition::show_panel_check(application.display, panel.panel,
+                                              display::driver::panel_count(*board.display),
+                                              finish_panel_check, host_busy, &application)) {
+    log::warn(kTag, "The display panel check could not be shown");
   }
 }
 

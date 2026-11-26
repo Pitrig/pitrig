@@ -9,7 +9,7 @@ using lv_display_t = _lv_display_t;
 
 namespace pitrig::display {
 
-[[nodiscard]] lv_display_t* initialize(const driver::Driver& driver,
+[[nodiscard]] lv_display_t* initialize(const driver::Driver& driver, std::uint8_t panel,
                                        std::uint8_t backlight_percent);
 
 bool set_backlight(std::uint8_t percent);

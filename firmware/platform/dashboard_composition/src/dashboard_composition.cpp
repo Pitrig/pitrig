@@ -132,6 +132,21 @@ void dismiss_startup_screen(const configuration::ApplicationConfiguration& confi
   g_dashboard.splash.dismiss(wait_for_minimum ? kMinimumStartupScreenDurationMs : 0);
 }
 
+bool show_panel_check(lv_display_t* const display, const std::uint8_t panel,
+                      const std::uint8_t panel_count, const PanelCheckDone done,
+                      const PanelCheckPostpone postpone, void* const context) {
+  if (display == nullptr) {
+    return false;
+  }
+  return g_dashboard.panel_check.show(
+      display, lv_display_get_layer_top(display),
+      {.panel = panel,
+       .panel_count = panel_count,
+       .done = done,
+       .postpone = postpone,
+       .context = context});
+}
+
 bool create(lv_display_t* const display,
             const configuration::ApplicationConfiguration& configuration,
             module_composition::Modules& modules, Dashboard& dashboard_state,

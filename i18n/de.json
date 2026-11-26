@@ -1598,6 +1598,17 @@
       "eraseTheSetupOnThe": "Löscht das Setup auf dem Board. Dateien auf diesem PC bleiben erhalten.",
       "resetToFactory": "Auf Werkszustand zurücksetzen"
     },
+    "displayPanel": {
+      "title": "Display-Panel",
+      "description": "Boards, die seit 2026 verkauft werden, haben ein neueres Panel. Nach einer Änderung startet das Board neu.",
+      "asking": "Das Board zeigt die Panel-Prüfung. Halten Sie dort das Häkchen gedrückt oder wählen Sie das Panel hier.",
+      "needsFirmware": "Aktualisieren Sie die Firmware, um das Display-Panel zu wählen.",
+      "original": "Älteres Panel",
+      "since2026": "Panel ab 2026",
+      "check": "Auf dem Board fragen",
+      "confirm": "Display-Panel wechseln und das Board neu starten?",
+      "switched": "Das Board wurde mit der neuen Panel-Einstellung neu gestartet."
+    },
     "boardUpdate": {
       "readingTheBoard": "Inhalt des Boards wird gelesen…",
       "keepingACopy": "Kopie der Board-Konfiguration wird unter „Setups“ abgelegt…",

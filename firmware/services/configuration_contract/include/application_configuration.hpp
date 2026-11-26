@@ -76,6 +76,7 @@ void for_each_widget_frame(const DashboardConfiguration& dashboard, Visitor&& vi
 struct DisplayValidationProfile {
   std::int32_t width{};
   std::int32_t height{};
+  std::uint8_t panel_count{1};
 };
 
 inline constexpr std::size_t kMaximumBoardLedPins = 32;

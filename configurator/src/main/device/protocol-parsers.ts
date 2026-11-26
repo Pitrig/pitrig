@@ -16,6 +16,16 @@ import {
 import { DeviceServiceError } from './device-errors'
 import { t } from '@shared/ui-text'
 import { CONTROL_PREFIX } from '@shared/control-protocol'
+import type { DeviceDisplayPanel } from '@shared/display-panel'
+
+export function parseDisplayPanel(line: string, panelCount: number): DeviceDisplayPanel {
+  const prefix = `${CONTROL_PREFIX}OK:PANEL:`
+  const value = line.startsWith(prefix) ? line.slice(prefix.length).trim() : ''
+  if (value === 'check') return 'check'
+  const panel = /^[0-9]$/.test(value) ? Number(value) : Number.NaN
+  if (Number.isInteger(panel) && panel < panelCount) return panel
+  throw new DeviceServiceError('not_pitrig', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
+}
 
 export function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {
   const fields = new Map<string, string>()

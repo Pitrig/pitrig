@@ -6,6 +6,7 @@ import {
   invalidConfigurationRequest,
   isConfigurationResetRequest,
   isConnectRequest,
+  isDisplayPanelRequest,
   isJsonDocumentRequest
 } from './request-guards'
 import {
@@ -23,6 +24,7 @@ import {
   type DeviceResult,
   type DeviceState
 } from '../../shared/device'
+import { DEVICE_DISPLAY_PANEL_SET_CHANNEL } from '../../shared/display-panel'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
 import { SAVE_TO_BOARD_CHANNEL, type SaveToBoardResult } from '../../shared/save-to-board'
 import type { AppServices } from '../app-services'
@@ -91,6 +93,12 @@ export function registerIpcHandlers({
     return deviceService.saveConfiguration(request.json, request.documents)
   })
   ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.rebootAndReconnect())
+  ipcMain.handle(DEVICE_DISPLAY_PANEL_SET_CHANNEL, (_event, request: unknown) => {
+    if (!isDisplayPanelRequest(request)) {
+      return invalidConfigurationRequest()
+    }
+    return deviceService.setDisplayPanel(request.panel)
+  })
   ipcMain.handle(SAVE_TO_BOARD_CHANNEL, (_event, request: unknown) => {
     if (!isJsonDocumentRequest(request)) {
       const result: SaveToBoardResult = {

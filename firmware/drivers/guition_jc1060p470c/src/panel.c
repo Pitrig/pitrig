@@ -2,8 +2,8 @@
  * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  * SPDX-License-Identifier: Apache-2.0
  *
- * The JC1060P470C JD9165 initialization sequence and verified panel settings
- * are derived from the Apache-2.0 esp32_p4_jc1060p470_board BSP.
+ * The JC1060P470C JD9165 panel bring-up is derived from the Apache-2.0
+ * esp32_p4_jc1060p470_board BSP.
  */
 
 #include "panel.h"
@@ -17,10 +17,11 @@
 #include "esp_lcd_panel_interface.h"
 #include "esp_ldo_regulator.h"
 #include "esp_system.h"
+#include "panel_variants.h"
 #include "sdkconfig.h"
 
 #define LCD_BACKLIGHT ((gpio_num_t)PITRIG_JC1060P470C_BACKLIGHT_GPIO)
-#define LCD_RESET GPIO_NUM_27
+#define LCD_RESET GPIO_NUM_0
 #define MIPI_DSI_LANE_COUNT 2
 #define MIPI_DSI_LANE_BIT_RATE_MBPS 750
 #define MIPI_DSI_PHY_LDO_CHANNEL 3
@@ -47,65 +48,6 @@ static esp_err_t fixed_orientation_swap_xy(esp_lcd_panel_t* panel, bool swap_axe
   (void)panel;
   return swap_axes ? ESP_ERR_NOT_SUPPORTED : ESP_OK;
 }
-
-static const jd9165_lcd_init_cmd_t panel_init_commands[] = {
-    {0x30, (uint8_t[]){0x00}, 1, 0},
-    {0xF7, (uint8_t[]){0x49, 0x61, 0x02, 0x00}, 4, 0},
-    {0x30, (uint8_t[]){0x01}, 1, 0},
-    {0x04, (uint8_t[]){0x0C}, 1, 0},
-    {0x05, (uint8_t[]){0x00}, 1, 0},
-    {0x06, (uint8_t[]){0x00}, 1, 0},
-    {0x0B, (uint8_t[]){0x11}, 1, 0},
-    {0x17, (uint8_t[]){0x00}, 1, 0},
-    {0x20, (uint8_t[]){0x04}, 1, 0},
-    {0x1F, (uint8_t[]){0x05}, 1, 0},
-    {0x23, (uint8_t[]){0x00}, 1, 0},
-    {0x25, (uint8_t[]){0x19}, 1, 0},
-    {0x28, (uint8_t[]){0x18}, 1, 0},
-    {0x29, (uint8_t[]){0x04}, 1, 0},
-    {0x2A, (uint8_t[]){0x01}, 1, 0},
-    {0x2B, (uint8_t[]){0x04}, 1, 0},
-    {0x2C, (uint8_t[]){0x01}, 1, 0},
-    {0x30, (uint8_t[]){0x02}, 1, 0},
-    {0x01, (uint8_t[]){0x22}, 1, 0},
-    {0x03, (uint8_t[]){0x12}, 1, 0},
-    {0x04, (uint8_t[]){0x00}, 1, 0},
-    {0x05, (uint8_t[]){0x64}, 1, 0},
-    {0x0A, (uint8_t[]){0x08}, 1, 0},
-    {0x0B, (uint8_t[]){0x0A, 0x1A, 0x0B, 0x0D, 0x0D, 0x11, 0x10, 0x06, 0x08, 0x1F, 0x1D}, 11, 0},
-    {0x0C, (uint8_t[]){0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D}, 11, 0},
-    {0x0D, (uint8_t[]){0x16, 0x1B, 0x0B, 0x0D, 0x0D, 0x11, 0x10, 0x07, 0x09, 0x1E, 0x1C}, 11, 0},
-    {0x0E, (uint8_t[]){0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D}, 11, 0},
-    {0x0F, (uint8_t[]){0x16, 0x1B, 0x0D, 0x0B, 0x0D, 0x11, 0x10, 0x1C, 0x1E, 0x09, 0x07}, 11, 0},
-    {0x10, (uint8_t[]){0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D}, 11, 0},
-    {0x11, (uint8_t[]){0x0A, 0x1A, 0x0D, 0x0B, 0x0D, 0x11, 0x10, 0x1D, 0x1F, 0x08, 0x06}, 11, 0},
-    {0x12, (uint8_t[]){0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D}, 11, 0},
-    {0x14, (uint8_t[]){0x00, 0x00, 0x11, 0x11}, 4, 0},
-    {0x18, (uint8_t[]){0x99}, 1, 0},
-    {0x30, (uint8_t[]){0x06}, 1, 0},
-    {0x12,
-     (uint8_t[]){0x36, 0x2C, 0x2E, 0x3C, 0x38, 0x35, 0x35, 0x32, 0x2E, 0x1D, 0x2B, 0x21, 0x16,
-                 0x29},
-     14, 0},
-    {0x13,
-     (uint8_t[]){0x36, 0x2C, 0x2E, 0x3C, 0x38, 0x35, 0x35, 0x32, 0x2E, 0x1D, 0x2B, 0x21, 0x16,
-                 0x29},
-     14, 0},
-    {0x30, (uint8_t[]){0x0A}, 1, 0},
-    {0x02, (uint8_t[]){0x4F}, 1, 0},
-    {0x0B, (uint8_t[]){0x40}, 1, 0},
-    {0x12, (uint8_t[]){0x3E}, 1, 0},
-    {0x13, (uint8_t[]){0x78}, 1, 0},
-    {0x30, (uint8_t[]){0x0D}, 1, 0},
-    {0x0D, (uint8_t[]){0x04}, 1, 0},
-    {0x10, (uint8_t[]){0x0C}, 1, 0},
-    {0x11, (uint8_t[]){0x0C}, 1, 0},
-    {0x12, (uint8_t[]){0x0C}, 1, 0},
-    {0x13, (uint8_t[]){0x0C}, 1, 0},
-    {0x30, (uint8_t[]){0x00}, 1, 0},
-    {0x11, (uint8_t[]){0x00}, 1, 120},
-    {0x29, (uint8_t[]){0x00}, 1, 50},
-};
 
 static esp_err_t initialize_backlight(void) {
   const gpio_config_t config = {
@@ -155,10 +97,13 @@ void pitrig_jc1060p470c_panel_release(esp_lcd_panel_io_handle_t* io,
 }
 
 esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
-                                              esp_lcd_panel_handle_t* panel) {
+                                              esp_lcd_panel_handle_t* panel,
+                                              const uint8_t variant) {
   if (io == NULL || panel == NULL) {
     return ESP_ERR_INVALID_ARG;
   }
+  const pitrig_jc1060p470c_panel_variant_t* const fitted =
+      pitrig_jc1060p470c_panel_variant(variant);
   *io = NULL;
   *panel = NULL;
 
@@ -200,13 +145,18 @@ esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
     return result;
   }
 
-  esp_lcd_dpi_panel_config_t dpi_config =
-      JD9165_1024_600_PANEL_60HZ_DPI_CONFIG_CF(LCD_COLOR_FORMAT);
-  dpi_config.num_fbs = LCD_FRAME_BUFFER_COUNT;
+  const esp_lcd_dpi_panel_config_t dpi_config = {
+      .virtual_channel = 0,
+      .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
+      .dpi_clock_freq_mhz = fitted->pixel_clock_mhz,
+      .in_color_format = LCD_COLOR_FORMAT,
+      .num_fbs = LCD_FRAME_BUFFER_COUNT,
+      .video_timing = fitted->timing,
+  };
 
   const jd9165_vendor_config_t vendor_config = {
-      .init_cmds = panel_init_commands,
-      .init_cmds_size = sizeof(panel_init_commands) / sizeof(panel_init_commands[0]),
+      .init_cmds = fitted->init_commands,
+      .init_cmds_size = fitted->init_command_count,
       .mipi_config =
           {
               .dsi_bus = mipi_dsi_bus,

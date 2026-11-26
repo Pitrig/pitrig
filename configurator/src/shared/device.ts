@@ -1,3 +1,4 @@
+import type { DisplayPanel, SessionDisplayPanel } from './display-panel'
 import type { FirmwareUpdateState } from './firmware-update'
 import type { ImageAssetState } from './image-assets'
 import {
@@ -122,6 +123,7 @@ export interface LedDescriptor {
 
 export interface BoardProfile {
   display?: DisplayDescriptor
+  displayPanels?: readonly DisplayPanel[]
   assetMemoryBytes?: number
   telemetryUartBaudRate?: number
   transports: { uart: boolean; nativeUsbCdc: boolean }
@@ -143,6 +145,7 @@ export const BOARD_PROFILES: Record<PitrigBoardId, BoardProfile> = {
   },
   guition_jc1060p470c: {
     display: { width: 1024, height: 600, configurable: false },
+    displayPanels: ['original', 'since2026'],
     assetMemoryBytes: 20 * 1_024 * 1_024,
     transports: { uart: false, nativeUsbCdc: true },
     led: { outputs: 4, pins: [1, 2, 3, 4, 5, 20, 32, 33, 45, 46, 47] }
@@ -236,6 +239,7 @@ export interface DeviceSession {
   fontAssets?: FontAssetDeviceInfo
   imageAssets?: ImageAssetState
   firmware?: FirmwareUpdateState
+  displayPanel?: SessionDisplayPanel
   restartOwed?: boolean
 }
 

@@ -18,6 +18,7 @@ idf_component_register(
        "src/validation/widget_validator.cpp"
        "src/validation/widget_validator_types.cpp"
        "src/configuration_service.cpp"
+       "src/display_panel.cpp"
   INCLUDE_DIRS "include"
   PRIV_INCLUDE_DIRS "src"
   REQUIRES configuration_contract font_contract image_contract

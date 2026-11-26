@@ -67,6 +67,7 @@ import {
   DEVICE_REBOOT_CHANNEL,
   type DeviceState
 } from '../shared/device'
+import { DEVICE_DISPLAY_PANEL_SET_CHANNEL } from '../shared/display-panel'
 import {
   BOARD_UPDATE_CHANNEL,
   BOARD_UPDATE_PROGRESS_CHANNEL,
@@ -178,6 +179,7 @@ export const productApi: PitrigApi = {
   resetDeviceConfiguration: (request) =>
     ipcRenderer.invoke(DEVICE_CONFIGURATION_RESET_CHANNEL, request),
   rebootDevice: () => ipcRenderer.invoke(DEVICE_REBOOT_CHANNEL),
+  setDisplayPanel: (request) => ipcRenderer.invoke(DEVICE_DISPLAY_PANEL_SET_CHANNEL, request),
   listFontLibrary: () => ipcRenderer.invoke(FONT_LIBRARY_LIST_CHANNEL),
   readFontFaces: (request) => ipcRenderer.invoke(FONT_LIBRARY_FACES_CHANNEL, request),
   importFontFace: (request) => ipcRenderer.invoke(FONT_LIBRARY_IMPORT_CHANNEL, request),

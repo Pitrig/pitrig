@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -10,6 +12,7 @@
 #include "configuration_json.hpp"
 #include "configuration_storage.hpp"
 #include "device_settings.hpp"
+#include "display_panel.hpp"
 
 namespace pitrig::configuration {
 
@@ -104,6 +107,12 @@ class ConfigurationService {
   [[nodiscard]] DeviceSettings settings() const { return settings_; }
   [[nodiscard]] bool save_settings(const DeviceSettings& settings);
 
+  [[nodiscard]] std::uint8_t panel_count() const { return validation_profile_.display.panel_count; }
+  [[nodiscard]] std::optional<PanelChoice> panel() const;
+  [[nodiscard]] bool choose_panel(PanelChoice choice);
+  [[nodiscard]] bool confirm_panel(std::uint8_t panel);
+  [[nodiscard]] bool try_next_panel();
+
   [[nodiscard]] ValidationFailure stage(ConfigurationDocument document,
                                         std::span<const std::uint8_t> payload);
   [[nodiscard]] const ApplicationConfiguration& staged() const { return *scratch_; }
@@ -137,6 +146,7 @@ class ConfigurationService {
   void load_settings();
 
   IConfigurationStorage* storage_{};
+  mutable std::mutex panel_lock_;
   FactoryPayloads factory_payloads_{};
   ValidationContext validation_profile_{};
   ApplicationConfiguration* active_{};

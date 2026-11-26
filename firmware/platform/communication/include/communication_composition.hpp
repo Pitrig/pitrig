@@ -59,6 +59,7 @@ class Composition final {
   void stop();
 
   void mark_composed();
+  [[nodiscard]] bool host_busy() const;
 
  private:
   struct Link {

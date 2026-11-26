@@ -242,6 +242,12 @@ a host writes or erases a document. The task watchdog resets rather than prints
 and watches only the tasks that feed it: each link's read task and the render
 trigger, which takes the LVGL lock every round.
 
+A board whose display is sold with more than one panel picks it before the
+configuration loads, because the colour profile belongs to the panel. With no
+panel confirmed, the board lays a screen check over the dashboard after
+composition and restarts into the next panel until one is held or ten tries
+end, waiting while a host writes or uploads (ADR 0048).
+
 The bounded Module Manager stores compile-time descriptors with function
 pointers and explicit contexts; a module composition registers the available
 implementations, configuration selects which are enabled, and a separate

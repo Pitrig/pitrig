@@ -26,6 +26,7 @@ import type {
   DeviceState,
   SerialPortSummary
 } from './device'
+import type { DeviceDisplayPanelRequest } from './display-panel'
 import type {
   InstallPluginRequest,
   InstallPluginResult,
@@ -156,6 +157,7 @@ export interface PitrigApi {
     request?: DeviceConfigurationResetRequest
   ) => Promise<DeviceResult<DeviceConfigurationResetResult>>
   rebootDevice: () => Promise<DeviceResult<DeviceState>>
+  setDisplayPanel: (request: DeviceDisplayPanelRequest) => Promise<DeviceResult<DeviceState>>
   listFontLibrary: () => Promise<FontLibrarySnapshot>
   readFontFaces: (request: FontFacesRequest) => Promise<FontFaceBytes[]>
   importFontFace: (

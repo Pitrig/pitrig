@@ -38,6 +38,7 @@ import {
   type TemplateSaveRequest
 } from '@shared/templates'
 import { PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
+import type { DeviceDisplayPanelRequest } from '@shared/display-panel'
 import { t } from '@shared/ui-text'
 
 const MAXIMUM_WIRING_TEXT = 16_384
@@ -129,6 +130,12 @@ export function isConfigurationPathRequest(value: unknown): value is Configurati
   if (!value || typeof value !== 'object') return false
   const path = (value as Partial<ConfigurationPathRequest>).path
   return typeof path === 'string' && path.length > 0 && path.length <= 4096
+}
+
+export function isDisplayPanelRequest(value: unknown): value is DeviceDisplayPanelRequest {
+  if (!value || typeof value !== 'object') return false
+  const panel = (value as Partial<DeviceDisplayPanelRequest>).panel
+  return panel === 'check' || (Number.isInteger(panel) && (panel as number) >= 0 && (panel as number) <= 9)
 }
 
 export function invalidConfigurationRequest(): DeviceResult<never> {

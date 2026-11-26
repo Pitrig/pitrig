@@ -26,6 +26,9 @@ class IConfigurationStorage {
   virtual bool reset() = 0;
   virtual StorageRead read_settings(std::span<std::uint8_t> destination, std::size_t& size) = 0;
   virtual bool write_settings(std::span<const std::uint8_t> data) = 0;
+  virtual StorageRead read_board(std::span<std::uint8_t> destination, std::size_t& size) = 0;
+  virtual bool write_board(std::span<const std::uint8_t> data) = 0;
+  [[nodiscard]] virtual bool holds_documents() = 0;
 };
 
 }

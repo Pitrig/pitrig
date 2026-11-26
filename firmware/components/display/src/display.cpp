@@ -168,14 +168,14 @@ bool refresh_and_wait(lv_display_t* const display, const std::uint32_t timeout_m
   return refreshed;
 }
 
-lv_display_t* initialize(const driver::Driver& selected_driver,
+lv_display_t* initialize(const driver::Driver& selected_driver, const std::uint8_t panel,
                          const std::uint8_t backlight_percent) {
   if (selected_driver.initialize == nullptr || selected_driver.release == nullptr ||
       selected_driver.on_display_ready == nullptr) {
     ESP_LOGE(kTag, "Board display driver is incomplete");
     return nullptr;
   }
-  const driver::Configuration hardware = selected_driver.initialize();
+  const driver::Configuration hardware = selected_driver.initialize(panel);
   if (!driver::succeeded(hardware)) {
     ESP_LOGE(kTag, "Board display driver did not bring its panel up");
     return nullptr;

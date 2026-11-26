@@ -125,6 +125,11 @@ void Composition::receive_transport_data(const std::span<const std::uint8_t> dat
   static_cast<Link*>(context)->router.consume(data);
 }
 
+bool Composition::host_busy() const {
+  constexpr std::uint32_t kHostQuietMs = 15'000;
+  return binary_claim_.claimed() || configuration_control_.wrote_within(kHostQuietMs);
+}
+
 void Composition::reboot(void*) {
   vTaskDelay(pdMS_TO_TICKS(100));
   esp_restart();

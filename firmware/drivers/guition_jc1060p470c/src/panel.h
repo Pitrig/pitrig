@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "esp_err.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
@@ -11,7 +13,7 @@ extern "C" {
 #endif
 
 esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
-                                              esp_lcd_panel_handle_t* panel);
+                                              esp_lcd_panel_handle_t* panel, uint8_t variant);
 void pitrig_jc1060p470c_panel_release(esp_lcd_panel_io_handle_t* io, esp_lcd_panel_handle_t* panel);
 esp_err_t pitrig_jc1060p470c_backlight_on(void);
 

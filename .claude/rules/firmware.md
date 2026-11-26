@@ -92,6 +92,12 @@ assets → composition → complete`, and the order is the decision (ADR 0025;
 
 ## Boards
 
+The JC1060P470C's display driver lists two panels in `panel_variants.c`: 0 is
+the original, 1 Guition's New_Panel. Startup reads the board record of ADR 0048
+before the configuration loads, because the colour profile belongs to the panel,
+and the screen check writes it from the LVGL task, which is safe only while that
+task's stack stays in internal RAM (`ESP_LVGL_PORT_INIT_CONFIG`).
+
 The DevKitC-1 has **no display** and no lamp of its own:
 `BoardDefinition::display` and `BoardDefinition::input` are null, a `dashboard`
 document naming any screen is rejected rather than ignored, and it drives four
@@ -168,5 +174,6 @@ periodic paths, no blocking work outside dedicated FreeRTOS tasks, no global
 mutable state. There is no central application scheduler: FreeRTOS tasks for
 blocking work, LVGL timers for rendering, event-bus callbacks for short module
 updates. Two things that look like comments are not: the `# CONFIG_X is not set`
-lines in `sdkconfig.defaults*` are kconfiglib directives, and the SPDX header on
-the vendored `drivers/guition_jc1060p470c/src/panel.c` is attribution.
+lines in `sdkconfig.defaults*` are kconfiglib directives, and the SPDX headers on
+the vendored `drivers/guition_jc1060p470c/src/panel.c` and `panel_variants.c` are
+attribution.

@@ -21,7 +21,10 @@ const BoardDefinition& factory_board() {
       .validation =
           {
               .board = configuration::BoardId::guition_jc1060p470c,
-              .display = {.width = 1'024, .height = 600},
+              .display = {.width = 1'024,
+                          .height = 600,
+                          .panel_count = display::driver::panel_count(
+                              display::drivers::guition_jc1060p470c::get())},
               .led = {.pins = {1, 2, 3, 4, 5, 20, 32, 33, 45, 46, 47}, .pin_count = 11},
               .uart_tx_pin = 0,
               .uart_rx_pin = 0,

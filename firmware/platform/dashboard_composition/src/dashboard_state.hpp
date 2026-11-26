@@ -18,6 +18,7 @@
 #include "graph_widget.hpp"
 #include "image_widget.hpp"
 #include "indicator_widget.hpp"
+#include "panel_check.hpp"
 #include "render_trigger.hpp"
 #include "screen_navigation.hpp"
 #include "shape_widget.hpp"
@@ -174,6 +175,7 @@ struct Dashboard {
   dashboard::slots::Controller slots;
   dashboard::navigation::Controller navigation;
   dashboard::boot_splash::Splash splash;
+  dashboard::panel_check::Check panel_check;
 #if PITRIG_DEBUG
   dashboard::overlays::Views overlays;
 #endif

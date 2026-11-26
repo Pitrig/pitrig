@@ -28,12 +28,17 @@ struct Hardware {
 
 Hardware hardware;
 
+const driver::Panel kPanels[] = {
+    {.color_profile = &kColorProfile},
+    {.color_profile = nullptr},
+};
+
 void release() { pitrig_jc1060p470c_panel_release(&hardware.io, &hardware.panel); }
 
-driver::Configuration initialize() {
-  ESP_LOGI(kTag, "Initializing 1024x600 JD9165 MIPI-DSI %s display",
-           kTrueColor ? "RGB888" : "RGB565");
-  if (pitrig_jc1060p470c_panel_initialize(&hardware.io, &hardware.panel) != ESP_OK) {
+driver::Configuration initialize(const std::uint8_t panel) {
+  ESP_LOGI(kTag, "Initializing 1024x600 JD9165 MIPI-DSI %s display, panel index %u",
+           kTrueColor ? "RGB888" : "RGB565", static_cast<unsigned>(panel));
+  if (pitrig_jc1060p470c_panel_initialize(&hardware.io, &hardware.panel, panel) != ESP_OK) {
     ESP_LOGE(kTag, "JD9165 panel did not come up");
     return {};
   }
@@ -76,7 +81,7 @@ const driver::Driver kDriver{
     .release = release,
     .on_display_ready = on_display_ready,
     .backlight_pin = PITRIG_JC1060P470C_BACKLIGHT_GPIO,
-    .color_profile = &kColorProfile,
+    .panels = kPanels,
 };
 
 }

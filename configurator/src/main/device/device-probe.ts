@@ -1,9 +1,16 @@
 import type { SerialPort } from 'serialport'
 
-import type { DeviceInfo, DeviceSession } from '@shared/device'
+import {
+  BOARD_PROFILES,
+  type DeviceErrorCode,
+  type DeviceInfo,
+  type DeviceSession,
+  type PitrigBoardId
+} from '@shared/device'
+import type { SessionDisplayPanel } from '@shared/display-panel'
 import { DeviceServiceError } from './device-errors'
 import { parseFirmwareUpdateInfo, parseFontAssetInfo, parseImageAssetInfo } from './asset-info-parsers'
-import { parseDeviceInfo } from './protocol-parsers'
+import { parseDeviceInfo, parseDisplayPanel } from './protocol-parsers'
 import { requestResponse, type TrafficCallback } from './serial-request'
 import { readConfiguration } from './pitrig-protocol'
 import { CONTROL_PREFIX } from '@shared/control-protocol'
@@ -14,6 +21,14 @@ const INFO_REQUEST = `\n${CONTROL_PREFIX}INFO\n`
 const IMAGE_INFO_REQUEST = `${CONTROL_PREFIX}IMAGE:INFO\n`
 const FONT_INFO_REQUEST = `${CONTROL_PREFIX}FONT:INFO\n`
 const FIRMWARE_INFO_REQUEST = `${CONTROL_PREFIX}FW:INFO\n`
+const PANEL_REQUEST = `${CONTROL_PREFIX}PANEL\n`
+const LINK_ERRORS: readonly DeviceErrorCode[] = [
+  'no_answer',
+  'permission_denied',
+  'port_busy',
+  'port_missing',
+  'serial_error'
+]
 
 export async function identifyPitrig(
   port: SerialPort,
@@ -56,12 +71,39 @@ export async function probePitrig(
     parseFirmwareUpdateInfo,
     onTraffic
   )
+  const displayPanel = await probeDisplayPanel(port, info.boardId, onTraffic)
   return {
     info,
     ...stored,
     ...(fontAssets ? { fontAssets } : {}),
     ...(imageAssets ? { imageAssets } : {}),
-    ...(firmware ? { firmware } : {})
+    ...(firmware ? { firmware } : {}),
+    ...(displayPanel === undefined ? {} : { displayPanel })
+  }
+}
+
+async function probeDisplayPanel(
+  port: SerialPort,
+  board: PitrigBoardId,
+  onTraffic: TrafficCallback
+): Promise<SessionDisplayPanel | undefined> {
+  const panels = BOARD_PROFILES[board].displayPanels
+  if (!panels) return undefined
+  try {
+    const line = await requestResponse(
+      port,
+      PANEL_REQUEST,
+      `${CONTROL_PREFIX}OK:PANEL:`,
+      PROBE_TIMEOUT_MS,
+      onTraffic,
+      'not_pitrig',
+      STARTUP_BUSY_MS
+    )
+    return parseDisplayPanel(line, panels.length)
+  } catch (error) {
+    if (isUnknownCommand(error)) return 'unsupported'
+    if (error instanceof DeviceServiceError && !LINK_ERRORS.includes(error.code)) return undefined
+    throw error
   }
 }
 

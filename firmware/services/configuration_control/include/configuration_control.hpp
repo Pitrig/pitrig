@@ -34,6 +34,7 @@ class ConfigurationControl {
   void stop();
 
   void mark_composed();
+  [[nodiscard]] bool wrote_within(std::uint32_t ms) const;
 
   void consume(std::span<const std::uint8_t> line, transport::ITransport& reply);
 
@@ -60,6 +61,7 @@ class ConfigurationControl {
   void answer_while_busy(std::span<const std::uint8_t> line, transport::ITransport& reply);
   void send_info();
   void send_diagnostics();
+  void handle_panel(std::span<const std::uint8_t> argument);
   [[nodiscard]] bool await_composition();
   [[nodiscard]] bool take_document(std::span<const std::uint8_t> argument, bool expect_payload,
                                    ConfigurationDocument& document,
@@ -85,6 +87,8 @@ class ConfigurationControl {
   std::span<std::uint8_t> io_buffer_{};
   std::size_t request_size_{};
   std::atomic<RequestState> request_state_{RequestState::idle};
+  std::atomic<TickType_t> last_write_{};
+  std::atomic<bool> written_{};
 };
 
 }

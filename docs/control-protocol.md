@@ -152,6 +152,8 @@ them is answered `@PR:ERR:unknown_document`.
 | `@PR:RESET:<doc>` | `@PR:OK:RESET:<doc>:reboot_required=1` | Remove one saved document. |
 | `@PR:RESET` | `@PR:OK:RESET:reboot_required=1` | Remove every saved document. |
 | `@PR:REBOOT` | `@PR:OK:REBOOTING` | Restart the device. |
+| `@PR:PANEL` | `@PR:OK:PANEL:<index\|check>` | Read which display panel the board drives, or `check` while its screen asks; after the check's last try, the panel it drives (ADR 0048). |
+| `@PR:PANEL:<index\|check>` | `@PR:OK:PANEL:<index\|check>:reboot_required=1` | Store the panel, or a new screen check, for the next start. |
 
 `reboot_required` on a save is a property of the document, generated from the
 schema rather than decided here: `protocol` answers 1 because the link is
@@ -186,16 +188,17 @@ all: more than one `lap_timer` modifier answers `invalid_widget` with
 `path=font`, each with `screen=-1,widget=-1`. The reason tokens are listed in
 [configuration-schema.md](configuration-schema.md).
 
-Five errors are about the request rather than the document and carry no
+Six errors are about the request rather than the document and carry no
 location suffix:
 
 | Response | When |
 | --- | --- |
 | `@PR:ERR:unknown_command` | The line starts with `@PR:` but names no command above. A host probes for a capability this way. |
-| `@PR:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with. |
-| `@PR:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. Also any `@PR:` command that arrives while another is still being handled — one command is in flight at a time, the board stays busy for a few milliseconds after the last byte of a long reply has gone out, and only `REBOOT` is answered rather than refused in that window. A refused command was not taken, so a host sends it again. An asset or firmware `BEGIN`, `INFO` or `CLEAR` in the startup window is answered `busy` under the owning kind's namespace rather than waiting, because startup is still reading the partitions it would erase. |
+| `@PR:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with, and `PANEL` on a board whose display has one panel. |
+| `@PR:ERR:busy` | `SET`, `APPLY`, `RESET` or a `PANEL` write arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. Also any `@PR:` command that arrives while another is still being handled — one command is in flight at a time, the board stays busy for a few milliseconds after the last byte of a long reply has gone out, and only `REBOOT` is answered rather than refused in that window. A refused command was not taken, so a host sends it again. An asset or firmware `BEGIN`, `INFO` or `CLEAR` in the startup window is answered `busy` under the owning kind's namespace rather than waiting, because startup is still reading the partitions it would erase. |
 | `@PR:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
-| `@PR:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. A payload is always parsed and validated first, so `storage` never hides a rejection. |
+| `@PR:ERR:unknown_panel` | `PANEL` named neither `check` nor a panel this board has. |
+| `@PR:ERR:storage` | `SET`, `RESET` or `PANEL` validated but the write to configuration storage failed, or a `PANEL` read found no record it can read. A payload is always parsed and validated first, so `storage` never hides a rejection. |
 
 After reset and reboot, each `GET` returns that document's compiled factory
 payload and the board-provided display remains enabled with an empty dashboard.
@@ -216,7 +219,9 @@ Configurator code must not reproduce or depend on this NVS record format.
 
 Beside the documents the same namespace keeps a two-byte `settings` record — a
 version and the display brightness buttons last set — which no command reads or
-writes, and which `RESET` erases with the rest.
+writes, and which `RESET` erases with the rest. A four-byte board record in its
+own namespace, `pitrig_board`, holds the display panel that `PANEL` reads and
+writes; `RESET` keeps it (ADR 0048).
 
 Records of any earlier schema are unsupported and are not migrated. That
 document falls back to its compiled factory payload while the other two load

@@ -14,6 +14,8 @@ namespace {
 constexpr char kPartition[] = "pitrig_cfg";
 constexpr char kNamespace[] = "pitrig_cfg";
 constexpr char kSettingsKey[] = "settings";
+constexpr char kBoardNamespace[] = "pitrig_board";
+constexpr char kBoardKey[] = "panel";
 
 std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(const ConfigurationDocument document) {
   const std::string_view name = configuration_document_name(document);
@@ -26,6 +28,9 @@ std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(const ConfigurationDocument docu
 }
 
 bool NvsConfigurationStorage::initialize() {
+  if (initialized_) {
+    return true;
+  }
   esp_err_t result = nvs_flash_init_partition(kPartition);
   if (result == ESP_ERR_NVS_NO_FREE_PAGES || result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
     if (nvs_flash_erase_partition(kPartition) != ESP_OK) {
@@ -40,24 +45,51 @@ bool NvsConfigurationStorage::initialize() {
 StorageRead NvsConfigurationStorage::read(const ConfigurationDocument document,
                                           const std::span<std::uint8_t> destination,
                                           std::size_t& size) {
-  return read_key(key_for(document).data(), destination, size);
+  return read_key(kNamespace, key_for(document).data(), destination, size);
 }
 
 bool NvsConfigurationStorage::write(const ConfigurationDocument document,
                                     const std::span<const std::uint8_t> data) {
-  return write_key(key_for(document).data(), data);
+  return write_key(kNamespace, key_for(document).data(), data);
 }
 
 StorageRead NvsConfigurationStorage::read_settings(const std::span<std::uint8_t> destination,
                                                    std::size_t& size) {
-  return read_key(kSettingsKey, destination, size);
+  return read_key(kNamespace, kSettingsKey, destination, size);
 }
 
 bool NvsConfigurationStorage::write_settings(const std::span<const std::uint8_t> data) {
-  return write_key(kSettingsKey, data);
+  return write_key(kNamespace, kSettingsKey, data);
 }
 
-StorageRead NvsConfigurationStorage::read_key(const char* const key,
+StorageRead NvsConfigurationStorage::read_board(const std::span<std::uint8_t> destination,
+                                                std::size_t& size) {
+  return read_key(kBoardNamespace, kBoardKey, destination, size);
+}
+
+bool NvsConfigurationStorage::write_board(const std::span<const std::uint8_t> data) {
+  return write_key(kBoardNamespace, kBoardKey, data);
+}
+
+bool NvsConfigurationStorage::holds_documents() {
+  if (!initialized_) {
+    return false;
+  }
+  nvs_handle_t handle{};
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle) != ESP_OK) {
+    return false;
+  }
+  bool found = false;
+  for (std::size_t index = 0; index < kConfigurationDocumentCount && !found; ++index) {
+    const std::array<char, NVS_KEY_NAME_MAX_SIZE> key =
+        key_for(static_cast<ConfigurationDocument>(index));
+    found = nvs_find_key(handle, key.data(), nullptr) == ESP_OK;
+  }
+  nvs_close(handle);
+  return found;
+}
+
+StorageRead NvsConfigurationStorage::read_key(const char* const name_space, const char* const key,
                                               const std::span<std::uint8_t> destination,
                                               std::size_t& size) {
   size = 0;
@@ -65,7 +97,7 @@ StorageRead NvsConfigurationStorage::read_key(const char* const key,
     return StorageRead::failed;
   }
   nvs_handle_t handle{};
-  const esp_err_t opened = nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle);
+  const esp_err_t opened = nvs_open_from_partition(kPartition, name_space, NVS_READONLY, &handle);
   if (opened == ESP_ERR_NVS_NOT_FOUND) {
     return StorageRead::absent;
   }
@@ -89,13 +121,13 @@ StorageRead NvsConfigurationStorage::read_key(const char* const key,
   return result == ESP_ERR_NVS_NOT_FOUND ? StorageRead::absent : StorageRead::failed;
 }
 
-bool NvsConfigurationStorage::write_key(const char* const key,
+bool NvsConfigurationStorage::write_key(const char* const name_space, const char* const key,
                                         const std::span<const std::uint8_t> data) {
   if (!initialized_ || data.empty()) {
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
+  if (nvs_open_from_partition(kPartition, name_space, NVS_READWRITE, &handle) != ESP_OK) {
     return false;
   }
   const esp_err_t result = nvs_set_blob(handle, key, data.data(), data.size());

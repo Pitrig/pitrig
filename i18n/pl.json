@@ -1622,6 +1622,17 @@
       "eraseTheSetupOnThe": "Wymaż konfigurację z płytki. Pliki na tym komputerze zostają.",
       "resetToFactory": "Przywróć ustawienia fabryczne"
     },
+    "displayPanel": {
+      "title": "Panel wyświetlacza",
+      "description": "Płytki sprzedawane od 2026 roku mają nowszy panel. Po zmianie płytka uruchamia się ponownie.",
+      "asking": "Płytka pokazuje sprawdzenie panelu. Przytrzymaj tam znacznik albo wybierz panel tutaj.",
+      "needsFirmware": "Zaktualizuj firmware, aby wybrać panel wyświetlacza.",
+      "original": "Oryginalny panel",
+      "since2026": "Panel od 2026 roku",
+      "check": "Zapytaj na płytce",
+      "confirm": "Zmienić panel wyświetlacza i uruchomić płytkę ponownie?",
+      "switched": "Płytka uruchomiła się ponownie z nowym ustawieniem panelu."
+    },
     "boardUpdate": {
       "readingTheBoard": "Odczytywanie zawartości płytki…",
       "keepingACopy": "Zapisywanie kopii konfiguracji płytki na stronie Konfiguracje…",

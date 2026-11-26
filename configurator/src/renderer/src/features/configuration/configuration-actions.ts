@@ -14,6 +14,7 @@ import {
   type DeviceResult,
   type PitrigBoardId
 } from '@shared/device'
+import type { DeviceDisplayPanel } from '@shared/display-panel'
 import {
   transferConfiguration,
   type LayoutFit,
@@ -174,6 +175,13 @@ export async function resetBoardConfiguration(): Promise<ActionFeedback | undefi
     useDeviceStore.getState().markConfigurationReset(result.configuration)
     return t('dashboard.configurationActions.factoryConfigurationSavedRestartThe')
   })
+}
+
+export async function setDisplayPanel(panel: DeviceDisplayPanel): Promise<ActionFeedback | undefined> {
+  if (!(await confirmAction(t('firmware.displayPanel.confirm')))) return undefined
+  return run('display panel', () => window.pitrig.setDisplayPanel({ panel }), () =>
+    t('firmware.displayPanel.switched')
+  )
 }
 
 export async function restartBoard(): Promise<ActionFeedback | undefined> {

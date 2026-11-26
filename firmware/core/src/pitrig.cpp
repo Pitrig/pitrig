@@ -39,24 +39,29 @@ namespace {
 
 constexpr char kTag[] = "pitrig";
 
-void initialize_display(Application& application, const board_registry::BoardDefinition& board,
-                        const configuration::ApplicationConfiguration& configuration) {
+bool initialize_display(Application& application, const board_registry::BoardDefinition& board,
+                        const configuration::ApplicationConfiguration& configuration,
+                        const std::uint8_t panel) {
   if (board.display == nullptr) {
     log::info(kTag, "Board declares no display; running without a dashboard");
-    return;
+    return false;
   }
-  application.display = display::initialize(
-      *board.display, application.services.configuration.settings().display_brightness);
+  application.display =
+      display::initialize(*board.display, panel,
+                          application.services.configuration.settings().display_brightness);
   if (application.display == nullptr) {
     log::error(kTag, "Display did not come up; running without a dashboard");
-    return;
+    return false;
   }
-  if (board.input != nullptr && input::initialize(*board.input, application.display) == nullptr) {
+  const bool touch =
+      board.input != nullptr && input::initialize(*board.input, application.display) != nullptr;
+  if (board.input != nullptr && !touch) {
     log::warn(kTag, "Touch input unavailable; running without a pointer");
   }
   if (!dashboard_composition::show_startup_screen(application.display, configuration)) {
     log::warn(kTag, "Startup screen is unavailable for this display");
   }
+  return touch;
 }
 
 void load_uploaded_assets(Application& application,
@@ -194,7 +199,8 @@ void run() {
     return;
   }
   const board_registry::BoardDefinition& board = board_registry::factory_board();
-  boot::load_configuration(application, board, buffers);
+  const configuration::PanelChoice panel = boot::begin_panel(application, board);
+  boot::load_configuration(application, board, buffers, panel.panel);
   if (!application.services.firmware_update.initialize(board.id)) {
     log::warn(kTag, "No firmware slot to update into");
   }
@@ -228,7 +234,7 @@ void run() {
   const configuration::ApplicationConfiguration& configuration =
       application.services.configuration.current();
   boot_guard::reached(boot_guard::Phase::display);
-  initialize_display(application, board, configuration);
+  const bool touch = initialize_display(application, board, configuration, panel.panel);
   boot_guard::reached(boot_guard::Phase::assets);
   boot::open_asset_storage(application);
   load_uploaded_assets(application, configuration);
@@ -238,6 +244,7 @@ void run() {
   if (composed) {
     dashboard_composition::dismiss_startup_screen(configuration, true);
   }
+  boot::start_panel_check(application, board, panel, touch);
   application.communication.mark_composed();
   application.platform.telemetry_transport.silence_logs();
   boot_guard::arm_stability_window();

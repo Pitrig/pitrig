@@ -54,7 +54,9 @@ flush would cost every frame.
   a 24-bit build, images keep RGB565 levels, so an image and a fill of one
   colour can differ by one RGB565 step.
 - The profile comes from one unit, and other panels of the model may differ.
-  Measuring a panel again needs a build whose driver names no profile. The boot
-  splash and the safe-mode screen keep their built-in colours.
+  Measuring a panel again needs a build whose driver names no profile. Guition's
+  New_Panel display, on boards sold since 2026, has other glass and another
+  gamma table, so the driver names none for it (ADR 0048). The boot splash and
+  the safe-mode screen keep their built-in colours.
 - A colour field added to the schema is corrected without a code change; a board
   without a profile behaves as before.

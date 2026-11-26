@@ -21,6 +21,7 @@ import {
   type TrafficCallback
 } from './serial-request'
 import { CONTROL_PREFIX } from '@shared/control-protocol'
+import type { DeviceDisplayPanel } from '@shared/display-panel'
 
 export { requestResponse, sendControlCommand } from './serial-request'
 
@@ -199,6 +200,21 @@ export async function clearImageAssets(
     `${CONTROL_PREFIX}IMAGE:CLEAR\n`,
     `${CONTROL_PREFIX}OK:IMAGE:CLEARED:reboot_required=1`,
     ASSET_CLEAR_TIMEOUT_MS,
+    onTraffic,
+    'board_refused'
+  )
+}
+
+export async function writeDisplayPanel(
+  port: SerialPort,
+  panel: DeviceDisplayPanel,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    `${CONTROL_PREFIX}PANEL:${panel}\n`,
+    `${CONTROL_PREFIX}OK:PANEL:${panel}:reboot_required=1`,
+    writeTimeout(port, 0),
     onTraffic,
     'board_refused'
   )

@@ -172,7 +172,7 @@ driver::Configuration initialize_panel() {
 
 namespace {
 
-driver::Configuration initialize() {
+driver::Configuration initialize(std::uint8_t) {
   ESP_LOGI(kTag, "Initializing ST7789 display driver");
   if (!enable_display_power()) {
     ESP_LOGE(kTag, "Display power pins are unavailable");

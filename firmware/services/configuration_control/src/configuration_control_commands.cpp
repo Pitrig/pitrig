@@ -13,7 +13,7 @@ namespace pitrig::configuration {
 namespace {
 
 [[nodiscard]] bool changes_the_device(const std::span<const std::uint8_t> command) {
-  constexpr std::array<std::string_view, 3> kWriting{"APPLY:", "SET:", "RESET"};
+  constexpr std::array<std::string_view, 4> kWriting{"APPLY:", "SET:", "RESET", "PANEL:"};
   for (const std::string_view word : kWriting) {
     if (command.size() >= word.size() && std::equal(word.begin(), word.end(), command.begin())) {
       return true;
@@ -37,9 +37,14 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
     return;
   }
 
-  if (changes_the_device(command) && !await_composition()) {
+  const bool writing = changes_the_device(command);
+  if (writing && !await_composition()) {
     (void)send_text(PITRIG_CONTROL_PREFIX "ERR:busy\n");
     return;
+  }
+  if (writing) {
+    last_write_.store(xTaskGetTickCount(), std::memory_order_release);
+    written_.store(true, std::memory_order_release);
   }
 
   ConfigurationDocument document{};
@@ -142,6 +147,14 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
     return;
   }
 
+  constexpr std::string_view kPanel = "PANEL";
+  if (command.size() >= kPanel.size() &&
+      std::equal(kPanel.begin(), kPanel.end(), command.begin()) &&
+      (command.size() == kPanel.size() || command[kPanel.size()] == ':')) {
+    handle_panel(command.subspan(kPanel.size()));
+    return;
+  }
+
   (void)send_text(PITRIG_CONTROL_PREFIX "ERR:unknown_command\n");
 }
 
@@ -223,6 +236,12 @@ bool ConfigurationControl::send_payload(const ConfigurationDocument document,
   position += payload.size();
   io_buffer_[position++] = '\n';
   return write_reply(std::span<const std::uint8_t>(io_buffer_.data(), position));
+}
+
+bool ConfigurationControl::wrote_within(const std::uint32_t ms) const {
+  return written_.load(std::memory_order_acquire) &&
+         xTaskGetTickCount() - last_write_.load(std::memory_order_acquire) <
+             pdMS_TO_TICKS(ms);
 }
 
 }

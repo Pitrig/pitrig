@@ -1,6 +1,7 @@
 import { PageShell } from '@/app/workspace/PageShell'
 import { Button } from '@/components/ui/button'
 import { useDeviceStore } from '@/features/device/device-store'
+import { DisplayPanelSection } from './DisplayPanelSection'
 import { FactoryResetSection } from './FactoryResetSection'
 import { FileInstall } from './FileInstall'
 import { FirmwareStatus, UpdateOutcome, UpdateProgressCard } from './FirmwareStatus'
@@ -22,6 +23,7 @@ export function FirmwarePage(): React.JSX.Element {
         <>
           <FirmwareStatus session={session} />
           {session.firmware?.storageAvailable ? <FileInstall session={session} /> : null}
+          <DisplayPanelSection blocked={running} />
           <FactoryResetSection blocked={running} />
         </>
       ) : running ? (

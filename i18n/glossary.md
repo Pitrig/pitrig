@@ -11,6 +11,7 @@ introduces it.
 | dashboard | дашборд | dashboard | 대시보드 | Dashboard (das) | dashboard (el dashboard, los dashboards) |
 | widget | віджет | widżet | 위젯 | Widget (das) | widget (el) |
 | screen / page / slot | екран / сторінка / слот | ekran / strona / slot | 화면 / 페이지 / 슬롯 | Bildschirm / Seite / Slot | pantalla / página / slot |
+| display panel (the board's physical LCD) | панель дисплея | panel wyświetlacza | 디스플레이 패널 | Display-Panel (das) | panel LCD |
 | layer / group | шар / група | warstwa / grupa | 레이어 / 그룹 | Ebene / Gruppe | capa / grupo |
 | template | шаблон | szablon | 템플릿 | Vorlage | plantilla |
 | font / font family | шрифт / сімейство шрифтів | czcionka / rodzina czcionek | 글꼴 / 글꼴 패밀리 | Schriftart / Schriftfamilie | fuente / familia de fuentes |

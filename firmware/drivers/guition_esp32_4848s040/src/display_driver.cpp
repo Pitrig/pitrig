@@ -187,7 +187,7 @@ void release() {
   (void)gpio_set_level(kBacklightPin, 0);
 }
 
-driver::Configuration initialize() {
+driver::Configuration initialize(std::uint8_t) {
   ESP_LOGI(kTag, "Initializing 480x480 ST7701(S) RGB display");
   if (!configure_backlight()) {
     ESP_LOGE(kTag, "Backlight pin is unavailable");

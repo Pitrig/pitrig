@@ -38,9 +38,10 @@ import {
   clearImagePackage,
   uploadPackage
 } from './device-uploads'
-import { requestResponse, sendControlCommand } from './pitrig-protocol'
+import { requestResponse, sendControlCommand, writeDisplayPanel } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
 import { CONTROL_PREFIX } from '@shared/control-protocol'
+import type { DeviceDisplayPanel } from '@shared/display-panel'
 
 const REBOOT_TIMEOUT_MS = 2_000
 
@@ -261,6 +262,20 @@ export class DeviceService {
   async rebootAndReconnect(): Promise<DeviceResult<DeviceState>> {
     return this.stateOperation('restart', async () => {
       const connection = this.getState().connection
+      const rebooted = await this.reboot()
+      if (!rebooted.ok || !connection) return rebooted
+      return this.connection.reconnect(connection)
+    })
+  }
+
+  async setDisplayPanel(panel: DeviceDisplayPanel): Promise<DeviceResult<DeviceState>> {
+    return this.stateOperation('restart', async () => {
+      const connection = this.getState().connection
+      const written = await this.owner.command(async ({ port, traffic }) => {
+        await writeDisplayPanel(port, panel, sentTraffic(traffic))
+        return success(this.getState())
+      })
+      if (!written.ok) return written
       const rebooted = await this.reboot()
       if (!rebooted.ok || !connection) return rebooted
       return this.connection.reconnect(connection)

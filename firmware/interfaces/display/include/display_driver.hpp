@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 #include "display_color_profile.hpp"
 #include "esp_lcd_panel_io.h"
@@ -45,13 +46,26 @@ struct Configuration {
   return configuration.panel != nullptr;
 }
 
+struct Panel {
+  const ColorProfile* color_profile{};
+};
+
 struct Driver {
   const char* name;
-  Configuration (*initialize)();
+  Configuration (*initialize)(std::uint8_t panel);
   void (*release)();
   void (*on_display_ready)();
   int backlight_pin{-1};
-  const ColorProfile* color_profile{};
+  std::span<const Panel> panels{};
 };
+
+[[nodiscard]] constexpr std::uint8_t panel_count(const Driver& driver) {
+  return driver.panels.empty() ? 1 : static_cast<std::uint8_t>(driver.panels.size());
+}
+
+[[nodiscard]] constexpr const ColorProfile* color_profile(const Driver& driver,
+                                                          const std::uint8_t panel) {
+  return panel < driver.panels.size() ? driver.panels[panel].color_profile : nullptr;
+}
 
 }

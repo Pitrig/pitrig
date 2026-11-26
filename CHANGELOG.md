@@ -21,6 +21,19 @@ board** does that for you, and nothing is erased. A partition table change needs
 a cable flash and erases the configuration, fonts and images. The first line of
 a release says when either applies.
 
+## Unreleased
+
+Same schema and partition table: a board update keeps the configuration. A Guition JC1060P470C with the 2026 panel needs this firmware, and this configurator to switch a board that already holds a dashboard.
+
+**Added**
+
+- **Guition JC1060P470C.** Boards with the panel sold since 2026 work; a board without a saved dashboard asks you to hold a tick on the picture that looks right.
+- **Configurator.** The Firmware page sets which screen panel a Guition JC1060P470C drives.
+
+**Fixed**
+
+- **Guition JC1060P470C.** The screen is reset through its own pin at start, no longer through the RS485 port's receive line.
+
 ## 0.5.0 — 2026-11-26 — firmware 0.5.0
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new field or a sweeping graph need firmware 0.5.0, and the 0.4.1 configurator cannot open a board that holds one. An older configurator does not list the templates this one saves.

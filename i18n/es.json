@@ -1610,6 +1610,17 @@
       "eraseTheSetupOnThe": "Borra la configuración de la placa. Los archivos de este PC se conservan.",
       "resetToFactory": "Restablecer de fábrica"
     },
+    "displayPanel": {
+      "title": "Panel LCD",
+      "description": "Las placas vendidas desde 2026 llevan un panel más reciente. Tras un cambio, la placa se reinicia.",
+      "asking": "La placa muestra la comprobación del panel. Mantén pulsada la marca allí o elige el panel aquí.",
+      "needsFirmware": "Actualiza el firmware para elegir el panel LCD.",
+      "original": "Panel original",
+      "since2026": "Panel desde 2026",
+      "check": "Preguntar en la placa",
+      "confirm": "¿Cambiar de panel LCD y reiniciar la placa?",
+      "switched": "La placa se reinició con el nuevo ajuste del panel."
+    },
     "boardUpdate": {
       "readingTheBoard": "Leyendo lo que contiene la placa…",
       "keepingACopy": "Guardando una copia de la configuración de la placa en «Configuraciones»…",

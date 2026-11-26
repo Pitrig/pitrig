@@ -54,6 +54,13 @@ struct Dashboard;
 void dismiss_startup_screen(const configuration::ApplicationConfiguration& configuration,
                             bool wait_for_minimum);
 
+using PanelCheckDone = void (*)(bool confirmed, std::uint8_t panel, void* context);
+using PanelCheckPostpone = bool (*)(void* context);
+
+[[nodiscard]] bool show_panel_check(lv_display_t* display, std::uint8_t panel,
+                                    std::uint8_t panel_count, PanelCheckDone done,
+                                    PanelCheckPostpone postpone, void* context);
+
 [[nodiscard]] bool load_fonts(Dashboard& dashboard, const font_assets::Service& font_assets,
                               std::span<std::uint8_t> storage);
 
