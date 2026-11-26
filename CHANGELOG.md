@@ -62,6 +62,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** Turning the Modules preview off always clears its values on the board.
 - **Configurator.** A language change or an app update waits for a running board action before the app restarts.
 - **Development.** Debug builds of the Guition ESP32-4848S040 no longer lose serial bytes, which broke font uploads and long commands.
+- **Development.** A push to `release` no longer replaces the files of a published release.
 
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 
