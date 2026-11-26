@@ -1673,6 +1673,8 @@
       "moveCable": "Pitrig jest zainstalowany. Przełóż kabel do drugiego złącza USB płytki; konfigurator połączy się, gdy Pitrig tam odpowie.",
       "bootHint": "Płytka nie weszła w tryb instalacji. Przytrzymaj BOOT, naciśnij i puść RST, a potem puść BOOT. Jeśli port się zmienił, wybierz go ponownie i naciśnij „Spróbuj ponownie”.",
       "alreadyPitrig": "Na tej płytce działa już Pitrig, który aktualizuje się sam. Podłącz ją i zaktualizuj na stronie Firmware.",
+      "otherPort": "Na tym porcie nic nie odpowiedziało, ale połączenie Pitrig tej płytki jest na jej drugim złączu USB, więc Pitrig może już tam działać. Instalacja wymazuje cały układ wraz z dashboardem, czcionkami i obrazami. Aby je zachować, podłącz tamto złącze i zaktualizuj płytkę na stronie Firmware.",
+      "installAnyway": "Zainstaluj mimo to",
       "chipMismatch": "Ta płytka ma układ {found}, a ten firmware wymaga {expected}.",
       "revisionUnsupported": "Ten {chip} ma rewizję v{revision}. Ten firmware działa tylko na v{minimum}–v{maximum}.",
       "flashTooSmall": "Ta płytka ma {size} MB pamięci flash. Pitrig wymaga {needed} MB.",

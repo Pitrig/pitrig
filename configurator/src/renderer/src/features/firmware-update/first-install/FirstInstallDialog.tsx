@@ -7,6 +7,7 @@ import { FirstInstallChoice, PortChoice } from './FirstInstallChoice'
 import {
   cancelFirstInstall,
   closeFirstInstall,
+  installAnyway,
   returnToChoice,
   startFirstInstall,
   useFirstInstallStore,
@@ -39,6 +40,8 @@ function PhaseBody({ phase }: { phase: FirstInstallPhase }): React.JSX.Element {
       return <Running />
     case 'boot':
       return <BootStep />
+    case 'confirm':
+      return <ConfirmErase />
     case 'finished':
       return <Finished />
     case 'failed':
@@ -83,6 +86,23 @@ function BootStep(): React.JSX.Element {
         <Button disabled={!portId} onClick={() => void startFirstInstall(true)}>
           {t('firmware.firstInstall.tryAgain')}
         </Button>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmErase(): React.JSX.Element {
+  const message = useFirstInstallStore((state) => state.message)
+  return (
+    <div className="space-y-3">
+      <p className="rounded-md border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-amber-200">
+        {message}
+      </p>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={closeFirstInstall}>
+          {t('common.cancel')}
+        </Button>
+        <Button onClick={installAnyway}>{t('firmware.firstInstall.installAnyway')}</Button>
       </div>
     </div>
   )

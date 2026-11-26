@@ -1637,6 +1637,8 @@
       "moveCable": "Pitrig가 설치되었습니다. 케이블을 보드의 다른 USB 커넥터로 옮기십시오. Pitrig가 응답하면 Configurator가 연결됩니다.",
       "bootHint": "보드가 설치 모드로 전환되지 않았습니다. BOOT를 누른 채로 RST를 눌렀다 떼고 BOOT를 떼십시오. 포트가 바뀌었으면 다시 선택한 다음 “다시 시도”를 누르십시오.",
       "alreadyPitrig": "이 보드는 이미 Pitrig를 실행하며 스스로 업데이트합니다. 보드를 연결하고 “펌웨어” 페이지에서 업데이트하십시오.",
+      "otherPort": "이 포트에서는 응답이 없었지만, 이 보드의 Pitrig 연결은 다른 USB 커넥터에 있으므로 그곳에서 이미 Pitrig가 실행 중일 수 있습니다. 설치하면 대시보드, 글꼴, 이미지와 함께 칩 전체가 지워집니다. 이를 유지하려면 그 커넥터를 연결하고 “펌웨어” 페이지에서 업데이트하십시오.",
+      "installAnyway": "그래도 설치",
       "chipMismatch": "이 보드의 칩은 {found}이지만 이 펌웨어에는 {expected}이(가) 필요합니다.",
       "revisionUnsupported": "이 {chip}의 리비전은 v{revision}입니다. 이 펌웨어는 v{minimum}~v{maximum}에서만 작동합니다.",
       "flashTooSmall": "이 보드의 플래시는 {size} MB입니다. Pitrig에는 {needed} MB가 필요합니다.",

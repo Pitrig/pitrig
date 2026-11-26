@@ -1661,6 +1661,8 @@
       "moveCable": "Pitrig está instalado. Pasa el cable al otro conector USB de la placa; el configurador se conecta cuando Pitrig responda allí.",
       "bootHint": "La placa no entró en modo de instalación. Mantén pulsado BOOT, pulsa y suelta RST y después suelta BOOT. Si el puerto cambió, vuelve a elegirlo y pulsa «Reintentar».",
       "alreadyPitrig": "Esta placa ya ejecuta Pitrig y se actualiza sola. Conéctala y actualízala en la página «Firmware».",
+      "otherPort": "No hubo respuesta en este puerto, pero la conexión de Pitrig de esta placa está en su otro conector USB, así que puede que Pitrig ya funcione allí. La instalación borra todo el chip, con su dashboard, sus fuentes y sus imágenes. Para conservarlos, conecta ese conector y actualiza la placa en la página «Firmware».",
+      "installAnyway": "Instalar de todos modos",
       "chipMismatch": "Esta placa tiene un chip {found}, pero este firmware necesita un {expected}.",
       "revisionUnsupported": "Este {chip} es de la revisión v{revision}. Este firmware solo funciona en v{minimum} a v{maximum}.",
       "flashTooSmall": "Esta placa tiene {size} MB de flash. Pitrig necesita {needed} MB.",

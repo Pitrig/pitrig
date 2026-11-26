@@ -36,6 +36,10 @@ built for, a chip revision outside the image's range, less flash than the
 partition table needs, and secure boot or flash encryption. A Pitrig board that
 cannot update itself first gets a copy of its configuration in the
 configurations library, as **Update board** keeps one.
+Where the board's link runs on another connector than the install port, a
+running Pitrig cannot answer there, so the configurator asks before it erases;
+the JC1060P470C's USB-Serial-JTAG port is probed first, because a
+`jtag-fallback` build answers on it.
 
 **The board is connected afterwards** where its link runs: the same bridge port
 at the board's UART speed, or the new Pitrig USB port, found by the MAC the

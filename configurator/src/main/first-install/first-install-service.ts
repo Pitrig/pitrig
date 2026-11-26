@@ -100,10 +100,15 @@ export class FirstInstallService {
     request: FirstInstallRequest,
     signal: AbortSignal
   ): Promise<string | undefined> {
-    if (request.manualBoot) return undefined
-    this.report('connect', 0, t('firmware.firstInstall.checkingBoard'))
-    const session = await findExistingFirmware(claim, request.board, signal)
-    if (!session) return undefined
+    const look = !request.manualBoot && !request.eraseConfirmed
+    if (look) this.report('connect', 0, t('firmware.firstInstall.checkingBoard'))
+    const session = look ? await findExistingFirmware(claim, request.board, signal) : claim.session
+    if (!session) {
+      if (!request.eraseConfirmed && cableMoves(claim, request.board)) {
+        throw new InstallFailure('erase_unconfirmed')
+      }
+      return undefined
+    }
     if (session.firmware?.storageAvailable) throw new InstallFailure('already_pitrig')
     const saved = await backUpBoard(this.library, session, () =>
       this.report('connect', 0, t('firmware.boardUpdate.keepingACopy'))

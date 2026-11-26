@@ -21,7 +21,8 @@ export function isFirstInstallRequest(value: unknown): value is FirstInstallRequ
     typeof request.portId === 'string' &&
     request.portId.length > 0 &&
     request.portId.length <= MAXIMUM_PORT_ID &&
-    typeof request.manualBoot === 'boolean'
+    typeof request.manualBoot === 'boolean' &&
+    typeof request.eraseConfirmed === 'boolean'
   )
 }
 

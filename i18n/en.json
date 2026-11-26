@@ -1654,6 +1654,8 @@
       "moveCable": "Pitrig is installed. Move the cable to the board's other USB connector; the configurator connects once Pitrig answers there.",
       "bootHint": "The board did not enter install mode. Hold BOOT, press and release RST, then release BOOT. Choose its port again if it changed, then press Try again.",
       "alreadyPitrig": "This board already runs Pitrig and updates itself. Connect it and use Update on the Firmware page.",
+      "otherPort": "Nothing answered on this port, but this board's Pitrig link is on its other USB connector, so it may already run Pitrig there. Installing erases the whole chip, with its dashboard, fonts and images. To keep them, plug in that connector and use Update on the Firmware page.",
+      "installAnyway": "Install anyway",
       "chipMismatch": "This board has an {found} chip, but this firmware needs an {expected}.",
       "revisionUnsupported": "This {chip} is revision v{revision}. This firmware runs on v{minimum} to v{maximum} only.",
       "flashTooSmall": "This board has {size} MB of flash. Pitrig needs {needed} MB.",

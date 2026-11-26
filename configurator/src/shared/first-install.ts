@@ -51,6 +51,7 @@ export interface FirstInstallRequest {
   board: PitrigBoardId
   portId: string
   manualBoot: boolean
+  eraseConfirmed: boolean
 }
 
 export type FirstInstallStage = 'download' | 'connect' | 'erase' | 'write' | 'verify' | 'restart'
@@ -80,6 +81,7 @@ export type FirstInstallErrorCode =
   | 'permission_denied'
   | 'no_answer'
   | 'already_pitrig'
+  | 'erase_unconfirmed'
   | 'backup_failed'
   | 'chip_mismatch'
   | 'revision_unsupported'

@@ -15,7 +15,7 @@ import { preferredPort, suggestedBoard, usbPorts } from './first-install-ports'
 
 const PORT_POLL_MS = 1_000
 
-export type FirstInstallPhase = 'choose' | 'running' | 'boot' | 'finished' | 'failed'
+export type FirstInstallPhase = 'choose' | 'running' | 'boot' | 'confirm' | 'finished' | 'failed'
 
 interface FirstInstallStore {
   open: boolean
@@ -26,6 +26,8 @@ interface FirstInstallStore {
   progress?: FirstInstallProgress
   message?: string
   backup?: string
+  manualBoot?: boolean
+  confirmed?: { board: PitrigBoardId; portId: string }
 }
 
 export const useFirstInstallStore = create<FirstInstallStore>(() => ({
@@ -42,7 +44,9 @@ export function openFirstInstall(initial: { board?: PitrigBoardId; portId?: stri
     portId: initial.portId,
     progress: undefined,
     message: undefined,
-    backup: undefined
+    backup: undefined,
+    manualBoot: undefined,
+    confirmed: undefined
   })
   void refreshInstallPorts()
 }
@@ -57,7 +61,7 @@ export function chooseInstall(choice: { board?: PitrigBoardId; portId?: string }
 }
 
 export function returnToChoice(): void {
-  useFirstInstallStore.setState({ phase: 'choose', message: undefined })
+  useFirstInstallStore.setState({ phase: 'choose', message: undefined, confirmed: undefined })
 }
 
 export async function refreshInstallPorts(): Promise<void> {
@@ -81,14 +85,20 @@ export function usePortPolling(): void {
 }
 
 export async function startFirstInstall(manualBoot: boolean): Promise<void> {
-  const { board, portId, phase } = useFirstInstallStore.getState()
+  const { board, portId, phase, confirmed } = useFirstInstallStore.getState()
   if (!board || !portId || phase === 'running') return
-  useFirstInstallStore.setState({ phase: 'running', progress: undefined, message: undefined })
+  const eraseConfirmed = confirmed?.board === board && confirmed.portId === portId
+  useFirstInstallStore.setState({
+    phase: 'running',
+    progress: undefined,
+    message: undefined,
+    manualBoot
+  })
   const stop = window.pitrig.onPitrigInstallProgress((progress) =>
     useFirstInstallStore.setState({ progress })
   )
   try {
-    const result = await window.pitrig.installPitrig({ board, portId, manualBoot })
+    const result = await window.pitrig.installPitrig({ board, portId, manualBoot, eraseConfirmed })
     writeEventLog('First install finished', result)
     if (result.ok) finish(result.value)
     else fail(result.error)
@@ -101,6 +111,13 @@ export async function startFirstInstall(manualBoot: boolean): Promise<void> {
 
 export function cancelFirstInstall(): void {
   void window.pitrig.cancelPitrigInstall()
+}
+
+export function installAnyway(): void {
+  const { board, portId, manualBoot } = useFirstInstallStore.getState()
+  if (!board || !portId) return
+  useFirstInstallStore.setState({ confirmed: { board, portId } })
+  void startFirstInstall(manualBoot ?? false)
 }
 
 function finish(value: FirstInstallValue): void {
@@ -121,7 +138,8 @@ function fail(error: FirstInstallError): void {
   const backup = error.backup ?? useFirstInstallStore.getState().backup
   const boot = error.code === 'no_answer'
   useFirstInstallStore.setState({
-    phase: boot ? 'boot' : 'failed',
+    phase: boot ? 'boot' : error.code === 'erase_unconfirmed' ? 'confirm' : 'failed',
+    confirmed: boot ? useFirstInstallStore.getState().confirmed : undefined,
     message: error.message,
     backup,
     progress: undefined

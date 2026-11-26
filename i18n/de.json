@@ -1649,6 +1649,8 @@
       "moveCable": "Pitrig ist installiert. Stecken Sie das Kabel in den anderen USB-Anschluss des Boards; der Konfigurator verbindet sich, sobald Pitrig dort antwortet.",
       "bootHint": "Das Board ist nicht in den Installationsmodus gewechselt. Halten Sie BOOT gedrückt, drücken Sie kurz RST und lassen Sie dann BOOT los. Wählen Sie den Port erneut, falls er sich geändert hat, und klicken Sie auf „Erneut versuchen“.",
       "alreadyPitrig": "Auf diesem Board läuft bereits Pitrig, und es aktualisiert sich selbst. Verbinden Sie es und aktualisieren Sie es auf der Seite „Firmware“.",
+      "otherPort": "An diesem Port hat nichts geantwortet, aber die Pitrig-Verbindung dieses Boards liegt an seinem anderen USB-Anschluss, also läuft dort vielleicht schon Pitrig. Die Installation löscht den ganzen Chip mit Dashboard, Schriftarten und Bildern. Um sie zu behalten, schließen Sie den anderen Anschluss an und aktualisieren Sie das Board auf der Seite „Firmware“.",
+      "installAnyway": "Trotzdem installieren",
       "chipMismatch": "Dieses Board hat einen {found}-Chip, diese Firmware braucht aber einen {expected}.",
       "revisionUnsupported": "Dieser {chip} hat die Revision v{revision}. Diese Firmware läuft nur auf v{minimum} bis v{maximum}.",
       "flashTooSmall": "Dieses Board hat {size} MB Flash. Pitrig braucht {needed} MB.",

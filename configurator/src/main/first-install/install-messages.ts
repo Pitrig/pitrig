@@ -39,6 +39,8 @@ export function describeFailure(failure: InstallFailure, erased: boolean): strin
       return t('firmware.firstInstall.bootHint')
     case 'already_pitrig':
       return t('firmware.firstInstall.alreadyPitrig')
+    case 'erase_unconfirmed':
+      return t('firmware.firstInstall.otherPort')
     case 'backup_failed':
       return detail('reason')
     case 'chip_mismatch':
