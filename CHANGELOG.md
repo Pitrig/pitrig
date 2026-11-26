@@ -21,9 +21,9 @@ board** does that for you, and nothing is erased. A partition table change needs
 a cable flash and erases the configuration, fonts and images. The first line of
 a release says when either applies.
 
-## Unreleased
+## 0.5.0 — 2026-11-26 — firmware 0.5.0
 
-Same schema and partition table: a board update keeps the configuration. Dashboards with the new field or a sweeping graph need this firmware, and the 0.4.1 configurator cannot open a board that holds one. An older configurator does not list the templates this one saves.
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new field or a sweeping graph need firmware 0.5.0, and the 0.4.1 configurator cannot open a board that holds one. An older configurator does not list the templates this one saves.
 
 **Added**
 
