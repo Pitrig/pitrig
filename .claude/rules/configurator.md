@@ -14,7 +14,9 @@ file chooser; then the `font-library/` face store and Google Fonts catalog, the
 the old preview cache, `dashboard-files/` for `.pitrigdash` share and open
 (ADR 0041), the `save-to-board/` orchestrator with its font and image delivery,
 `firmware-update/` with the
-`Update board` sequence, the `telemetry-bridge/` relay, the `updates/` channel
+`Update board` sequence, `first-install/` (the cable install of a release
+through the chip's ROM loader, its client under `rom/`, ADR 0045), the
+`telemetry-bridge/` relay, the `updates/` channel
 (ADR 0037, registered by the product entry point only, like the bridge), the
 `usage/` reporter (ADR 0040, product entry point only, off in development), the
 `ipc/` registrations, config files, the dashboard `templates/` library, the
@@ -32,7 +34,7 @@ beside its request and result types, into `PitrigApi`, into the registration
 that owns the area — `main/ipc/register-ipc-handlers.ts` for the device and the
 save, `register-library-handlers.ts` for files, configurations, templates and
 dashboard files, `register-asset-handlers.ts` for fonts, images, the image
-library and firmware,
+library, firmware and the first install,
 `main/telemetry-bridge/register-telemetry-bridge.ts` for the bridge — and the
 preload bridge.
 
@@ -87,7 +89,11 @@ chip the Protocol page and the Modules preview draw). The store keeps
 `runningConfiguration` (shown); a live `@PR:APPLY` moves the second and a save
 moves both. The main process polls `@PR:INFO` every five seconds while the link
 is idle, so a document written from elsewhere is noticed rather than
-overwritten.
+overwritten. Every use of the port takes a turn from `LinkOwner` (ADR 0046): a
+poll skips while anything else waits, a command waits its turn, an operation
+(Save, Update board, upload, restart, connect) is the only one running or
+waiting, and a command or operation started inside one runs as its step. Read
+the board inside the turn, never before it.
 
 ## Live telemetry
 
@@ -99,7 +105,7 @@ otherwise, the panel offering no network option to ask with — and validates th
 seven-byte header, counting loss from the sequence and resyncing on a restarted
 sender rather than reading it as reordering; a datagram carries whole lines, so
 what it hands on can be written to the board as it stands. The relay yields
-while `OperationRunner` holds the link and drops what arrives meanwhile, and
+while `LinkOwner` gives the link to a turn and drops what arrives meanwhile, and
 the plugin's once-a-second repeat is what repairs the gap; it drops the plugin's
 datagrams too while the Modules simulator drives the board through
 `telemetry-bridge:simulate` (`features/modules/board-simulation.ts`). `telemetry-tap.ts`
@@ -121,14 +127,15 @@ before the open, survives a reboot and the scan's second open, and ends with a
 handback on disconnect. A board the plugin feeds counts as found in the scan
 without being opened. The renderer sends what to stream through
 `features/telemetry/telemetry-interest.ts` — the running documents' and the
-draft's bindings, or every field while the catalog table is mounted — and with
+draft's bindings, or every field while the catalog table is mounted or the board
+holds a document from a newer Pitrig — and with
 it whether the Controls page (`features/controls/`) wants the plugin's
 `@PT:INPUT` reports and the draft's `inputs`, which `PluginHandover` sends as
 `button`/`position` lines while it holds a board.
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 329-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 330-row catalog table),
 so nothing re-renders while the bridge is stopped. `PreviewCanvas` reads live
 values per frame and the lamp preview (`features/modules/LedPreview.tsx` over
 `preview-values.ts`) with it, while the catalog table in
@@ -157,7 +164,9 @@ there too. An unresolvable family stops the save and asks for a file, an image
 on neither this PC nor the board stops it with the names, as does one the save
 could install only by dropping a picture just the board holds, and live apply is
 suppressed while the board lacks a family or an image, because firmware rejects
-the document whole. `family` **is** the library id — bundled, Google or
+the document whole. A save also stops in `memory-check.ts` when the faces and
+decoded images the board would hold pass the board profile's `assetMemoryBytes`
+and more than it holds now. `family` **is** the library id — bundled, Google or
 imported — and a weight is its own entry and one of the eight slots; an image id
 is an image-library id the same way.
 
@@ -187,11 +196,14 @@ display. `transferConfiguration` is the engine every entry point ends in:
 `convertDraftToBoard` in `configuration-actions.ts` converts the open draft,
 while a template's `Use` and `Add` call it directly from `features/templates/`.
 The fit is one persisted preference in `panel-store.ts`. The template library holds dashboards and widgets in two
-folders (`templates/widgets/`) on one `TemplateCard`: a dashboard's `Add`
-appends screens through `insert-screen.ts` and `Use` replaces the draft; a
-widget entry carries its fragment in its summary, while a dashboard's document
-is read on demand and cached in `templates-store`, because a card draws it too;
-placing one is `pendingInsert` in the editor store,
+folders (`templates/widgets/`) on one `TemplateCard`, each saved one a
+`.pitrigdash` file with its images and fonts (`template-files.ts`; a `.json`
+from an earlier version is converted once by `template-migration.ts`): a
+dashboard's `Add` appends screens through `insert-screen.ts` and `Use` replaces
+the draft; a widget entry carries its fragment in its summary, while a
+dashboard's document is read on demand and cached in `templates-store`, because
+a card draws it too; a widget's `Add` goes through `templates:adopt` first, so
+its images reach the library, and placing it is `pendingInsert` in the editor store,
 scaled by `insert-template.ts` only when it would not fit. Re-iding is not
 special to it: every `insertWidget` runs `freshWidgetIds` over what it inserts,
 as does a screen imported through `insert-screen.ts`. A template is its payload inside
@@ -203,7 +215,21 @@ there, listed with its author's credit in `bundled-templates.ts` and opened by
 `bundled-template-library.ts` through the dashboard file service, so `Use` and
 `Add` (`templates:adopt`) bring its images into the library. Entries there that
 share a `variant.family` are listed as one summary carrying `variants`, and the
-card's `Use` and `Add` ask which version through `VariantDialog`.
+card's `Use` and `Add` ask which version through `VariantDialog`. A saved
+template's card writes its file out through `templates:share`, and each
+section's Open adds a received one through `templates:import`.
+
+## Interface text
+
+Text lives in `i18n/en.json` with `uk.json`, `ko.json`, `pl.json`, `de.json` and
+`es.json` beside it (ADR 0031); the keys under `simhub.` are the SimHub plugin's. The generator fails while a locale lacks a key, so a new English
+message carries its five translations in the same change, in the terms and
+style of `i18n/glossary.md`; a reworded one needs them updated by hand, since
+nothing detects it. The language is fixed for a run:
+`main/ui-language/startup-language.ts` is the first import of `main/index.ts`
+and must stay ahead of every module that calls `t()`. The Info page's Language
+section writes `language.json` in userData and relaunches the packaged
+application; in development it only saves, so restart `pnpm run dev` to see it.
 
 ## Traps
 
@@ -230,9 +256,10 @@ after; AppKit's AutoFill, Dictation and Emoji items are turned off by defaults
 registered before `ready`, and a menu with a submenu set before `ready` crashes
 Electron 44. On Windows `serialport` reports the driver's manufacturer
 (`Microsoft` for `usbser.sys`), not the board's USB string, so
-`port-registry.ts` names the two identities a board shows by VID:PID — `303a:4001`,
+`shared/usb-ports.ts` names the two identities a board shows by VID:PID — `303a:4001`,
 the application link fixed in `usb_descriptors.cpp`, and `303a:1001`, the
-USB-Serial/JTAG unit — as `tools/pick-serial-port.py` does.
+USB-Serial/JTAG unit — as `tools/pick-serial-port.py` does. `port.set` asserts
+any line it is not given, so the ROM-loader resets pass both `dtr` and `rts`.
 
 `pnpm run build` runs typecheck then `electron-vite build`; `pnpm run package`
 wraps the product in `electron-builder.yml` (`dist/`); `pnpm run build:debug`

@@ -37,6 +37,8 @@ namespace Pitrig.SimHub
 
         public bool CheckeredShown { get; private set; }
 
+        public bool TimedSessionSeen { get; private set; }
+
         public double? CleanLapSeconds { get; private set; }
 
         public SectorTracker Sectors { get; } = new SectorTracker();
@@ -62,6 +64,7 @@ namespace Pitrig.SimHub
             session = null;
             completedLaps = 0;
             CheckeredShown = false;
+            TimedSessionSeen = false;
             CleanLapSeconds = null;
             Sectors.Reset();
         }
@@ -82,6 +85,7 @@ namespace Pitrig.SimHub
             if (NewSession())
             {
                 CheckeredShown = false;
+                TimedSessionSeen = false;
                 CleanLapSeconds = null;
                 LapCompletedAt = null;
                 LapTimerStale = false;
@@ -102,6 +106,7 @@ namespace Pitrig.SimHub
             TrackLapTimer(now);
             TrackBestLap();
             if (Status.Flag_Checkered > 0) CheckeredShown = true;
+            if (SessionComputations.TimedSession(this) == true) TimedSessionSeen = true;
             Validity.Update(this);
             Hits.Update(this);
             var inPit = Status.IsInPitLane > 0 || Status.IsInPit > 0;

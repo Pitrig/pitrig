@@ -11,7 +11,14 @@ import { arrayOf, isTextWidget } from '../configuration-access'
 import { deviceFloat } from '../contract-number'
 import { IMAGE_ID_PATTERN } from '../image-assets'
 import { transformError } from './transforms'
-import { DEFAULT_TEXT_BINDING, badBinding, badColors, badReal, realFits } from './values'
+import {
+  DEFAULT_TEXT_BINDING,
+  badBinding,
+  badColors,
+  badReal,
+  realFits,
+  type UnknownNames
+} from './values'
 import { findEnumError } from './widget-enums'
 import { t } from '../ui-text'
 
@@ -34,7 +41,11 @@ function rangeError(
   return t('validation.widgetValues.whatOfLabelRunsMinimum', { what: what, label: label, minimum: minimum, maximum: maximum })
 }
 
-function findSourceError(widget: WidgetConfiguration, label: string): string | undefined {
+function findSourceError(
+  widget: WidgetConfiguration,
+  label: string,
+  unknownNames: UnknownNames
+): string | undefined {
   if (isTextWidget(widget)) {
     const sources = arrayOf(widget.sources)
     if (sources.length === 0) return t('validation.widgetValues.labelHasNoSourceSo', { label: label })
@@ -43,7 +54,7 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
     }
     for (const [index, source] of sources.entries()) {
       const what = t('inspector.sourceEditor.sourceNumber', { number: index + 1 })
-      const error = badBinding(source?.binding, DEFAULT_TEXT_BINDING, label, what)
+      const error = badBinding(source?.binding, DEFAULT_TEXT_BINDING, label, what, unknownNames)
       if (error) return error
       const mismatch = transformError(
         source?.transform,
@@ -56,7 +67,7 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
     return undefined
   }
   if (widget.type === 'bar' || widget.type === 'arc' || widget.type === 'indicator' || widget.type === 'graph') {
-    const error = badBinding(widget.source?.binding, '', label, t('validation.widgetValues.theSource'))
+    const error = badBinding(widget.source?.binding, '', label, t('validation.widgetValues.theSource'), unknownNames)
     if (error) return error
     const window = rangeError(widget, label, t('validation.widgetValues.theValueWindow'))
     if (window) return window
@@ -67,7 +78,7 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
       return t('validation.widgetValues.labelDrawsLengthSourcesThe', { label, length: traces.length + 1, maximum: MAXIMUM_GRAPH_SOURCES })
     }
     for (const [index, trace] of traces.entries()) {
-      const error = badBinding(trace?.source?.binding, '', label, t('common.traceNumber', { number: index + 1 }))
+      const error = badBinding(trace?.source?.binding, '', label, t('common.traceNumber', { number: index + 1 }), unknownNames)
       if (error) return error
       const window = rangeError(trace ?? {}, label, t('validation.widgetValues.theWindowOfTraceNumber', { number: index + 1 }))
       if (window) return window
@@ -79,23 +90,31 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
       return t('validation.widgetValues.labelNamesTheImageImage', { label: label, image: image })
     }
     if (widget.sprite_frame_source) {
-      const error = badBinding(widget.sprite_frame_source.binding, '', label, t('validation.widgetValues.theSpriteFrameSource'))
+      const error = badBinding(widget.sprite_frame_source.binding, '', label, t('validation.widgetValues.theSpriteFrameSource'), unknownNames)
       if (error) return error
     }
   }
   return undefined
 }
 
-function findCaptionError(widget: WidgetConfiguration, label: string): string | undefined {
+function findCaptionError(
+  widget: WidgetConfiguration,
+  label: string,
+  unknownNames: UnknownNames
+): string | undefined {
   const binding = widget.title?.source?.binding
   if (!binding) return undefined
   if (!widget.title?.text) {
     return t('validation.widgetValues.theCaptionOfLabelReads', { label: label })
   }
-  return badBinding(binding, '', label, t('validation.widgetValues.theCaptionSource'))
+  return badBinding(binding, '', label, t('validation.widgetValues.theCaptionSource'), unknownNames)
 }
 
-function findConditionError(widget: WidgetConfiguration, label: string): string | undefined {
+function findConditionError(
+  widget: WidgetConfiguration,
+  label: string,
+  unknownNames: UnknownNames
+): string | undefined {
   const rules = arrayOf(widget.conditions)
   const stops = arrayOf(widget.color_ramp?.stops)
   if (rules.length > MAXIMUM_WIDGET_CONDITIONS) {
@@ -120,7 +139,7 @@ function findConditionError(widget: WidgetConfiguration, label: string): string 
     }
   }
   if (rules.length === 0 && stops.length === 0) return undefined
-  return badBinding(widget.condition_source?.binding, '', label, t('validation.widgetValues.theWatchedSource'))
+  return badBinding(widget.condition_source?.binding, '', label, t('validation.widgetValues.theWatchedSource'), unknownNames)
 }
 
 function findSegmentError(widget: WidgetConfiguration, label: string): string | undefined {
@@ -160,16 +179,17 @@ function findFillGradientError(widget: WidgetConfiguration, label: string): stri
 
 export function findWidgetValueError(
   widget: WidgetConfiguration,
-  label: string
+  label: string,
+  unknownNames: UnknownNames = 'reject'
 ): string | undefined {
   return (
     badColors(widget, label, CHILD_KEYS) ??
     findFillGradientError(widget, label) ??
     findEnumError(widget, label) ??
     findRealError(widget, label) ??
-    findSourceError(widget, label) ??
-    findCaptionError(widget, label) ??
-    findConditionError(widget, label) ??
+    findSourceError(widget, label, unknownNames) ??
+    findCaptionError(widget, label, unknownNames) ??
+    findConditionError(widget, label, unknownNames) ??
     findSegmentError(widget, label)
   )
 }

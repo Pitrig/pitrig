@@ -682,6 +682,7 @@ struct GraphWidgetConfiguration {
   std::uint16_t sample_interval_ms{100};
   std::uint32_t line_color{0x38BDF8};
   std::uint16_t line_width_px{2};
+  bool sweep{false};
   std::uint8_t trace_count{};
   std::array<GraphTraceConfiguration, kMaximumGraphTraces> traces{};
 };
@@ -1868,6 +1869,214 @@ inline constexpr std::array<WidgetTypeTraits, 9> kWidgetTypeTraits{{
   const auto index = static_cast<std::size_t>(type);
   return index < kWidgetTypeTraits.size() ? kWidgetTypeTraits[index]
                                          : kWidgetTypeTraits[0];
+}
+
+template <typename Visit>
+void for_each_color(ColorStop& value, Visit& visit) {
+  visit(value.color);
+}
+
+template <typename Visit>
+void for_each_color(IndicatorSegment& value, Visit& visit) {
+  visit(value.color);
+}
+
+template <typename Visit>
+void for_each_color(WidgetBorder& value, Visit& visit) {
+  visit(value.color);
+}
+
+template <typename Visit>
+void for_each_color(WidgetValueStyle& value, Visit& visit) {
+  visit(value.color);
+  visit(value.unavailable_color);
+}
+
+template <typename Visit>
+void for_each_color(WidgetTitleStyle& value, Visit& visit) {
+  visit(value.color);
+}
+
+template <typename Visit>
+void for_each_color(ColorRamp& value, Visit& visit) {
+  for (std::size_t index = 0;
+       index < value.stop_count && index < value.stops.size();
+       ++index) {
+    for_each_color(value.stops[index], visit);
+  }
+}
+
+template <typename Visit>
+void for_each_color(WidgetCondition& value, Visit& visit) {
+  visit(value.color);
+  visit(value.background_color);
+  visit(value.border_color);
+  visit(value.title_color);
+}
+
+template <typename Visit>
+void for_each_color(WidgetFrame& value, Visit& visit) {
+  for_each_color(value.border, visit);
+  for_each_color(value.title, visit);
+  visit(value.background_color);
+  visit(value.background_grad_color);
+  for_each_color(value.color_ramp, visit);
+  for (std::size_t index = 0;
+       index < value.condition_count && index < value.conditions.size();
+       ++index) {
+    for_each_color(value.conditions[index], visit);
+  }
+}
+
+template <typename Visit>
+void for_each_color(TextWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+  for_each_color(value.value, visit);
+}
+
+template <typename Visit>
+void for_each_color(BarWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+  visit(value.fill_color);
+  visit(value.fill_grad_color);
+  visit(value.fill_grad_mid_color);
+}
+
+template <typename Visit>
+void for_each_color(ArcWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+  visit(value.track_color);
+  visit(value.fill_color);
+  visit(value.fill_grad_color);
+  visit(value.fill_grad_mid_color);
+}
+
+template <typename Visit>
+void for_each_color(IndicatorWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+  visit(value.off_color);
+  for (std::size_t index = 0;
+       index < value.segment_count && index < value.segments.size();
+       ++index) {
+    for_each_color(value.segments[index], visit);
+  }
+}
+
+template <typename Visit>
+void for_each_color(GraphTraceConfiguration& value, Visit& visit) {
+  visit(value.line_color);
+}
+
+template <typename Visit>
+void for_each_color(GraphWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+  visit(value.line_color);
+  for (std::size_t index = 0;
+       index < value.trace_count && index < value.traces.size();
+       ++index) {
+    for_each_color(value.traces[index], visit);
+  }
+}
+
+template <typename Visit>
+void for_each_color(ImageWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+  visit(value.recolor);
+}
+
+template <typename Visit>
+void for_each_color(TrackMapWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+  visit(value.line_color);
+  visit(value.sector_mark_color);
+  visit(value.pit_lane_color);
+  visit(value.finish_line_color);
+  visit(value.car_color);
+  visit(value.player_color);
+  visit(value.player_border_color);
+  visit(value.ahead_color);
+  visit(value.behind_color);
+  visit(value.lapping_color);
+  visit(value.lapped_color);
+  visit(value.pit_car_color);
+  visit(value.class_1_color);
+  visit(value.class_2_color);
+  visit(value.class_3_color);
+  visit(value.class_4_color);
+}
+
+template <typename Visit>
+void for_each_color(ShapeWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+}
+
+template <typename Visit>
+void for_each_color(SlotWidgetConfiguration& value, Visit& visit) {
+  for_each_color(value.frame, visit);
+}
+
+template <typename Visit>
+void for_each_color(ScreenConfiguration& value, Visit& visit) {
+  visit(value.background_color);
+}
+
+template <typename Visit>
+void for_each_color(DashboardConfiguration& value, Visit& visit) {
+  for (std::size_t index = 0;
+       index < value.screen_count && index < value.screens.size();
+       ++index) {
+    for_each_color(value.screens[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.text_widget_count && index < value.text_widgets.size();
+       ++index) {
+    for_each_color(value.text_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.shape_widget_count && index < value.shape_widgets.size();
+       ++index) {
+    for_each_color(value.shape_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.bar_widget_count && index < value.bar_widgets.size();
+       ++index) {
+    for_each_color(value.bar_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.arc_widget_count && index < value.arc_widgets.size();
+       ++index) {
+    for_each_color(value.arc_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.indicator_widget_count && index < value.indicator_widgets.size();
+       ++index) {
+    for_each_color(value.indicator_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.graph_widget_count && index < value.graph_widgets.size();
+       ++index) {
+    for_each_color(value.graph_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.image_widget_count && index < value.image_widgets.size();
+       ++index) {
+    for_each_color(value.image_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.slot_widget_count && index < value.slot_widgets.size();
+       ++index) {
+    for_each_color(value.slot_widgets[index], visit);
+  }
+  for (std::size_t index = 0;
+       index < value.track_map_widget_count && index < value.track_map_widgets.size();
+       ++index) {
+    for_each_color(value.track_map_widgets[index], visit);
+  }
+}
+
+template <typename Visit>
+void for_each_dashboard_color(ApplicationConfiguration& value, Visit& visit) {
+  for_each_color(value.dashboard, visit);
 }
 
 }

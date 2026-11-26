@@ -5,6 +5,7 @@ import { CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import { documentOf, mergeDocument } from '@shared/configuration-documents'
 import type {
+  DeviceActivity,
   DeviceConfiguration,
   DeviceConnection,
   DeviceError,
@@ -24,6 +25,7 @@ interface DeviceStore {
   connection?: DeviceConnection
   scan?: DeviceScanProgress
   error?: DeviceError
+  activity?: DeviceActivity
   connectionRevision: number
   activeConfiguration?: DeviceConfiguration
   runningConfiguration?: DeviceConfiguration
@@ -86,7 +88,12 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
   editRecorded: false,
   applyDeviceState: (state) =>
     set((current) => {
-      const link = { connection: state.connection, scan: state.scan, error: state.error }
+      const link = {
+        connection: state.connection,
+        scan: state.scan,
+        error: state.error,
+        activity: state.activity
+      }
       if (state.status !== 'connected' || !state.session) {
         return {
           ...link,
@@ -122,7 +129,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
         connectionRevision: current.connectionRevision + (freshConnection ? 1 : 0),
         activeConfiguration,
         ...(freshConnection ? { runningConfiguration: activeConfiguration } : {}),
-        ...(current.hasLocalDraft
+        ...(current.hasLocalDraft || state.session.newerDocuments.length > 0
           ? {}
           : {
               draft: adopt(activeConfiguration),

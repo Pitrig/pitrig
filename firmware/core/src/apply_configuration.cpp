@@ -26,12 +26,16 @@ value_smoothing::Service* start_value_smoothing(
   if (!service.start(configuration.dashboard.smoothing)) {
     log::error(kTag, "Value smoothing could not subscribe to telemetry");
   }
-  return service.active() ? &service : nullptr;
+  return service.attached() ? &service : nullptr;
 }
 
 track_map::Service* track_map_service(Application& application) {
   track_map::Service& service = application.services.track_map;
   return service.active() ? &service : nullptr;
+}
+
+display_color::Correction* color_correction(Application& application) {
+  return application.color_correction.has_value() ? &*application.color_correction : nullptr;
 }
 
 namespace {
@@ -50,7 +54,8 @@ bool create_dashboard(Application& application) {
     if (!application.platform.image_memory.ensure(image_bytes) ||
         !dashboard_composition::load_images(dashboard_composition::instance(), configuration,
                                             application.services.image_assets,
-                                            application.platform.image_memory.bytes())) {
+                                            application.platform.image_memory.bytes(),
+                                            color_correction(application))) {
       log::error(kTag, "Images could not be loaded for the new configuration");
       return false;
     }

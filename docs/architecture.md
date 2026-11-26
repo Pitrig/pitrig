@@ -112,8 +112,9 @@ What each directory holds:
   `font_asset_control`, `image_asset_control` and `firmware_update` as thin
   per-kind wrappers, `asset_package`, `asset_storage`, `binary_session`,
   `boot_guard`, `configuration`, `configuration_contract`,
-  `configuration_control`, `event_bus`, `font_assets`, `font_contract`,
-  `image_assets`, `image_contract`, `logger`, `telemetry` with
+  `configuration_control`, `control_protocol` — the generated `@PR:` and `@PT:`
+  prefixes every program reads (ADR 0044) — `event_bus`, `font_assets`,
+  `font_contract`, `image_assets`, `image_contract`, `logger`, `telemetry` with
   `telemetry/protocols/simhub`, `track_map` — the outline the plugin streams,
   assembled from its pieces (ADR 0043) — `value_conditions` — the LVGL-free rule
   resolver, a service so that a module may depend on it (ADR 0030) — and
@@ -122,8 +123,10 @@ What each directory holds:
   over a shared `frame`, plus `conditions`, `fonts`, `images`, `layout`,
   `navigation`, `slots`, `value_text`, `memory` — the allocator that puts every
   LVGL allocation in external RAM — `utilities` and the embedded boot-splash
-  `assets`), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
-  `partition_asset_storage`, `telemetry_transport`, `external_memory`.
+  `assets`), `dashboard_composition`, `display_color` — a driver's measured
+  colour profile applied to dashboard colours and images as they load (ADR 0047) —
+  `module_composition`, `nvs_config_storage`, `partition_asset_storage`,
+  `telemetry_transport`, `external_memory`.
 - `utils/` — `binary`, `pitrig_config` (the Kconfig surface and the `PITRIG_*`
   feature aliases, here because every layer reads it), `transformers/number_transform`,
   `transformers/text_writer`, `transformers/time_transform`.
@@ -431,14 +434,10 @@ interrupts cache-safe during flash writes is a build measure rather than driver
 code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus the first of the
 version-pinned `esp_lvgl_port` patches under `firmware/patches/` — a stack of
 ten, one concern each, that `firmware/cmake/` applies in order — so the port's
-flush callback honours it. Three further pinned patches fix
-LVGL 9.5.0's experimental PPA backend: it passes the draw buffer's unaligned
-`data_size` to `esp_cache_msync()`, which breaks the cache-line contract, it
-synchronizes the whole buffer per operation rather than the rows it touched —
-multiple megabytes twice over when LVGL renders straight into a full-screen
-frame buffer — and it hands the accelerator fills too small to outrun the
-processor. A fourth, applied on every board, makes the software renderer draw
-circles, rings and arcs faster without changing a pixel (ADR 0026). The board's
+flush callback honours it. One further pinned patch keeps LVGL 9.6.0's PPA
+backend from handing the accelerator fills too small to outrun the processor.
+A second, applied on every board, makes the software renderer draw circles,
+rings and arcs faster without changing a pixel (ADR 0026). The board's
 own defaults keep its High-Speed USB port in slave/IRQ mode rather than DMA:
 ESP32-P4 rev 1.x can hand the TinyUSB DWC2
 driver an invalid EP0 setup-packet DMA address, and enumeration fails.

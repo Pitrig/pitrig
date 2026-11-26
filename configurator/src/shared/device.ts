@@ -62,11 +62,15 @@ export type DeviceStatus =
   | 'error'
 
 export type DeviceErrorCode =
+  | 'board_busy'
+  | 'board_refused'
   | 'busy'
   | 'cancelled'
   | 'configuration_rejected'
+  | 'damaged_reply'
   | 'invalid_request'
   | 'multiple_devices'
+  | 'no_answer'
   | 'no_device'
   | 'not_pitrig'
   | 'permission_denied'
@@ -77,7 +81,21 @@ export type DeviceErrorCode =
 export interface DeviceError {
   code: DeviceErrorCode
   message: string
+  token?: string
 }
+
+export const DEVICE_ACTIVITIES = [
+  'connect',
+  'disconnect',
+  'restart',
+  'save',
+  'update',
+  'install',
+  'upload',
+  'bench'
+] as const
+
+export type DeviceActivity = (typeof DEVICE_ACTIVITIES)[number]
 
 export interface DeviceConnection {
   portId: string
@@ -104,6 +122,7 @@ export interface LedDescriptor {
 
 export interface BoardProfile {
   display?: DisplayDescriptor
+  assetMemoryBytes?: number
   telemetryUartBaudRate?: number
   transports: { uart: boolean; nativeUsbCdc: boolean }
   led: LedDescriptor
@@ -117,12 +136,14 @@ export const BOARD_PROFILES: Record<PitrigBoardId, BoardProfile> = {
   },
   guition_esp32_4848s040: {
     display: { width: 480, height: 480, configurable: false },
+    assetMemoryBytes: 2_175 * 1_024,
     telemetryUartBaudRate: 460_800,
     transports: { uart: true, nativeUsbCdc: false },
     led: { outputs: 4, pins: [1, 2, 40, 41, 42] }
   },
   guition_jc1060p470c: {
     display: { width: 1024, height: 600, configurable: false },
+    assetMemoryBytes: 20 * 1_024 * 1_024,
     transports: { uart: false, nativeUsbCdc: true },
     led: { outputs: 4, pins: [1, 2, 3, 4, 5, 20, 32, 33, 45, 46, 47] }
   },
@@ -211,6 +232,7 @@ export type DeviceConfiguration = ApplicationConfiguration
 export interface DeviceSession {
   info: DeviceInfo
   configuration: DeviceConfiguration
+  newerDocuments: ConfigurationDocumentId[]
   fontAssets?: FontAssetDeviceInfo
   imageAssets?: ImageAssetState
   firmware?: FirmwareUpdateState
@@ -230,6 +252,7 @@ export interface DeviceState {
   session?: DeviceSession
   scan?: DeviceScanProgress
   error?: DeviceError
+  activity?: DeviceActivity
 }
 
 export interface ConnectDeviceRequest {

@@ -1,9 +1,12 @@
 import { PageShell } from '@/app/workspace/PageShell'
+import { Button } from '@/components/ui/button'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FactoryResetSection } from './FactoryResetSection'
 import { FileInstall } from './FileInstall'
 import { FirmwareStatus, UpdateOutcome, UpdateProgressCard } from './FirmwareStatus'
 import { useBoardUpdateStore } from './board-update-store'
+import { FirstInstallDialog } from './first-install/FirstInstallDialog'
+import { openFirstInstall } from './first-install/first-install-store'
 import { t } from '@shared/ui-text'
 
 export function FirmwarePage(): React.JSX.Element {
@@ -24,11 +27,16 @@ export function FirmwarePage(): React.JSX.Element {
       ) : running ? (
         <UpdateProgressCard />
       ) : (
-        <section className="rounded-xl border bg-card px-4 py-3.5 text-xs text-muted-foreground shadow-sm">
+        <section className="space-y-2 rounded-xl border bg-card px-4 py-3.5 text-xs text-muted-foreground shadow-sm">
           <p>{t('firmware.firmwarePage.connectABoardToSee')}</p>
-          <UpdateOutcome className="mt-2" />
+          <p>{t('firmware.firstInstall.factoryHint')}</p>
+          <Button className="text-foreground" variant="outline" onClick={() => openFirstInstall()}>
+            {t('firmware.firstInstall.open')}
+          </Button>
+          <UpdateOutcome />
         </section>
       )}
+      <FirstInstallDialog />
     </PageShell>
   )
 }

@@ -9,7 +9,8 @@ import { t } from '@shared/ui-text'
 
 export function SchemaBanner(): React.JSX.Element | null {
   const schema = useDeviceStore((state) => state.session?.info.schemaVersion)
-  if (schema === undefined || schema === CONFIGURATION_SCHEMA_VERSION) return null
+  const newer = useDeviceStore((state) => (state.session?.newerDocuments.length ?? 0) > 0)
+  if (schema === undefined || schema === CONFIGURATION_SCHEMA_VERSION || newer) return null
 
   return (
     <div

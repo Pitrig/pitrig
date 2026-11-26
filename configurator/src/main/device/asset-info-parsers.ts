@@ -18,9 +18,10 @@ import type { FontAssetDeviceInfo } from '@shared/device'
 import { DeviceServiceError } from './device-errors'
 import { isBooleanField, parseAssetStatus, parseFields } from './protocol-parsers'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
-  const fields = parseFields(line, '@PR:OK:FW:INFO:', t('device.assetInfoParsers.firmwareStatus'))
+  const fields = parseFields(line, `${CONTROL_PREFIX}OK:FW:INFO:`, t('device.assetInfoParsers.firmwareStatus'))
   const running = fields.get('running')
   const target = fields.get('target')
   const version = fields.get('version')
@@ -46,7 +47,7 @@ export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
 
 export function parseImageAssetInfo(line: string): ImageAssetState {
   const status = parseAssetStatus(line, {
-    prefix: '@PR:OK:IMAGE:INFO:',
+    prefix: `${CONTROL_PREFIX}OK:IMAGE:INFO:`,
     label: t('device.assetInfoParsers.imageStatus'),
     countField: 'images',
     maximumCount: MAXIMUM_IMAGES,
@@ -97,7 +98,7 @@ function parseInstalledImages(value: string | undefined): InstalledImage[] {
 
 export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   const status = parseAssetStatus(line, {
-    prefix: '@PR:OK:FONT:INFO:',
+    prefix: `${CONTROL_PREFIX}OK:FONT:INFO:`,
     label: t('device.assetInfoParsers.fontStatus'),
     countField: 'families',
     maximumCount: MAXIMUM_FONT_FAMILIES,

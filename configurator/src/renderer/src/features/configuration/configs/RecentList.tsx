@@ -15,7 +15,7 @@ import type {
   RecentConfigurationEntry,
   SavedConfigurationSummary
 } from '@shared/config-library'
-import { t } from '@shared/ui-text'
+import { t, UI_LANGUAGE } from '@shared/ui-text'
 
 type Row =
   | { kind: 'saved'; key: string; when: number; entry: SavedConfigurationSummary }
@@ -192,7 +192,7 @@ function folderOf(path: string): string {
 }
 
 function formatWhen(epochMs: number): string {
-  return new Date(epochMs).toLocaleString(undefined, {
+  return new Date(epochMs).toLocaleString(UI_LANGUAGE, {
     dateStyle: 'medium',
     timeStyle: 'short'
   })

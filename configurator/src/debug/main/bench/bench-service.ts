@@ -23,7 +23,7 @@ const NO_DISPLAY = 'This board has no display, so there is no render pattern to 
 const LINK_LOST = 'The serial link went away, so the feed stopped.'
 const APPLY_ATTEMPTS = 3
 const APPLY_RETRY_DELAY_MS = 1_500
-const RETRYABLE_APPLY_CODES: readonly DeviceErrorCode[] = ['busy', 'configuration_rejected']
+const RETRYABLE_APPLY_CODES: readonly DeviceErrorCode[] = ['board_busy', 'no_answer']
 
 export class BenchService {
   private readonly feed = new TelemetryFeed()
@@ -46,7 +46,6 @@ export class BenchService {
     this.poller = new BenchPoller({
       deviceService: services.deviceService,
       feed: this.feed,
-      patternBusy: () => this.patternBusy,
       onSample,
       onNotice: (message) => {
         this.message = message
@@ -103,79 +102,16 @@ export class BenchService {
     return success(this.publish())
   }
 
-  async hold(): Promise<void> {
-    await this.poller.hold()
-  }
-
-  release(): void {
-    this.poller.release()
-  }
-
   async applyPattern(pattern: BenchPatternId): Promise<DeviceResult<BenchStatus>> {
     const { deviceService } = this.services
-    const session = deviceService.getState().session
-    if (!session) {
+    if (!deviceService.getState().session) {
       return failure({ code: 'serial_error', message: 'No Pitrig board is connected.' })
     }
-    if (this.patternBusy) {
-      return failure({ code: 'busy', message: 'The bench is already changing the dashboard.' })
-    }
-
-    this.patternBusy = true
-    this.message = undefined
-    if (this.pattern === undefined) this.restorePoint = JSON.stringify(session.configuration)
-    const resume = this.pauseFeed()
-    this.publish()
-    let outcome: DeviceResult<void>
-    try {
-      outcome = await deviceService.runPipeline(async (): Promise<DeviceResult<void>> => {
-        const display = session.info.display
-        if (!display) return failure({ code: 'serial_error', message: NO_DISPLAY })
-        const characters = benchTextCharacters(
-          buildBenchDashboard({
-            board: session.info.boardId,
-            pattern,
-            display,
-            family: DEFAULT_FONT_FAMILY
-          })
-        )
-        const assets = await ensureBenchAssets(
-          this.services,
-          spriteEdge(display),
-          characters,
-          (stage) => {
-            this.patternStage = stage
-            this.publish()
-          }
-        )
-        if (!assets.ok) return failure(assets.error)
-
-        const current = deviceService.getState().session
-        if (!current) {
-          return failure({ code: 'serial_error', message: 'The board went away during setup.' })
-        }
-
-        this.patternStage = 'Applying pattern…'
-        this.publish()
-        const document = buildBenchDashboard({
-          board: current.info.boardId,
-          pattern,
-          display,
-          ...(assets.value.family ? { family: assets.value.family } : {}),
-          ...(assets.value.image ? { image: assets.value.image } : {})
-        })
-        const applied = await applyWithRetry(deviceService, JSON.stringify(document))
-        if (!applied.ok) return failure(applied.error)
-        this.pattern = pattern
-        this.message = assets.value.notes.join(' ') || undefined
-        return success(undefined)
-      })
-    } finally {
-      this.patternBusy = false
-      this.patternStage = undefined
-      resume()
-      this.publish()
-    }
+    const outcome = await deviceService.operation<DeviceResult<void>>(
+      'bench',
+      () => this.whileChanging(() => this.showPattern(pattern)),
+      failure
+    )
     return outcome.ok ? success(this.getStatus()) : failure(outcome.error)
   }
 
@@ -185,26 +121,72 @@ export class BenchService {
     if (json === undefined) {
       return failure({ code: 'invalid_request', message: 'The bench has nothing to restore.' })
     }
-    if (this.patternBusy) {
-      return failure({ code: 'busy', message: 'The bench is already changing the dashboard.' })
-    }
+    const outcome = await deviceService.operation<DeviceResult<unknown>>(
+      'bench',
+      () =>
+        this.whileChanging(async () => {
+          const applied = await applyWithRetry(deviceService, json)
+          if (applied.ok) {
+            this.pattern = undefined
+            this.restorePoint = undefined
+          }
+          return applied
+        }),
+      failure
+    )
+    return outcome.ok ? success(this.getStatus()) : failure(outcome.error)
+  }
+
+  private async whileChanging<T>(work: () => Promise<T>): Promise<T> {
     this.patternBusy = true
+    this.message = undefined
     const resume = this.pauseFeed()
     this.publish()
-    let outcome: DeviceResult<void>
     try {
-      const applied = await applyWithRetry(deviceService, json)
-      outcome = applied.ok ? success(undefined) : failure(applied.error)
-      if (applied.ok) {
-        this.pattern = undefined
-        this.restorePoint = undefined
-      }
+      return await work()
     } finally {
       this.patternBusy = false
+      this.patternStage = undefined
       resume()
       this.publish()
     }
-    return outcome.ok ? success(this.getStatus()) : failure(outcome.error)
+  }
+
+  private async showPattern(pattern: BenchPatternId): Promise<DeviceResult<void>> {
+    const { deviceService } = this.services
+    const session = deviceService.getState().session
+    if (!session) return failure({ code: 'serial_error', message: 'No Pitrig board is connected.' })
+    if (this.pattern === undefined) this.restorePoint = JSON.stringify(session.configuration)
+    const display = session.info.display
+    if (!display) return failure({ code: 'serial_error', message: NO_DISPLAY })
+    const characters = benchTextCharacters(
+      buildBenchDashboard({ board: session.info.boardId, pattern, display, family: DEFAULT_FONT_FAMILY })
+    )
+    const assets = await ensureBenchAssets(this.services, spriteEdge(display), characters, (stage) => {
+      this.patternStage = stage
+      this.publish()
+    })
+    if (!assets.ok) return failure(assets.error)
+
+    const current = deviceService.getState().session
+    if (!current) {
+      return failure({ code: 'serial_error', message: 'The board went away during setup.' })
+    }
+
+    this.patternStage = 'Applying pattern…'
+    this.publish()
+    const document = buildBenchDashboard({
+      board: current.info.boardId,
+      pattern,
+      display,
+      ...(assets.value.family ? { family: assets.value.family } : {}),
+      ...(assets.value.image ? { image: assets.value.image } : {})
+    })
+    const applied = await applyWithRetry(deviceService, JSON.stringify(document))
+    if (!applied.ok) return failure(applied.error)
+    this.pattern = pattern
+    this.message = assets.value.notes.join(' ') || undefined
+    return success(undefined)
   }
 
   dispose(): void {
@@ -251,11 +233,11 @@ async function applyWithRetry(
   deviceService: BenchAssetServices['deviceService'],
   json: string
 ): Promise<DeviceResult<unknown>> {
-  let last = await deviceService.applyConfigurationNow(json, ['dashboard'])
+  let last = await deviceService.applyConfiguration(json, ['dashboard'])
   for (let attempt = 1; !last.ok && attempt < APPLY_ATTEMPTS; ++attempt) {
     if (!retryableApply(last.error)) break
     await new Promise((resolve) => setTimeout(resolve, APPLY_RETRY_DELAY_MS))
-    last = await deviceService.applyConfigurationNow(json, ['dashboard'])
+    last = await deviceService.applyConfiguration(json, ['dashboard'])
   }
   return last
 }

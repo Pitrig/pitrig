@@ -95,7 +95,9 @@ def render(args: argparse.Namespace) -> str:
         "",
         f"## Firmware {args.firmware}",
         "",
-        "The easiest route is the [web flasher](https://www.pitrig.com/flash). A board already "
+        "A new board is flashed from the configurator: **Install Pitrig** on its Firmware page "
+        "writes the archive below over the USB cable, and the "
+        "[web flasher](https://www.pitrig.com/flash) does the same in a browser. A board already "
         "running Pitrig is updated from the configurator: **Update board** on its Firmware "
         "page fetches the image below, installs it over the USB cable and puts the board's "
         "configuration back.",

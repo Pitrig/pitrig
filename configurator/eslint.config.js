@@ -16,6 +16,30 @@ const productSources = [
   'src/shared/**/*.{ts,tsx,js,mjs,cjs,mts}'
 ]
 
+const noDebugImports = {
+  group: ['**/debug/**', '@debug-shared/*'],
+  message:
+    'The product must not import debug code. Debug tooling lives in src/debug and depends on the product, never the other way round.'
+}
+
+const noSerialImports = {
+  group: [
+    'serialport',
+    '**/device/asset-upload',
+    '**/device/device-connection',
+    '**/device/line-exchange',
+    '**/device/link-owner',
+    '**/device/pitrig-protocol',
+    '**/device/port-opening',
+    '**/device/serial-port-lifecycle',
+    '**/device/serial-request'
+  ],
+  message:
+    'Only src/main/device writes to the serial port, through its LinkOwner, so a board action cannot slip between the steps of another. Call DeviceService instead (ADR 0046).'
+}
+
+const serialOwners = ['src/main/device/**', 'src/main/first-install/**']
+
 const noDebugImportExpression = {
   selector: 'ImportExpression > Literal[value=/(^|\\/)debug\\/|^@debug-shared\\//]',
   message:
@@ -98,19 +122,20 @@ export default tseslint.config(
   {
     files: productSources,
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['**/debug/**', '@debug-shared/*'],
-              message:
-                'The product must not import debug code. Debug tooling lives in src/debug and depends on the product, never the other way round.'
-            }
-          ]
-        }
-      ],
+      'no-restricted-imports': ['error', { patterns: [noDebugImports, noSerialImports] }],
       'no-restricted-syntax': ['error', noDebugImportExpression]
+    }
+  },
+  {
+    files: serialOwners,
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [noDebugImports] }]
+    }
+  },
+  {
+    files: ['src/debug/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [noSerialImports] }]
     }
   },
   {

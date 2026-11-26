@@ -1,9 +1,9 @@
 include("${CMAKE_CURRENT_LIST_DIR}/apply_patch_stack.cmake")
 
 set(_pitrig_lvgl_sw_dir "${CMAKE_CURRENT_LIST_DIR}/../managed_components/lvgl__lvgl")
-set(_pitrig_lvgl_sw_version_header "${_pitrig_lvgl_sw_dir}/lv_version.h")
+set(_pitrig_lvgl_sw_version_header "${_pitrig_lvgl_sw_dir}/include/lvgl/lv_version.h")
 set(_pitrig_lvgl_sw_patches
-    "${CMAKE_CURRENT_LIST_DIR}/../patches/lvgl-9.5.0-sw-round-shapes.patch")
+    "${CMAKE_CURRENT_LIST_DIR}/../patches/lvgl-9.6.0-sw-round-shapes.patch")
 
 if(NOT EXISTS "${_pitrig_lvgl_sw_version_header}")
     message(FATAL_ERROR
@@ -13,17 +13,17 @@ endif()
 file(READ "${_pitrig_lvgl_sw_version_header}" _pitrig_lvgl_sw_version)
 foreach(_pitrig_lvgl_sw_part IN ITEMS
         "LVGL_VERSION_MAJOR 9"
-        "LVGL_VERSION_MINOR 5"
+        "LVGL_VERSION_MINOR 6"
         "LVGL_VERSION_PATCH 0")
     string(FIND "${_pitrig_lvgl_sw_version}" "${_pitrig_lvgl_sw_part}" _pitrig_lvgl_sw_match)
     if(_pitrig_lvgl_sw_match EQUAL -1)
         message(FATAL_ERROR
-            "The software renderer patches support only LVGL 9.5.0. "
+            "The software renderer patches support only LVGL 9.6.0. "
             "Review or remove them under firmware/patches before building this LVGL version.")
     endif()
 endforeach()
 
-pitrig_apply_patch_stack("LVGL 9.5.0 software renderer" "${_pitrig_lvgl_sw_dir}" ${_pitrig_lvgl_sw_patches})
+pitrig_apply_patch_stack("LVGL 9.6.0 software renderer" "${_pitrig_lvgl_sw_dir}" ${_pitrig_lvgl_sw_patches})
 
 if(CONFIG_COMPILER_OPTIMIZATION_SIZE)
     idf_component_get_property(_pitrig_lvgl_sw_lib lvgl__lvgl COMPONENT_LIB)

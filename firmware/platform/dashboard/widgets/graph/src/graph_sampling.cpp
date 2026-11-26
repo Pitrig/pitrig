@@ -86,7 +86,7 @@ void Collection::sample_all() {
   }
   for (std::size_t index = 0; index < count_; ++index) {
     State& state = states_[index];
-    if (state.canvas == nullptr) {
+    if (state.plot == nullptr) {
       continue;
     }
     sample_state(state);
@@ -98,7 +98,7 @@ void Collection::start_sampling() {
   std::uint32_t shortest = 0;
   for (std::size_t index = 0; index < count_; ++index) {
     const std::uint32_t interval = states_[index].sample_interval_ms;
-    if (states_[index].canvas != nullptr && interval > 0 &&
+    if (states_[index].plot != nullptr && interval > 0 &&
         (shortest == 0 || interval < shortest)) {
       shortest = interval;
     }

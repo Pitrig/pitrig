@@ -19,6 +19,11 @@ import {
 } from '../shared/app-updates'
 import { USAGE_GET_CHANNEL, USAGE_SET_CHANNEL } from '../shared/usage'
 import {
+  UI_LANGUAGE_GET_CHANNEL,
+  UI_LANGUAGE_RESTART_CHANNEL,
+  UI_LANGUAGE_SET_CHANNEL
+} from '../shared/ui-language'
+import {
   IMAGE_CANCEL_UPLOAD_CHANNEL,
   IMAGE_CLEAR_CHANNEL,
   IMAGE_SELECT_SOURCE_CHANNEL,
@@ -73,6 +78,12 @@ import {
   type FirmwareUploadProgress
 } from '../shared/firmware-update'
 import {
+  FIRST_INSTALL_CANCEL_CHANNEL,
+  FIRST_INSTALL_PROGRESS_CHANNEL,
+  FIRST_INSTALL_START_CHANNEL,
+  type FirstInstallProgress
+} from '../shared/first-install'
+import {
   FONT_CANCEL_UPLOAD_CHANNEL,
   FONT_CLEAR_CHANNEL
 } from '../shared/font-assets'
@@ -101,10 +112,12 @@ import { PREVIEW_ASSETS_READ_CHANNEL } from '../shared/preview-assets'
 import {
   TEMPLATE_ADOPT_CHANNEL,
   TEMPLATE_DELETE_CHANNEL,
+  TEMPLATE_IMPORT_CHANNEL,
   TEMPLATE_LIST_CHANNEL,
   TEMPLATE_OPEN_CREDIT_CHANNEL,
   TEMPLATE_READ_CHANNEL,
-  TEMPLATE_SAVE_CHANNEL
+  TEMPLATE_SAVE_CHANNEL,
+  TEMPLATE_SHARE_CHANNEL
 } from '../shared/templates'
 
 const telemetryBridgeApi: TelemetryBridgeApi = {
@@ -148,6 +161,8 @@ export const productApi: PitrigApi = {
   openTemplateCredit: (request) => ipcRenderer.invoke(TEMPLATE_OPEN_CREDIT_CHANNEL, request),
   saveTemplate: (request) => ipcRenderer.invoke(TEMPLATE_SAVE_CHANNEL, request),
   deleteTemplate: (request) => ipcRenderer.invoke(TEMPLATE_DELETE_CHANNEL, request),
+  shareTemplate: (request) => ipcRenderer.invoke(TEMPLATE_SHARE_CHANNEL, request),
+  importTemplateFile: (request) => ipcRenderer.invoke(TEMPLATE_IMPORT_CHANNEL, request),
   listSerialPorts: () => ipcRenderer.invoke(DEVICE_LIST_PORTS_CHANNEL),
   getDeviceState: () => ipcRenderer.invoke(DEVICE_GET_STATE_CHANNEL),
   connectDevice: (request) => ipcRenderer.invoke(DEVICE_CONNECT_CHANNEL, request),
@@ -176,6 +191,8 @@ export const productApi: PitrigApi = {
   uploadFirmware: (request) => ipcRenderer.invoke(FIRMWARE_UPLOAD_CHANNEL, request),
   cancelFirmwareUpload: () => ipcRenderer.invoke(FIRMWARE_CANCEL_UPLOAD_CHANNEL),
   updateBoard: (request) => ipcRenderer.invoke(BOARD_UPDATE_CHANNEL, request),
+  installPitrig: (request) => ipcRenderer.invoke(FIRST_INSTALL_START_CHANNEL, request),
+  cancelPitrigInstall: () => ipcRenderer.invoke(FIRST_INSTALL_CANCEL_CHANNEL),
   getUpdateStatus: () => ipcRenderer.invoke(UPDATES_GET_STATUS_CHANNEL),
   checkForUpdates: () => ipcRenderer.invoke(UPDATES_CHECK_CHANNEL),
   installAppUpdate: () => ipcRenderer.invoke(UPDATES_INSTALL_APP_CHANNEL),
@@ -189,6 +206,9 @@ export const productApi: PitrigApi = {
   },
   getUsageSettings: () => ipcRenderer.invoke(USAGE_GET_CHANNEL),
   setUsageSettings: (request) => ipcRenderer.invoke(USAGE_SET_CHANNEL, request),
+  getUiLanguage: () => ipcRenderer.invoke(UI_LANGUAGE_GET_CHANNEL),
+  setUiLanguage: (request) => ipcRenderer.invoke(UI_LANGUAGE_SET_CHANNEL, request),
+  restartForUiLanguage: () => ipcRenderer.invoke(UI_LANGUAGE_RESTART_CHANNEL),
   selectImageSource: () => ipcRenderer.invoke(IMAGE_SELECT_SOURCE_CHANNEL),
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
   clearImageAssets: () => ipcRenderer.invoke(IMAGE_CLEAR_CHANNEL),
@@ -215,6 +235,12 @@ export const productApi: PitrigApi = {
       listener(progress)
     ipcRenderer.on(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(BOARD_UPDATE_PROGRESS_CHANNEL, handler)
+  },
+  onPitrigInstallProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: FirstInstallProgress): void =>
+      listener(progress)
+    ipcRenderer.on(FIRST_INSTALL_PROGRESS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(FIRST_INSTALL_PROGRESS_CHANNEL, handler)
   },
   onSaveProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: SaveProgress): void => listener(progress)

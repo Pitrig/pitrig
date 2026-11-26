@@ -159,7 +159,7 @@ function hash6(value: string): string {
   return hash.toString(36).padStart(6, '0').slice(-6)
 }
 
-const FONT_PACKAGE_DATA_OFFSET = 4096
+export const FONT_PACKAGE_DATA_OFFSET = 4096
 
 export interface FontPackageFootprint {
   families: number

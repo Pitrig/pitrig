@@ -3,21 +3,44 @@
 #include <algorithm>
 
 #include "graph_binding.hpp"
+#include "graph_draw.hpp"
 #include "graph_plot.hpp"
 #include "graph_sampler.hpp"
 #include "logger.hpp"
 #include "lvgl.h"
-#include "widget_draw_buffer.hpp"
 #include "widget_inner_box.hpp"
 
 namespace pitrig::dashboard::graph_widget {
 namespace {
 
 constexpr char kTag[] = "graph_widget";
+constexpr std::int32_t kSweepGapLineWidths = 3;
+constexpr std::int32_t kSweepGapPlotDivisor = 4;
 
 void apply_line_color(void* const context, const std::uint32_t rgb) {
   auto& state = *static_cast<State*>(context);
   state.override_rgb = rgb;
+}
+
+void release_history(lv_event_t* const event) { lv_free(lv_event_get_user_data(event)); }
+
+[[nodiscard]] lv_obj_t* create_plot(State& state, lv_obj_t* const parent) {
+  auto* const history = static_cast<History*>(lv_malloc(sizeof(History)));
+  if (history == nullptr) {
+    return nullptr;
+  }
+  lv_obj_t* const plot = lv_obj_create(parent);
+  if (plot == nullptr) {
+    lv_free(history);
+    return nullptr;
+  }
+  lv_obj_add_event_cb(plot, release_history, LV_EVENT_DELETE, history);
+  state.history = history;
+  lv_obj_remove_style_all(plot);
+  lv_obj_set_scrollable(plot, false);
+  lv_obj_set_clickable(plot, false);
+  draw::attach(plot, state);
+  return plot;
 }
 
 [[nodiscard]] configuration::ValueRange trace_range(const Config& config, const std::size_t index) {
@@ -66,8 +89,9 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
                              ? frame::background_behind(parent)
                              : config.frame.background_color;
   state.last_sample_tick = lv_tick_get();
-  state.head_x = 0;
-  state.step_carry = 0.0F;
+  state.stored = 0;
+  state.newest = 0;
+  state.sequence = 0;
   state.initialized = false;
   state.pending_write.store(0, std::memory_order_relaxed);
   state.pending_read.store(0, std::memory_order_relaxed);
@@ -78,15 +102,21 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   const InnerBox inner = inner_box(config.frame, bounds, reserve);
   state.plot_width = inner.width;
   state.plot_height = inner.height;
+  state.sweep = config.sweep;
+  state.sweep_gap =
+      config.sweep ? std::min<std::int32_t>(kSweepGapLineWidths * config.line_width_px,
+                                            state.plot_width / kSweepGapPlotDivisor)
+                   : 0;
 
   const auto points =
       std::max<std::size_t>(std::min<std::size_t>(config.point_count, kMaximumPoints), 2);
+  state.points = static_cast<std::uint16_t>(points);
   state.step_px = static_cast<float>(state.plot_width) / static_cast<float>(points - 1);
 
-  const std::int32_t canvas_height = state.plot_height + 2 * state.line_inset;
-  if (state.plot_width < 2 || canvas_height < 1) {
+  const std::int32_t plot_height = state.plot_height + 2 * state.line_inset;
+  if (state.plot_width < 2 || plot_height < 1) {
     log::error(kTag, "Graph plot area is %d x %d", static_cast<int>(state.plot_width),
-               static_cast<int>(canvas_height));
+               static_cast<int>(plot_height));
     return false;
   }
 
@@ -96,30 +126,15 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
     trace.read_context = binding.sources[index].read_context;
     trace.range = trace_range(config, index);
     trace.color = trace_color(config, index);
-    trace.has_previous = false;
   }
 
-  state.canvas = lv_canvas_create(box.container);
-  if (state.canvas == nullptr) {
-    log::error(kTag, "Failed to create graph canvas");
+  state.plot = create_plot(state, box.container);
+  if (state.plot == nullptr) {
+    log::error(kTag, "No memory for a graph plot");
     return false;
   }
-  lv_draw_buf_t* const buffer =
-      lv_draw_buf_create(static_cast<std::uint32_t>(state.plot_width),
-                         static_cast<std::uint32_t>(canvas_height), LV_COLOR_FORMAT_RGB565, 0);
-  if (buffer == nullptr) {
-    log::error(kTag, "No memory for a %d x %d graph plot", static_cast<int>(state.plot_width),
-               static_cast<int>(canvas_height));
-    return false;
-  }
-  lv_canvas_set_draw_buf(state.canvas, buffer);
-  lv_obj_add_event_cb(state.canvas, release_draw_buffer, LV_EVENT_DELETE, buffer);
-  lv_obj_remove_flag(state.canvas, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(state.canvas, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_pos(state.canvas, reserve, reserve - state.line_inset);
-  lv_obj_set_size(state.canvas, state.plot_width, canvas_height);
-  lv_image_set_inner_align(state.canvas, LV_IMAGE_ALIGN_TILE);
-  lv_canvas_fill_bg(state.canvas, lv_color_hex(state.background_rgb), LV_OPA_COVER);
+  lv_obj_set_pos(state.plot, reserve, reserve - state.line_inset);
+  lv_obj_set_size(state.plot, state.plot_width, plot_height);
 
   state.painter.configure(config.frame, box, configuration::kTransparentColor, &apply_line_color,
                           &state);
@@ -143,32 +158,22 @@ bool Collection::create(const Layout& layout, const std::span<const Config> conf
   return created;
 }
 
-void Collection::draw_sample(State& state, lv_layer_t& layer,
-                             const std::span<const std::int16_t> sample) {
-  const float advance = state.step_px + state.step_carry;
-  const auto dx = static_cast<std::int32_t>(advance);
-  state.step_carry = advance - static_cast<float>(dx);
-  const std::int32_t next_x = state.head_x + dx;
-  if (dx > 0) {
-    plot::clear_columns(state, layer, state.head_x + 1, dx + state.line_inset);
-  }
+void Collection::store_sample(State& state, const std::span<const std::int16_t> sample) {
+  History& history = *state.history;
+  state.newest = static_cast<std::uint16_t>((state.newest + 1) % state.points);
   for (std::size_t index = 0; index < state.trace_count; ++index) {
-    Trace& trace = state.traces[index];
-    const float y = static_cast<float>(sample[index]) / plot::kSubPixel;
-    if (trace.has_previous) {
-      const std::uint32_t rgb =
-          state.override_rgb == configuration::kTransparentColor ? trace.color : state.override_rgb;
-      plot::draw_segment(state, layer, rgb, state.head_x, trace.previous_y, next_x, y);
-    }
-    trace.previous_y = y;
-    trace.has_previous = true;
+    history.y[index][state.newest] = static_cast<float>(sample[index]) / plot::kSubPixel + 0.5F;
   }
-  state.head_x = next_x % state.plot_width;
+  history.line_rgb[state.newest] = state.override_rgb;
+  if (state.stored < state.points) {
+    ++state.stored;
+  }
+  ++state.sequence;
 }
 
 void Collection::render_state(State& state) {
   state.painter.render();
-  if (state.canvas == nullptr) {
+  if (state.plot == nullptr || state.history == nullptr) {
     return;
   }
   std::uint8_t read = state.pending_read.load(std::memory_order_relaxed);
@@ -176,17 +181,13 @@ void Collection::render_state(State& state) {
   if (read == write) {
     return;
   }
-  lv_layer_t layer;
-  lv_canvas_init_layer(state.canvas, &layer);
+  const std::uint32_t previous_sequence = state.sequence;
   while (read != write) {
-    draw_sample(state, layer, state.pending[read]);
+    store_sample(state, state.pending[read]);
     read = static_cast<std::uint8_t>((read + 1) % kPendingSamples);
   }
-  lv_canvas_finish_layer(state.canvas, &layer);
   state.pending_read.store(read, std::memory_order_release);
-
-  lv_image_set_offset_x(state.canvas, state.plot_width - 1 - state.head_x);
-  lv_obj_invalidate(state.canvas);
+  plot::invalidate(state, previous_sequence);
 }
 
 void Collection::on_released(const std::size_t index) {
@@ -194,7 +195,8 @@ void Collection::on_released(const std::size_t index) {
     stop_sampling();
   }
   State& state = states_[index];
-  state.canvas = nullptr;
+  state.plot = nullptr;
+  state.history = nullptr;
   state.pending_write.store(0, std::memory_order_relaxed);
   state.pending_read.store(0, std::memory_order_relaxed);
 }

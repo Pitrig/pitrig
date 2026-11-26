@@ -5,7 +5,10 @@ configuration documents and start an upload, over the serial link the
 `protocol` document selects. The documents themselves, their presence rules and
 the widget semantics are in [device-configuration.md](device-configuration.md);
 the property table is the generated [configuration-schema.md](configuration-schema.md),
-and the upload frames are in [font-assets.md](font-assets.md).
+and the upload frames are in [font-assets.md](font-assets.md). The prefix, like
+the plugin link's `@PT:`, is generated from `configuration/control_protocol.json`,
+and no program writes either by hand ([ADR 0044](adr/0044-generated-protocol-tokens.md)).
+
 ## Device information
 
 `INFO` reports immutable device metadata and configuration storage status:
@@ -78,10 +81,12 @@ Fields:
 
 - `internal_*` and `psram_*` are the total, current free, lowest free since
   boot, and largest free block of each heap, in bytes. `psram_total` is `0` on a
-  board without external RAM. They are read when the command arrives rather than
-  taken from the one-second snapshot, so a host that just applied a document
-  reads what that document costs now; `*_min` is the low-water mark since boot,
-  which is what a memory budget is set against;
+  board without external RAM. All but the two largest blocks are read when the
+  command arrives rather than taken from the one-second snapshot, so a host that
+  just applied a document reads what that document costs now. The largest blocks
+  come from the sampler's last walk, at most 30 seconds old, and read `0` until
+  its first walk five seconds after start. `*_min` is the low-water mark since
+  boot, which is what a memory budget is set against;
 - `fps`, `cpu0` and `cpu1` carry one decimal, and every `*_us` field is
   microseconds. They mean exactly what the same names mean in
   [runtime-performance.md](runtime-performance.md), and they come from the
@@ -98,9 +103,15 @@ Fields:
   one. This is the figure the display latency work is judged by: it covers the
   wake, the render and the flush together, so a change that moves none of the
   parts but reorders them still shows up here;
-- `stack_*` is the free stack of each monitored task in bytes. The font and
-  image upload tasks share `stack_upload`, reported as the smaller of the two,
-  because only one of them can own the link at a time;
+- `copy_*` are running totals of the display port's flush worker, wrapping at
+  2³², so a host reads them as differences between two replies: strip jobs
+  handled, time the worker was busy, time and bytes of strip copies by the CPU
+  and by DMA, of copies that bring the hidden frame buffer up to date (CPU and
+  DMA bytes), the time strips waited for those, and the time spent waiting for
+  the panel to take a frame;
+- `stack_*` is the free stack of each monitored task in bytes. Font, image and
+  firmware uploads run on one task, `stack_upload`, because only one of them can
+  own the link at a time;
 - `uptime_ms` is milliseconds since boot.
 
 Nothing here is part of the configuration contract: the field list is a

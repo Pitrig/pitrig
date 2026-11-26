@@ -28,9 +28,10 @@ update costs a board that already holds a configuration, is in
 
 ## Quick start
 
-**1. Flash the board.** Plug it in with a USB data cable, open the
-[web flasher](https://www.pitrig.com/flash) in Chrome, Edge, Brave or
-Opera, pick your board and press install. Each image carries one board identity,
+**1. Flash the board.** Plug it in with a USB data cable, then use **Install
+Pitrig…** on the configurator's Firmware page (step 2 installs it), or open the
+[web flasher](https://www.pitrig.com/flash) in Chrome, Edge, Brave or Opera. Pick
+your board and press install. Each image carries one board identity,
 so flash the one that matches the hardware in front of you. A first flash erases
 whatever is already on the board.
 
@@ -64,7 +65,7 @@ first time the configurator connects to it.
 
 - **Widgets** — text, arcs, bars, indicator strips, graphs, images and shaped
   containers, composed freely on the screen.
-- **329 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
+- **330 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
   flags, session state and the rest of the catalogue, with damage, weather,
   electronics, energy and penalties read per game for ACC, AC, iRacing and LMU.
 - **Conditional styling** — colour ramps, gradients, visibility and blink driven

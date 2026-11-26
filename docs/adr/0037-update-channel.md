@@ -32,7 +32,9 @@ newest one: `firmware/version.txt` is built into the configurator, the image is
 `pitrig-<board>.bin` from the `v<configurator version>` release, checked against
 the size and SHA-256 the release lists, and installed by `Update board`. A
 newer firmware would need a newer configurator to write its schema; a board on a
-newer schema than the configurator is offered nothing. Beside the offer it
+newer schema than the configurator is offered nothing, and a board holding a
+configuration a newer Pitrig wrote is offered the configurator's own update
+instead. Beside the offer it
 lists what changes on that board: `CHANGELOG.md` entries open with a label
 naming what they touch, and the build embeds those for boards from every
 firmware newer than the one the board runs.

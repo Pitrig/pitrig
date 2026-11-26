@@ -21,6 +21,53 @@ board** does that for you, and nothing is erased. A partition table change needs
 a cable flash and erases the configuration, fonts and images. The first line of
 a release says when either applies.
 
+## 0.5.0 — 2026-11-26 — firmware 0.5.0
+
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new field or a sweeping graph need firmware 0.5.0, and the 0.4.1 configurator cannot open a board that holds one. An older configurator does not list the templates this one saves.
+
+**Added**
+
+- **Display boards, Configurator.** A graph can sweep across its plot like a heart monitor instead of scrolling, which costs far less to draw.
+- **All boards, SimHub plugin.** New field: the distance left to the end of the lap or the rally stage.
+- **Configurator, SimHub plugin.** The Info page and the plugin's About tab link to the contact form on pitrig.com and show the email address.
+- **Configurator.** The interface in Ukrainian, Korean, Polish, German and Spanish, taken from the system language or chosen on the Info page.
+- **SimHub plugin.** Its pages in Ukrainian, Korean, Polish, German and Spanish, in the language the configurator uses.
+- **Configurator.** A saved template's card shares it as one file; Open on the Templates page adds a received one.
+- **Configurator.** Install Pitrig on the Firmware page flashes a board still on its factory firmware, or one whose firmware cannot update itself, over the USB cable.
+- **Configurator.** Save to board stops when a dashboard's fonts and images will not fit in the working memory of a Guition ESP32-4848S040 or JC1060P470C, and says how much they need.
+- **Development.** A firmware build fails when its static memory passes its board's ceiling in `tools/memory_budget.json`.
+- **Development.** The `@PR:` and `@PT:` line prefixes are generated from one file, and CI fails on a prefix written by hand.
+- **Development.** The debugger's bench has a Graphs 6 pattern that sweeps.
+- **Development.** Debug builds report in `@PR:DIAG` how much the display port copies, by CPU and by DMA, and how long strips wait for it.
+
+**Changed**
+
+- **Guition JC1060P470C.** Colours and images match the configurator's preview: white is no longer blue and mid-tones are lighter; the screen is about a third dimmer.
+- **Display boards.** LVGL 9.6 draws text faster, and busy screens show up to four more frames a second.
+- **All boards.** About 14 KB more internal memory and 380 KB more external memory stay free for dashboards, fonts and images.
+- **Display boards.** A graph keeps its samples instead of a picture of its plot, so it takes 2 KB of external memory at any size and draws faster, scrolling or sweeping.
+- **Display boards.** A bar redraws only the part its value moves, unless it has both rounded corners and a gradient, so screens with many bars draw faster.
+- **Configurator.** The T-Display lap timer starter has the Endurance look, with larger last and best times.
+- **Configurator.** Saved templates, widgets too, keep their images and fonts in one file; removing an image from the PC no longer breaks them.
+
+**Fixed**
+
+- **Display boards.** Graph lines are smooth: no steps on gentle slopes or where the graph samples faster than its telemetry arrives, no notches at bends, and each sample sits exactly at its value.
+- **Configurator.** Save to board, Update board, uploads and a restart wait for a board check or a live change instead of stopping with "another device operation is already running".
+- **Configurator.** Messages about the font limit, update recovery, picture colours and board sync are correct and translated.
+- **Configurator.** While Save to board, Update board or a restart runs, the other board actions are disabled and say what is running, and none can send its commands in between.
+- **Configurator.** Saving to a board on older firmware says whether the board refused the dashboard, could not read it, did not finish the check or stayed busy.
+- **Configurator.** Connecting right after a board starts no longer fails while it is still loading its fonts.
+- **Configurator.** A board that answered late or stayed busy no longer reads as one that refused the dashboard, and a save the board stored without answering is not reported as failed.
+- **Configurator.** Turning the Modules preview off always clears its values on the board.
+- **Configurator.** A language change or an app update waits for a running board action before the app restarts.
+- **Guition ESP32-4848S040.** A board restarted while it starts no longer hangs on its touch controller, and starts without touch if the controller does not answer.
+- **Configurator.** A board set up by a newer Pitrig connects read-only, and a banner asks to update Pitrig.
+- **Configurator.** Install Pitrig asks before it erases a JC1060P470C or a DevKitC-1 on a port that cannot show Pitrig, and refuses one that runs Pitrig there.
+- **SimHub plugin.** In a timed race the fuel to finish, the fuel to add and the pit call count the laps to the flag, so the last stint no longer runs short.
+- **Development.** Debug builds of the Guition ESP32-4848S040 no longer lose serial bytes, which broke font uploads and long commands.
+- **Development.** A push to `release` no longer replaces the files of a published release.
+
 ## 0.4.1 — 2026-11-22 — firmware 0.4.1
 
 Same schema and partition table: a board update keeps the configuration. Dashboards with the new fields or past the old limits need firmware 0.4.1, and an older configurator cannot open a board that holds one.

@@ -1,6 +1,7 @@
 #include "configuration_service.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <new>
 #include <utility>
 
@@ -23,6 +24,8 @@ bool ConfigurationService::initialize(IConfigurationStorage& storage,
   active_ = new (configuration_buffer.data()) ApplicationConfiguration{};
   scratch_ = new (configuration_buffer.data() + sizeof(ApplicationConfiguration))
       ApplicationConfiguration{};
+  validation_scratch_ = new (configuration_buffer.data() + 2 * sizeof(ApplicationConfiguration))
+      ValidationScratch{};
   record_buffer_ = record_buffer.first(kRecordBufferSize);
   std::span<std::uint8_t> remaining = payload_buffer.first(kPayloadBufferSize);
   for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
@@ -41,7 +44,8 @@ bool ConfigurationService::initialize(IConfigurationStorage& storage,
     const auto document = static_cast<ConfigurationDocument>(index);
     const std::span<const std::uint8_t> payload = factory_payloads[index];
     if (payload.empty() || payload.size() > payloads_[index].size() ||
-        !parse_configuration_json(document, payload, validation_profile_, (*scratch_)).ok()) {
+        !parse_configuration_json(document, payload, validation_profile_, *scratch_,
+                                  *validation_scratch_).ok()) {
       return false;
     }
     remember_payload(document, payload);
@@ -83,14 +87,16 @@ std::span<const std::uint8_t> ConfigurationService::current_payload(
 ValidationFailure ConfigurationService::validate_payload(
     const ConfigurationDocument document, const std::span<const std::uint8_t> payload) {
   copy_active_to_scratch();
-  return parse_configuration_json(document, payload, validation_profile_, (*scratch_));
+  return parse_configuration_json(document, payload, validation_profile_, *scratch_,
+                                  *validation_scratch_);
 }
 
 ConfigurationService::SaveOutcome ConfigurationService::save(
     const ConfigurationDocument document, const std::span<const std::uint8_t> payload) {
   copy_active_to_scratch();
   const ValidationFailure parsed =
-      parse_configuration_json(document, payload, validation_profile_, (*scratch_));
+      parse_configuration_json(document, payload, validation_profile_, *scratch_,
+                               *validation_scratch_);
   if (!parsed.ok()) {
     return {.failure = parsed};
   }
@@ -198,7 +204,8 @@ ConfigurationService::LoadedRecord ConfigurationService::load_document(
     return loaded;
   }
   const ValidationFailure failure =
-      parse_configuration_json(document, payload, validation_profile_, configuration);
+      parse_configuration_json(document, payload, validation_profile_, configuration,
+                               *validation_scratch_);
   if (!failure.ok()) {
     loaded.status.outcome = DocumentOutcome::rejected;
     loaded.status.failure = failure;
@@ -220,14 +227,16 @@ bool ConfigurationService::build_record(const std::span<const std::uint8_t> payl
       output.size() < kRecordHeaderSize + payload.size()) {
     return false;
   }
+  const std::size_t payload_size = payload.size();
+  std::memmove(output.data() + kRecordHeaderSize, payload.data(), payload_size);
+  const std::span<const std::uint8_t> stored = output.subspan(kRecordHeaderSize, payload_size);
   binary::write_u32_le(output, 0, kRecordMagic);
   binary::write_u16_le(output, 4, kRecordVersion);
   binary::write_u16_le(output, 6, kConfigurationSchemaVersion);
-  binary::write_u32_le(output, 8, static_cast<std::uint32_t>(payload.size()));
+  binary::write_u32_le(output, 8, static_cast<std::uint32_t>(payload_size));
   binary::write_u32_le(output, 12, generation);
-  binary::write_u32_le(output, 16, binary::crc32(payload));
-  std::copy(payload.begin(), payload.end(), output.begin() + kRecordHeaderSize);
-  size = kRecordHeaderSize + payload.size();
+  binary::write_u32_le(output, 16, binary::crc32(stored));
+  size = kRecordHeaderSize + payload_size;
   return true;
 }
 
@@ -241,7 +250,8 @@ void ConfigurationService::remember_payload(const ConfigurationDocument document
 ValidationFailure ConfigurationService::stage(const ConfigurationDocument document,
                                               const std::span<const std::uint8_t> payload) {
   copy_active_to_scratch();
-  return parse_configuration_json(document, payload, validation_profile_, (*scratch_));
+  return parse_configuration_json(document, payload, validation_profile_, *scratch_,
+                                  *validation_scratch_);
 }
 
 void ConfigurationService::promote() { promote_scratch(); }

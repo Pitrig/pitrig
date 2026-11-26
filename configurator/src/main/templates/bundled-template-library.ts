@@ -13,13 +13,10 @@ import {
   type TemplateVariant
 } from '../../shared/templates'
 import type { DashboardFileService } from '../dashboard-files/dashboard-file-service'
-import {
-  decodeDashboardFile,
-  type DashboardFileContent
-} from '../dashboard-files/dashboard-file-format'
-import { encodePlanesAsPng } from '../image-assets/image-pixels'
+import { decodeDashboardFile } from '../dashboard-files/dashboard-file-format'
 import { BUNDLED_TEMPLATE_SOURCES, type BundledTemplateSource } from './bundled-templates'
 import { dashboardSummary, failure, messageOf, parseTemplateDocument } from './template-documents'
+import { previewsOf } from './template-previews'
 import { t } from '@shared/ui-text'
 
 interface LoadedStarter {
@@ -149,29 +146,6 @@ async function loadStarter(entry: BundledTemplateSource): Promise<LoadedStarter>
     configuration: content.configuration
   })
   return { document, previews: previewsOf(content) }
-}
-
-function previewsOf(content: DashboardFileContent): PreviewImageAsset[] {
-  const previews: PreviewImageAsset[] = []
-  for (const image of content.images) {
-    const png = encodePlanesAsPng({
-      format: image.format,
-      width: image.width,
-      height: image.height,
-      frameCount: image.frameCount,
-      bytes: image.planes
-    })
-    if (!png) continue
-    previews.push({
-      name: image.id,
-      width: image.width,
-      height: image.height,
-      frameCount: image.frameCount,
-      format: image.format,
-      dataUrl: `data:image/png;base64,${png.toString('base64')}`
-    })
-  }
-  return previews
 }
 
 function missing(id: string): TemplateResult<never> {

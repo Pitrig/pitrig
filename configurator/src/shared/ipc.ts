@@ -1,5 +1,6 @@
 import type { AssetResult } from './asset-upload'
 import type { UsageSetRequest, UsageSettings } from './usage'
+import type { UiLanguageSetRequest, UiLanguageSettings } from './ui-language'
 import type { ImageSourceSelection } from './image-assets'
 import type {
   ImageLibraryAddRequest,
@@ -41,6 +42,11 @@ import type {
   FirmwareUploadProgress,
   FirmwareUploadRequest
 } from './firmware-update'
+import type {
+  FirstInstallProgress,
+  FirstInstallRequest,
+  FirstInstallResult
+} from './first-install'
 import type { FontAssetResult } from './font-assets'
 import type {
   FontCatalogFamily,
@@ -85,6 +91,7 @@ import type {
 } from './telemetry-bridge'
 import type {
   TemplateIdRequest,
+  TemplateImportRequest,
   TemplateLibrary,
   TemplateReadValue,
   TemplateResult,
@@ -123,6 +130,12 @@ export interface PitrigApi {
   openTemplateCredit: (request: TemplateIdRequest) => Promise<boolean>
   saveTemplate: (request: TemplateSaveRequest) => Promise<TemplateResult<TemplateSummary>>
   deleteTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<void>>
+  shareTemplate: (
+    request: TemplateIdRequest
+  ) => Promise<TemplateResult<DashboardShareSaveValue>>
+  importTemplateFile: (
+    request: TemplateImportRequest
+  ) => Promise<TemplateResult<TemplateSummary | null>>
   listSerialPorts: () => Promise<DeviceResult<SerialPortSummary[]>>
   getDeviceState: () => Promise<DeviceState>
   connectDevice: (
@@ -162,6 +175,8 @@ export interface PitrigApi {
   uploadFirmware: (request: FirmwareUploadRequest) => Promise<FirmwareUpdateResult<void>>
   cancelFirmwareUpload: () => Promise<FirmwareUpdateResult<void>>
   updateBoard: (request: BoardUpdateRequest) => Promise<BoardUpdateResult>
+  installPitrig: (request: FirstInstallRequest) => Promise<FirstInstallResult>
+  cancelPitrigInstall: () => Promise<void>
   getUpdateStatus: () => Promise<UpdateStatus>
   checkForUpdates: () => Promise<UpdateStatus>
   installAppUpdate: () => Promise<boolean>
@@ -171,6 +186,9 @@ export interface PitrigApi {
   onUpdateStatus: (listener: (status: UpdateStatus) => void) => () => void
   getUsageSettings: () => Promise<UsageSettings>
   setUsageSettings: (request: UsageSetRequest) => Promise<UsageSettings>
+  getUiLanguage: () => Promise<UiLanguageSettings>
+  setUiLanguage: (request: UiLanguageSetRequest) => Promise<UiLanguageSettings>
+  restartForUiLanguage: () => Promise<boolean>
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
   cancelImageUpload: () => Promise<AssetResult<void>>
   clearImageAssets: () => Promise<DeviceResult<DeviceState>>
@@ -191,6 +209,7 @@ export interface PitrigApi {
     listener: (progress: FirmwareUploadProgress) => void
   ) => () => void
   onBoardUpdateProgress: (listener: (progress: BoardUpdateProgress) => void) => () => void
+  onPitrigInstallProgress: (listener: (progress: FirstInstallProgress) => void) => () => void
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void

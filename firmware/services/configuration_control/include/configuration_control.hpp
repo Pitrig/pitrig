@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <string_view>
 
 #include "configuration_service.hpp"
 #include "freertos/FreeRTOS.h"
@@ -17,8 +16,6 @@ class ITransport;
 }
 
 namespace pitrig::configuration {
-
-inline constexpr std::string_view kControlPrefix = "@PR:";
 
 using RebootHandler = void (*)(void* context);
 
@@ -40,6 +37,10 @@ class ConfigurationControl {
 
   void consume(std::span<const std::uint8_t> line, transport::ITransport& reply);
 
+  [[nodiscard]] std::span<std::uint8_t> reserve_line();
+  void submit_line(std::size_t size, transport::ITransport& reply);
+  void release_line();
+
  private:
   enum class RequestState : std::uint8_t {
     idle,
@@ -47,7 +48,7 @@ class ConfigurationControl {
     ready,
   };
 
-  static constexpr std::size_t kTaskStackSize = 9728;
+  static constexpr std::size_t kTaskStackSize = 7680;
   static constexpr UBaseType_t kTaskPriority = 4;
   static constexpr EventBits_t kComposedBit = 1U << 0U;
   static constexpr std::uint32_t kCompositionWaitMs = 10'000;

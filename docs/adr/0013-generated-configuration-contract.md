@@ -93,7 +93,9 @@ generating it would mean describing logic in JSON.
 - A rejection identifies the widget and property that caused it.
 - Adding a widget type no longer touches roughly nineteen sites.
 - A document of an unsupported version is rejected rather than guessed at, so a
-  contract change costs one re-authoring rather than a silent misreading.
+  contract change costs one re-authoring rather than a silent misreading. A board
+  document a newer Pitrig wrote, invalid here only for names this configurator
+  does not know, is kept unread and never overwritten.
 - `configuration/configuration_schema.json` and the generator become part of the
   public contract: editing generated files directly is a defect, and `--check`
   belongs in any verification pass.

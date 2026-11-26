@@ -118,7 +118,8 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 
 [[nodiscard]] ValidationFailure parse_root(const cJSON* const root, const KeyList keys,
                                            const ValidationContext& profile,
-                                           ApplicationConfiguration& configuration) {
+                                           ApplicationConfiguration& configuration,
+                                           ValidationScratch& scratch) {
   ValidationFailure failure{};
   constexpr std::string_view kName = "configuration";
   if (!valid_object(root, keys, kName, failure)) {
@@ -160,13 +161,18 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
       return failure;
     }
   }
-  return validate_configuration(configuration, profile);
+  const ValidationFailure validated = validate_configuration(configuration, profile, scratch);
+  if (validated.ok() && owns(keys, "dashboard") && profile.dashboard_colors != nullptr) {
+    profile.dashboard_colors->apply(configuration);
+  }
+  return validated;
 }
 
 [[nodiscard]] ValidationFailure parse_payload(const std::span<const std::uint8_t> input,
                                               const std::size_t limit, const KeyList keys,
                                               const ValidationContext& profile,
-                                              ApplicationConfiguration& configuration) {
+                                              ApplicationConfiguration& configuration,
+                                              ValidationScratch& scratch) {
   static_assert(CONFIG_CJSON_NESTING_LIMIT >= 32,
                 "cJSON would refuse a legal dashboard before any rule sees it. The deepest "
                 "document the contract allows nests about twenty objects, and cJSON_Parse "
@@ -191,7 +197,7 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
     (void)reject(failure, ValidationError::malformed, "configuration");
     return failure;
   }
-  return parse_root(root.get(), keys, profile, configuration);
+  return parse_root(root.get(), keys, profile, configuration, scratch);
 }
 
 }
@@ -199,9 +205,10 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 ValidationFailure parse_configuration_json(const ConfigurationDocument document,
                                            const std::span<const std::uint8_t> input,
                                            const ValidationContext& profile,
-                                           ApplicationConfiguration& configuration) {
+                                           ApplicationConfiguration& configuration,
+                                           ValidationScratch& scratch) {
   return parse_payload(input, configuration_document_payload_size(document),
-                       schema::document_keys(document), profile, configuration);
+                       schema::document_keys(document), profile, configuration, scratch);
 }
 
 }

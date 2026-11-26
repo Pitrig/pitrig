@@ -9,6 +9,7 @@
 #include "boot_guard.hpp"
 #include "communication_composition.hpp"
 #include "configuration_service.hpp"
+#include "display_color.hpp"
 #include "font_asset_service.hpp"
 #include "image_asset_service.hpp"
 #include "logger.hpp"
@@ -58,12 +59,13 @@ void report_document(const configuration::ConfigurationDocument document,
 }
 
 ConfigurationBuffers reserve_configuration_memory(Application& application) {
+  static_assert(configuration::ConfigurationControl::kIoBufferSize >=
+                configuration::ConfigurationService::kRecordBufferSize);
   constexpr std::size_t kConfigurationMemorySize =
-      configuration::ConfigurationService::kRecordBufferSize +
       configuration::ConfigurationService::kPayloadBufferSize +
       configuration::ConfigurationService::kConfigurationBufferSize +
       configuration::ConfigurationControl::kIoBufferSize +
-      communication::Router::kControlLineBufferSize;
+      communication::Router::kBusyLineBufferSize;
   if (!application.platform.configuration_memory.initialize(kConfigurationMemorySize)) {
     log::error(kTag,
                "Configuration memory needs %lu bytes of external RAM and did "
@@ -77,11 +79,13 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
     memory = memory.subspan(size);
     return buffer;
   };
+  const std::span<std::uint8_t> control_io =
+      take(configuration::ConfigurationControl::kIoBufferSize);
   return {
-      .record = take(configuration::ConfigurationService::kRecordBufferSize),
+      .record = control_io,
       .current_payloads = take(configuration::ConfigurationService::kPayloadBufferSize),
-      .control_io = take(configuration::ConfigurationControl::kIoBufferSize),
-      .control_line = take(communication::Router::kControlLineBufferSize),
+      .control_io = control_io,
+      .busy_line = take(communication::Router::kBusyLineBufferSize),
       .configuration = take(configuration::ConfigurationService::kConfigurationBufferSize),
   };
 }
@@ -98,8 +102,18 @@ void load_configuration(Application& application, const board_registry::BoardDef
   if (boot_guard::safe_mode()) {
     apply_stored[static_cast<std::size_t>(configuration::ConfigurationDocument::protocol)] = false;
   }
+  configuration::ValidationContext validation = board.validation;
+  if (board.display != nullptr && board.display->color_profile != nullptr) {
+    application.color_correction.emplace(*board.display->color_profile);
+    if (application.color_correction->valid()) {
+      validation.dashboard_colors = &*application.color_correction;
+    } else {
+      application.color_correction.reset();
+      log::warn(kTag, "Display colour profile unusable; colours stay uncorrected");
+    }
+  }
   if (!application.services.configuration.initialize(
-          application.platform.configuration_storage, board.validation, factory, buffers.record,
+          application.platform.configuration_storage, validation, factory, buffers.record,
           buffers.current_payloads, buffers.configuration, apply_stored)) {
     log::warn(kTag, "Configuration storage unavailable; using factory defaults");
   }

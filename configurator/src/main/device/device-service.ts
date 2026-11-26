@@ -1,10 +1,12 @@
 import { type SerialTrafficLog } from '../../shared/serial-traffic'
 import { controlCommandRefusal, type ControlCommandValue } from '../../shared/control-command'
 import type {
+  DeviceActivity,
   DeviceConnection,
   DeviceConfigurationResetResult,
   DeviceConfigurationApplyResult,
   DeviceConfigurationSaveResult,
+  DeviceError,
   DeviceResult,
   DeviceState,
   SerialPortSummary
@@ -13,7 +15,7 @@ import type { ConfigurationDocumentId } from '../../shared/configuration-schema'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type { FontUploadProgress } from '../../shared/font-assets'
 import type { InstalledImage } from '../../shared/image-assets'
-import { failure, success, toDeviceError } from './device-errors'
+import { DeviceServiceError, failure, success } from './device-errors'
 import {
   applyDeviceConfiguration,
   readDeviceConfiguration,
@@ -21,11 +23,13 @@ import {
   saveDeviceConfiguration,
   validateDeviceConfiguration
 } from './device-config-commands'
-import { ConnectionManager } from './device-connection'
+import { ConnectionManager, type OpenedDevice } from './device-connection'
 import { DeviceHeartbeat } from './device-heartbeat'
-import { OperationRunner } from './device-operation'
+import { LinkOwner } from './link-owner'
+import { claimPortForInstall, type InstallClaim } from './install-claim'
 import type { PortClaims } from './port-leases'
 import { closePort } from './serial-port-lifecycle'
+import { sentTraffic } from './serial-traffic-reporter'
 import {
   advanceFirmwareSession,
   advanceFontSession,
@@ -36,10 +40,13 @@ import {
 } from './device-uploads'
 import { requestResponse, sendControlCommand } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
+
+const REBOOT_TIMEOUT_MS = 2_000
 
 export class DeviceService {
   private readonly connection: ConnectionManager
-  private readonly runner: OperationRunner
+  private readonly owner: LinkOwner
   private readonly heartbeat: DeviceHeartbeat
 
   constructor(
@@ -47,8 +54,8 @@ export class DeviceService {
     onSerialTraffic?: (log: SerialTrafficLog) => void
   ) {
     this.connection = new ConnectionManager(onStateChanged, onSerialTraffic)
-    this.runner = new OperationRunner(this.connection)
-    this.heartbeat = new DeviceHeartbeat(this.connection, this.runner)
+    this.owner = new LinkOwner(this.connection)
+    this.heartbeat = new DeviceHeartbeat(this.connection, this.owner)
     this.heartbeat.start()
   }
 
@@ -65,95 +72,75 @@ export class DeviceService {
   }
 
   async connect(portId: string, baudRate: number): Promise<DeviceResult<DeviceState>> {
-    if (this.isBusy()) {
-      return failure({ code: 'busy', message: t('device.deviceOperation.anotherDeviceOperationIsAlready') })
-    }
-    return this.connection.openConnection(portId, baudRate)
+    return this.stateOperation('connect', () => this.connection.openConnection(portId, baudRate))
   }
 
   async autoConnect(): Promise<DeviceResult<DeviceState>> {
-    if (this.isBusy()) {
-      return failure({ code: 'busy', message: t('device.deviceOperation.anotherDeviceOperationIsAlready') })
-    }
-    return this.connection.autoConnect()
+    return this.stateOperation('connect', () => this.connection.autoConnect())
   }
 
   async cancelAutoConnect(): Promise<DeviceResult<DeviceState>> {
+    const activity = this.owner.activity
+    if (activity !== undefined && activity !== 'connect' && activity !== 'restart') {
+      return failure(this.owner.busyWith(activity))
+    }
     return this.connection.cancelAutoConnect()
   }
 
   async disconnect(): Promise<DeviceResult<DeviceState>> {
-    if (this.runner.operationActive) {
-      return failure({
-        code: 'busy',
-        message: t('device.deviceService.cancelTheActiveDeviceOperation')
-      })
-    }
-    await this.connection.closeDevicePorts()
-    return success(this.getState())
+    return this.stateOperation('disconnect', async () => {
+      await this.connection.closeDevicePorts()
+      return success(this.getState())
+    })
   }
 
   async readConfiguration(): Promise<DeviceResult<DeviceState>> {
-    return readDeviceConfiguration(this.connection, this.runner)
+    return readDeviceConfiguration(this.connection, this.owner)
   }
 
   async applyConfiguration(
     json: string,
     documents?: ConfigurationDocumentId[]
   ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
-    if (this.runner.inPipeline) {
-      return failure({ code: 'busy', message: t('device.deviceService.aSaveIsRunningOn') })
-    }
-    return this.applyConfigurationNow(json, documents)
-  }
-
-  async applyConfigurationNow(
-    json: string,
-    documents?: ConfigurationDocumentId[]
-  ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
-    return applyDeviceConfiguration(this.connection, this.runner, json, documents)
+    return applyDeviceConfiguration(this.connection, this.owner, json, documents)
   }
 
   async validateConfiguration(
     json: string,
     documents: ConfigurationDocumentId[]
   ): Promise<DeviceResult<ConfigurationDocumentId[]>> {
-    return validateDeviceConfiguration(this.runner, json, documents)
+    return validateDeviceConfiguration(this.owner, json, documents)
   }
 
   async saveConfiguration(
     json: string,
     documents?: ConfigurationDocumentId[]
   ): Promise<DeviceResult<DeviceConfigurationSaveResult>> {
-    return saveDeviceConfiguration(this.connection, this.runner, json, documents)
+    return saveDeviceConfiguration(this.connection, this.owner, json, documents)
   }
 
   async resetConfiguration(
     document?: ConfigurationDocumentId
   ): Promise<DeviceResult<DeviceConfigurationResetResult>> {
-    return resetDeviceConfiguration(this.connection, this.runner, document)
+    return resetDeviceConfiguration(this.connection, this.owner, document)
   }
 
-  async sendControlCommand(command: string): Promise<DeviceResult<ControlCommandValue>> {
+  async sendControlCommand(
+    command: string,
+    options: { poll?: boolean } = {}
+  ): Promise<DeviceResult<ControlCommandValue>> {
     const refusal = controlCommandRefusal(command)
     if (refusal) return failure({ code: 'invalid_request', message: refusal })
-    return this.runner.run(async ({ port, traffic }) => {
-      const lines = await sendControlCommand(
-        port,
-        command.trim(),
-        this.runner.operationTraffic(traffic)
-      )
-      return success({ lines })
-    })
+    const send = async ({ port, traffic }: OpenedDevice): Promise<DeviceResult<ControlCommandValue>> =>
+      success({ lines: await sendControlCommand(port, command.trim(), sentTraffic(traffic)) })
+    if (!options.poll) return this.owner.command(send)
+    return (await this.owner.poll(send)) ?? success({ lines: [] })
   }
 
   writeTelemetry(text: string | Uint8Array, onWritten?: (error?: Error) => void): boolean {
     const port = this.connection.port
-    if (!port?.isOpen) {
-      onWritten?.(new Error(t('device.serialRequest.theSerialPortIsClosed')))
-      return false
-    }
-    return port.write(text, (error) => onWritten?.(error ?? undefined))
+    if (!port || this.connection.isTransitioning()) return false
+    return this.owner.writeTelemetry(port, text, onWritten)
   }
 
   telemetryLinkAvailable(): boolean {
@@ -161,47 +148,33 @@ export class DeviceService {
   }
 
   relayAvailable(): boolean {
-    return (
-      this.telemetryLinkAvailable() && !this.runner.operationActive && !this.runner.inPipeline
-    )
+    return this.telemetryLinkAvailable() && this.owner.free
   }
 
   async clearImages(): Promise<DeviceResult<DeviceState>> {
-    return clearImagePackage(this.connection, this.runner)
+    return clearImagePackage(this.connection, this.owner)
   }
 
   async clearFonts(): Promise<DeviceResult<DeviceState>> {
-    return clearFontPackage(this.connection, this.runner)
+    return clearFontPackage(this.connection, this.owner)
   }
 
   async reboot(): Promise<DeviceResult<DeviceState>> {
-    const port = this.connection.port
-    const connection = this.getState().connection
-    const traffic = this.connection.traffic
-    if (!port?.isOpen || !connection || this.runner.operationActive) {
-      return failure({ code: 'busy', message: t('device.deviceService.theConnectedDeviceIsBusy') })
-    }
-    try {
-      return await this.runner.withLock(async () => {
-        await requestResponse(
-          port,
-          '@PR:REBOOT\n',
-          '@PR:OK:REBOOTING',
-          2_000,
-          (direction, data) => {
-            if (direction === 'tx') traffic?.write(direction, data)
-          },
-          'serial_error'
-        )
-        const released = this.connection.releaseActivePort()
-        await closePort(released?.port ?? port)
-        released?.traffic?.flush()
-        this.connection.setState({ status: 'disconnected' })
-        return success(this.getState())
-      })
-    } catch (error) {
-      return failure(toDeviceError(error))
-    }
+    return this.owner.command(async ({ port, traffic }) => {
+      await requestResponse(
+        port,
+        `${CONTROL_PREFIX}REBOOT\n`,
+        `${CONTROL_PREFIX}OK:REBOOTING`,
+        REBOOT_TIMEOUT_MS,
+        sentTraffic(traffic),
+        'board_refused'
+      )
+      const released = this.connection.releaseActivePort()
+      await closePort(released?.port ?? port)
+      released?.traffic?.flush()
+      this.connection.setState({ status: 'disconnected' })
+      return success(this.getState())
+    })
   }
 
   async uploadFonts(
@@ -212,7 +185,7 @@ export class DeviceService {
   ): Promise<void> {
     return uploadPackage(
       this.connection,
-      this.runner,
+      this.owner,
       { command: 'FONT', label: t('device.deviceService.font') },
       packageBytes,
       onProgress,
@@ -229,7 +202,7 @@ export class DeviceService {
   ): Promise<void> {
     return uploadPackage(
       this.connection,
-      this.runner,
+      this.owner,
       { command: 'IMAGE', label: t('device.deviceService.image') },
       packageBytes,
       onProgress,
@@ -245,7 +218,7 @@ export class DeviceService {
   ): Promise<void> {
     return uploadPackage(
       this.connection,
-      this.runner,
+      this.owner,
       { command: 'FW', label: t('device.deviceService.firmware') },
       packageBytes,
       onProgress,
@@ -259,24 +232,45 @@ export class DeviceService {
     await this.connection.closeDevicePorts()
   }
 
-  async runPipeline<T>(work: () => Promise<T>): Promise<T> {
-    return this.runner.runPipeline(work)
+  async operation<T>(
+    activity: DeviceActivity,
+    work: () => Promise<T>,
+    refused: (error: DeviceError) => T
+  ): Promise<T> {
+    return this.owner.operation(activity, work, refused)
+  }
+
+  whenIdle(): Promise<void> {
+    return this.owner.whenIdle()
+  }
+
+  async claimForInstall<T>(portId: string, work: (claim: InstallClaim) => Promise<T>): Promise<T> {
+    return this.operation(
+      'install',
+      () => claimPortForInstall(this.connection, portId, work),
+      (error) => {
+        throw new DeviceServiceError(error.code, error.message)
+      }
+    )
   }
 
   async reconnect(connection: DeviceConnection): Promise<DeviceResult<DeviceState>> {
-    return this.connection.reconnect(connection)
+    return this.stateOperation('connect', () => this.connection.reconnect(connection))
   }
 
   async rebootAndReconnect(): Promise<DeviceResult<DeviceState>> {
-    const connection = this.getState().connection
-    const rebooted = await this.reboot()
-    if (!rebooted.ok || !connection) return rebooted
-    return this.connection.reconnect(connection)
+    return this.stateOperation('restart', async () => {
+      const connection = this.getState().connection
+      const rebooted = await this.reboot()
+      if (!rebooted.ok || !connection) return rebooted
+      return this.connection.reconnect(connection)
+    })
   }
 
-  private isBusy(): boolean {
-    return (
-      this.runner.operationActive || this.runner.inPipeline || this.connection.isTransitioning()
-    )
+  private async stateOperation(
+    activity: DeviceActivity,
+    work: () => Promise<DeviceResult<DeviceState>>
+  ): Promise<DeviceResult<DeviceState>> {
+    return this.owner.operation(activity, work, (error) => failure(error))
   }
 }

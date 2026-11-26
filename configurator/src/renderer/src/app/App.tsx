@@ -15,6 +15,7 @@ import { useAppInfo } from '@/features/device/app-info'
 import { useDraftState } from '@/features/device/draft-state'
 import { InfoPage } from '@/features/device/InfoPage'
 import { reportLiveApply } from '@/features/device/live-apply-store'
+import { NewerBoardBanner } from '@/features/device/NewerBoardBanner'
 import { SafeModeBanner } from '@/features/device/SafeModeBanner'
 import { SchemaBanner } from '@/features/device/SchemaBanner'
 import { FirmwareBehindGate, UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
@@ -45,6 +46,10 @@ export function App(): React.JSX.Element {
   const saving = useSaveToBoardStore((state) => state.running)
   const updating = useBoardUpdateStore((state) => state.running)
   const syncQuestion = useBoardSyncStore((state) => state.question)
+  const writingBoard = useDeviceStore(
+    (state) => state.activity === 'save' || state.activity === 'update'
+  )
+  const newerBoard = useDeviceStore((state) => (state.session?.newerDocuments.length ?? 0) > 0)
   const { liveApplyAllowed, dirtyDocuments } = useDraftState()
   const layerPreview = useModulesStore((state) => state.preview)
 
@@ -54,7 +59,7 @@ export function App(): React.JSX.Element {
   useEffect(() => subscribeToTelemetryBridge(), [])
   useEffect(() => startLiveTelemetry(), [])
   useTelemetryInterest()
-  useBoardSync(dirtyDocuments, updating)
+  useBoardSync(dirtyDocuments, updating || saving || writingBoard || newerBoard)
 
   const mirroring = liveApplyAllowed && !saving && !updating && syncQuestion === undefined
   useLiveApply(mirroring && layerPreview.length === 0, reportLiveApply)
@@ -83,6 +88,7 @@ export function App(): React.JSX.Element {
       <div className="min-w-0">
         <SafeModeBanner />
         <SchemaBanner />
+        <NewerBoardBanner />
         <UpdateBanner />
       </div>
 

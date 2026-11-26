@@ -4,7 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { writeEventLog } from '@/lib/event-log'
+import { activityReason } from '@/features/device/board-activity'
 import { useDeviceStore } from '@/features/device/device-store'
+import { useFirstInstallStore } from '@/features/firmware-update/first-install/first-install-store'
 import { t } from '@shared/ui-text'
 import {
   DEFAULT_BAUD_RATE,
@@ -88,7 +90,13 @@ export function DeviceConnection({
     })
   }, [applyDeviceState, applyPortResult])
 
-  const isWorking = ['scanning', 'connecting', 'disconnecting'].includes(status)
+  const installing = useFirstInstallStore((state) => state.phase === 'running')
+  const activity = useDeviceStore((state) => state.activity)
+  const cancellable =
+    activity === 'connect' ||
+    (activity === 'restart' && (status === 'scanning' || status === 'connecting'))
+  const blockedReason = cancellable ? undefined : activityReason(activity)
+  const isWorking = installing || ['scanning', 'connecting', 'disconnecting'].includes(status)
   const statusText = formatStatus({ connection, scan, error })
   const statusBadgeStyle = STATUS_BADGE_STYLES[status]
   const showDetailedStatus =
@@ -169,7 +177,7 @@ export function DeviceConnection({
       />
 
       <Button
-        className="w-20 flex-none"
+        className="min-w-20 flex-none"
         variant="outline"
         disabled={isWorking || status === 'connected'}
         onClick={() => void refreshPorts()}
@@ -178,7 +186,8 @@ export function DeviceConnection({
       </Button>
       <Button
         className="w-28 flex-none"
-        disabled={status === 'disconnecting'}
+        disabled={installing || status === 'disconnecting' || blockedReason !== undefined}
+        title={blockedReason}
         onClick={() => void primaryAction()}
       >
         {actionLabel}

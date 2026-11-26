@@ -19,11 +19,13 @@ import {
   type ImageDeliveryPlan,
   type ImageLibrarySnapshot
 } from '@shared/image-library'
+import { newerDocumentsReason } from '@shared/newer-documents'
 import { useImageLibraryStore } from '@/features/image-assets/image-library-store'
 import {
   collectFontRequirements,
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
+import { useBoardActivityReason } from './board-activity'
 import { useDeviceStore } from './device-store'
 import { t } from '@shared/ui-text'
 
@@ -53,6 +55,7 @@ export function useDraftState(): DraftState {
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const runningConfiguration = useDeviceStore((state) => state.runningConfiguration)
   const imageLibrary = useImageLibraryStore((state) => state.snapshot)
+  const busyReason = useBoardActivityReason()
 
   const { parsed, missingFamilies } = inspect(draft, hasLocalDraft, session?.fontAssets?.families)
 
@@ -64,7 +67,9 @@ export function useDraftState(): DraftState {
   const safeMode = session?.info.health?.safeMode ?? false
   const boardMismatch =
     parsed.ok && session ? parsed.configuration.board !== session.info.boardId : false
-  const outdated = session ? outdatedFirmware(session.info.schemaVersion) : undefined
+  const boardBlocker = session
+    ? (newerDocumentsReason(session) ?? outdatedFirmware(session.info.schemaVersion))
+    : undefined
   const imagePlan = planImages(
     parsed.ok ? parsed.configuration : undefined,
     imageLibrary,
@@ -76,8 +81,8 @@ export function useDraftState(): DraftState {
 
   const documentSaveBlockedReason = !connected
     ? 'Connect a Pitrig board before saving.'
-    : outdated
-      ? outdated
+    : boardBlocker
+      ? boardBlocker
       : boardMismatch
       ? `Local configuration targets ${parsed.ok ? parsed.configuration.board : 'another board'}, but the connected board is ${session?.info.boardId}. Convert the draft to move the layout across.`
       : !parsed.ok
@@ -86,11 +91,12 @@ export function useDraftState(): DraftState {
           ? 'Persistent configuration storage is unavailable on this board.'
           : undefined
   const saveBlockedReason =
+    busyReason ??
     documentSaveBlockedReason ??
     imageBlocker ??
     (!dirty && !assetsPending ? 'The draft already matches what the board holds.' : undefined)
 
-  const liveApplyBlockedReason = outdated ?? liveApplyBlocker({
+  const liveApplyBlockedReason = busyReason ?? boardBlocker ?? liveApplyBlocker({
     connected,
     safeMode,
     parsed,

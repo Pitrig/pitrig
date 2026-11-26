@@ -17,6 +17,8 @@ export interface Match {
   baudRate: number
 }
 
+export type PortFinder = (records: readonly PortRecord[]) => PortRecord | undefined
+
 export async function scanForDevice(
   connection: ConnectionManager,
   token: number
@@ -177,4 +179,36 @@ async function attemptReconnect(
   manager.leases.dropAll()
   manager.setState({ status: 'error', error })
   return failure(error)
+}
+
+const INSTALL_POLL_MS = 500
+
+export async function connectWhenReady(
+  manager: ConnectionManager,
+  find: PortFinder,
+  baudRate: number,
+  deadline: number,
+  signal: AbortSignal
+): Promise<DeviceResult<DeviceState>> {
+  const token = manager.startOperation()
+  manager.setState({ status: 'connecting' })
+  try {
+    while (Date.now() < deadline && !signal.aborted) {
+      const record = find(await manager.refreshPortRegistry().catch(() => []))
+      manager.ensureCurrent(token)
+      if (record) {
+        const holdUntil = Math.min(deadline, Date.now() + RECONNECT_HOLD_MS)
+        const connected = await manager.openWithToken(record.summary.id, baudRate, true, token, holdUntil)
+        if (connected.ok) return connected
+        manager.ensureCurrent(token)
+      }
+      await delay(INSTALL_POLL_MS)
+      manager.ensureCurrent(token)
+    }
+  } catch (error) {
+    manager.setState({ status: 'disconnected' })
+    return failure(toDeviceError(error))
+  }
+  manager.setState({ status: 'disconnected' })
+  return failure({ code: 'port_missing', message: t('device.deviceScan.theBoardRestartedButDid') })
 }

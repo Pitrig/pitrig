@@ -49,8 +49,8 @@ void style_container(const Config& config, const Rect& bounds, lv_obj_t* const c
   lv_obj_set_style_pad_top(container, config.padding.top, LV_PART_MAIN);
   lv_obj_set_style_pad_right(container, config.padding.right, LV_PART_MAIN);
   lv_obj_set_style_pad_bottom(container, config.padding.bottom, LV_PART_MAIN);
-  lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(container, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(container, false);
+  lv_obj_set_clickable(container, false);
   apply_debug_widget_outline(container);
 }
 
@@ -68,8 +68,8 @@ void style_background_fill(const Config& config, const Rect& bounds, lv_obj_t* c
     apply_background_gradient(config, fill);
   }
   lv_obj_set_style_bg_opa(fill, has_background ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(fill, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(fill, false);
+  lv_obj_set_clickable(fill, false);
 }
 
 telemetry::TelemetryRead read_telemetry(void* const context) {
@@ -102,7 +102,7 @@ bool bind_source(const std::string_view name, const std::uint8_t modifier_count,
                  const telemetry::ITelemetryReader& telemetry,
                  const ModifierReaders& modifier_readers, value_smoothing::Service* const smoothing,
                  SourceContext& context, ValueReadCallback& read, void*& read_context,
-                 bool& fast_updates) {
+                 bool& fast_updates, const Following following) {
   const telemetry::Handle handle = registry.resolve(name);
   if (!handle.valid()) {
     return false;
@@ -114,8 +114,11 @@ bool bind_source(const std::string_view name, const std::uint8_t modifier_count,
     fast_updates = true;
     return read != nullptr && read_context != nullptr;
   }
-  value_smoothing::Follower* const follower =
-      smoothing != nullptr ? smoothing->follow(handle) : nullptr;
+  value_smoothing::Follower* follower = nullptr;
+  if (smoothing != nullptr) {
+    follower = following == Following::always ? smoothing->follow_always(handle)
+                                              : smoothing->follow(handle);
+  }
   if (follower != nullptr) {
     read = &value_smoothing::Service::read;
     read_context = follower;

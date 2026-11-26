@@ -16,11 +16,6 @@ interface Attempt {
 
 const NO_ATTEMPT: Attempt = {}
 
-const REASON_TEXT: Record<'connected' | 'board_changed', string> = {
-  connected: 'The board holds a different configuration than the draft in front of you.',
-  board_changed: 'What the board holds changed while you were editing.'
-}
-
 export function BoardSyncDialog(): React.JSX.Element | null {
   const question = useBoardSyncStore((state) => state.question)
   const defer = useBoardSyncStore((state) => state.defer)
@@ -60,14 +55,14 @@ export function BoardSyncDialog(): React.JSX.Element | null {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={t('device.boardSyncDialog.theBoardAndTheDraft')}
+        aria-label={t('device.boardSyncDialog.boardAndDraftDiffer')}
         className="w-[30rem] space-y-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
       >
         <div className="space-y-1">
           <h2 className="text-sm font-semibold text-foreground">{t('device.boardSyncDialog.boardAndDraftDiffer')}</h2>
           <p className="text-muted-foreground">
             {t('device.boardSyncDialog.explanation', {
-              reason: REASON_TEXT[question.reason],
+              reason: t(`device.boardSyncDialog.reason.${question.reason}`),
               board: boardId ? t('device.boardSyncDialog.onBoardid', { boardId }) : ''
             })}
           </p>

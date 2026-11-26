@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { UI_LANGUAGE_ARGUMENT, type UiLanguage } from '../shared/ui-language'
 import { appIcon } from './branding'
 
 export interface AppWindowOptions {
@@ -9,6 +10,7 @@ export interface AppWindowOptions {
   renderer: string
   width?: number
   height?: number
+  uiLanguage?: UiLanguage
 }
 
 export function isDevelopment(): boolean {
@@ -34,7 +36,8 @@ export function createAppWindow(options: AppWindowOptions): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      devTools: development
+      devTools: development,
+      additionalArguments: options.uiLanguage ? [`${UI_LANGUAGE_ARGUMENT}${options.uiLanguage}`] : []
     }
   })
 

@@ -1,8 +1,8 @@
 diff --git a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_arc.c b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_arc.c
-index 982200c..ad19a83 100644
+index be22c33..7d52344 100644
 --- a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_arc.c
 +++ b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_arc.c
-@@ -50,6 +50,29 @@ static void get_rounded_area(int16_t angle, int32_t radius, uint8_t thickness, l
+@@ -49,6 +49,29 @@ static inline lv_opa_t * allocate_circle_mask(const lv_draw_arc_dsc_t * dsc, int
   *   GLOBAL FUNCTIONS
   **********************/
  
@@ -32,25 +32,10 @@ index 982200c..ad19a83 100644
  void lv_draw_sw_arc(lv_draw_task_t * t, const lv_draw_arc_dsc_t * dsc, const lv_area_t * coords)
  {
  #if LV_DRAW_SW_COMPLEX
-@@ -78,6 +101,14 @@ void lv_draw_sw_arc(lv_draw_task_t * t, const lv_draw_arc_dsc_t * dsc, const lv_
-         return;
+@@ -131,6 +154,11 @@ void lv_draw_sw_arc(lv_draw_task_t * t, const lv_draw_arc_dsc_t * dsc, const lv_
+         LV_LOG_WARN("Couldn't allocate arc mask buffer");
+         goto mask_buf_alloc_fail;
      }
- 
-+    if(dsc->radius - width >= 8) {
-+        lv_area_t arc_area;
-+        lv_draw_arc_get_area(dsc->center.x, dsc->center.y, (uint16_t)dsc->radius, dsc->start_angle, dsc->end_angle,
-+                             width, dsc->rounded, &arc_area);
-+        lv_area_increase(&arc_area, 2, 2);
-+        if(!lv_area_intersect(&clipped_area, &clipped_area, &arc_area)) return;
-+    }
-+
-     lv_area_t area_in;
-     lv_area_copy(&area_in, &area_out);
-     area_in.x1 += dsc->width;
-@@ -114,6 +145,11 @@ void lv_draw_sw_arc(lv_draw_task_t * t, const lv_draw_arc_dsc_t * dsc, const lv_
-     int32_t blend_w = lv_area_get_width(&clipped_area);
-     int32_t h;
-     lv_opa_t * mask_buf = lv_malloc(blend_w);
 +    if(angle_fully_covers(&mask_angle_param, mask_buf, &clipped_area)) {
 +        mask_list[0] = mask_list[1];
 +        mask_list[1] = mask_list[2];
@@ -59,8 +44,8 @@ index 982200c..ad19a83 100644
  
      lv_area_t blend_area = clipped_area;
      lv_area_t img_area;
-@@ -182,8 +218,59 @@ void lv_draw_sw_arc(lv_draw_task_t * t, const lv_draw_arc_dsc_t * dsc, const lv_
- 
+@@ -179,8 +207,59 @@ void lv_draw_sw_arc(lv_draw_task_t * t, const lv_draw_arc_dsc_t * dsc, const lv_
+         }
      }
  
 +    void ** radius_list = mask_list[0] == (void *)&mask_angle_param ? &mask_list[1] : mask_list;
@@ -72,7 +57,7 @@ index 982200c..ad19a83 100644
 +    int8_t covered_below = -1;
      blend_area.y2 = blend_area.y1;
      for(h = 0; h < blend_h; h++) {
-+        bool rounded_row = dsc->rounded &&
++        bool rounded_row = circle_mask &&
 +                           ((blend_area.y1 >= round_area_1.y1 && blend_area.y1 <= round_area_1.y2) ||
 +                            (blend_area.y1 >= round_area_2.y1 && blend_area.y1 <= round_area_2.y2));
 +        if(fast_rows && !rounded_row) {
@@ -120,10 +105,10 @@ index 982200c..ad19a83 100644
          blend_dsc.mask_res = lv_draw_sw_mask_apply(mask_list, mask_buf, blend_area.x1, blend_area.y1, blend_w);
  
 diff --git a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_border.c b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_border.c
-index f27f0c3..103d901 100644
+index f2a5499..a96f0bd 100644
 --- a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_border.c
 +++ b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_border.c
-@@ -87,6 +87,27 @@ void lv_draw_sw_border(lv_draw_task_t * t, const lv_draw_border_dsc_t * dsc, con
+@@ -82,6 +82,27 @@ void lv_draw_sw_border(lv_draw_task_t * t, const lv_draw_border_dsc_t * dsc, con
   *   STATIC FUNCTIONS
   **********************/
  
@@ -151,7 +136,7 @@ index f27f0c3..103d901 100644
  void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const lv_area_t * inner_area,
                           int32_t rout, int32_t rin, lv_color_t color, lv_opa_t opa)
  {
-@@ -108,6 +129,11 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
+@@ -103,6 +124,11 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
      lv_draw_sw_mask_radius_param_t mask_rin_param;
      lv_draw_sw_mask_radius_init(&mask_rin_param, inner_area, rin, true);
      mask_list[0] = &mask_rin_param;
@@ -163,7 +148,7 @@ index f27f0c3..103d901 100644
  
      /*Create mask for the outer area*/
      lv_draw_sw_mask_radius_param_t mask_rout_param;
-@@ -190,6 +216,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
+@@ -185,6 +211,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
  
      /*Draw the corners*/
      int32_t blend_w;
@@ -172,7 +157,7 @@ index f27f0c3..103d901 100644
  
      /*Left and right corner together if they are close to each other*/
      if(!split_hor) {
-@@ -201,6 +229,11 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
+@@ -196,6 +224,11 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
              int32_t top_y = outer_area->y1 + h;
              int32_t bottom_y = outer_area->y2 - h;
              if(top_y < draw_area.y1 && bottom_y > draw_area.y2) continue;   /*This line is clipped now*/
@@ -184,7 +169,7 @@ index f27f0c3..103d901 100644
  
              lv_memset(mask_buf, 0xff, draw_area_w);
              blend_dsc.mask_res = lv_draw_sw_mask_apply(mask_list, mask_buf, blend_area.x1, top_y, draw_area_w);
-@@ -228,6 +261,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
+@@ -223,6 +256,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
                  for(h = draw_area.y1; h < core_area.y1; h++) {
                      blend_area.y1 = h;
                      blend_area.y2 = h;
@@ -193,7 +178,7 @@ index f27f0c3..103d901 100644
  
                      lv_memset(mask_buf, 0xff, blend_w);
                      blend_dsc.mask_res = lv_draw_sw_mask_apply(mask_list, mask_buf, blend_area.x1, h, blend_w);
-@@ -239,6 +274,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
+@@ -234,6 +269,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
                  for(h = core_area.y2 + 1; h <= draw_area.y2; h++) {
                      blend_area.y1 = h;
                      blend_area.y2 = h;
@@ -202,7 +187,7 @@ index f27f0c3..103d901 100644
  
                      lv_memset(mask_buf, 0xff, blend_w);
                      blend_dsc.mask_res = lv_draw_sw_mask_apply(mask_list, mask_buf, blend_area.x1, h, blend_w);
-@@ -259,6 +296,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
+@@ -254,6 +291,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
                  for(h = draw_area.y1; h < core_area.y1; h++) {
                      blend_area.y1 = h;
                      blend_area.y2 = h;
@@ -211,7 +196,7 @@ index f27f0c3..103d901 100644
  
                      lv_memset(mask_buf, 0xff, blend_w);
                      blend_dsc.mask_res = lv_draw_sw_mask_apply(mask_list, mask_buf, blend_area.x1, h, blend_w);
-@@ -270,6 +309,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
+@@ -265,6 +304,8 @@ void draw_border_complex(lv_draw_task_t * t, const lv_area_t * outer_area, const
                  for(h = core_area.y2 + 1; h <= draw_area.y2; h++) {
                      blend_area.y1 = h;
                      blend_area.y2 = h;
@@ -221,10 +206,10 @@ index f27f0c3..103d901 100644
                      lv_memset(mask_buf, 0xff, blend_w);
                      blend_dsc.mask_res = lv_draw_sw_mask_apply(mask_list, mask_buf, blend_area.x1, h, blend_w);
 diff --git a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_fill.c b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_fill.c
-index 930457f..400053d 100644
+index 751c65f..ea412a5 100644
 --- a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_fill.c
 +++ b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_fill.c
-@@ -45,6 +45,26 @@
+@@ -40,6 +40,26 @@
   *   GLOBAL FUNCTIONS
   **********************/
  
@@ -251,7 +236,7 @@ index 930457f..400053d 100644
  void lv_draw_sw_fill(lv_draw_task_t * t, lv_draw_fill_dsc_t * dsc, const lv_area_t * coords)
  {
      if(dsc->opa <= LV_OPA_MIN) return;
-@@ -90,6 +110,14 @@ void lv_draw_sw_fill(lv_draw_task_t * t, lv_draw_fill_dsc_t * dsc, const lv_area
+@@ -85,6 +105,14 @@ void lv_draw_sw_fill(lv_draw_task_t * t, lv_draw_fill_dsc_t * dsc, const lv_area
          mask_buf = lv_malloc(clipped_w);
          lv_draw_sw_mask_radius_init(&mask_rout_param, &bg_coords, rout, false);
          mask_list[0] = &mask_rout_param;
@@ -266,7 +251,7 @@ index 930457f..400053d 100644
      }
  
      int32_t h;
-@@ -149,11 +177,20 @@ void lv_draw_sw_fill(lv_draw_task_t * t, lv_draw_fill_dsc_t * dsc, const lv_area
+@@ -144,11 +172,20 @@ void lv_draw_sw_fill(lv_draw_task_t * t, lv_draw_fill_dsc_t * dsc, const lv_area
      }
  #endif
  
@@ -288,20 +273,20 @@ index 930457f..400053d 100644
          bool preblend = false;
  
 diff --git a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_mask.c b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_mask.c
-index f5e8c5a..c8f230d 100644
+index 9da0229..02ccbeb 100644
 --- a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_mask.c
 +++ b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_mask.c
-@@ -9,6 +9,8 @@
+@@ -7,6 +7,8 @@
+  *      INCLUDES
+  *********************/
  #include "lv_draw_sw_mask_private.h"
- #include "../lv_draw_mask.h"
- #include "../lv_draw.h"
 +#include "../lv_draw_private.h"
 +#include "lv_draw_sw.h"
  
  #if LV_DRAW_SW_COMPLEX
  #include "../../core/lv_global.h"
-@@ -1234,4 +1236,298 @@ static inline lv_opa_t LV_ATTRIBUTE_FAST_MEM mask_mix(lv_opa_t mask_act, lv_opa_
-     return LV_UDIV255(mask_act * mask_new);
+@@ -1311,4 +1313,299 @@ static inline void init_mask_radius_cache(lv_draw_sw_mask_radius_circle_dsc_t *
+     }
  }
  
 +typedef struct {
@@ -597,6 +582,7 @@ index f5e8c5a..c8f230d 100644
 +    }
 +    return true;
 +}
++
 +
  #endif /*LV_DRAW_SW_COMPLEX*/
 diff --git a/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_mask_private.h b/firmware/managed_components/lvgl__lvgl/src/draw/sw/lv_draw_sw_mask_private.h

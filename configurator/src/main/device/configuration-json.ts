@@ -1,6 +1,9 @@
 import { migrateConfigurationDocument } from '../../shared/configuration-migrate'
 import { t } from '@shared/ui-text'
-import { validateConfigurationDocument } from '../../shared/configuration-validate'
+import {
+  onlyUnknownNames,
+  validateConfigurationDocument
+} from '../../shared/configuration-validate'
 import {
   CONFIGURATION_DOCUMENTS,
   CONFIGURATION_DOCUMENT_IDS,
@@ -16,6 +19,15 @@ import {
   type PitrigBoardId
 } from '../../shared/device'
 
+export class NewerConfigurationError extends Error {
+  constructor(
+    message: string,
+    readonly board: PitrigBoardId
+  ) {
+    super(message)
+  }
+}
+
 export function parseDeviceConfigurationJson(json: string): DeviceConfiguration {
   let value: unknown
   try {
@@ -27,20 +39,28 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
 }
 
 export function parseDeviceConfigurationValue(value: unknown): DeviceConfiguration {
-  const result = validateConfigurationDocument(migrateConfigurationDocument(value), {
-    supportedBoards: PITRIG_BOARD_IDS
-  })
-  if (!result.ok) {
-    throw new Error(result.error)
+  const migrated = migrateConfigurationDocument(value)
+  const options = { supportedBoards: PITRIG_BOARD_IDS }
+  const result = validateConfigurationDocument(migrated, options)
+  if (result.ok) return result.configuration
+  if (onlyUnknownNames(migrated, options)) {
+    throw new NewerConfigurationError(result.error, (migrated as DeviceConfiguration).board)
   }
-  return result.configuration
+  throw new Error(result.error)
 }
 
 export function parseWidgetFragment(value: unknown, board: PitrigBoardId): WidgetConfiguration {
-  const document = parseDeviceConfigurationValue({
+  return carriedWidget(widgetCarrier(value, board))
+}
+
+export function widgetCarrier(value: unknown, board: PitrigBoardId): DeviceConfiguration {
+  return parseDeviceConfigurationValue({
     board,
     dashboard: { screens: [{ widgets: [value] }] }
   })
+}
+
+export function carriedWidget(document: DeviceConfiguration): WidgetConfiguration {
   const widget = document.dashboard?.screens?.[0]?.widgets?.[0]
   if (!widget) throw new Error(t('device.configurationJson.theFragmentHoldsNoWidget'))
   return widget

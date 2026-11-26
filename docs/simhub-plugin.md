@@ -17,6 +17,8 @@ uninstall entry, asks for administrator rights once when that folder needs them,
 and closes and restarts SimHub when it holds an older copy. On its next start
 SimHub asks to enable **Pitrig telemetry**; the plugin then appears in the left
 menu as **Pitrig**. Uninstalling the configurator leaves the plugin in SimHub.
+Its pages speak the language chosen on the configurator's Info page, else the
+Windows display language, and change after SimHub restarts.
 
 By hand: close SimHub, copy the DLL attached to the release next to
 `SimHubWPF.exe`, and unblock it under the file's properties.
@@ -119,7 +121,8 @@ EVO track — shows the cars on a ring.
 
 The position comes from SimHub's leaderboard, the fuel time is SimHub's
 `Fuel_RemainingTime`, and the laps left in a race over laps SimHub's
-`RemainingLaps` (iRacing's own count there). A lap is invalid by ACC's and F1's
+`RemainingLaps` (iRacing's own count there). The distance remaining is the track
+length times the part of the lap still ahead, on a rally stage the distance to the finish. A lap is invalid by ACC's and F1's
 own flags, in iRacing from any moment off the track outside a race until the lap
 count changes, and elsewhere only when SimHub's flag says so; with no flag it is
 unknown. A finished lap is invalid when any moment of it was, judged before the
@@ -164,8 +167,9 @@ tyre wear. Tyre pressure, tyre wear, brake temperature and the fuel level and
 percentage read as missing while the game reports 0, which it does at a session
 start.
 The laps left in a timed session run on the best lap, else the last lap clear of
-the pit lane, else the all-time best; the fuel figures run on the last lap clear
-of the pit lane, else the best lap. The Settings tab's fuel margin and averages start
+the pit lane, else the all-time best. The fuel figures cover those laps less the
+part of the current lap already driven, and only the rest of that lap once the
+time has run out. The Settings tab's fuel margin and averages start
 from the defaults the mapping's `parameters` name.
 
 ## Buttons

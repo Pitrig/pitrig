@@ -1,5 +1,11 @@
+import { isUiLanguage, UI_LANGUAGE_GLOBAL, type UiLanguage } from './ui-language'
 import type { UiStringKey, UiStringParameters } from './ui-string-keys'
+import { DE_UI_STRINGS } from './ui-strings-de'
 import { EN_UI_STRINGS } from './ui-strings-en'
+import { ES_UI_STRINGS } from './ui-strings-es'
+import { KO_UI_STRINGS } from './ui-strings-ko'
+import { PL_UI_STRINGS } from './ui-strings-pl'
+import { UK_UI_STRINGS } from './ui-strings-uk'
 
 type UiStringValues<K extends UiStringKey> = K extends keyof UiStringParameters
   ? [UiStringParameters[K]]
@@ -7,22 +13,30 @@ type UiStringValues<K extends UiStringKey> = K extends keyof UiStringParameters
 
 type UiStringArguments = Readonly<Record<string, string | number>>
 
-const CATALOGS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  en: EN_UI_STRINGS
+const CATALOGS: Readonly<Record<UiLanguage, Readonly<Record<string, string>>>> = {
+  en: EN_UI_STRINGS,
+  uk: UK_UI_STRINGS,
+  ko: KO_UI_STRINGS,
+  pl: PL_UI_STRINGS,
+  de: DE_UI_STRINGS,
+  es: ES_UI_STRINGS
 }
 
-const LOCALE = 'en'
-const PLURALS = new Intl.PluralRules(LOCALE)
+const injected: unknown = Reflect.get(globalThis, UI_LANGUAGE_GLOBAL)
+
+export const UI_LANGUAGE: UiLanguage = isUiLanguage(injected) ? injected : 'en'
+
+const CATALOG = CATALOGS[UI_LANGUAGE]
+const PLURALS = new Intl.PluralRules(UI_LANGUAGE)
 const PLACEHOLDER = /\{(\w+)\}/g
 
 function templateOf(key: string, values: UiStringArguments | undefined): string {
-  const catalog = CATALOGS[LOCALE] ?? EN_UI_STRINGS
   const count = values?.count
   if (typeof count === 'number') {
-    const form = catalog[`${key}#${PLURALS.select(count)}`] ?? catalog[`${key}#other`]
+    const form = CATALOG[`${key}#${PLURALS.select(count)}`] ?? CATALOG[`${key}#other`]
     if (form !== undefined) return form
   }
-  return catalog[key] ?? EN_UI_STRINGS[key] ?? key
+  return CATALOG[key] ?? EN_UI_STRINGS[key] ?? key
 }
 
 export function formatList(entries: readonly string[], shown: number): string {

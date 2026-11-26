@@ -34,6 +34,7 @@ import {
   MAXIMUM_TEMPLATE_NAME,
   TEMPLATE_ID_PATTERN,
   type TemplateIdRequest,
+  type TemplateImportRequest,
   type TemplateSaveRequest
 } from '@shared/templates'
 import { PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
@@ -110,6 +111,12 @@ export function isTemplateIdRequest(value: unknown): value is TemplateIdRequest 
   const id = request.id
   if (typeof id !== 'string' || id.length > 96) return false
   return TEMPLATE_ID_PATTERN.test(id) || id.startsWith(BUNDLED_TEMPLATE_PREFIX)
+}
+
+export function isTemplateImportRequest(value: unknown): value is TemplateImportRequest {
+  if (!value || typeof value !== 'object') return false
+  const kind = (value as Partial<TemplateImportRequest>).kind
+  return kind === 'dashboard' || kind === 'widget'
 }
 
 export function isConfigurationIdRequest(value: unknown): value is ConfigurationIdRequest {
@@ -214,7 +221,7 @@ export function isTelemetryInterest(value: unknown): value is TelemetryInterest 
   return (
     typeof interest.all === 'boolean' &&
     typeof interest.inputs === 'boolean' &&
-    isBindingList(interest.running) &&
+    (interest.running === null || isBindingList(interest.running)) &&
     isBindingList(interest.draft) &&
     isWiring(interest.wiring)
   )

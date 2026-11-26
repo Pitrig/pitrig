@@ -9,13 +9,19 @@ export interface LineOutcome<T> {
   error?: Error
 }
 
+export interface LineSend {
+  fail: (error: Error) => void
+  isSettled: () => boolean
+  arm: () => void
+}
+
 export interface LineExchangeOptions<T> {
   timeoutMs: number
   bufferLimit: number
   consume: (lines: readonly string[]) => LineOutcome<T> | undefined
   onTimeout: () => LineOutcome<T>
   onClose: () => Error
-  send: (fail: (error: Error) => void, isSettled: () => boolean) => void
+  send: (link: LineSend) => void
   onReceive?: (text: string) => void
   signal?: AbortSignal
   onAbort?: () => Error
@@ -28,6 +34,7 @@ export function exchangeLines<T>(
   return new Promise<T>((resolve, reject) => {
     const decoder = new StringDecoder('utf8')
     let buffer = ''
+    let armed = false
     let settled = false
 
     const cleanup = (): void => {
@@ -50,6 +57,7 @@ export function exchangeLines<T>(
       const text = decoder.write(chunk)
       if (text.length === 0) return
       options.onReceive?.(text)
+      if (!armed) return
       buffer = (buffer + text).slice(-options.bufferLimit)
       const lines = buffer.replaceAll('\r', '').split('\n')
       buffer = lines.pop() ?? ''
@@ -60,6 +68,10 @@ export function exchangeLines<T>(
     const onClose = (): void => fail(options.onClose())
     const onAbort = (): void =>
       fail(options.onAbort?.() ?? new Error(t('device.lineExchange.theRequestWasCancelled')))
+    const arm = (): void => {
+      buffer = ''
+      armed = true
+    }
 
     port.on('data', onData)
     port.once('error', onError)
@@ -70,6 +82,6 @@ export function exchangeLines<T>(
       onAbort()
       return
     }
-    options.send(fail, () => settled)
+    options.send({ fail, isSettled: () => settled, arm })
   })
 }

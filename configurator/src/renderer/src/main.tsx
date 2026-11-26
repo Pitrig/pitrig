@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 
 import { App } from './app/App'
 import './styles/globals.css'
-import { t } from '@shared/ui-text'
+import { t, UI_LANGUAGE } from '@shared/ui-text'
+
+document.documentElement.lang = UI_LANGUAGE
 
 const root = document.getElementById('root')
 

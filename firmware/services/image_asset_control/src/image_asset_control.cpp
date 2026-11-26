@@ -4,7 +4,6 @@
 #include <string_view>
 
 #include "asset_operations.hpp"
-#include "pitrig_features.hpp"
 
 namespace pitrig::image_assets {
 namespace {
@@ -55,16 +54,11 @@ int write_info_body(const Service& service, char* const out, const std::size_t s
 }
 
 bool ImageAssetControl::initialize(Service& service, binary_session::Claim& claim,
-                                   const std::span<std::uint8_t> frame) {
-  return control_.initialize(
-      {
-          .tag = "IMAGE",
-          .task_name = "image_asset_control",
-#if PITRIG_DEBUG
-          .metric = performance::TaskMetric::image_asset_control,
-#endif
-      },
-      asset_control::operations_for<Service, &write_info_body>(service), claim, frame);
+                                   const std::span<std::uint8_t> frame,
+                                   asset_control::Worker& worker) {
+  return control_.initialize({.tag = "IMAGE"},
+                             asset_control::operations_for<Service, &write_info_body>(service),
+                             claim, frame, worker);
 }
 
 }

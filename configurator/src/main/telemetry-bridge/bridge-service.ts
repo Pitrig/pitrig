@@ -29,6 +29,7 @@ import { t } from '@shared/ui-text'
 
 const STATUS_INTERVAL_MS = 500
 const MAXIMUM_PENDING_WRITES = 3
+const CLEAR_RETRY_MS = 250
 const EVERY_FIELD = '*'
 
 export class TelemetryBridgeService {
@@ -42,6 +43,8 @@ export class TelemetryBridgeService {
   private lastPacketAt = Number.NEGATIVE_INFINITY
   private pendingWrites = 0
   private simulatedUntil = Number.NEGATIVE_INFINITY
+  private unsentClear: string | undefined
+  private clearTimer: NodeJS.Timeout | undefined
   private error: string | undefined
 
   constructor(
@@ -105,10 +108,11 @@ export class TelemetryBridgeService {
   }
 
   setInterest(interest: TelemetryInterest): void {
-    const running = wireIdsOf(interest.running).join(',')
-    const fields = interest.all
-      ? EVERY_FIELD
-      : wireIdsOf([...interest.running, ...interest.draft]).join(',')
+    const running = interest.running === null ? null : wireIdsOf(interest.running).join(',')
+    const fields =
+      interest.all || interest.running === null
+        ? EVERY_FIELD
+        : wireIdsOf([...interest.running, ...interest.draft]).join(',')
     const fieldsChanged = this.handover.setInterest(fields, running)
     const inputsChanged = this.handover.setInputs(interest.inputs, interest.wiring)
     if (fieldsChanged || inputsChanged) void this.listener?.requestNow()
@@ -118,18 +122,48 @@ export class TelemetryBridgeService {
     this.simulatedUntil = simulation.active
       ? performance.now() + SIMULATION_LAPSE_MS
       : Number.NEGATIVE_INFINITY
-    if (simulation.payload === '' || !this.deviceService.relayAvailable()) return
-    if (this.pendingWrites >= MAXIMUM_PENDING_WRITES) return
-    this.pendingWrites += 1
-    this.deviceService.writeTelemetry(simulation.payload, (error) => {
-      this.pendingWrites = Math.max(0, this.pendingWrites - 1)
-      if (error) this.metrics.recordWriteError()
-    })
+    this.holdClear(undefined)
+    if (simulation.payload === '') return
+    if (!this.writeSimulation(simulation.payload) && !simulation.active) {
+      this.holdClear(simulation.payload)
+    }
   }
 
   async dispose(): Promise<void> {
+    this.holdClear(undefined)
     await this.listener?.requestNow()
     if (this.listener) await this.stop()
+  }
+
+  private writeSimulation(payload: string): boolean {
+    if (!this.deviceService.relayAvailable() || this.pendingWrites >= MAXIMUM_PENDING_WRITES) {
+      return false
+    }
+    this.pendingWrites += 1
+    const accepted = this.deviceService.writeTelemetry(payload, (error) => {
+      this.pendingWrites = Math.max(0, this.pendingWrites - 1)
+      if (error) this.metrics.recordWriteError()
+    })
+    if (!accepted) this.pendingWrites -= 1
+    return accepted
+  }
+
+  private holdClear(payload: string | undefined): void {
+    this.unsentClear = payload
+    if (payload === undefined) {
+      if (this.clearTimer) clearInterval(this.clearTimer)
+      this.clearTimer = undefined
+      return
+    }
+    this.clearTimer ??= setInterval(this.retryClear, CLEAR_RETRY_MS)
+  }
+
+  private readonly retryClear = (): void => {
+    const payload = this.unsentClear
+    const linkGone =
+      !this.deviceService.telemetryLinkAvailable() &&
+      this.deviceService.getState().activity === undefined
+    if (payload === undefined || linkGone || this.writeSimulation(payload)) this.holdClear(undefined)
   }
 
   private async stop(): Promise<void> {
@@ -175,12 +209,18 @@ export class TelemetryBridgeService {
       return
     }
     this.pendingWrites += 1
-    this.metrics.recordHandoff(performance.now() - packet.at)
-    this.deviceService.writeTelemetry(packet.payload, (error) => {
+    const handedAt = performance.now()
+    const accepted = this.deviceService.writeTelemetry(packet.payload, (error) => {
       this.pendingWrites = Math.max(0, this.pendingWrites - 1)
       if (error) this.metrics.recordWriteError()
       else this.metrics.recordDrain(performance.now() - packet.at)
     })
+    if (!accepted) {
+      this.pendingWrites -= 1
+      this.metrics.recordDropped(packet.payload.length)
+      return
+    }
+    this.metrics.recordHandoff(handedAt - packet.at)
   }
 
   private readonly closed = (error?: Error): void => {

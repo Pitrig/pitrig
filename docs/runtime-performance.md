@@ -52,8 +52,9 @@ one frozen block per second. Sums (frames, render, flush, sync, latency, areas)
 span the window; the maxima (`frame_max_us`, `work_max_us`, `gap_max_us`,
 `lat_max_us`) are the largest in it, so a spike appears at once and ages out a
 second later rather than being cleared on a boundary. Heap, PSRAM and the stack
-high-water marks keep the original once-a-second cadence — walking the heap costs
-far more than the frame counters do, and neither figure moves within a window.
+high-water marks keep the original once-a-second cadence, since none of them
+moves within a window, and the largest free blocks a 30-second one, because
+finding one walks the whole heap.
 
 - **FPS:** number of LVGL refreshes that performed rendering, divided by the
   window's own measured duration. Idle refresh callbacks are not counted, so a
@@ -103,22 +104,26 @@ far more than the frame counters do, and neither figure moves within a window.
   and `cost_span` against `cost_wait` is how much of a frame's span was the
   flush wait ([ADR 0032](adr/0032-burst-scheduled-frames.md)).
 - **Heap:** current free internal 8-bit heap and its largest free block. The two
-  largest-free-block figures are refreshed only every five seconds, and `@PR:DIAG`
-  serves them from that sample rather than measuring them itself: finding the
-  largest free block walks every block of the pool with the heap spinlock held,
-  which disables interrupts for the whole walk. Called per poll on the PSRAM pool
-  — which holds every LVGL allocation — it delayed the display driver's
+  largest-free-block figures are refreshed five seconds after start and then every
+  30 seconds by the sampler, which runs on the render core, and `@PR:DIAG` serves
+  them from that sample rather than measuring them itself: finding the largest
+  free block walks every block of the pool with the heap spinlock held, which
+  disables interrupts for the whole walk. Called per poll on the PSRAM pool —
+  which holds every LVGL allocation — it delayed the display driver's
   end-of-frame interrupt past the frame boundary often enough to blank single
-  frames on the panel. `heap_caps_get_free_size` and `heap_caps_get_minimum_free_size`
-  read counters and stay per-poll; nothing reaching `heap_caps_get_info` may go on
-  a periodic path while the display runs.
+  frames on the panel. The sampler's own walk, about 5 ms on the Guition
+  ESP32-4848S040, overflowed the UART's 128-byte receive FIFO at 460800 baud while
+  it ran on the link core, dropping bytes from uploads and long commands; an
+  allocation or a free in PSRAM on the link core during a walk still waits for the
+  rest of it with interrupts off. `heap_caps_get_free_size` and
+  `heap_caps_get_minimum_free_size` read counters and stay per-poll; nothing else
+  reaching `heap_caps_get_info` may go on a periodic path while the display runs.
 - **PSRAM:** current free SPIRAM heap, or zero when SPIRAM is unavailable.
 - **Uptime**, and the transport counters **Link** (bytes and reads per second),
   **Queue**, **Overflow**, **Gap**/**Handler** (worst read gap and handler time
   since boot), and **Stack** (free bytes of the LVGL, transport, configuration,
-  asset-upload and sampler tasks). The font and image upload tasks share one
-  stack figure, reported as the smaller of the two, because only one of them can
-  own the serial link at a time.
+  asset-upload and sampler tasks). Font, image and firmware uploads share one
+  task, because only one of them can own the serial link at a time.
 
 The service owns measurement and aggregation. What a debug build draws over
 the dashboard is the `PITRIG_DEBUG_OVERLAY` Kconfig choice: the full
@@ -193,6 +198,18 @@ per-screen tuning:
   Smaller pieces are slower, not faster, because each redrawn area carries
   about 1 ms of fixed cost. An arc with a gradient instead of a ramp repaints
   only the part its value moves.
+- **A bar repaints only the part its value moves**: the run between its old and
+  new ends and the corner of a rounded end, so 24 bars changing every frame
+  draw at 60 fps instead of 40 on the Guition ESP32-4848S040 and 59 instead of
+  48 on the JC1060P470C. A bar with both rounded corners and a gradient still
+  repaints its whole fill.
+- **A scrolling graph redraws its whole plot at every sample**, so a short
+  `sample_interval_ms` on a large plot costs a full redraw of it every frame,
+  and steep, busy traces cost the most to draw; one that sets `sweep` redraws
+  only the columns a sample changes. Six graphs sampled every 16 ms draw a
+  frame in 5.1 ms sweeping, 21.4 ms scrolling smooth traces and 29.6 ms
+  scrolling noise on the Guition ESP32-4848S040, and in 3.1, 20.4 and 27.8 ms
+  on the JC1060P470C.
 - **Screens that are not shown cost nothing**, so splitting a dense dashboard
   across screens buys frame budget directly; transitions are tear-free and do
   not tax the steady state. Widget timers and the slot controller skip instances
@@ -221,8 +238,8 @@ since it, the "sending" term is a strip copy and no board waits for scan-out.
 
 `LV_USE_PPA` is off in `sdkconfig.defaults.esp32p4`: with QIO flash and the
 256 KB cache the software blender beats the blocking PPA fill at every size
-measured, and the figures are in ADR 0027. The three PPA patches under
-`firmware/patches/` stay, so re-evaluating the accelerator later — or making it
+measured, and the figures are in ADR 0027. The PPA patch under
+`firmware/patches/` stays, so re-evaluating the accelerator later — or making it
 non-blocking — is a one-line Kconfig change. With it off a transparent widget
 background is the cheapest of all.
 
@@ -334,3 +351,9 @@ allocator. External RAM is what a dashboard spends: a distinct
 image costs its own pixels. The per-type widget caps in the configuration
 contract are therefore not a memory decision: raising one is a decision about
 the frame, judged by applying the document and reading `render_us` back.
+
+Static memory is checked when firmware is built: `tools/check_memory_budget.py`
+compares an image with its board's ceilings in `tools/memory_budget.json`, and CI
+fails above one. The JC1060P470C's internal ceiling sits 9 KB below the 185 KB at
+which its display stopped starting; an ESP32-S3 board's is the last figure known to
+run on it, until a board is measured with `@PR:DIAG`.

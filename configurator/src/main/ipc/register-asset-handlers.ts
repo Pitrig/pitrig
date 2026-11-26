@@ -10,6 +10,7 @@ import {
   isFontLibraryImportRequest
 } from './request-guards'
 import {
+  isFirstInstallRequest,
   isImageLibraryAddRequest,
   isImageLibraryIdRequest
 } from './asset-request-guards'
@@ -22,6 +23,11 @@ import {
   type BoardUpdateResult,
   type FirmwareUpdateResult
 } from '../../shared/firmware-update'
+import {
+  FIRST_INSTALL_CANCEL_CHANNEL,
+  FIRST_INSTALL_START_CHANNEL,
+  type FirstInstallResult
+} from '../../shared/first-install'
 import { FONT_CANCEL_UPLOAD_CHANNEL, FONT_CLEAR_CHANNEL } from '../../shared/font-assets'
 import {
   FONT_CATALOG_LIST_CHANNEL,
@@ -47,6 +53,7 @@ import { PREVIEW_ASSETS_READ_CHANNEL } from '../../shared/preview-assets'
 import { DeviceService } from '../device/device-service'
 import { BoardUpdateService } from '../firmware-update/board-update-service'
 import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
+import type { FirstInstallService } from '../first-install/first-install-service'
 import { FontAssetService } from '../font-assets/font-asset-service'
 import { FontCatalogService } from '../font-library/font-catalog-service'
 import { FontLibraryService } from '../font-library/font-library-service'
@@ -61,6 +68,7 @@ export function registerAssetHandlers(
   imageAssetService: ImageAssetService,
   firmwareUpdateService: FirmwareUpdateService,
   boardUpdateService: BoardUpdateService,
+  firstInstallService: FirstInstallService,
   imageLibraryService: ImageLibraryService,
   fontLibraryService: FontLibraryService,
   fontCatalogService: FontCatalogService
@@ -137,6 +145,21 @@ export function registerAssetHandlers(
     }
     return boardUpdateService.update(request)
   })
+  ipcMain.handle(FIRST_INSTALL_START_CHANNEL, (_event, request: unknown) => {
+    if (!isFirstInstallRequest(request)) {
+      const result: FirstInstallResult = {
+        ok: false,
+        error: {
+          code: 'invalid_request',
+          message: t('ipc.registerAssetHandlers.invalidFirmwareUploadRequest'),
+          erased: false
+        }
+      }
+      return result
+    }
+    return firstInstallService.install(request)
+  })
+  ipcMain.handle(FIRST_INSTALL_CANCEL_CHANNEL, () => firstInstallService.cancel())
   ipcMain.handle(IMAGE_SELECT_SOURCE_CHANNEL, (event) =>
     imageAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )

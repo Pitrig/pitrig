@@ -3,6 +3,7 @@ import type { ConfigurationDocumentId } from '../../shared/configuration-schema'
 import type { DeviceConfiguration, DeviceSession } from '../../shared/device'
 import { documentFamilyIds } from '../../shared/document-assets'
 import type { FontAssetService } from '../font-assets/font-asset-service'
+import type { BuiltFontPackage } from '../font-assets/font-package'
 import type { FontCatalogService } from '../font-library/font-catalog-service'
 import type { FontLibraryService } from '../font-library/font-library-service'
 import { stepFailure, type RestartOutcome, type SaveStep } from './save-results'
@@ -20,6 +21,7 @@ export async function plannedFamilies(input: {
   changed: readonly ConfigurationDocumentId[]
   keepBoardFonts: boolean
   sources: FontSources
+  download: boolean
 }): Promise<SaveStep<string[]>> {
   const required = documentFamilyIds(input.configuration)
   const installed = input.session.fontAssets?.families ?? []
@@ -27,7 +29,7 @@ export async function plannedFamilies(input: {
   const needed = input.changed.includes('dashboard') || lacking ? required : []
   const families = input.keepBoardFonts && boardHolds(input.session, needed) ? [] : needed
   let unresolved = await input.sources.library.unresolved(families)
-  if (unresolved.length > 0) {
+  if (unresolved.length > 0 && input.download) {
     const added = await downloadFromCatalog(unresolved, input.sources)
     if (added) unresolved = await input.sources.library.unresolved(families)
   }
@@ -50,16 +52,16 @@ export async function plannedFamilies(input: {
   return { ok: true, value: families }
 }
 
-export async function deliverFonts(input: {
+export async function plannedFontPackage(input: {
   families: readonly string[]
   session: DeviceSession
   fontAssets: FontAssetService
-  restart: () => Promise<RestartOutcome>
   report: (message: string) => void
-  onProgress: (progress: AssetUploadProgress) => void
-}): Promise<SaveStep<boolean>> {
+}): Promise<SaveStep<BuiltFontPackage | undefined>> {
   const installed = input.session.fontAssets
-  if (input.families.length === 0 || !installed?.storageAvailable) return { ok: true, value: false }
+  if (input.families.length === 0 || !installed?.storageAvailable) {
+    return { ok: true, value: undefined }
+  }
   input.report(t('save.fontDelivery.building'))
   const built = await input.fontAssets.buildPackage(input.families)
   if (!built.ok) return stepFailure('font_upload_failed', built.error.message)
@@ -68,15 +70,25 @@ export async function deliverFonts(input: {
     installed.payloadCrc !== undefined &&
     installed.payloadCrc === built.value.payloadCrc &&
     sameFamilies(installed.families, built.value.families)
-  if (sameBytes) return { ok: true, value: false }
-  if (installed.rebootRequired) {
+  return { ok: true, value: sameBytes ? undefined : built.value }
+}
+
+export async function deliverFonts(input: {
+  fontPackage: BuiltFontPackage | undefined
+  session: DeviceSession
+  fontAssets: FontAssetService
+  restart: () => Promise<RestartOutcome>
+  onProgress: (progress: AssetUploadProgress) => void
+}): Promise<SaveStep<boolean>> {
+  if (!input.fontPackage) return { ok: true, value: false }
+  if (input.session.fontAssets?.rebootRequired) {
     const restarted = await input.restart()
     if (!restarted.ok) return { ok: false, result: restarted.error }
   }
   const uploaded = await input.fontAssets.upload(
-    { families: [...input.families] },
+    { families: [...input.fontPackage.families] },
     input.onProgress,
-    built.value
+    input.fontPackage
   )
   if (!uploaded.ok) return stepFailure('font_upload_failed', uploaded.error.message)
   return { ok: true, value: true }

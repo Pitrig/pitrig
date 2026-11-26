@@ -121,6 +121,7 @@ namespace pitrig::configuration::json::variants {
          read_integer(object, "sample_interval_ms", config.sample_interval_ms, kName, failure) &&
          read_color(object, "line_color", config.line_color, kName, failure) &&
          read_integer(object, "line_width_px", config.line_width_px, kName, failure) &&
+         read_boolean(object, "sweep", config.sweep, kName, failure) &&
          parse_graph_traces(object, config, failure);
 }
 

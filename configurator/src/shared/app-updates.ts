@@ -49,7 +49,7 @@ export interface UpdateStatus {
   simhub?: SimHubStatus
 }
 
-export type UpdatePage = 'release' | 'simhub' | 'flasher'
+export type UpdatePage = 'release' | 'simhub' | 'contact'
 
 export interface OpenUpdatePageRequest {
   page: UpdatePage
@@ -69,7 +69,7 @@ export interface InstallPluginResult {
 export type PrepareFirmwareResult = FirmwareUpdateResult<FirmwareSourceSelection>
 
 export function boardBehind(session: DeviceSession | undefined, released: string): boolean {
-  if (!session?.firmware?.storageAvailable) return false
+  if (!session?.firmware?.storageAvailable || session.newerDocuments.length > 0) return false
   const schema = session.info.schemaVersion
   if (schema !== CONFIGURATION_SCHEMA_VERSION) return schema < CONFIGURATION_SCHEMA_VERSION
   return compareVersions(session.info.firmwareVersion, released) === -1

@@ -18,7 +18,7 @@ namespace {
 constexpr std::uint32_t kDefaultBackgroundColor = 0x000000;
 
 void make_container(lv_obj_t* const object) {
-  lv_obj_remove_flag(object, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_scrollable(object, false);
   lv_obj_set_style_pad_all(object, 0, LV_PART_MAIN);
   lv_obj_set_style_border_width(object, 0, LV_PART_MAIN);
 }

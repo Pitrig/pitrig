@@ -1,6 +1,8 @@
 import { app, BrowserWindow, crashReporter } from 'electron'
 import { join } from 'node:path'
 
+import { STARTUP_UI_LANGUAGE } from './ui-language/startup-language'
+
 applyBranding()
 applyApplicationMenu()
 crashReporter.start({ uploadToServer: false })
@@ -17,12 +19,14 @@ import {
   broadcastDeviceState,
   broadcastBoardUpdateProgress,
   broadcastFirmwareUploadProgress,
+  broadcastFirstInstallProgress,
   broadcastFontLibraryChanged,
   broadcastImageLibraryChanged,
   broadcastSaveProgress
 } from './ipc/broadcast'
 import { registerIpcHandlers } from './ipc/register-ipc-handlers'
 import { registerTelemetryBridge } from './telemetry-bridge/register-telemetry-bridge'
+import { registerUiLanguage } from './ui-language/register-ui-language'
 import { registerUpdates } from './updates/register-updates'
 import { registerUsage } from './usage/register-usage'
 
@@ -39,6 +43,7 @@ const services: AppServices = createAppServices({
   },
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onBoardUpdateProgress: broadcastBoardUpdateProgress,
+  onFirstInstallProgress: broadcastFirstInstallProgress,
   onFontLibraryChanged: broadcastFontLibraryChanged,
   onImageLibraryChanged: broadcastImageLibraryChanged,
   onSaveProgress: (progress) => {
@@ -46,6 +51,7 @@ const services: AppServices = createAppServices({
     usage.observeSave(progress)
   }
 })
+registerUiLanguage(() => services.deviceService.whenIdle())
 const telemetryBridge = registerTelemetryBridge(services.deviceService)
 const updates = registerUpdates(services.deviceService, services.firmwareUpdateService)
 const CLEANUP_TIMEOUT_MS = 4000
@@ -54,7 +60,8 @@ let quitAfterDeviceCleanup = false
 function createWindow(): void {
   createAppWindow({
     preload: join(__dirname, '../preload/index.cjs'),
-    renderer: '../renderer/index.html'
+    renderer: '../renderer/index.html',
+    uiLanguage: STARTUP_UI_LANGUAGE
   })
 }
 

@@ -52,9 +52,32 @@ go straight to `dialog.showOpenDialog` and the renderer can never draw them, so
 a code-on-the-wire scheme would add a second mechanism rather than replace one.
 `DeviceError` keeps carrying a resolved `message`.
 
-**No locale setter.** The menu descriptors and the LED profiles call `t()` at
-module scope, so a setter called later would leave them frozen and lie about it. The seam for a second locale is the catalog map plus how the locale is
-resolved at startup; changing language will restart the window.
+**The language is fixed for a run and resolved before any text loads.** The
+menu descriptors and the LED profiles call `t()` at module scope, so a setter
+called later would leave them frozen and lie about it. Instead
+`main/ui-language/startup-language.ts`, the first import of the product's main
+entry, takes the choice saved in `language.json` in userData, else the first
+supported language of `app.getPreferredSystemLanguages()`, else English. It
+publishes the result as the `pitrigUiLanguage` global that `ui-text.ts` reads
+once, and the window receives the same value as an `additionalArguments` entry
+the preload exposes under that name. Changing the language on the Info page
+saves the choice and relaunches the application; the debug application sets
+nothing and stays English.
+
+**Six locales.** `en` is the source, and `uk`, `ko`, `pl`, `de` and `es` sit
+beside it in `i18n/`. Every locale carries every key, and every plural message carries
+exactly the CLDR categories `PLURAL_CATEGORIES` lists for its locale, so no form
+is missing at runtime. Terms and style follow `i18n/glossary.md`. The `ko`, `pl`,
+`de` and `es` text is a machine translation no native speaker has checked, and
+the Info page says so in those four languages.
+
+**The SimHub plugin reads the same catalog.** Keys under `simhub.` are its text:
+the generator leaves them out of the configurator's tables and writes them to
+`simhub/plugin/Pitrig.SimHub/UiStrings.g.cs` as members of `UiText`. They cannot
+be plural messages, because .NET Framework has no CLDR plural rules. The plugin
+takes the language the configurator saved in `%APPDATA%\Pitrig\language.json`,
+else the Windows display language, once per SimHub run; its name and
+description in SimHub's plugin list are attribute constants and stay English.
 
 **Out of scope, deliberately.** The debug application keeps its own inline text.
 Enum members drawn directly as select-option text stay untranslated: they are
@@ -66,9 +89,12 @@ label, because localising them breaks lookup and corrupts saved documents.
 
 ## Consequences
 
-A phrase now has one home, and a second locale is one JSON file plus the line
-that picks it. The generator's `--check` runs in CI, so a catalog edited without
-regenerating fails the build.
+A phrase now has one home, and a locale is one JSON file, its plural categories,
+its entry in the catalog map and its name in `ui-language.ts`. The generator's `--check` runs in CI, so a
+catalog edited without regenerating fails the build, and so does an English key
+the other locales lack: every change to `i18n/en.json` carries its text in
+every other locale in the same change. A reworded English message is not detected in
+the others; there the guard is review.
 
 The inspector's prose leaves the module a developer reads while working on that
 widget. That locality is a real loss, traded for text that can be translated and

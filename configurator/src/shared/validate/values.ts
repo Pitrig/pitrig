@@ -11,6 +11,8 @@ const BOOLEAN_VALUES = 'true, false'
 
 const BINDINGS: ReadonlySet<string> = new Set<string>(TELEMETRY_CATALOG.map(({ name }) => name))
 
+export type UnknownNames = 'reject' | 'accept'
+
 export function badEnum(
   value: unknown,
   values: readonly string[],
@@ -80,12 +82,14 @@ export function badBinding(
   binding: string | undefined,
   fallback: string,
   label: string,
-  what: string
+  what: string,
+  unknownNames: UnknownNames = 'reject'
 ): string | undefined {
   const name = binding ?? fallback
   if (BINDINGS.has(name)) return undefined
-  return name === ''
-    ? t('validation.widgetValues.whatOfLabelHasNo', { what, label })
+  if (name === '') return t('validation.widgetValues.whatOfLabelHasNo', { what, label })
+  return unknownNames === 'accept'
+    ? undefined
     : t('validation.widgetValues.whatOfLabelReadsName', { what, label, name })
 }
 

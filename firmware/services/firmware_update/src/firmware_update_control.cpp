@@ -3,7 +3,6 @@
 #include <cstdio>
 
 #include "asset_operations.hpp"
-#include "pitrig_features.hpp"
 
 namespace pitrig::firmware_update {
 namespace {
@@ -27,16 +26,11 @@ int write_info_body(const Service& service, char* const out, const std::size_t s
 }
 
 bool FirmwareUpdateControl::initialize(Service& service, binary_session::Claim& claim,
-                                       const std::span<std::uint8_t> frame) {
-  return control_.initialize(
-      {
-          .tag = "FW",
-          .task_name = "firmware_update",
-#if PITRIG_DEBUG
-          .metric = performance::TaskMetric::firmware_update,
-#endif
-      },
-      asset_control::operations_for<Service, &write_info_body>(service), claim, frame);
+                                       const std::span<std::uint8_t> frame,
+                                       asset_control::Worker& worker) {
+  return control_.initialize({.tag = "FW"},
+                             asset_control::operations_for<Service, &write_info_body>(service),
+                             claim, frame, worker);
 }
 
 }

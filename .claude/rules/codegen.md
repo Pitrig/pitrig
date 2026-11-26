@@ -7,14 +7,14 @@ paths:
   - "i18n/**"
   - "simhub/**"
   - "**/*_generated.*"
-  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en}.ts"
+  - "configurator/src/shared/{configuration-schema,telemetry-catalog,simhub-data,led-font,ui-string-keys,ui-strings-en,ui-strings-uk,ui-strings-ko,ui-strings-pl,ui-strings-de,ui-strings-es,control-protocol}.ts"
   - "configurator/src/main/font-library/google-fonts-catalog.json"
   - "docs/{configuration-schema,telemetry-catalog}.md"
 ---
 
 # Generated contracts
 
-Five generators own checked-in code. Each is a package under `tools/codegen/`,
+Six generators own checked-in code. Each is a package under `tools/codegen/`,
 run as `python3 -m tools.codegen.<name>` **from the repository root**, and all
 accept `--check`. Never hand-edit an output: CI fails on a stale one, and
 `docs/configuration-schema.md` and `docs/telemetry-catalog.md` are byte-compared
@@ -27,7 +27,10 @@ banner.
   `configurator/src/shared/configuration-schema.ts`,
   `docs/configuration-schema.md`. The schema's `documents` block must partition
   every serialized root section; the generator emits the enum, the key
-  allow-lists, the bounds and the restart flags for both sides.
+  allow-lists, the bounds and the restart flags for both sides. The firmware's
+  readers in `firmware/services/configuration/src/json_*.cpp` are written by
+  hand, so a new field also needs its read there: without it the key is
+  accepted and the value silently stays at its default.
   A struct marked `host_only` (the modules document's `inputs`) stays out of
   the firmware contract: firmware accepts its key and never parses it.
   `tools/codegen/configuration_schema/markdown.py` hardcodes the links to
@@ -59,11 +62,24 @@ banner.
   `fontFamilyId()` in `configurator/src/shared/font-library.ts` is the single
   id implementation; the generator only checks that every derivable id is valid
   and unique.
-- `ui_strings` — `i18n/en.json` → `configurator/src/shared/ui-string-keys.ts`
-  (the `UiStringKey` union and the parameter types) and
-  `configurator/src/shared/ui-strings-en.ts` (the table, an explicit
-  `Readonly<Record<string, string>>` so no project builds a literal type over
-  the catalog). Code reads them through `t()` in
+- `ui_strings` — `i18n/en.json` and its translations `uk.json`, `ko.json`,
+  `pl.json`, `de.json`, `es.json` → `configurator/src/shared/ui-string-keys.ts` (the `UiStringKey`
+  union and the parameter types) and one `ui-strings-<locale>.ts` table per
+  locale (an explicit `Readonly<Record<string, string>>` so no project builds a
+  literal type over the catalog). Code reads them through `t()` in
   `configurator/src/shared/ui-text.ts`. A plural message carries a `$plural`
-  object of CLDR categories selected by `Intl.PluralRules`, placeholders are
-  `{name}`, and `$note` is data for the translator (ADR 0031).
+  object of CLDR categories selected by `Intl.PluralRules`, exactly the ones
+  `PLURAL_CATEGORIES` in `catalog.py` lists for its locale; placeholders are
+  `{name}`, and `$note` is data for the translator. A locale lacking a key of
+  `en.json` fails the run. Keys under `simhub.` skip those tables and become the
+  plugin's `simhub/plugin/Pitrig.SimHub/UiStrings.g.cs`; they may not be plural
+  (ADR 0031).
+- `control_protocol` — `configuration/control_protocol.json` (the `@PR:` and
+  `@PT:` line prefixes) →
+  `firmware/services/control_protocol/include/control_protocol_generated.hpp`
+  (`PITRIG_CONTROL_PREFIX` to join with a literal, `protocol::kControlPrefix`
+  to compare), `configurator/src/shared/control-protocol.ts` and
+  `simhub/plugin/Pitrig.SimHub/ControlProtocol.g.cs`. A run also scans
+  `firmware/`, `configurator/src/` and `simhub/plugin/` and fails on a line
+  that holds a prefix or spells one in characters, so code never writes `@PR:`
+  itself (ADR 0044).

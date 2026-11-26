@@ -4,7 +4,9 @@ import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { describeDeviceError } from '../../shared/device-error-message'
 import { crc32 } from './asset-crc'
 import { exchangeLines } from './line-exchange'
+import { isBusyToken } from './serial-request'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 const FRAME_MAGIC = Buffer.from('SCF1', 'ascii')
 const FRAME_HEADER_SIZE = 14
@@ -12,7 +14,7 @@ const MAXIMUM_CHUNK_SIZE = 4096
 const BEGIN_TIMEOUT_MS = 30_000
 const FRAME_TIMEOUT_MS = 5_000
 const RESPONSE_BUFFER_LIMIT = 8192
-const DEVICE_ERROR_PREFIX = '@PR:ERR:'
+const DEVICE_ERROR_PREFIX = `${CONTROL_PREFIX}ERR:`
 const BEGIN_BUSY_WINDOW_MS = 15_000
 const BEGIN_RETRY_INITIAL_MS = 500
 const BEGIN_RETRY_MAXIMUM_MS = 2_000
@@ -36,10 +38,8 @@ interface UploadCallbacks {
   onTransmit?: (data: string, encoding: 'utf8' | 'hex') => void
 }
 
-function isBusyRefusal(namespace: AssetNamespace, error: unknown): boolean {
-  if (!(error instanceof DeviceRejectedUploadError)) return false
-  const token = error.token.trim()
-  return token === 'busy' || token === `${namespace.command}:busy`
+function isBusyRefusal(begin: Buffer, error: unknown): boolean {
+  return error instanceof DeviceRejectedUploadError && isBusyToken(begin.toString('utf8'), error.token)
 }
 
 async function pause(milliseconds: number, signal: AbortSignal): Promise<void> {
@@ -67,10 +67,10 @@ export async function uploadAssetPackage(
       message: t('device.assetUpload.preparingLabelStorage', { label: namespace.label })
     })
     const begin = Buffer.from(
-      `@PR:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`,
+      `\n${CONTROL_PREFIX}${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`,
       'utf8'
     )
-    const ready = `@PR:OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`
+    const ready = `${CONTROL_PREFIX}OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`
     const busyDeadline = Date.now() + BEGIN_BUSY_WINDOW_MS
     let retryMs = BEGIN_RETRY_INITIAL_MS
     for (;;) {
@@ -80,7 +80,7 @@ export async function uploadAssetPackage(
         break
       } catch (error) {
         beginMayBeActive = false
-        if (!isBusyRefusal(namespace, error) || Date.now() >= busyDeadline) throw error
+        if (!isBusyRefusal(begin, error) || Date.now() >= busyDeadline) throw error
         await pause(retryMs, signal)
         retryMs = Math.min(retryMs * 2, BEGIN_RETRY_MAXIMUM_MS)
       }
@@ -98,7 +98,7 @@ export async function uploadAssetPackage(
       const response = await exchangeLine(
         port,
         createFrame(1, sequence, payload),
-        `@PR:OK:${namespace.command}:ACK:`,
+        `${CONTROL_PREFIX}OK:${namespace.command}:ACK:`,
         sequence === 0 ? BEGIN_TIMEOUT_MS : FRAME_TIMEOUT_MS,
         callbacks,
         signal
@@ -127,7 +127,7 @@ export async function uploadAssetPackage(
     await exchangeLine(
       port,
       createFrame(2, sequence),
-      `@PR:OK:${namespace.command}:COMMITTED:reboot_required=1`,
+      `${CONTROL_PREFIX}OK:${namespace.command}:COMMITTED:reboot_required=1`,
       FRAME_TIMEOUT_MS,
       callbacks,
       signal
@@ -171,7 +171,7 @@ async function cancelSession(
     await exchangeLine(
       port,
       createFrame(3, sequence),
-      `@PR:OK:${namespace.command}:CANCELLED`,
+      `${CONTROL_PREFIX}OK:${namespace.command}:CANCELLED`,
       FRAME_TIMEOUT_MS,
       callbacks,
       new AbortController().signal
@@ -203,14 +203,15 @@ function exchangeLine(
     onTimeout: () => ({ error: new Error(t('device.assetUpload.theDeviceDidNotAnswer', { responsePrefix: responsePrefix })) }),
     onClose: () => new Error(t('device.assetUpload.theSerialPortClosedDuring')),
     onAbort: () => new Error(t('device.assetUpload.theUploadWasCancelled')),
-    send: (fail) => {
+    send: ({ fail, arm }) => {
+      arm()
       port.write(request, (error) => {
         if (error) {
           fail(error)
           return
         }
         if (callbacks.onTransmit) {
-          const utf8 = request[0] === 0x40
+          const utf8 = request[0] !== FRAME_MAGIC[0]
           callbacks.onTransmit(
             utf8 ? request.toString('utf8') : request.toString('hex'),
             utf8 ? 'utf8' : 'hex'
@@ -229,7 +230,7 @@ function parseAck(
   line: string
 ): { sequence: number; received: number } {
   const match = new RegExp(
-    `^@PR:OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
+    `^${CONTROL_PREFIX}OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
   ).exec(line)
   if (!match) {
     throw new Error(t('device.assetUpload.theDeviceReturnedAMalformed', { label: namespace.label }))

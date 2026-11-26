@@ -29,12 +29,12 @@ bool Composition::start(configuration::ConfigurationService& configuration,
                         telemetry::TelemetryProvider& telemetry, transport::ITransport& transport,
                         const configuration::ConfigurationControl::ApplyHandler apply_handler,
                         void* const apply_context, const std::span<std::uint8_t> control_io_buffer,
-                        const std::span<std::uint8_t> control_line_buffer, const Surface surface) {
+                        const std::span<std::uint8_t> busy_line_buffer, const Surface surface) {
   if (started_) {
     log::error(kTag, "Communication is already running");
     return false;
   }
-  if (control_line_buffer.size() < Router::kControlLineBufferSize) {
+  if (busy_line_buffer.size() < Router::kBusyLineBufferSize) {
     log::error(kTag, "Communication was given no usable link");
     return false;
   }
@@ -48,21 +48,15 @@ bool Composition::start(configuration::ConfigurationService& configuration,
     log::error(kTag, "Failed to start configuration control task");
     return false;
   }
-  if (full && !font_asset_control_.initialize(font_assets, binary_claim_, upload_frame_)) {
-    log::error(kTag, "Failed to start font asset control task");
-    configuration_control_.stop();
-    return false;
-  }
-  if (full && !image_asset_control_.initialize(image_assets, binary_claim_, upload_frame_)) {
-    log::error(kTag, "Failed to start image asset control task");
-    font_asset_control_.stop();
-    configuration_control_.stop();
-    return false;
-  }
-  if (!firmware_update_control_.initialize(firmware_update, binary_claim_, upload_frame_)) {
-    log::error(kTag, "Failed to start firmware update task");
-    image_asset_control_.stop();
-    font_asset_control_.stop();
+  if ((full && !font_asset_control_.initialize(font_assets, binary_claim_, upload_frame_,
+                                                asset_worker_)) ||
+      (full && !image_asset_control_.initialize(image_assets, binary_claim_, upload_frame_,
+                                                 asset_worker_)) ||
+      !firmware_update_control_.initialize(firmware_update, binary_claim_, upload_frame_,
+                                           asset_worker_) ||
+      !asset_worker_.start()) {
+    log::error(kTag, "Failed to start asset upload task");
+    stop_uploads();
     configuration_control_.stop();
     return false;
   }
@@ -74,7 +68,7 @@ bool Composition::start(configuration::ConfigurationService& configuration,
   link_.owner = this;
   link_.transport = &transport;
   link_.router.initialize(configuration_control_, binary_claim_, sessions,
-                          full ? &receive_telemetry_line : nullptr, &link_, control_line_buffer,
+                          full ? &receive_telemetry_line : nullptr, &link_, busy_line_buffer,
                           transport);
   if (!transport.start(&receive_transport_data, &link_)) {
     log::error(kTag, "Failed to start telemetry transport");
@@ -100,12 +94,17 @@ void Composition::stop() {
   link_.router.reset();
   link_.transport = nullptr;
   link_.owner = nullptr;
-  firmware_update_control_.stop();
-  image_asset_control_.stop();
-  font_asset_control_.stop();
+  stop_uploads();
   configuration_control_.stop();
   telemetry_ = nullptr;
   started_ = false;
+}
+
+void Composition::stop_uploads() {
+  asset_worker_.stop();
+  firmware_update_control_.stop();
+  image_asset_control_.stop();
+  font_asset_control_.stop();
 }
 
 void Composition::submit_update(const telemetry::TelemetryUpdate& update, void* const context) {

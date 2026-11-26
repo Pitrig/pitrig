@@ -83,7 +83,7 @@ void Controller::clear_actions() {
     Binding& binding = actions_[index];
     if (binding.object != nullptr) {
       (void)lv_obj_remove_event_cb_with_user_data(binding.object, on_action, &binding);
-      lv_obj_remove_flag(binding.object, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_clickable(binding.object, false);
     }
   }
   actions_ = {};
@@ -101,7 +101,7 @@ bool Controller::add_action(lv_obj_t* const object, const configuration::WidgetA
   Binding& binding = actions_[action_count_];
   binding = {.controller = this, .object = object, .type = type, .target = target};
   ++action_count_;
-  lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_clickable(object, true);
   lv_obj_add_event_cb(object, on_action, LV_EVENT_CLICKED, &binding);
   return true;
 }

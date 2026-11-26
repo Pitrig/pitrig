@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "configuration_control.hpp"
+#include "control_protocol_generated.hpp"
 #include "pitrig_features.hpp"
 
 #if PITRIG_DEBUG
@@ -20,7 +21,7 @@ void ConfigurationControl::send_diagnostics() {
         std::span<const std::uint8_t>(io_buffer_.data(), static_cast<std::size_t>(written) + 1U));
   }
 #else
-  (void)send_text("@PR:ERR:unsupported\n");
+  (void)send_text(PITRIG_CONTROL_PREFIX "ERR:unsupported\n");
 #endif
 }
 

@@ -19,7 +19,7 @@ Editor gaps against SimHub are in
 - [*] Screens as a composition primitive
 - [*] Widget type descriptors
 - [*] Live configuration swap
-- [ ] Generated protocol tokens
+- [*] Generated protocol tokens
 
 # Phase 2 — Hardware
 
@@ -109,36 +109,40 @@ Editor gaps against SimHub are in
 - [ ] Telemetry staleness
 - [ ] Crash diagnostics
 - [ ] Safe mode shown on screen
-- [ ] Firmware version awareness
-- [ ] Firmware downloaded from the latest release and installed in the app
-- [ ] First install from the app on a board still running its factory firmware
+- [*] Firmware version awareness
+- [*] Firmware downloaded from the latest release and installed in the app
+- [*] First install from the app on a board still running its factory firmware
 
 # Phase 7 — Telemetry
 
 - [*] SimHub plugin
-- [ ] Telemetry slots in external RAM
+- [*] Telemetry slots in external RAM
 - [ ] User-defined slots
-- [ ] Relative — cars ahead and behind
+- [*] Relative — cars ahead and behind
 - [ ] Race control messages
-- [ ] Weather forecast
+- [*] Weather forecast — ACC
+- [ ] Weather forecast — the other games
 - [ ] Spotter and proximity
-- [ ] Car and driver identity
+- [*] Car and driver identity — cars, classes and opponents' surnames
+- [ ] Car and driver identity — the player's name, car numbers and teams
 - [ ] Tyre compound, dirt and age
 - [ ] Numeric twins for the text fields
-- [ ] Mapping audit against a live SimHub
-- [ ] Track outline
+- [*] Mapping audit against a live SimHub — the generic properties
+- [ ] Mapping audit against a live SimHub — each game's own properties
+- [*] Track outline
 
 # Phase 8 — Distribution
 
-- [ ] Dashboard bundle
+- [*] Dashboard bundle
 - [*] Sharing a dashboard as one file with its images, opened on another PC as it was
-- [ ] Templates that carry their images
+- [*] Templates that carry their images
 - [ ] In-app gallery
 - [ ] CI on pull requests
 - [*] Compatibility policy and changelog
 - [*] Issue templates and support channel
-- [ ] Troubleshooting reference
-- [ ] Signed packages and self-update
+- [*] Troubleshooting reference
+- [*] Self-update on Windows
+- [ ] Signed packages, and self-update on macOS
 
 # Not planned
 

@@ -43,6 +43,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
   const draft = useDeviceStore((state) => state.draft)
   const selection = useDashboardEditorStore((state) => state.selection)
   const refresh = useTemplatesStore((state) => state.refresh)
+  const forget = useTemplatesStore((state) => state.forget)
   const library = useTemplatesStore((state) => state.library)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -88,6 +89,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
         setError(result.error.message)
         return
       }
+      forget(id, kind)
       await refresh()
       onClose()
     } catch (bridgeError) {

@@ -132,8 +132,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_canvas_set_draw_buf(state.canvas, buffer);
   lv_obj_add_event_cb(state.canvas, release_draw_buffer, LV_EVENT_DELETE, buffer);
   lv_obj_add_event_cb(state.canvas, &drawing::draw_cars, LV_EVENT_DRAW_POST, &state);
-  lv_obj_remove_flag(state.canvas, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(state.canvas, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_scrollable(state.canvas, false);
+  lv_obj_set_clickable(state.canvas, false);
   lv_obj_set_pos(state.canvas, reserve, reserve);
   lv_obj_set_size(state.canvas, state.width, state.height);
   const auto car = static_cast<float>(state.style.car_size);

@@ -4,7 +4,7 @@ from typing import Any
 
 from . import BANNER
 from .cpp_documents import cpp_default, cpp_field_type, generate_cpp_documents
-from .model import device_view, snake, struct_order, widget_pools
+from .model import device_view, root_struct, snake, struct_order, widget_pools
 
 
 def generate_cpp_contract(document: dict[str, Any]) -> str:
@@ -95,9 +95,93 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
         lines.append("}")
         lines.append("")
     lines.extend(generate_cpp_widget_traits(document))
+    lines.extend(generate_cpp_color_visitors(document))
     lines.append("}")
     lines.append("")
     return "\n".join(lines)
+
+
+COLOR_KINDS = ("color", "optional_color")
+
+
+def dashboard_sections(document: dict[str, Any]) -> list[dict[str, Any]]:
+    sections = set(document["documents"]["dashboard"]["sections"])
+    return [
+        field
+        for field in document["structs"][root_struct(document)]["fields"]
+        if field["name"] in sections
+    ]
+
+
+def dashboard_structs(document: dict[str, Any]) -> set[str]:
+    structs = document["structs"]
+    pending = [
+        field["struct"]
+        for field in dashboard_sections(document)
+        if field["kind"] in ("struct", "array")
+    ]
+    reached: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in reached:
+            continue
+        reached.add(name)
+        pending.extend(
+            field["struct"]
+            for field in structs[name].get("fields", [])
+            if field["kind"] in ("struct", "array")
+        )
+    return reached
+
+
+def generate_cpp_color_visitors(document: dict[str, Any]) -> list[str]:
+    structs = document["structs"]
+    reached = dashboard_structs(document)
+    holds: dict[str, bool] = {}
+
+    def holds_colors(name: str) -> bool:
+        if name not in holds:
+            holds[name] = any(
+                field["kind"] in COLOR_KINDS
+                or (field["kind"] in ("struct", "array") and holds_colors(field["struct"]))
+                for field in structs[name].get("fields", [])
+            )
+        return holds[name]
+
+    def visit_field(field: dict[str, Any]) -> list[str]:
+        member = field["name"]
+        if field["kind"] in COLOR_KINDS:
+            return [f"  visit(value.{member});"]
+        if field["kind"] == "struct" and holds_colors(field["struct"]):
+            return [f"  for_each_color(value.{member}, visit);"]
+        if field["kind"] == "array" and holds_colors(field["struct"]):
+            count = field["count_field"]
+            return [
+                f"  for (std::size_t index = 0;",
+                f"       index < value.{count} && index < value.{member}.size();",
+                "       ++index) {",
+                f"    for_each_color(value.{member}[index], visit);",
+                "  }",
+            ]
+        return []
+
+    lines: list[str] = []
+    for name in struct_order(document):
+        if name not in reached or not holds_colors(name):
+            continue
+        lines.append("template <typename Visit>")
+        lines.append(f"void for_each_color({name}& value, Visit& visit) {{")
+        for field in structs[name].get("fields", []):
+            lines.extend(visit_field(field))
+        lines.append("}")
+        lines.append("")
+    lines.append("template <typename Visit>")
+    lines.append(f"void for_each_dashboard_color({root_struct(document)}& value, Visit& visit) {{")
+    for field in dashboard_sections(document):
+        lines.extend(visit_field(field))
+    lines.append("}")
+    lines.append("")
+    return lines
 
 
 def generate_cpp_widget_traits(document: dict[str, Any]) -> list[str]:

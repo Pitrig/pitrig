@@ -6,6 +6,6 @@ idf_component_register(SRCS "src/communication_composition.cpp"
                                 font_asset_control font_assets
                                 image_asset_control image_assets
                                 pitrig_config simhub telemetry transport
-                       PRIV_REQUIRES esp_system freertos logger)
+                       PRIV_REQUIRES control_protocol esp_system freertos logger)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

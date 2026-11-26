@@ -7,7 +7,7 @@ endif()
 
 idf_component_register(SRCS ${debug_sources}
                        INCLUDE_DIRS ${debug_includes}
-                       PRIV_REQUIRES esp_timer freertos heap)
+                       PRIV_REQUIRES esp_timer freertos heap pitrig_config)
 
 if(debug_sources)
     target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

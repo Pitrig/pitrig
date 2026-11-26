@@ -6,65 +6,72 @@ import {
   IMAGE_PACKAGE_FORMAT_VERSION,
   type InstalledImage
 } from '../../shared/image-assets'
+import { newerDocumentsReason } from '../../shared/newer-documents'
 import { readPackageFamilies } from '../font-assets/font-package'
 import { uploadAssetPackage, type AssetNamespace } from './asset-upload'
 import { DeviceServiceError, failure, success } from './device-errors'
 import type { ConnectionManager } from './device-connection'
-import type { OperationRunner } from './device-operation'
+import type { LinkOwner } from './link-owner'
+import { sentTraffic } from './serial-traffic-reporter'
+import type { TrafficCallback } from './serial-request'
 import { clearFontAssets, clearImageAssets } from './pitrig-protocol'
 import { parseFontAssetInfo, parseImageAssetInfo } from './asset-info-parsers'
 import { requestResponse } from './serial-request'
 import { t } from '@shared/ui-text'
+import { CONTROL_PREFIX } from '@shared/control-protocol'
 
 const ASSET_INFO_TIMEOUT_MS = 1_000
 
 const ASSET_INFO_REQUESTS = {
-  FONT: { request: '@PR:FONT:INFO\n', prefix: '@PR:OK:FONT:INFO:' },
-  IMAGE: { request: '@PR:IMAGE:INFO\n', prefix: '@PR:OK:IMAGE:INFO:' }
+  FONT: { request: `${CONTROL_PREFIX}FONT:INFO\n`, prefix: `${CONTROL_PREFIX}OK:FONT:INFO:` },
+  IMAGE: { request: `${CONTROL_PREFIX}IMAGE:INFO\n`, prefix: `${CONTROL_PREFIX}OK:IMAGE:INFO:` }
 } as const
 
 export async function uploadPackage(
   connection: ConnectionManager,
-  runner: OperationRunner,
+  owner: LinkOwner,
   namespace: AssetNamespace & { command: 'FONT' | 'IMAGE' | 'FW' },
   packageBytes: Uint8Array,
   onProgress: (progress: AssetUploadProgress) => void,
   signal: AbortSignal,
   advance: (session: DeviceSession, packageBytes: Uint8Array) => DeviceSession | undefined
 ): Promise<void> {
-  const port = connection.port
-  const state = connection.getState()
-  const session = state.session
-  const traffic = connection.traffic
-  if (!port?.isOpen || !state.connection || !session) {
-    throw new DeviceServiceError('serial_error', t('device.deviceOperation.noPitrigDeviceIsConnected'))
-  }
-  if (runner.operationActive) {
-    throw new DeviceServiceError('busy', t('device.deviceOperation.anotherDeviceOperationIsAlready'))
-  }
-  const onTransmit = traffic?.enabled
-    ? (data: string, encoding: 'utf8' | 'hex'): void => traffic.write('tx', data, encoding)
-    : undefined
-  const onTraffic = (direction: 'rx' | 'tx', data: string): void => {
-    if (direction === 'tx') traffic?.write(direction, data)
-  }
-  await runner.withLock(async () => {
-    try {
-      await uploadAssetPackage(
-        port,
-        namespace,
-        packageBytes,
-        { onProgress, ...(onTransmit ? { onTransmit } : {}) },
-        signal
-      )
-    } catch (error) {
-      await resyncAssetPackage(connection, port, session, namespace.command, onTraffic)
-      throw error
+  return owner.operation(
+    'upload',
+    async () => {
+      const port = connection.port
+      const state = connection.getState()
+      const session = state.session
+      const traffic = connection.traffic
+      if (!port?.isOpen || !state.connection || !session || !traffic) {
+        throw new DeviceServiceError(
+          'serial_error',
+          t('device.deviceOperation.noPitrigDeviceIsConnected')
+        )
+      }
+      const onTransmit = traffic.enabled
+        ? (data: string, encoding: 'utf8' | 'hex'): void => traffic.write('tx', data, encoding)
+        : undefined
+      try {
+        await uploadAssetPackage(
+          port,
+          namespace,
+          packageBytes,
+          { onProgress, ...(onTransmit ? { onTransmit } : {}) },
+          signal
+        )
+      } catch (error) {
+        await resyncAssetPackage(connection, port, session, namespace.command, sentTraffic(traffic))
+        throw error
+      }
+      if (connection.getState().session !== session) return
+      const next = advance(session, packageBytes)
+      if (next) connection.setState({ ...connection.getState(), session: next })
+    },
+    (error) => {
+      throw new DeviceServiceError(error.code, error.message)
     }
-    if (connection.getState().session !== session) return
-    const next = advance(session, packageBytes)
-    if (next) connection.setState({ ...connection.getState(), session: next })
-  })
+  )
 }
 
 async function resyncAssetPackage(
@@ -72,7 +79,7 @@ async function resyncAssetPackage(
   port: SerialPort,
   session: DeviceSession,
   command: 'FONT' | 'IMAGE' | 'FW',
-  onTraffic: (direction: 'rx' | 'tx', data: string) => void
+  onTraffic: TrafficCallback
 ): Promise<void> {
   if (command === 'FW' || connection.getState().session !== session) return
   const next = await readAssetPackage(port, session, command, onTraffic)
@@ -85,7 +92,7 @@ async function readAssetPackage(
   port: SerialPort,
   session: DeviceSession,
   command: 'FONT' | 'IMAGE',
-  onTraffic: (direction: 'rx' | 'tx', data: string) => void
+  onTraffic: TrafficCallback
 ): Promise<DeviceSession | undefined> {
   const probe = ASSET_INFO_REQUESTS[command]
   if (port.isOpen) {
@@ -96,7 +103,7 @@ async function readAssetPackage(
         probe.prefix,
         ASSET_INFO_TIMEOUT_MS,
         onTraffic,
-        'serial_error'
+        'board_refused'
       )
       return command === 'FONT'
         ? { ...session, fontAssets: parseFontAssetInfo(line) }
@@ -198,11 +205,11 @@ function withoutImagePackage(
 
 export async function clearImagePackage(
   connection: ConnectionManager,
-  runner: OperationRunner
+  owner: LinkOwner
 ): Promise<DeviceResult<DeviceState>> {
   return clearAssets(
     connection,
-    runner,
+    owner,
     (session) => session.imageAssets !== undefined,
     t('device.deviceUploads.theConnectedFirmwareDoesNot'),
     t('device.deviceUploads.theConnectedDeviceChangedDuring'),
@@ -213,11 +220,11 @@ export async function clearImagePackage(
 
 export async function clearFontPackage(
   connection: ConnectionManager,
-  runner: OperationRunner
+  owner: LinkOwner
 ): Promise<DeviceResult<DeviceState>> {
   return clearAssets(
     connection,
-    runner,
+    owner,
     (session) => session.fontAssets !== undefined,
     t('device.deviceUploads.theConnectedFirmwareDoesNot2'),
     t('device.deviceUploads.theConnectedDeviceChangedDuring2'),
@@ -228,21 +235,20 @@ export async function clearFontPackage(
 
 async function clearAssets(
   connection: ConnectionManager,
-  runner: OperationRunner,
+  owner: LinkOwner,
   supported: (session: DeviceSession) => boolean,
   unsupportedMessage: string,
   changedMessage: string,
-  clear: (
-    port: SerialPort,
-    onTraffic: (direction: 'rx' | 'tx', data: string) => void
-  ) => Promise<void>,
+  clear: (port: SerialPort, onTraffic: TrafficCallback) => Promise<void>,
   advance: (session: DeviceSession) => DeviceSession | undefined
 ): Promise<DeviceResult<DeviceState>> {
-  return runner.run(async ({ port, session, traffic }) => {
+  return owner.command(async ({ port, session, traffic }) => {
     if (!supported(session)) {
       return failure({ code: 'not_pitrig', message: unsupportedMessage })
     }
-    await clear(port, runner.operationTraffic(traffic))
+    const newer = newerDocumentsReason(session)
+    if (newer) return failure({ code: 'invalid_request', message: newer })
+    await clear(port, sentTraffic(traffic))
     if (connection.port !== port || connection.getState().session !== session) {
       throw new DeviceServiceError('serial_error', changedMessage)
     }

@@ -7,6 +7,7 @@ import {
   WIDGET_TYPES
 } from '../configuration-schema'
 import { t } from '../ui-text'
+import type { UnknownNames } from './values'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -15,7 +16,8 @@ function isObject(value: unknown): value is Record<string, unknown> {
 export function findUnknownProperty(
   node: unknown,
   structName: string,
-  path: string
+  path: string,
+  unknownNames: UnknownNames = 'reject'
 ): string | undefined {
   if (!isObject(node)) return undefined
   const allowed = SCHEMA_OBJECT_KEYS[structName]
@@ -23,6 +25,7 @@ export function findUnknownProperty(
   for (const [key, child] of Object.entries(node)) {
     const here = path ? `${path}.${key}` : key
     if (allowed && !allowed.includes(key)) {
+      if (unknownNames === 'accept') continue
       return t('validation.schemaKeys.unknownPropertyHereIsNot', { here: here })
     }
     const capacity = TEXT_CAPACITIES[`${structName}.${key}`]
@@ -33,7 +36,7 @@ export function findUnknownProperty(
       }
     }
     if (SCHEMA_VARIANT_ARRAYS[structName]?.includes(key)) {
-      const error = checkWidgets(child, here)
+      const error = checkWidgets(child, here, unknownNames)
       if (error) return error
       continue
     }
@@ -41,18 +44,18 @@ export function findUnknownProperty(
     if (!childType) continue
     if (Array.isArray(child)) {
       for (let index = 0; index < child.length; ++index) {
-        const error = findUnknownProperty(child[index], childType, `${here}[${index}]`)
+        const error = findUnknownProperty(child[index], childType, `${here}[${index}]`, unknownNames)
         if (error) return error
       }
       continue
     }
-    const error = findUnknownProperty(child, childType, here)
+    const error = findUnknownProperty(child, childType, here, unknownNames)
     if (error) return error
   }
   return undefined
 }
 
-function checkWidgets(value: unknown, path: string): string | undefined {
+function checkWidgets(value: unknown, path: string, unknownNames: UnknownNames): string | undefined {
   if (!Array.isArray(value)) return t('validation.schemaKeys.pathMustBeAnArray', { path: path })
   for (let index = 0; index < value.length; ++index) {
     const widget = value[index]
@@ -64,7 +67,7 @@ function checkWidgets(value: unknown, path: string): string | undefined {
     }
     const structName = SCHEMA_WIDGET_STRUCTS[type]
     if (!structName) return t('validation.schemaKeys.hereTypeMustBeOne', { here: here, join: WIDGET_TYPES.join(', ') })
-    const error = findUnknownProperty(widget, structName, here)
+    const error = findUnknownProperty(widget, structName, here, unknownNames)
     if (error) return error
   }
   return undefined

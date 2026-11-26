@@ -1,9 +1,5 @@
 import { t } from '@shared/ui-text'
-import {
-  CONFIGURATION_DOCUMENT_IDS,
-  type ConfigurationDocumentId
-} from '../../shared/configuration-schema'
-import { documentsDiffering } from '../../shared/configuration-documents'
+import type { ConfigurationDocumentId } from '../../shared/configuration-schema'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type { ImageDeliveryPlan } from '../../shared/image-library'
 import type {
@@ -14,9 +10,7 @@ import type {
 import {
   applyBoardTransportDefaults,
   type DeviceConfiguration,
-  type DeviceConfigurationApplyResult,
   type DeviceConfigurationSaveResult,
-  type DeviceResult,
   type DeviceSession
 } from '../../shared/device'
 import { DeviceService } from '../device/device-service'
@@ -25,9 +19,17 @@ import { FontAssetService } from '../font-assets/font-asset-service'
 import type { ImageAssetService } from '../image-assets/image-asset-service'
 import type { ImageLibraryService } from '../image-library/image-library-service'
 import { refusedByOlderFirmware } from './firmware-check'
-import { deliverFonts, plannedFamilies, type FontSources } from './font-delivery'
-import { deliverImages, plannedImages } from './image-delivery'
-import { messageOf, saveFailure, withMessage, type RestartOutcome } from './save-results'
+import { packageAssets, planAssets, type AssetPlan } from './asset-plan'
+import { deliverFonts, type FontSources } from './font-delivery'
+import { deliverImages } from './image-delivery'
+import { boardView, describeSaving, type BoardView, type SaveScope } from './save-scope'
+import {
+  messageOf,
+  saveFailure,
+  withMessage,
+  type RestartOutcome,
+  type SaveStep
+} from './save-results'
 
 export interface SaveOptions {
   keepBoardAssets?: boolean
@@ -38,10 +40,18 @@ export interface ImageSources {
   library: ImageLibraryService
 }
 
-interface AssetPlan {
-  families: string[]
-  images: ImageDeliveryPlan | undefined
+interface Prepared {
+  session: DeviceSession
+  plan: SaveStep<AssetPlan>
 }
+
+interface DeliveredAssets {
+  fontsUploaded: boolean
+  imagesUploaded: boolean
+  imagesKept?: string[]
+}
+
+const NO_ASSETS: SaveStep<AssetPlan> = { ok: true, value: { families: [], images: undefined } }
 
 export class SaveToBoardService {
   constructor(
@@ -53,132 +63,132 @@ export class SaveToBoardService {
   ) {}
 
   async save(submitted: SaveToBoardRequest, options: SaveOptions = {}): Promise<SaveToBoardResult> {
-    const session = this.deviceService.getState().session
-    if (!session) {
-      return saveFailure('device_error', t('save.saveToBoardService.noPitrigBoardIsConnected'))
-    }
-
+    const clicked = this.deviceService.getState().session
+    if (!clicked) return noBoard()
     let configuration: DeviceConfiguration
     try {
       configuration = applyBoardTransportDefaults(parseDeviceConfigurationJson(submitted.json))
     } catch (error) {
-      return saveFailure('invalid_configuration', messageOf(error, t('save.saveToBoardService.theConfigurationIsNotValid')))
-    }
-
-    if (configuration.board !== session.info.boardId) {
       return saveFailure(
         'invalid_configuration',
-        t('device.draftState.theDraftTargetsBoardThe', {
-          board: configuration.board,
-          boardId: session.info.boardId
-        })
+        messageOf(error, t('save.saveToBoardService.theConfigurationIsNotValid'))
       )
     }
-
-    const request = { ...submitted, json: JSON.stringify(configuration) }
-    const requested = request.documents
-    const changed = documentsDiffering(configuration, session.configuration).filter(
-      (document) => requested === undefined || requested.includes(document)
+    const scope: SaveScope = {
+      request: { ...submitted, json: JSON.stringify(configuration) },
+      configuration,
+      keepBoardAssets: options.keepBoardAssets ?? false
+    }
+    const view = boardView(scope, clicked)
+    if (!view.ok) return view.result
+    this.report('preparing', 0, 1, t('save.saveToBoardService.checkingTheFontsThisDashboard'))
+    const plan = await this.plan(scope, view.value, true)
+    if (!plan.ok) return plan.result
+    return this.deviceService.operation(
+      'save',
+      () => this.saveOnTurn(scope, { session: clicked, plan }),
+      (error) => saveFailure('busy', error.message)
     )
-    const safeMode = session.info.health?.safeMode ?? false
-    const assetsInScope = !safeMode && (requested === undefined || requested.includes('dashboard'))
+  }
 
+  private async saveOnTurn(scope: SaveScope, prepared: Prepared): Promise<SaveToBoardResult> {
+    const session = this.deviceService.getState().session
+    if (!session) return noBoard()
+    const view = boardView(scope, session)
+    if (!view.ok) return view.result
     const refused = await refusedByOlderFirmware({
       deviceService: this.deviceService,
       session,
-      json: request.json,
-      changed,
+      json: scope.request.json,
+      changed: view.value.changed,
       report: (message) => this.report('checking', 0, 1, message)
     })
     if (refused) return refused
-
-    this.report('preparing', 0, 1, t('save.saveToBoardService.checkingTheFontsThisDashboard'))
-    const planned = assetsInScope
-      ? await this.planAssets(configuration, session, changed, options)
-      : { ok: true as const, value: { families: [], images: undefined } }
+    const planned =
+      session === prepared.session ? prepared.plan : await this.plan(scope, view.value, false)
     if (!planned.ok) return planned.result
 
-    return this.deviceService.runPipeline(async () => {
-      const step = (message: string): void => this.report('building', 0, 1, message)
-      const fonts = await deliverFonts({
-        families: planned.value.families,
-        session,
-        fontAssets: this.fontAssets,
-        restart: () => this.restart(),
-        report: step,
-        onProgress: this.forwardUploadProgress
-      })
-      if (!fonts.ok) return fonts.result
-      const images = await deliverImages({
-        plan: planned.value.images,
-        currentSession: () => this.deviceService.getState().session,
-        library: this.images.library,
-        imageAssets: this.images.imageAssets,
-        restart: () => this.restart(),
-        report: step,
-        onProgress: this.forwardUploadProgress
-      })
-      if (!images.ok) {
-        return fonts.value && !images.result.ok
-          ? withMessage(
-              images.result,
-              t('save.imageDelivery.fontsWithoutImages', { error: images.result.error.message })
-            )
-          : images.result
-      }
-      return this.writeDocuments(request, session, changed, safeMode, {
-        fontsUploaded: fonts.value,
-        imagesUploaded: images.value,
-        imagesKept: keptImages(planned.value.images)
-      })
+    const step = (message: string): void => this.report('building', 0, 1, message)
+    const fontPackage = view.value.assetsInScope
+      ? await packageAssets({
+          plan: planned.value,
+          session,
+          fontAssets: this.fontAssets,
+          library: this.images.library,
+          report: step
+        })
+      : { ok: true as const, value: undefined }
+    if (!fontPackage.ok) return fontPackage.result
+    const fonts = await deliverFonts({
+      fontPackage: fontPackage.value,
+      session,
+      fontAssets: this.fontAssets,
+      restart: () => this.restart(),
+      onProgress: this.forwardUploadProgress
+    })
+    if (!fonts.ok) return fonts.result
+    const images = await deliverImages({
+      plan: planned.value.images,
+      currentSession: () => this.deviceService.getState().session,
+      library: this.images.library,
+      imageAssets: this.images.imageAssets,
+      restart: () => this.restart(),
+      report: step,
+      onProgress: this.forwardUploadProgress
+    })
+    if (!images.ok) {
+      return fonts.value && !images.result.ok
+        ? withMessage(
+            images.result,
+            t('save.imageDelivery.fontsWithoutImages', { error: images.result.error.message })
+          )
+        : images.result
+    }
+    const imagesKept = keptImages(planned.value.images)
+    return this.writeDocuments(scope, {
+      fontsUploaded: fonts.value,
+      imagesUploaded: images.value,
+      ...(imagesKept ? { imagesKept } : {})
     })
   }
 
-  private async planAssets(
-    configuration: DeviceConfiguration,
-    session: DeviceSession,
-    changed: readonly ConfigurationDocumentId[],
-    options: SaveOptions
-  ): Promise<{ ok: true; value: AssetPlan } | { ok: false; result: SaveToBoardResult }> {
-    const families = await plannedFamilies({
-      configuration,
-      session,
-      changed,
-      keepBoardFonts: options.keepBoardAssets ?? false,
-      sources: this.fonts
+  private async plan(
+    scope: SaveScope,
+    view: BoardView,
+    download: boolean
+  ): Promise<SaveStep<AssetPlan>> {
+    if (!view.assetsInScope) return NO_ASSETS
+    return planAssets({
+      configuration: scope.configuration,
+      session: view.session,
+      changed: view.changed,
+      keepBoardAssets: scope.keepBoardAssets,
+      fonts: this.fonts,
+      library: this.images.library,
+      download
     })
-    if (!families.ok) return families
-    const images = await plannedImages({
-      configuration,
-      session,
-      keepBoardImages: options.keepBoardAssets ?? false,
-      library: this.images.library
-    })
-    if (!images.ok) return images
-    return { ok: true, value: { families: families.value, images: images.value } }
   }
 
   private async writeDocuments(
-    request: SaveToBoardRequest,
-    session: DeviceSession,
-    changed: ConfigurationDocumentId[],
-    safeMode: boolean,
-    assets: { fontsUploaded: boolean; imagesUploaded: boolean; imagesKept?: string[] }
+    scope: SaveScope,
+    assets: DeliveredAssets
   ): Promise<SaveToBoardResult> {
+    const session = this.deviceService.getState().session
+    if (!session) return noBoard()
+    const view = boardView(scope, session)
+    if (!view.ok) return view.result
+    const { changed, safeMode } = view.value
     let written: DeviceConfigurationSaveResult | undefined
     if (changed.length > 0) {
       this.report('saving', 0, 1, describeSaving(changed))
-      const result = await this.deviceService.saveConfiguration(request.json, changed)
+      const result = await this.deviceService.saveConfiguration(scope.request.json, changed)
       if (!result.ok) return saveFailure('device_error', result.error.message)
       written = result.value
     }
-    const saved = written?.configuration ?? session.configuration
     const outcome = {
-      configuration: saved,
+      configuration: written?.configuration ?? session.configuration,
       documents: written?.documents ?? [],
-      fontsUploaded: assets.fontsUploaded,
-      imagesUploaded: assets.imagesUploaded,
-      ...(assets.imagesKept ? { imagesKept: assets.imagesKept } : {})
+      ...assets
     }
 
     const current = this.deviceService.getState().session
@@ -209,7 +219,7 @@ export class SaveToBoardService {
 
     const applied =
       written && written.documents.length > 0
-        ? await this.applyAfterSave(request.json, written.documents)
+        ? await this.applyAfterSave(scope.request.json, written.documents)
         : undefined
     this.report(
       'completed',
@@ -221,11 +231,7 @@ export class SaveToBoardService {
     )
     return {
       ok: true,
-      value: {
-        ...outcome,
-        restarted: false,
-        ...(applied && !applied.ok ? { applyFailed: applied.error.message } : {})
-      }
+      value: { ...outcome, restarted: false, ...(applied ? { applyFailed: applied } : {}) }
     }
   }
 
@@ -243,9 +249,10 @@ export class SaveToBoardService {
   private async applyAfterSave(
     json: string,
     documents: ConfigurationDocumentId[]
-  ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
+  ): Promise<string | undefined> {
     this.report('applying', 0, 1, t('save.stage.applying'))
-    return this.deviceService.applyConfigurationNow(json, documents)
+    const applied = await this.deviceService.applyConfiguration(json, documents)
+    return applied.ok ? undefined : applied.error.message
   }
 
   private async restart(): Promise<RestartOutcome> {
@@ -276,14 +283,8 @@ export class SaveToBoardService {
   }
 }
 
-function describeSaving(documents: ConfigurationDocumentId[]): string {
-  if (documents.length === CONFIGURATION_DOCUMENT_IDS.length) {
-    return t('save.stage.saving')
-  }
-  const names = documents.map((document) =>
-    t(`documents.labelLower.${document}`)
-  )
-  return t('save.saveToBoardService.savingTheAndConfiguration', { and: names.join(' and ') })
+function noBoard(): SaveToBoardResult {
+  return saveFailure('device_error', t('save.saveToBoardService.noPitrigBoardIsConnected'))
 }
 
 function assetsAwaitingRestart(session: DeviceSession | undefined): boolean {

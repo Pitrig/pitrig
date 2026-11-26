@@ -1,5 +1,5 @@
-idf_component_register(SRCS "src/display_driver.cpp" "src/input_driver.cpp"
-                            "src/panel.c"
+idf_component_register(SRCS "src/color_profile.cpp" "src/display_driver.cpp"
+                            "src/input_driver.cpp" "src/panel.c"
                        INCLUDE_DIRS "include"
                        PRIV_INCLUDE_DIRS "src"
                        REQUIRES interfaces pitrig_config

@@ -27,16 +27,16 @@ namespace Pitrig.SimHub
         private readonly TitledSlider fuelMargin;
         private readonly TitledSlider averageLaps;
         private readonly TextBox port = new TextBox { Width = PortWidth, HorizontalAlignment = HorizontalAlignment.Left };
-        private readonly TextBlock portProblem = PageParts.Text("The port must be a number between 1024 and 65535.");
+        private readonly TextBlock portProblem = PageParts.Text(UiText.SettingsPortRange(minimum: MinimumPort, maximum: MaximumPort));
         private readonly TextBlock addresses = PageParts.Caption(string.Empty);
 
         public SettingsTab(PitrigPlugin plugin, Action<Action<PluginSettings>> change)
         {
             this.plugin = plugin;
             this.change = change;
-            fuelMargin = Slider("Fuel margin, litres or gallons", -FuelMarginLimit, FuelMarginLimit, FuelMarginStep,
+            fuelMargin = Slider(UiText.SettingsFuelMargin, -FuelMarginLimit, FuelMarginLimit, FuelMarginStep,
                 "0.0", TelemetryCatalog.ParameterFuelMargin, plugin.Settings.FuelMargin);
-            averageLaps = Slider("Tyre and brake averages over, laps", MinimumAverageLaps, MaximumAverageLaps, 1, "0",
+            averageLaps = Slider(UiText.SettingsAverageLaps, MinimumAverageLaps, MaximumAverageLaps, 1, "0",
                 TelemetryCatalog.ParameterAverageLaps, plugin.Settings.AverageLaps);
             PageParts.Watch(fuelMargin, TitledSlider.ValueProperty, ChangeFuelMargin);
             PageParts.Watch(averageLaps, TitledSlider.ValueProperty, ChangeAverageLaps);
@@ -48,22 +48,19 @@ namespace Pitrig.SimHub
             port.LostFocus += (sender, arguments) => ChangePort();
             portProblem.Foreground = PageParts.ProblemBrush;
             portProblem.Visibility = Visibility.Collapsed;
-            var advanced = PageParts.Section("ADVANCED",
-                PageParts.Text("Listen port"),
+            var advanced = PageParts.Section(UiText.SettingsAdvanced,
+                PageParts.Text(UiText.SettingsListenPort),
                 port,
                 portProblem,
-                PageParts.Caption("The configurator sends its requests to this port; its Plugin port must match."),
+                PageParts.Caption(UiText.SettingsListenPortHint),
                 addresses);
             advanced.Expandable = true;
             advanced.IsExpanded = false;
             Content = PageParts.Stack(
-                PageParts.Section("FUEL", fuelMargin, PageParts.Caption(
-                    "The fuel margin is added to the fuel to add, in the fuel unit SimHub shows, and a negative one " +
-                    "takes fuel off.")),
-                PageParts.Section("AVERAGES", averageLaps, PageParts.Caption(
-                    "The averages take a sample every three seconds outside the pits and last until SimHub restarts.")),
+                PageParts.Section(UiText.SettingsFuel, fuelMargin, PageParts.Caption(UiText.SettingsFuelHint)),
+                PageParts.Section(UiText.SettingsAverages, averageLaps, PageParts.Caption(UiText.SettingsAveragesHint)),
                 advanced);
-            addresses.Loaded += (sender, arguments) => addresses.Text = "This machine: " + LocalAddresses();
+            addresses.Loaded += (sender, arguments) => addresses.Text = UiText.SettingsThisMachine(LocalAddresses());
         }
 
         public UIElement Content { get; }

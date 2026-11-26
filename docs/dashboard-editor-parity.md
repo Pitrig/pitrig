@@ -169,10 +169,10 @@ Missing: **reflow.** Neither fit rearranges anything, so a layout that wants a
 different arrangement on a differently shaped display is hand work. Image
 assets do not follow a transfer either — the board draws a bitmap at the size it
 was uploaded at ([ADR 0018](adr/0018-uploaded-image-assets.md)) — so the report
-names each one and the size it now needs. A dashboard travels as one file with
-its images and fonts ([ADR 0041](adr/0041-dashboard-files.md)). Also missing:
-saving a single screen on its own, and templates in the library that carry their
-images.
+names each one and the size it now needs. A dashboard, and every template in the
+library, travels as one file with its images and fonts
+([ADR 0041](adr/0041-dashboard-files.md)). Also missing: saving a single screen
+on its own.
 
 ### 9. Style details
 
@@ -206,11 +206,8 @@ and reading `render_us` back over `@PR:DIAG`.
 ## Recommended order
 
 The remaining items are tracked in [roadmap.md](roadmap.md). The order worth
-doing them in: the live-value preview first, because a rule, a ramp, a graph
-trace and a real string length cannot be judged against a placeholder; then the
-bounded value nodes, which more remaining items wait on than any other; then the
-bundle, because a dashboard nobody can install is not a dashboard anyone shares;
-then transparency and repeated structures; then images that survive a move
+doing them in: the bounded value nodes first, which more remaining items wait on
+than any other; then transparency and repeated structures; then images that survive a move
 together with reflow in the transfer; and last the table, which needs firmware
 work and the plugin frame of Phase 7.
 

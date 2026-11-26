@@ -18,7 +18,7 @@ import { allWidgetsOf, arrayOf, pagesOf, screensOf } from '../configuration-acce
 import { PAGE_ACTIONS, SCREEN_ACTIONS, SLOT_ACTIONS } from '../control-actions'
 import { t } from '../ui-text'
 import { findBoundError } from './ranges'
-import { badBinding, badEnum, badList } from './values'
+import { badBinding, badEnum, badList, type UnknownNames } from './values'
 
 const CONTROL_RANGES: readonly FieldRange[] = [
   { key: 'home_after_ms', minimum: 0, maximum: MAXIMUM_IDLE_RETURN_MS }
@@ -80,12 +80,17 @@ function findBindingError(binding: ControlBinding, number: number, targets: Targ
   return undefined
 }
 
-function findRuleError(rule: ControlRule, number: number, targets: Targets): string | undefined {
+function findRuleError(
+  rule: ControlRule,
+  number: number,
+  targets: Targets,
+  unknownNames: UnknownNames
+): string | undefined {
   const owner = t('validation.controls.screenRuleNumber', { number })
   if (!targets.screens.has(rule.screen ?? '')) {
     return t('validation.controls.ownerShowsAScreenThe', { owner, screen: rule.screen ?? '' })
   }
-  const bindingError = badBinding(rule.source?.binding, '', owner, t('validation.widgetValues.theSource'))
+  const bindingError = badBinding(rule.source?.binding, '', owner, t('validation.widgetValues.theSource'), unknownNames)
   if (bindingError) return bindingError
   if (arrayOf(rule.source?.modifiers).length > 0) return t('validation.controls.ownerWatchesALapTimer', { owner })
   const listError = badList(rule.conditions, MAXIMUM_WIDGET_CONDITIONS, owner, 'conditions')
@@ -102,7 +107,10 @@ function findRuleError(rule: ControlRule, number: number, targets: Targets): str
   return undefined
 }
 
-function findDashboardControlsError(configuration: ApplicationConfiguration): string | undefined {
+function findDashboardControlsError(
+  configuration: ApplicationConfiguration,
+  unknownNames: UnknownNames
+): string | undefined {
   const controls = configuration.dashboard?.controls
   if (!controls) return undefined
   const label = t('validation.controls.theDashboardSControls')
@@ -126,12 +134,15 @@ function findDashboardControlsError(configuration: ApplicationConfiguration): st
     return t('validation.controls.theHomeScreenScreenIs', { screen: home })
   }
   for (const [index, rule] of arrayOf(controls.rules).entries()) {
-    const error = findRuleError(rule, index + 1, targets)
+    const error = findRuleError(rule, index + 1, targets, unknownNames)
     if (error) return error
   }
   return undefined
 }
 
-export function findControlsError(configuration: ApplicationConfiguration): string | undefined {
-  return findInputsError(configuration) ?? findDashboardControlsError(configuration)
+export function findControlsError(
+  configuration: ApplicationConfiguration,
+  unknownNames: UnknownNames = 'reject'
+): string | undefined {
+  return findInputsError(configuration) ?? findDashboardControlsError(configuration, unknownNames)
 }

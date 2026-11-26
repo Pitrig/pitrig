@@ -4,7 +4,9 @@ import { PageShell } from '@/app/workspace/PageShell'
 import { Button } from '@/components/ui/button'
 import { confirmAction } from '@/components/ui/confirm-store'
 import { usePreviewAssetStore } from '@/features/configuration/preview/preview-assets'
+import { useBoardActivityReason } from '@/features/device/board-activity'
 import { useDeviceStore } from '@/features/device/device-store'
+import { newerDocumentsReason } from '@shared/newer-documents'
 import { t } from '@shared/ui-text'
 import { BoardImagesSection } from './BoardImagesSection'
 import { useImageAssetsStore } from './image-assets-store'
@@ -15,6 +17,9 @@ export function ImagesPage(): React.JSX.Element {
   const images = useDeviceStore((state) => state.session?.imageAssets)
   const refreshPreviews = usePreviewAssetStore((state) => state.refresh)
   const [busy, setBusy] = useState(false)
+  const busyReason = useBoardActivityReason()
+  const newer = useDeviceStore((state) => newerDocumentsReason(state.session))
+  const eraseBlocked = busyReason ?? newer
   const [message, setMessage] = useState<PageMessage>()
 
   useEffect(() => {
@@ -59,7 +64,13 @@ export function ImagesPage(): React.JSX.Element {
           <Button
             className="text-red-400 hover:text-red-300"
             variant="outline"
-            disabled={busy || !images?.storageAvailable || !images?.packageAvailable}
+            disabled={
+              busy ||
+              eraseBlocked !== undefined ||
+              !images?.storageAvailable ||
+              !images?.packageAvailable
+            }
+            title={eraseBlocked}
             onClick={() => void clearBoard()}
           >
             {t('fonts.fontsPage.eraseOnBoard')}

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "display_color_profile.hpp"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 
@@ -50,6 +51,7 @@ struct Driver {
   void (*release)();
   void (*on_display_ready)();
   int backlight_pin{-1};
+  const ColorProfile* color_profile{};
 };
 
 }

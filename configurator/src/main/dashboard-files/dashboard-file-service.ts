@@ -1,4 +1,4 @@
-import { dialog, type BrowserWindow, type SaveDialogOptions } from 'electron'
+import { dialog, type BrowserWindow, type OpenDialogOptions, type SaveDialogOptions } from 'electron'
 import { basename, extname } from 'node:path'
 
 import { documentOf } from '../../shared/configuration-documents'
@@ -35,9 +35,25 @@ import { gatherShare, summarizeShare } from './dashboard-file-export'
 import {
   decodeDashboardFile,
   encodeDashboardFile,
-  type DashboardFileContent
+  templateOf,
+  wrongTemplate,
+  type DashboardFileContent,
+  type DashboardFileTemplate
 } from './dashboard-file-format'
 import { t } from '@shared/ui-text'
+
+export interface DashboardFileDraft {
+  name: string
+  description?: string
+  configuration: DeviceConfiguration
+  template?: DashboardFileTemplate
+}
+
+export interface EncodedDashboardFile {
+  bytes: Buffer
+  missingImages: string[]
+  missingFonts: string[]
+}
 
 export class DashboardFileService {
   constructor(
@@ -67,43 +83,23 @@ export class DashboardFileService {
     const dashboard = this.dashboardOf(request.json)
     if (!dashboard.ok) return dashboard
 
-    const options: SaveDialogOptions = {
-      title: t('share.dialog.saveTitle'),
-      buttonLabel: t('share.dialog.saveButton'),
-      defaultPath: `${fileNameFor(name)}.${DASHBOARD_FILE_EXTENSION}`,
-      filters: [{ name: t('share.dialog.filter'), extensions: [DASHBOARD_FILE_EXTENSION] }]
-    }
-    const chosen = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options)
-    if (chosen.canceled || !chosen.filePath) return { ok: true, value: { saved: false } }
-    const path =
-      extname(chosen.filePath).toLowerCase() === `.${DASHBOARD_FILE_EXTENSION}`
-        ? chosen.filePath
-        : `${chosen.filePath}.${DASHBOARD_FILE_EXTENSION}`
-
+    const path = await this.chooseSavePath(name, t('share.dialog.saveTitle'), owner)
+    if (!path) return { ok: true, value: { saved: false } }
     try {
-      const { images, fonts } = await gatherShare(dashboard.value, this.libraries)
-      const bytes = await encodeDashboardFile({
+      const encoded = await this.encode({
         name,
         ...(description ? { description } : {}),
-        createdWith: { app: this.appVersion(), schema: CONFIGURATION_SCHEMA_VERSION },
-        configuration: dashboard.value,
-        images,
-        fonts
+        configuration: dashboard.value
       })
-      if (bytes.byteLength > MAXIMUM_DASHBOARD_FILE_SIZE) {
-        return failure('write_failed', t('share.file.tooLarge', { limit: MAXIMUM_DASHBOARD_FILE_SIZE / (1024 * 1024) }))
-      }
-      await writeFileAtomic(path, bytes)
-      const carriedImages = new Set(images.map((image) => image.id))
-      const carriedFonts = new Set(fonts.map((font) => font.id))
+      await writeFileAtomic(path, encoded.bytes)
       return {
         ok: true,
         value: {
           saved: true,
           fileName: basename(path),
-          bytes: bytes.byteLength,
-          missingImages: documentImageIds(dashboard.value).filter((id) => !carriedImages.has(id)),
-          missingFonts: documentFamilyIds(dashboard.value).filter((id) => !carriedFonts.has(id))
+          bytes: encoded.bytes.byteLength,
+          missingImages: encoded.missingImages,
+          missingFonts: encoded.missingFonts
         }
       }
     } catch (error) {
@@ -111,13 +107,66 @@ export class DashboardFileService {
     }
   }
 
-  async open(bytes: Buffer): Promise<DashboardFileResult<OpenedDashboard>> {
+  async encode(draft: DashboardFileDraft): Promise<EncodedDashboardFile> {
+    const { images, fonts } = await gatherShare(draft.configuration, this.libraries)
+    const bytes = await encodeDashboardFile({
+      name: draft.name,
+      ...(draft.description ? { description: draft.description } : {}),
+      createdWith: { app: this.appVersion(), schema: CONFIGURATION_SCHEMA_VERSION },
+      ...(draft.template ? { template: draft.template } : {}),
+      configuration: draft.configuration,
+      images,
+      fonts
+    })
+    if (bytes.byteLength > MAXIMUM_DASHBOARD_FILE_SIZE) {
+      throw new Error(t('share.file.tooLarge', { limit: MAXIMUM_DASHBOARD_FILE_SIZE / (1024 * 1024) }))
+    }
+    const carriedImages = new Set(images.map((image) => image.id))
+    const carriedFonts = new Set(fonts.map((font) => font.id))
+    return {
+      bytes,
+      missingImages: documentImageIds(draft.configuration).filter((id) => !carriedImages.has(id)),
+      missingFonts: documentFamilyIds(draft.configuration).filter((id) => !carriedFonts.has(id))
+    }
+  }
+
+  async chooseSavePath(name: string, title: string, owner?: BrowserWindow): Promise<string | undefined> {
+    const options: SaveDialogOptions = {
+      title,
+      buttonLabel: t('share.dialog.saveButton'),
+      defaultPath: `${fileNameFor(name)}.${DASHBOARD_FILE_EXTENSION}`,
+      filters: [{ name: t('share.dialog.filter'), extensions: [DASHBOARD_FILE_EXTENSION] }]
+    }
+    const chosen = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options)
+    if (chosen.canceled || !chosen.filePath) return undefined
+    return extname(chosen.filePath).toLowerCase() === `.${DASHBOARD_FILE_EXTENSION}`
+      ? chosen.filePath
+      : `${chosen.filePath}.${DASHBOARD_FILE_EXTENSION}`
+  }
+
+  async chooseOpenPath(title: string, owner?: BrowserWindow): Promise<string | undefined> {
+    const options: OpenDialogOptions = {
+      title,
+      properties: ['openFile'],
+      filters: [{ name: t('share.dialog.filter'), extensions: [DASHBOARD_FILE_EXTENSION] }]
+    }
+    const chosen = owner ? await dialog.showOpenDialog(owner, options) : await dialog.showOpenDialog(options)
+    return chosen.canceled ? undefined : chosen.filePaths[0]
+  }
+
+  async open(
+    bytes: Buffer,
+    expected: DashboardFileTemplate = 'dashboard'
+  ): Promise<DashboardFileResult<OpenedDashboard>> {
     let content: DashboardFileContent
     try {
       content = isContainer(bytes) ? await decodeDashboardFile(bytes) : templateContent(bytes)
     } catch (error) {
       if (error instanceof DashboardFileFormatError) return failure(error.code, error.message)
       return failure('invalid_file', error instanceof Error ? error.message : t('share.file.damaged'))
+    }
+    if (templateOf(content) !== expected) {
+      return failure('invalid_file', wrongTemplate(templateOf(content)))
     }
 
     let dashboard: DeviceConfiguration
@@ -155,7 +204,7 @@ export class DashboardFileService {
     }
   }
 
-  private isNewer(createdWith: DashboardFileContent['createdWith']): boolean {
+  isNewer(createdWith: DashboardFileContent['createdWith']): boolean {
     if (createdWith?.schema !== undefined && createdWith.schema > CONFIGURATION_SCHEMA_VERSION) {
       return true
     }

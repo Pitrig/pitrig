@@ -18,9 +18,12 @@ set(component_sources
     "utilities/render_trigger/src/render_trigger.cpp"
     "widgets/arc/src/arc_gradient.cpp"
     "widgets/arc/src/arc_widget.cpp"
+    "widgets/bar/src/bar_fill.cpp"
     "widgets/bar/src/bar_widget.cpp"
     "widgets/graph/src/graph_binding.cpp"
+    "widgets/graph/src/graph_draw.cpp"
     "widgets/graph/src/graph_plot.cpp"
+    "widgets/graph/src/graph_raster.cpp"
     "widgets/graph/src/graph_sampling.cpp"
     "widgets/graph/src/graph_widget.cpp"
     "widgets/image/src/image_widget.cpp"
@@ -74,7 +77,7 @@ idf_component_register(
     LDFRAGMENTS ${lvgl_ldfragments}
     REQUIRES configuration_contract font_assets font_contract image_assets
              image_contract lvgl__lvgl telemetry track_map value_conditions
-    PRIV_REQUIRES display esp_lvgl_port esp_rom esp_system esp_timer heap logger
+    PRIV_REQUIRES display display_color esp_lvgl_port esp_rom esp_system esp_timer heap logger
                   number_transform performance pitrig_config text_writer
                   time_transform value_smoothing)
 
@@ -86,3 +89,8 @@ foreach(symbol lv_mem_init lv_mem_deinit lv_mem_add_pool lv_mem_remove_pool
 endforeach()
 
 target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)
+
+if(CONFIG_COMPILER_OPTIMIZATION_SIZE)
+    set_source_files_properties("widgets/graph/src/graph_raster.cpp"
+        PROPERTIES COMPILE_OPTIONS "-O2")
+endif()

@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 
 import type { SerialPort } from 'serialport'
 
+import type { DeviceErrorCode } from '../../shared/device'
 import type { PluginBoard } from '../../shared/telemetry-bridge'
 import { DeviceServiceError, toDeviceError } from './device-errors'
 import { openPort } from './serial-port-lifecycle'
@@ -11,6 +12,12 @@ const OPEN_RETRY_MS = 200
 const PROBE_ATTEMPTS = 3
 const PROBE_RETRY_MS = 1_000
 const HOLD_RETRY_MS = 250
+const HANDOVER_FAULTS: readonly DeviceErrorCode[] = [
+  'not_pitrig',
+  'no_answer',
+  'board_busy',
+  'damaged_reply'
+]
 
 export interface PortHandback {
   baudRate: number
@@ -106,7 +113,7 @@ export async function probeAfterHandover<T>(
         fromPlugin &&
         attempt < PROBE_ATTEMPTS &&
         error instanceof DeviceServiceError &&
-        error.code === 'not_pitrig'
+        HANDOVER_FAULTS.includes(error.code)
       if (!retry) throw error
       await sleep(PROBE_RETRY_MS)
     }

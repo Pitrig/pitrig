@@ -53,7 +53,7 @@ void report_container_overflow(lv_event_t* const event) {
 }
 
 void unclip(lv_obj_t* const container, std::int32_t& overflow) {
-  lv_obj_add_flag(container, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+  lv_obj_set_overflow_visible(container, true);
   (void)lv_obj_remove_event_cb_with_user_data(container, report_container_overflow, &overflow);
   lv_obj_add_event_cb(container, report_container_overflow, LV_EVENT_REFR_EXT_DRAW_SIZE, &overflow);
   lv_obj_refresh_ext_draw_size(container);
@@ -61,7 +61,7 @@ void unclip(lv_obj_t* const container, std::int32_t& overflow) {
 
 void clip(lv_obj_t* const container, std::int32_t& overflow) {
   overflow = 0;
-  lv_obj_remove_flag(container, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+  lv_obj_set_overflow_visible(container, false);
   (void)lv_obj_remove_event_cb_with_user_data(container, report_container_overflow, &overflow);
   lv_obj_refresh_ext_draw_size(container);
 }

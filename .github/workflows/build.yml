@@ -46,6 +46,7 @@ jobs:
           python3 -m tools.codegen.font_catalog --check
           python3 -m tools.codegen.led_font --check
           python3 -m tools.codegen.ui_strings --check
+          python3 -m tools.codegen.control_protocol --check
 
       - name: Debug hooks unchanged
         run: python3 tools/check_debug_isolation.py --check
@@ -242,6 +243,12 @@ jobs:
           idf.py -B "$build" reconfigure
           idf.py -B "$build" build
 
+      - name: Memory budget
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          python3 tools/check_memory_budget.py "firmware/build-${{ matrix.directory }}"
+
       - name: Collect
         shell: bash
         run: |
@@ -303,8 +310,13 @@ jobs:
             --tag "$tag" \
             --repo "$GITHUB_REPOSITORY" > notes.md
           if gh release view "$tag" > /dev/null 2>&1; then
+            draft=$(gh release view "$tag" --json isDraft --jq .isDraft)
+            if [ "$draft" != "true" ]; then
+              echo "::error::$tag is published already; raise the version in configurator/package.json first"
+              exit 1
+            fi
             gh release upload "$tag" release/* --clobber
-            gh release edit "$tag" --notes-file notes.md
+            gh release edit "$tag" --target "$GITHUB_SHA" --notes-file notes.md
           else
             gh release create "$tag" release/* \
               --draft \

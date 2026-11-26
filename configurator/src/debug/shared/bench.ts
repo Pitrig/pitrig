@@ -6,8 +6,6 @@ export const BENCH_STOP_CHANNEL = 'bench:stop' as const
 export const BENCH_UPDATE_CHANNEL = 'bench:update' as const
 export const BENCH_APPLY_PATTERN_CHANNEL = 'bench:apply-pattern' as const
 export const BENCH_RESTORE_CHANNEL = 'bench:restore' as const
-export const BENCH_HOLD_CHANNEL = 'bench:hold' as const
-export const BENCH_RELEASE_CHANNEL = 'bench:release' as const
 export const BENCH_STATUS_CHANGED_CHANNEL = 'bench:status-changed' as const
 export const BENCH_SAMPLE_CHANNEL = 'bench:sample' as const
 
@@ -31,6 +29,7 @@ export const BENCH_PATTERN_IDS = [
   'bars_24',
   'arcs_12',
   'graphs_6',
+  'graphs_6_sweep',
   'sprites_24',
   'indicators_12',
   'nested_containers'
@@ -52,6 +51,7 @@ export const BENCH_PATTERN_LABELS: Record<BenchPatternId, string> = {
   bars_24: 'Bars 24',
   arcs_12: 'Arcs 12',
   graphs_6: 'Graphs 6',
+  graphs_6_sweep: 'Graphs 6, sweeping',
   sprites_24: 'Sprites 24',
   indicators_12: 'Indicators 12',
   nested_containers: 'Containers 8 x 4'
@@ -82,6 +82,9 @@ export const BENCH_PATTERN_DESCRIPTIONS: Record<BenchPatternId, string> = {
   bars_24: 'Twenty-four bars, half of them vertical, a third gradient-filled.',
   arcs_12: 'Twelve arcs — drawing through a mask, which no accelerator takes.',
   graphs_6: 'Six two-trace graphs at the contract maximum — line drawing over the whole screen.',
+  graphs_6_sweep:
+    'The six graphs of Graphs 6 sweeping across their plots — only the columns each sample ' +
+    'changes are drawn.',
   sprites_24: 'Twenty-four sprite frames picked from telemetry — the image blit path.',
   indicators_12: 'Twelve segmented indicators at the contract maximum, blinking near the top.',
   nested_containers: 'Eight clipping containers of four readouts each — nesting and clipping.'

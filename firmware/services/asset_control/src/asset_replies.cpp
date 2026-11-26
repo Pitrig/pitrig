@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include "asset_control.hpp"
+#include "control_protocol_generated.hpp"
 #include "transport.hpp"
 
 namespace pitrig::asset_control {
@@ -16,24 +17,29 @@ bool AssetControl::send_text(const char* const text) {
 }
 
 bool AssetControl::send_ok(const char* const rest) {
-  const int written = std::snprintf(response_.data(), response_.size(), "@PR:OK:%.*s:%s\n",
-                                    static_cast<int>(traits_.tag.size()), traits_.tag.data(), rest);
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
+  const std::span<char> response = worker_->reply_buffer();
+  const int written =
+      std::snprintf(response.data(), response.size(), PITRIG_CONTROL_PREFIX "OK:%.*s:%s\n",
+                    static_cast<int>(traits_.tag.size()), traits_.tag.data(), rest);
+  return written > 0 && static_cast<std::size_t>(written) < response.size() &&
+         send_text(response.data());
 }
 
 bool AssetControl::send_error(const char* const word) {
-  const int written = std::snprintf(response_.data(), response_.size(), "@PR:ERR:%.*s:%s\n",
-                                    static_cast<int>(traits_.tag.size()), traits_.tag.data(), word);
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
+  const std::span<char> response = worker_->reply_buffer();
+  const int written =
+      std::snprintf(response.data(), response.size(), PITRIG_CONTROL_PREFIX "ERR:%.*s:%s\n",
+                    static_cast<int>(traits_.tag.size()), traits_.tag.data(), word);
+  return written > 0 && static_cast<std::size_t>(written) < response.size() &&
+         send_text(response.data());
 }
 
 void AssetControl::send_busy(transport::ITransport& reply, const std::string_view tag) const {
   const std::string_view word = tag.empty() ? traits_.tag : tag;
   std::array<char, kCommandCapacity> text{};
-  const int written = std::snprintf(text.data(), text.size(), "@PR:ERR:%.*s:busy\n",
-                                    static_cast<int>(word.size()), word.data());
+  const int written =
+      std::snprintf(text.data(), text.size(), PITRIG_CONTROL_PREFIX "ERR:%.*s:busy\n",
+                    static_cast<int>(word.size()), word.data());
   if (written > 0 && static_cast<std::size_t>(written) < text.size()) {
     (void)reply.write(std::span<const std::uint8_t>(
         reinterpret_cast<const std::uint8_t*>(text.data()), static_cast<std::size_t>(written)));
@@ -41,12 +47,14 @@ void AssetControl::send_busy(transport::ITransport& reply, const std::string_vie
 }
 
 bool AssetControl::send_ack(const std::uint32_t sequence) {
+  const std::span<char> response = worker_->reply_buffer();
   const int written = std::snprintf(
-      response_.data(), response_.size(), "@PR:OK:%.*s:ACK:sequence=%lu,received=%lu\n",
+      response.data(), response.size(),
+      PITRIG_CONTROL_PREFIX "OK:%.*s:ACK:sequence=%lu,received=%lu\n",
       static_cast<int>(traits_.tag.size()), traits_.tag.data(),
       static_cast<unsigned long>(sequence), static_cast<unsigned long>(received_size_));
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
+  return written > 0 && static_cast<std::size_t>(written) < response.size() &&
+         send_text(response.data());
 }
 
 }

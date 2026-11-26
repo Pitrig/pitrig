@@ -450,7 +450,7 @@ inline constexpr std::array<std::string_view, 4> kGraphTraceConfigurationKeys{{
     "line_color",
 }};
 
-inline constexpr std::array<std::string_view, 24> kGraphWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 25> kGraphWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -474,6 +474,7 @@ inline constexpr std::array<std::string_view, 24> kGraphWidgetConfigurationKeys{
     "sample_interval_ms",
     "line_color",
     "line_width_px",
+    "sweep",
     "traces",
 }};
 

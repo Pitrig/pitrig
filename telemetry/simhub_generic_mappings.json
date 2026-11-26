@@ -79,6 +79,7 @@
     "session.sector.3_status": { "computed": "SectorStatus3", "format": "0" },
     "session.sector.delta": { "computed": "SectorDelta", "format": "0" },
     "track.position_percent": { "property": "DataCorePlugin.GameData.NewData.TrackPositionPercent", "format": "0.###" },
+    "track.distance_remaining": { "computed": "DistanceRemaining", "format": "0" },
     "session.type": { "computed": "SessionType", "conversion": "text" },
     "session.name": { "conversion": "text", "games": {  } },
     "session.phase": { "conversion": "text", "games": {  } },

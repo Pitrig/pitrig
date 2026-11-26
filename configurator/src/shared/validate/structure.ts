@@ -24,7 +24,7 @@ import {
   findModifierError,
   findSlotError
 } from './widget-rules'
-import { badColors, badEnum } from './values'
+import { badColors, badEnum, type UnknownNames } from './values'
 import { findWidgetGeometryError } from './widget-geometry'
 import { findWidgetValueError } from './widget-values'
 import { t } from '../ui-text'
@@ -65,7 +65,10 @@ function findScreenShapeError(screens: readonly ScreenConfiguration[]): string |
   return undefined
 }
 
-export function findScreenError(configuration: ApplicationConfiguration): string | undefined {
+export function findScreenError(
+  configuration: ApplicationConfiguration,
+  unknownNames: UnknownNames = 'reject'
+): string | undefined {
   const dashboardError = findDashboardError(configuration.dashboard)
   if (dashboardError) return dashboardError
   const screens = configuration.dashboard?.screens
@@ -114,7 +117,7 @@ export function findScreenError(configuration: ApplicationConfiguration): string
       const label = `widget "${widget.id ?? ''}"`
       const modifierError = findModifierError(widget, label)
       if (modifierError) return modifierError
-      const valueError = findWidgetValueError(widget, label)
+      const valueError = findWidgetValueError(widget, label, unknownNames)
       if (valueError) return valueError
       const geometryError = findWidgetGeometryError(widget, label, display)
       if (geometryError) return geometryError
@@ -155,7 +158,7 @@ export function findScreenError(configuration: ApplicationConfiguration): string
       if (depth > 0) {
         return t('validation.structure.labelIsASlotInside', { label: label })
       }
-      const slotError = findSlotError(widget, label)
+      const slotError = findSlotError(widget, label, unknownNames)
       if (slotError) return slotError
       for (const page of pagesOf(widget)) {
         const nested = walk(

@@ -6,6 +6,7 @@
 
 #include "boot_guard.hpp"
 #include "configuration_control.hpp"
+#include "control_protocol_generated.hpp"
 #include "transport.hpp"
 
 namespace pitrig::configuration {
@@ -24,7 +25,7 @@ namespace {
 }
 
 void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
-  const std::span<const std::uint8_t> command = line.subspan(kControlPrefix.size());
+  const std::span<const std::uint8_t> command = line.subspan(protocol::kControlPrefix.size());
 
   if (command.size() == 4 && std::equal(command.begin(), command.end(), "INFO")) {
     send_info();
@@ -37,7 +38,7 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
   }
 
   if (changes_the_device(command) && !await_composition()) {
-    (void)send_text("@PR:ERR:busy\n");
+    (void)send_text(PITRIG_CONTROL_PREFIX "ERR:busy\n");
     return;
   }
 
@@ -59,7 +60,7 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
       return;
     }
     if (apply_handler_ == nullptr) {
-      (void)send_text("@PR:ERR:unsupported\n");
+      (void)send_text(PITRIG_CONTROL_PREFIX "ERR:unsupported\n");
       return;
     }
     const ValidationFailure failure = apply_handler_(document, payload, apply_context_);
@@ -67,7 +68,7 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
       (void)send_error(failure);
       return;
     }
-    (void)send_document_reply("@PR:OK:APPLIED", document, nullptr);
+    (void)send_document_reply(PITRIG_CONTROL_PREFIX "OK:APPLIED", document, nullptr);
     return;
   }
 
@@ -82,7 +83,7 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
       (void)send_error(failure);
       return;
     }
-    (void)send_document_reply("@PR:OK:VALID", document, nullptr);
+    (void)send_document_reply(PITRIG_CONTROL_PREFIX "OK:VALID", document, nullptr);
     return;
   }
 
@@ -93,7 +94,7 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
     }
     const ConfigurationService::SaveOutcome outcome = service_->save(document, payload);
     if (outcome.storage_failed) {
-      (void)send_text("@PR:ERR:storage\n");
+      (void)send_text(PITRIG_CONTROL_PREFIX "ERR:storage\n");
       return;
     }
     if (!outcome.failure.ok()) {
@@ -101,7 +102,7 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
       return;
     }
     boot_guard::clear_failures();
-    (void)send_document_reply("@PR:OK:SAVED", document,
+    (void)send_document_reply(PITRIG_CONTROL_PREFIX "OK:SAVED", document,
                               configuration_document_reboot_required(document)
                                   ? "reboot_required=1"
                                   : "reboot_required=0");
@@ -111,9 +112,9 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
   if (command.size() == 5 && std::equal(command.begin(), command.end(), "RESET")) {
     if (service_->reset()) {
       boot_guard::clear_failures();
-      (void)send_text("@PR:OK:RESET:reboot_required=1\n");
+      (void)send_text(PITRIG_CONTROL_PREFIX "OK:RESET:reboot_required=1\n");
     } else {
-      (void)send_text("@PR:ERR:storage\n");
+      (void)send_text(PITRIG_CONTROL_PREFIX "ERR:storage\n");
     }
     return;
   }
@@ -125,23 +126,23 @@ void ConfigurationControl::handle(const std::span<const std::uint8_t> line) {
       return;
     }
     if (!service_->erase(document)) {
-      (void)send_text("@PR:ERR:storage\n");
+      (void)send_text(PITRIG_CONTROL_PREFIX "ERR:storage\n");
       return;
     }
     boot_guard::clear_failures();
-    (void)send_document_reply("@PR:OK:RESET", document, "reboot_required=1");
+    (void)send_document_reply(PITRIG_CONTROL_PREFIX "OK:RESET", document, "reboot_required=1");
     return;
   }
 
   if (command.size() == 6 && std::equal(command.begin(), command.end(), "REBOOT")) {
-    (void)send_text("@PR:OK:REBOOTING\n");
+    (void)send_text(PITRIG_CONTROL_PREFIX "OK:REBOOTING\n");
     if (reboot_handler_ != nullptr) {
       reboot_handler_(reboot_context_);
     }
     return;
   }
 
-  (void)send_text("@PR:ERR:unknown_command\n");
+  (void)send_text(PITRIG_CONTROL_PREFIX "ERR:unknown_command\n");
 }
 
 bool ConfigurationControl::take_document(const std::span<const std::uint8_t> argument,
@@ -151,12 +152,12 @@ bool ConfigurationControl::take_document(const std::span<const std::uint8_t> arg
       std::find(argument.begin(), argument.end(), static_cast<std::uint8_t>(':'));
   const auto name_size = static_cast<std::size_t>(separator - argument.begin());
   if (expect_payload == (separator == argument.end())) {
-    (void)send_text("@PR:ERR:unknown_document\n");
+    (void)send_text(PITRIG_CONTROL_PREFIX "ERR:unknown_document\n");
     return false;
   }
   const std::string_view name(reinterpret_cast<const char*>(argument.data()), name_size);
   if (!configuration_document_from_name(name, document)) {
-    (void)send_text("@PR:ERR:unknown_document\n");
+    (void)send_text(PITRIG_CONTROL_PREFIX "ERR:unknown_document\n");
     return false;
   }
   payload = expect_payload ? argument.subspan(name_size + 1U) : std::span<const std::uint8_t>{};
@@ -183,9 +184,9 @@ bool ConfigurationControl::send_error(const ValidationFailure& failure) {
   const std::string_view path = text_view(failure.path);
   const int written = std::snprintf(
       reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
-      "@PR:ERR:%.*s:screen=%d,widget=%d,path=%.*s\n", static_cast<int>(reason.size()),
-      reason.data(), static_cast<int>(failure.screen_index), static_cast<int>(failure.widget_index),
-      static_cast<int>(path.size()), path.data());
+      PITRIG_CONTROL_PREFIX "ERR:%.*s:screen=%d,widget=%d,path=%.*s\n",
+      static_cast<int>(reason.size()), reason.data(), static_cast<int>(failure.screen_index),
+      static_cast<int>(failure.widget_index), static_cast<int>(path.size()), path.data());
   return written > 0 && static_cast<std::size_t>(written) < io_buffer_.size() &&
          write_reply(std::span<const std::uint8_t>(io_buffer_.data(), written));
 }
@@ -204,7 +205,7 @@ bool ConfigurationControl::send_document_reply(const char* const prefix,
 
 bool ConfigurationControl::send_payload(const ConfigurationDocument document,
                                         const std::span<const std::uint8_t> payload) {
-  constexpr std::string_view kPayloadPrefix = "@PR:OK:CONFIG:";
+  constexpr std::string_view kPayloadPrefix = PITRIG_CONTROL_PREFIX "OK:CONFIG:";
   const std::string_view name = configuration_document_name(document);
   const std::size_t prefix_size = kPayloadPrefix.size() + name.size() + 1U;
   if (prefix_size + payload.size() + 1U > io_buffer_.size()) {

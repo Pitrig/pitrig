@@ -64,7 +64,9 @@ class ConfigurationService {
   static constexpr std::size_t kRecordHeaderSize = 20;
   static constexpr std::size_t kRecordBufferSize = kRecordHeaderSize + kMaximumPayloadSize;
   static constexpr std::size_t kPayloadBufferSize = total_document_payload_size();
-  static constexpr std::size_t kConfigurationBufferSize = 2 * sizeof(ApplicationConfiguration);
+  static constexpr std::size_t kConfigurationBufferSize =
+      2 * sizeof(ApplicationConfiguration) + sizeof(ValidationScratch);
+  static_assert(2 * sizeof(ApplicationConfiguration) % alignof(ValidationScratch) == 0);
 
   using FactoryPayloads = std::array<std::span<const std::uint8_t>, kConfigurationDocumentCount>;
 
@@ -139,6 +141,7 @@ class ConfigurationService {
   ValidationContext validation_profile_{};
   ApplicationConfiguration* active_{};
   ApplicationConfiguration* scratch_{};
+  ValidationScratch* validation_scratch_{};
   ConfigurationStatus status_{};
   std::span<std::uint8_t> record_buffer_{};
   std::array<std::span<std::uint8_t>, kConfigurationDocumentCount> payloads_{};

@@ -4,6 +4,7 @@
 
 #include "boot_guard.hpp"
 #include "configuration_control.hpp"
+#include "control_protocol_generated.hpp"
 #include "esp_app_desc.h"
 #include "transport.hpp"
 
@@ -17,7 +18,7 @@ void ConfigurationControl::send_info() {
   const std::string_view last_phase = boot_guard::phase_name(health.phase);
   int written = std::snprintf(
       reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
-      "@PR:OK:INFO:board=%.*s,firmware=%s,schema=%u,storage=%u,safe_mode=%u,"
+      PITRIG_CONTROL_PREFIX "OK:INFO:board=%.*s,firmware=%s,schema=%u,storage=%u,safe_mode=%u,"
       "boot_failures=%u,reset_reason=%.*s,last_phase=%.*s",
       static_cast<int>(board.size()), board.data(), esp_app_get_description()->version,
       static_cast<unsigned>(kConfigurationSchemaVersion), status.storage_available ? 1U : 0U,

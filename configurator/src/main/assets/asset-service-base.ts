@@ -17,7 +17,6 @@ export interface AssetKind {
   readonly filters: OpenDialogOptions['filters']
   readonly extensions: readonly string[]
   readonly wrongExtension: string
-  readonly busy: string
   readonly unsupported: string
   readonly storageUnavailable: string
   readonly rebootRequired: string
@@ -35,7 +34,7 @@ export class PackageTooLargeError extends Error {}
 
 export abstract class AssetServiceBase {
   protected readonly sources = new Map<string, SourceRecord>()
-  protected activeOperation: AbortController | undefined
+  private readonly operations = new Set<AbortController>()
 
   protected constructor(
     protected readonly deviceService: DeviceService,
@@ -62,7 +61,6 @@ export abstract class AssetServiceBase {
   }
 
   protected preflight(): AssetResult<void> | undefined {
-    if (this.activeOperation) return failure('busy', this.kind.busy)
     const state = this.deviceService.getState().session?.[this.kind.sessionKey]
     if (!state) return failure('unsupported_firmware', this.kind.unsupported)
     if (!state.storageAvailable) {
@@ -75,11 +73,17 @@ export abstract class AssetServiceBase {
   }
 
   cancel(): AssetResult<void> {
-    this.activeOperation?.abort()
+    for (const operation of this.operations) operation.abort()
     return success(undefined)
   }
 
+  protected begin(): AbortController {
+    const operation = new AbortController()
+    this.operations.add(operation)
+    return operation
+  }
+
   protected release(operation: AbortController): void {
-    if (this.activeOperation === operation) this.activeOperation = undefined
+    this.operations.delete(operation)
   }
 }

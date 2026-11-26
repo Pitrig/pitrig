@@ -4,29 +4,49 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { PitrigBoardId } from '../../shared/device'
+import { BOARD_INSTALL } from '../../shared/first-install'
 import { downloadAsset, releaseTagged, type ReleaseAsset } from './release-feed'
 import { t } from '@shared/ui-text'
 
 export const RELEASED_FIRMWARE_VERSION = __PITRIG_FIRMWARE_VERSION__
 
-const RELEASE_IMAGES: Record<PitrigBoardId, string> = {
-  t_display_s3: 'pitrig-t-display-s3.bin',
-  guition_esp32_4848s040: 'pitrig-guition-4848s040.bin',
-  guition_jc1060p470c: 'pitrig-jc1060p470c.bin',
-  esp32s3_devkit: 'pitrig-esp32s3-devkit.bin'
+export class MissingReleaseAsset extends Error {
+  constructor(
+    readonly asset: string,
+    readonly version: string,
+    readonly published: boolean
+  ) {
+    super(t('updates.firmware.notInRelease', { name: asset, version }))
+  }
 }
 
-export async function fetchReleasedFirmware(
+export function fetchReleasedFirmware(
   board: PitrigBoardId,
   onProgress: (fraction: number) => void
 ): Promise<string> {
+  return fetchReleased(`pitrig-${BOARD_INSTALL[board].release}.bin`, onProgress)
+}
+
+export async function fetchReleasedArchive(
+  board: PitrigBoardId,
+  onProgress: (fraction: number) => void,
+  signal: AbortSignal
+): Promise<Buffer> {
+  const name = `firmware-${BOARD_INSTALL[board].release}.tar.gz`
+  return readFile(await fetchReleased(name, onProgress, signal))
+}
+
+async function fetchReleased(
+  name: string,
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal
+): Promise<string> {
   const version = app.getVersion()
-  const name = RELEASE_IMAGES[board]
   const release = await releaseTagged(version)
   const asset = release?.assets.find((candidate) => candidate.name === name)
-  if (!asset) throw new Error(t('updates.firmware.notInRelease', { name, version }))
+  if (!asset) throw new MissingReleaseAsset(name, version, release !== undefined)
   const path = join(app.getPath('userData'), 'firmware-downloads', `v${version}`, name)
-  if (!(await holds(path, asset))) await downloadAsset(asset, path, onProgress)
+  if (!(await holds(path, asset))) await downloadAsset(asset, path, onProgress, signal)
   return path
 }
 

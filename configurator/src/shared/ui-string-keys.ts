@@ -182,6 +182,11 @@ export type UiStringKey =
   | 'configs.recentList.recent'
   | 'configs.recentList.savedInPitrig'
   | 'configs.recentList.unreadableCopies'
+  | 'contact.section.copied'
+  | 'contact.section.copyEmail'
+  | 'contact.section.description'
+  | 'contact.section.form'
+  | 'contact.section.title'
   | 'controls.actionLine.action'
   | 'controls.actionLine.page'
   | 'controls.actionLine.pageNumber'
@@ -351,10 +356,11 @@ export type UiStringKey =
   | 'device.boardSyncDialog.explanation'
   | 'device.boardSyncDialog.mirrorTheDraftOnThe'
   | 'device.boardSyncDialog.onBoardid'
+  | 'device.boardSyncDialog.reason.board_changed'
+  | 'device.boardSyncDialog.reason.connected'
   | 'device.boardSyncDialog.saveTheDraftToThe'
   | 'device.boardSyncDialog.showTheDraftOnThe'
   | 'device.boardSyncDialog.takeTheBoardSConfiguration'
-  | 'device.boardSyncDialog.theBoardAndTheDraft'
   | 'device.boardSyncDialog.writeTheDraftToThe'
   | 'device.bridgeErrors.theConfigurationBridgeIsNot'
   | 'device.bridgeErrors.theConfigurationFileOperationFailed'
@@ -382,26 +388,22 @@ export type UiStringKey =
   | 'device.deviceErrors.permissionToOpenTheSerial'
   | 'device.deviceErrors.theSerialPortIsBusy'
   | 'device.deviceErrors.theSerialPortIsNo'
-  | 'device.deviceOperation.anotherDeviceOperationIsAlready'
   | 'device.deviceOperation.noPitrigDeviceIsConnected'
-  | 'device.deviceOperation.theBoardIsBusyWith'
   | 'device.deviceProbe.theDeviceConfigurationBoardDoes'
   | 'device.deviceScan.multiplePitrigDevicesWereFound'
   | 'device.deviceScan.noCompatiblePitrigDeviceResponded'
   | 'device.deviceScan.noPitrigDeviceWasFound'
   | 'device.deviceScan.noUsbSerialPortsWere'
   | 'device.deviceScan.theBoardRestartedButDid'
-  | 'device.deviceService.aSaveIsRunningOn'
-  | 'device.deviceService.cancelTheActiveDeviceOperation'
   | 'device.deviceService.firmware'
   | 'device.deviceService.font'
   | 'device.deviceService.image'
-  | 'device.deviceService.theConnectedDeviceIsBusy'
   | 'device.deviceUploads.theConnectedDeviceChangedDuring'
   | 'device.deviceUploads.theConnectedDeviceChangedDuring2'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot2'
   | 'device.documentStatus.inSync'
+  | 'device.documentStatus.newer'
   | 'device.documentStatus.notOnBoard'
   | 'device.documentStatus.refused'
   | 'device.documentStatus.shownNotSaved'
@@ -499,12 +501,23 @@ export type UiStringKey =
   | 'device.infoPage.version'
   | 'device.infoPage.versionsUpdatesAndWhat'
   | 'device.lineExchange.theRequestWasCancelled'
+  | 'device.linkOwner.busy.bench'
+  | 'device.linkOwner.busy.connect'
+  | 'device.linkOwner.busy.disconnect'
+  | 'device.linkOwner.busy.install'
+  | 'device.linkOwner.busy.restart'
+  | 'device.linkOwner.busy.save'
+  | 'device.linkOwner.busy.update'
+  | 'device.linkOwner.busy.upload'
   | 'device.liveApplyIndicator.applyingToTheBoard'
   | 'device.liveApplyIndicator.livePreviewFailedError'
   | 'device.liveApplyIndicator.resolve'
   | 'device.liveApplyIndicator.sendingToTheBoard'
   | 'device.liveApplyIndicator.theBoardIsNotFollowing'
   | 'device.liveApplyIndicator.theBoardRunsItsOwn'
+  | 'device.newerBoard.refused'
+  | 'device.newerBoardBanner.explanation'
+  | 'device.newerBoardBanner.title'
   | 'device.pitrigProtocol.theDeviceConfigurationBoardDoes'
   | 'device.protocolParsers.infoData'
   | 'device.protocolParsers.theDeviceReturnedMalformedFieldname'
@@ -530,6 +543,7 @@ export type UiStringKey =
   | 'device.schemaBanner.updateTheBoardFirmware'
   | 'device.serialRequest.serialPortClosedDuringRequest'
   | 'device.serialRequest.serialPortClosedDuringThe'
+  | 'device.serialRequest.theBoardStayedBusy'
   | 'device.serialRequest.theDeviceDidNotAnswer'
   | 'device.serialRequest.theSerialPortIsClosed'
   | 'device.status.connected'
@@ -567,7 +581,6 @@ export type UiStringKey =
   | 'documents.labelLower.dashboard'
   | 'documents.labelLower.modules'
   | 'documents.labelLower.protocol'
-  | 'firmware.boardUpdate.alreadyRunning'
   | 'firmware.boardUpdate.backupFailed'
   | 'firmware.boardUpdate.backupName'
   | 'firmware.boardUpdate.cancelled'
@@ -611,7 +624,6 @@ export type UiStringKey =
   | 'firmware.firmwareStatus.cannotUpdateItself'
   | 'firmware.firmwareStatus.firmwareVersion'
   | 'firmware.firmwareStatus.notConfirmedYet'
-  | 'firmware.firmwareStatus.openWebFlasher'
   | 'firmware.firmwareStatus.restartToFinish'
   | 'firmware.firmwareStatus.restartWaiting'
   | 'firmware.firmwareStatus.setupStays'
@@ -619,7 +631,6 @@ export type UiStringKey =
   | 'firmware.firmwareStatus.updateTo'
   | 'firmware.firmwareStatus.versionAvailable'
   | 'firmware.firmwareStatus.whatChanges'
-  | 'firmware.firmwareUpdateService.aFirmwareUploadIsAlready'
   | 'firmware.firmwareUpdateService.cannotReadName'
   | 'firmware.firmwareUpdateService.firmwareInstalledIntoTargetRestart'
   | 'firmware.firmwareUpdateService.firmwareUploadCancelled'
@@ -637,6 +648,52 @@ export type UiStringKey =
   | 'firmware.firmwareUpdateService.thisDeviceHasNoSecond'
   | 'firmware.firmwareUpdateService.unknownError'
   | 'firmware.firmwareUpdateService.wrappedBytelengthBytesForBoardid'
+  | 'firmware.firstInstall.alreadyPitrig'
+  | 'firmware.firstInstall.archiveIncomplete'
+  | 'firmware.firstInstall.bootHint'
+  | 'firmware.firstInstall.cancelled'
+  | 'firmware.firstInstall.cancelledErased'
+  | 'firmware.firstInstall.checking'
+  | 'firmware.firstInstall.checkingBoard'
+  | 'firmware.firstInstall.chipMismatch'
+  | 'firmware.firstInstall.choose'
+  | 'firmware.firstInstall.connecting'
+  | 'firmware.firstInstall.connector.esp32s3_devkit'
+  | 'firmware.firstInstall.connector.guition_esp32_4848s040'
+  | 'firmware.firstInstall.connector.guition_jc1060p470c'
+  | 'firmware.firstInstall.connector.t_display_s3'
+  | 'firmware.firstInstall.downloadFailed'
+  | 'firmware.firstInstall.downloading'
+  | 'firmware.firstInstall.eraseWarning'
+  | 'firmware.firstInstall.erasing'
+  | 'firmware.firstInstall.factoryHint'
+  | 'firmware.firstInstall.flashTooSmall'
+  | 'firmware.firstInstall.installAnyway'
+  | 'firmware.firstInstall.installed'
+  | 'firmware.firstInstall.installedCopy'
+  | 'firmware.firstInstall.moveCable'
+  | 'firmware.firstInstall.noPorts'
+  | 'firmware.firstInstall.notAnswering'
+  | 'firmware.firstInstall.open'
+  | 'firmware.firstInstall.otherPort'
+  | 'firmware.firstInstall.releaseMissing'
+  | 'firmware.firstInstall.restarting'
+  | 'firmware.firstInstall.revisionUnsupported'
+  | 'firmware.firstInstall.secured'
+  | 'firmware.firstInstall.stage.connect'
+  | 'firmware.firstInstall.stage.download'
+  | 'firmware.firstInstall.stage.erase'
+  | 'firmware.firstInstall.stage.restart'
+  | 'firmware.firstInstall.stage.verify'
+  | 'firmware.firstInstall.stage.write'
+  | 'firmware.firstInstall.start'
+  | 'firmware.firstInstall.stoppedAnswering'
+  | 'firmware.firstInstall.title'
+  | 'firmware.firstInstall.tryAgain'
+  | 'firmware.firstInstall.verifyFailed'
+  | 'firmware.firstInstall.waitingForPitrig'
+  | 'firmware.firstInstall.writeFailed'
+  | 'firmware.firstInstall.writing'
   | 'fonts.catalog.weightCount'
   | 'fonts.catalogSection.addFromGoogleFonts'
   | 'fonts.catalogSection.addedNameToTheLibrary'
@@ -650,7 +707,6 @@ export type UiStringKey =
   | 'fonts.dialog.filter'
   | 'fonts.faceSpecimen.fixedWidth'
   | 'fonts.faceSpecimen.varyingWidth'
-  | 'fonts.fontAssetService.aFontUploadIsAlready'
   | 'fonts.fontAssetService.atMostMaximumFontFamilies'
   | 'fonts.fontAssetService.buildingOneFontPackageFrom'
   | 'fonts.fontAssetService.builtFontPackageBytelengthBytes'
@@ -745,7 +801,6 @@ export type UiStringKey =
   | 'images.format.alpha8'
   | 'images.format.rgb565'
   | 'images.format.rgb565a8'
-  | 'images.imageAssetService.anImageUploadIsAlready'
   | 'images.imageAssetService.buildingTheImagePackage'
   | 'images.imageAssetService.imageNameIsListedTwice'
   | 'images.imageAssetService.imageStorageIsUnavailableOn'
@@ -910,6 +965,7 @@ export type UiStringKey =
   | 'inspector.gaugeEditors.removeThisTrace'
   | 'inspector.gaugeEditors.removeTraceNumber'
   | 'inspector.gaugeEditors.showsTheLastTofixedS'
+  | 'inspector.gaugeEditors.sweep'
   | 'inspector.gaugeEditors.toFixedS'
   | 'inspector.gaugeEditors.track'
   | 'inspector.gaugeEditors.window'
@@ -952,6 +1008,7 @@ export type UiStringKey =
   | 'inspector.hints.geometry.size'
   | 'inspector.hints.geometry.z'
   | 'inspector.hints.graph.points'
+  | 'inspector.hints.graph.sweep'
   | 'inspector.hints.graph.traces'
   | 'inspector.hints.graph.width'
   | 'inspector.hints.image.frame'
@@ -1205,6 +1262,13 @@ export type UiStringKey =
   | 'ipc.registerLibraryHandlers.invalidDashboardFileRequest'
   | 'ipc.registerLibraryHandlers.invalidTemplateRequest'
   | 'ipc.requestGuards.invalidDeviceConfigurationRequest'
+  | 'language.section.description'
+  | 'language.section.machineTranslated'
+  | 'language.section.restartClosesDraft'
+  | 'language.section.restartNow'
+  | 'language.section.restartToApply'
+  | 'language.section.system'
+  | 'language.section.title'
   | 'layers.layerList.fold'
   | 'layers.layerList.hideInTheEditorOnly'
   | 'layers.layerList.lockSoTheCanvasCannot'
@@ -1620,6 +1684,8 @@ export type UiStringKey =
   | 'protocol.transportSection.whichLinkCarriesTelemetryAnd'
   | 'save.firmwareCheck.checking'
   | 'save.firmwareCheck.refused'
+  | 'save.firmwareCheck.unfinished'
+  | 'save.firmwareCheck.unreadable'
   | 'save.fontDelivery.building'
   | 'save.fontDelivery.noFaceCalled'
   | 'save.fontDelivery.noFaceForSome'
@@ -1631,6 +1697,7 @@ export type UiStringKey =
   | 'save.imageDelivery.tooLarge'
   | 'save.imageDelivery.tooMany'
   | 'save.imageDelivery.unavailable'
+  | 'save.memoryCheck.tooLarge'
   | 'save.saveToBoardService.checkingTheFontsThisDashboard'
   | 'save.saveToBoardService.noPitrigBoardIsConnected'
   | 'save.saveToBoardService.nothingToSaveTheBoard'
@@ -1655,6 +1722,7 @@ export type UiStringKey =
   | 'share.dialog.saveButton'
   | 'share.dialog.saveFile'
   | 'share.dialog.saveTitle'
+  | 'share.dialog.saveWidgetTitle'
   | 'share.dialog.saved'
   | 'share.dialog.savedWithout'
   | 'share.dialog.saving'
@@ -1662,6 +1730,8 @@ export type UiStringKey =
   | 'share.errors.name'
   | 'share.errors.notSaved'
   | 'share.file.damaged'
+  | 'share.file.isDashboard'
+  | 'share.file.isWidget'
   | 'share.file.newer'
   | 'share.file.newerVersion'
   | 'share.file.tooLarge'
@@ -1720,6 +1790,10 @@ export type UiStringKey =
   | 'templates.dashboardSection.wholeLayoutsScaledToSize'
   | 'templates.dashboardThumbnail.noPreview'
   | 'templates.dashboardThumbnail.reading'
+  | 'templates.files.added'
+  | 'templates.files.open'
+  | 'templates.files.openTitle'
+  | 'templates.files.share'
   | 'templates.insertScreen.aDashboardHoldsAtMost'
   | 'templates.insertScreen.thatDashboardHasNoSuch'
   | 'templates.insertScreen.thatScreenWouldNotBe'
@@ -2034,7 +2108,7 @@ export interface UiStringParameters {
   'canvas.slotTabs.pageNumberShownBy': { binding: string | number, number: string | number }
   'canvas.slotTabs.workInsideId': { id: string | number }
   'canvas.toolPalette.labelHintDragABox': { hint: string | number, label: string | number }
-  'canvas.toolPalette.theDashboardAlreadyHoldsAs': { toLowerCase: string | number }
+  'canvas.toolPalette.theDashboardAlreadyHoldsAs': { label: string | number }
   'common.listAndMore': { rest: string | number, shown: string | number }
   'common.pageNumber': { number: string | number }
   'common.screenNumber': { number: string | number }
@@ -2113,6 +2187,7 @@ export interface UiStringParameters {
   'device.connection.connectedAt': { baudRate: string | number, displayName: string | number }
   'device.connection.scanningAt': { baudRate: string | number, displayName: string | number }
   'device.documentStatus.inSync': { label: string | number }
+  'device.documentStatus.newer': { label: string | number }
   'device.documentStatus.notOnBoard': { label: string | number }
   'device.documentStatus.refused': { label: string | number }
   'device.documentStatus.shownNotSaved': { label: string | number }
@@ -2135,6 +2210,8 @@ export interface UiStringParameters {
   'device.infoPage.firmwareSlotsValue': { running: string | number, target: string | number }
   'device.liveApplyIndicator.livePreviewFailedError': { error: string | number }
   'device.liveApplyIndicator.theBoardIsNotFollowing': { liveApplyBlockedReason: string | number }
+  'device.newerBoard.refused': { documents: string | number }
+  'device.newerBoardBanner.explanation': { documents: string | number }
   'device.protocolParsers.theDeviceReturnedMalformedFieldname': { fieldName: string | number }
   'device.protocolParsers.theDeviceReturnedMalformedLabel': { label: string | number }
   'device.protocolParsers.unsupportedConfigurationSchemaSchema': { schema: string | number }
@@ -2143,6 +2220,7 @@ export interface UiStringParameters {
   'device.saveToBoardStore.keptBoardImages': { images: string | number }
   'device.saveToBoardStore.savedTheBoardKeepsShowing': { applyFailed: string | number }
   'device.schemaBanner.explanation': { expected: string | number, schema: string | number }
+  'device.serialRequest.theBoardStayedBusy': { request: string | number }
   'device.serialRequest.theDeviceDidNotAnswer': { trim: string | number }
   'device.supportDetails.boardValue': { board: string | number, display: string | number }
   'device.supportDetails.documentState': { document: string | number, state: string | number }
@@ -2174,6 +2252,19 @@ export interface UiStringParameters {
   'firmware.firmwareUpdateService.nameIsSizeBytesWhich': { name: string | number, size: string | number }
   'firmware.firmwareUpdateService.readingName': { name: string | number }
   'firmware.firmwareUpdateService.wrappedBytelengthBytesForBoardid': { boardId: string | number, byteLength: string | number }
+  'firmware.firstInstall.archiveIncomplete': { name: string | number }
+  'firmware.firstInstall.chipMismatch': { expected: string | number, found: string | number }
+  'firmware.firstInstall.downloadFailed': { reason: string | number }
+  'firmware.firstInstall.downloading': { version: string | number }
+  'firmware.firstInstall.flashTooSmall': { needed: string | number, size: string | number }
+  'firmware.firstInstall.installed': { version: string | number }
+  'firmware.firstInstall.installedCopy': { backup: string | number, version: string | number }
+  'firmware.firstInstall.notAnswering': { version: string | number }
+  'firmware.firstInstall.releaseMissing': { version: string | number }
+  'firmware.firstInstall.revisionUnsupported': { chip: string | number, maximum: string | number, minimum: string | number, revision: string | number }
+  'firmware.firstInstall.verifyFailed': { name: string | number }
+  'firmware.firstInstall.writeFailed': { offset: string | number }
+  'firmware.firstInstall.writing': { name: string | number }
   'fonts.catalog.weightCount': { count: number }
   'fonts.catalogSection.addedNameToTheLibrary': { name: string | number }
   'fonts.fontAssetService.atMostMaximumFontFamilies': { mAXIMUM_FONT_FAMILIES: string | number }
@@ -2304,6 +2395,7 @@ export interface UiStringParameters {
   'inspector.widgetEditors.imageOnlyOnBoard': { image: string | number }
   'inspector.widgetEditors.lengthSources': { length: string | number }
   'ipc.registerAssetHandlers.familyCouldNotBeDownloaded': { family: string | number }
+  'language.section.system': { language: string | number }
   'layers.layerList.typeDoubleClickToRename': { type: string | number }
   'layers.slotPages.pageNumberNotInLoop': { number: string | number }
   'modules.devicePreview.lampNumber': { number: string | number }
@@ -2385,6 +2477,8 @@ export interface UiStringParameters {
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
   'save.firmwareCheck.checking': { version: string | number }
   'save.firmwareCheck.refused': { reason: string | number, released: string | number, running: string | number }
+  'save.firmwareCheck.unfinished': { released: string | number, running: string | number }
+  'save.firmwareCheck.unreadable': { released: string | number, running: string | number }
   'save.fontDelivery.noFaceCalled': { family: string | number }
   'save.fontDelivery.noFaceForSome': { count: number }
   'save.imageDelivery.boardOnly': { images: string | number, pending: string | number }
@@ -2392,6 +2486,7 @@ export interface UiStringParameters {
   'save.imageDelivery.tooLarge': { limit: string | number, size: string | number }
   'save.imageDelivery.tooMany': { count: number, maximum: string | number }
   'save.imageDelivery.unavailable': { images: string | number }
+  'save.memoryCheck.tooLarge': { available: string | number, fonts: string | number, images: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
   'share.dialog.saved': { fileName: string | number, size: string | number }
   'share.dialog.savedWithout': { names: string | number }
@@ -2417,6 +2512,8 @@ export interface UiStringParameters {
   'templates.dashboardSection.nameWouldNotBeAccepted': { error: string | number, name: string | number }
   'templates.dashboardSection.replaceEverythingYouHaveOpen2': { name: string | number }
   'templates.dashboardSection.wholeLayoutsScaledToSize': { size: string | number }
+  'templates.files.added': { name: string | number }
+  'templates.files.share': { name: string | number }
   'templates.insertScreen.aDashboardHoldsAtMost': { maximum: string | number }
   'templates.insertScreen.thatScreenWouldNotBe': { error: string | number }
   'templates.insertScreenDialog.addsLength': { length: string | number }

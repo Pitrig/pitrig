@@ -20,6 +20,7 @@ import {
   broadcastDeviceState,
   broadcastBoardUpdateProgress,
   broadcastFirmwareUploadProgress,
+  broadcastFirstInstallProgress,
   broadcastFontLibraryChanged,
   broadcastImageLibraryChanged,
   broadcastSaveProgress
@@ -36,6 +37,7 @@ const services: AppServices = createAppServices({
   onDeviceState: broadcastDeviceState,
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onBoardUpdateProgress: broadcastBoardUpdateProgress,
+  onFirstInstallProgress: broadcastFirstInstallProgress,
   onFontLibraryChanged: broadcastFontLibraryChanged,
   onImageLibraryChanged: broadcastImageLibraryChanged,
   onSaveProgress: broadcastSaveProgress,

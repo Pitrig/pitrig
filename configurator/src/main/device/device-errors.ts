@@ -25,7 +25,11 @@ export function failure<T>(error: DeviceError): DeviceResult<T> {
 
 export function toDeviceError(error: unknown): DeviceError {
   if (error instanceof DeviceServiceError) {
-    return { code: error.code, message: error.message }
+    return {
+      code: error.code,
+      message: error.message,
+      ...(error.token === undefined ? {} : { token: error.token })
+    }
   }
 
   const message = error instanceof Error ? error.message : 'Unknown serial error.'

@@ -48,7 +48,9 @@ the plugin lets go and acknowledges the request's sequence, and the configurator
 opens the port and forwards the plugin's stream as ADR 0034 describes. A lease
 outlives a reboot and the scan's second open. Disconnecting hands the board back
 with `release=<port>@<baud>:<wire ids>`, naming the fields the running documents
-bind, so the plugin resumes at once without reading the board again. A board the
+bind, so the plugin resumes at once without reading the board again; for a board
+holding a document from a newer Pitrig the list is left out and the plugin reads
+the documents itself. A board the
 plugin feeds counts as found in the configurator's scan without being opened.
 The plugin takes `hold` and `release` from loopback only.
 

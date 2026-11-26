@@ -69,24 +69,22 @@ places the translation units a frame runs through — the software blender, the
 rect, border, label and glyph paths, the refresh loop, the style and text
 lookups — in internal RAM through a linker fragment. That fragment buys ~20% of
 the render time for ~62 KB of internal RAM, which the board has to spare once
-LVGL's heap lives in external memory. The ESP32-P4 gets none of it: it is not cache-bound, its L2 at 256 KB changes nothing, and `-Os` costs it
-12%. Ten software-renderer sources are the exception to compiling for size:
+LVGL's heap lives in external memory. The ESP32-P4 gets none of it: its L2
+cache runs at 256 KB instead (ADR 0027), and `-Os` costs it 12%. Ten software-renderer sources are the exception to compiling for size:
 `cmake/apply_lvgl_sw_patch.cmake` builds them with `-O2` on a size-optimised
 build, for about 9 % of a heavy round frame; the six of them in the fragment
 take 4.8 KB more internal RAM.
 
 **LVGL's software renderer is patched for round shapes** on every board
-(`lvgl-9.5.0-sw-round-shapes.patch`). On an RGB565 layer it writes the rows of
+(`lvgl-9.6.0-sw-round-shapes.patch`). On an RGB565 layer it writes the rows of
 circles and rings straight into the buffer instead of building a mask row and
-blending it, narrows a ring arc to the box of its own angles, decides an arc's
-angle mask once per area side where the kept region is convex, and skips a fill
-or border with a corner radius of 16 px or more that an area lies fully inside
-of; for smaller corners the check cost the ESP32-P4's text screens more than it
-saved. Every pixel stays as LVGL drew it, including two of LVGL's own habits
-the patch must keep: the angle mask can report full cover after writing edge
-values, so a row is judged by its values, and an arc with a hole under 3 px
-draws stray pixels up to 2.2 px from its centre, so only arcs with a hole of 8
-px or more are narrowed.
+blending it, decides an arc's angle mask once per area side where the kept
+region is convex, and skips a fill or border with a corner radius of 16 px or
+more that an area lies fully inside of; for smaller corners the check cost the
+ESP32-P4's text screens more than it saved. LVGL 9.6 narrows an arc to the box
+of its own angles itself. Every pixel stays as LVGL drew it, including one of
+LVGL's own habits the patch must keep: the angle mask can report full cover
+after writing edge values, so a row is judged by its values.
 
 **The T-Display's draw buffers are 40 lines** rather than 80, which is where the
 worst-case frame stops improving.
@@ -171,7 +169,24 @@ bottom row, took slot to 24, shape to 128, indicator to 16 and the payload to
 `.ext_ram.bss` went from 489,216 to 522,256 bytes and the payload buffers grew by
 another 128 KB. Validation's scratch grew by 1,536 bytes, so the main task went to
 7,168 bytes and the configuration control task to 9,728, the one rise in static
-internal RAM on every board.
+internal RAM on every board. Since then that scratch lives in the configuration
+memory in external RAM, so a cap no longer reaches a task stack: the control
+task's deepest measured use fell from 7,276 to 2,748 bytes for a stored dashboard
+and 4,540 for the deepest `APPLY` of the bench patterns, so its stack is now
+7,680. The command line, the command and the stored record share one
+payload-sized buffer, and fonts, images and firmware upload on one task, which
+left every board 14 KB more internal RAM and about 380 KB more external RAM.
+
+What external RAM is left bounds the fonts and images: at startup a board copies
+every face of its package and decodes every image the dashboard draws into it.
+The configurator stops a save when the fonts and images the board would hold
+pass `assetMemoryBytes` in the board profile and more than it holds now: the
+lowest free external RAM with the board's own dashboard, plus the fonts and
+images that dashboard holds, less a margin for the glyph caches and objects of a
+heavier one. On the ESP32-4848S040 that is 2,367 + 400 − about 590 = 2,175 KB;
+the JC1060P470C's lowest was 22.5 MB and its figure is 20 MB; the other boards
+have none yet. Firmware 0.4.1 has about 380 KB less free, so a 4848 still on it
+keeps a margin of about 200 KB.
 
 What the pools do not buy is a screen filled to 255. Widgets spread across four
 screens are free while three of them are not shown, but every object on the
@@ -205,11 +220,14 @@ records the current setting rather than the older blanket rejection.
   snapshots cost a full render each on top. See
   [runtime-performance.md](../runtime-performance.md).
 - **Flash QIO instead of DIO, cache line 32 → 64 B, cache wrap mode, a 16 ms
-  refresh period, the ESP32-P4's L2 cache at 256 KB**: all within noise, and the
-  L2 change costs 130 KB of internal RAM for it. QIO measured 5 % on the
+  refresh period**: all within noise. QIO measured 5 % on the
   heaviest round-dial frame later, still too little for a bootloader that only
   a cable can replace.
 - **Smaller ring repaint pieces and a 64-entry invalidation buffer**: every
   piece size from 6° to 25°, uniform or only near the diagonals, drew
   `round-dial-480` slower than 30° pieces, because every redrawn area costs
   about 1 ms of object and task work whatever its size.
+- **`GET` reading the stored document back from NVS** instead of keeping a copy,
+  for 225 KB of external RAM: NVS reads stall the cache of both cores, so on the
+  ESP32-P4 a `GET` of a 159 KB dashboard took 0.72 s instead of 0.35 and drew 50
+  frames instead of 59 in that second.

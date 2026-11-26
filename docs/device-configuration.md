@@ -118,7 +118,9 @@ Presence rules:
   survives all of these and has to be changed by hand. The board's factory
   payload names the same rate, and a sparse document is never expanded through a
   board profile, so the property has to be present to have an effect.
-- Unknown properties are rejected.
+- Unknown properties are rejected. In a document read from a board, unknown
+  properties and telemetry fields mark it as written by a newer Pitrig instead
+  (see "Keeping the draft and the board together").
 - Loading a preset inserts only the properties explicitly present in that
   preset.
 
@@ -164,8 +166,11 @@ its screens to the open dashboard and whose `Use` replaces it — and widgets,
 one widget with its subtree and `Add` alone. A dashboard is scaled to the board
 in hand on the way in; a widget arrives at the size it was saved at, and
 `Save to templates` takes the selected widget or, with none, the whole
-dashboard. Placing a widget is a mode: the fragment follows the pointer until a
-click lands it, shrunk only when it would not otherwise fit.
+dashboard. Each saved template is one `.pitrigdash` file holding its images and
+fonts ([ADR 0041](adr/0041-dashboard-files.md)): its card shares that file, and
+the section's Open adds one received from somebody else. Placing a widget is a
+mode: the fragment follows the pointer until a click lands it, shrunk only when
+it would not otherwise fit.
 Choosing a different board while a draft is open is a layout transfer,
 confirmed in the numbers the new display produces, with the same
 `Fit`/`Stretch` preference the Configs page uses
@@ -284,6 +289,12 @@ until the Firmware page has installed firmware for this schema. The board then
 draws its built-in dashboard, because it refuses records of the old schema, and
 `Save to board` puts the draft back.
 
+A board document that fails validation only on property or telemetry field
+names this configurator does not know was written by a newer Pitrig. The board
+still connects, the document is not adopted into the draft, and every write to
+the board is refused with advice to update Pitrig, while `Reset to factory`
+stays allowed. Any other failure is a damaged reply.
+
 The board is asked `@PR:INFO` every five seconds while it is connected and no
 operation is running, which is what notices a document written from elsewhere;
 the configuration is re-read only when a generation actually moved. `INFO`
@@ -380,7 +391,12 @@ identifier is the id of an entry in the image library the same way
 ([ADR 0018](adr/0018-uploaded-image-assets.md#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs)):
 the save installs exactly the images the dashboard draws, keeps the board's own
 copy of one this PC lacks, and stops before writing when an image is on neither
-or when installing would remove a picture only the board holds.
+or when installing would remove a picture only the board holds. The board copies
+every face of its package and decodes every image the dashboard draws into
+external RAM at startup, so a save also stops when the fonts and images the
+board would hold pass the `assetMemoryBytes` measured for its board and more
+than it holds now; only the ESP32-4848S040 and the JC1060P470C have a figure so
+far.
 Firmware checks fonts and images alike before it lets a configuration replace
 the running dashboard.
 

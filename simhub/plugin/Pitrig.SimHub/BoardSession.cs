@@ -31,10 +31,10 @@ namespace Pitrig.SimHub
         private const int ReadChunkBytes = 4096;
         private const int MaximumLineBytes = 32 + 192 * 1024;
         private const int OutputHighWater = 512;
-        private const string InfoRequest = "\n@PR:INFO\n";
-        private const string InfoReply = "@PR:OK:INFO:";
-        private const string BusyReply = "@PR:ERR:busy";
-        private const string ErrorReply = "@PR:ERR:";
+        private const string InfoRequest = "\n" + ControlProtocol.ControlPrefix + "INFO\n";
+        private const string InfoReply = ControlProtocol.ControlPrefix + "OK:INFO:";
+        private const string BusyReply = ControlProtocol.ControlPrefix + "ERR:busy";
+        private const string ErrorReply = ControlProtocol.ControlPrefix + "ERR:";
 
         private readonly FieldValues values;
         private readonly InputState inputs;

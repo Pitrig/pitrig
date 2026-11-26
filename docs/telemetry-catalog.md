@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 329. Static limit: 350.
+Catalog version: 1. Fields: 330. Static limit: 350.
 
 Games lists which of the games the SimHub plugin reads per game send a field; `any` is every game SimHub reports it for.
 
@@ -85,6 +85,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `session.sector.3_status` | `66` | `uint32` | `status` | `changes` | `computed` | any | Sector three against the personal best sector and the session's best split, coded like session.lap.delta_status; 0 while it is running or shows the last lap's time, and the finished lap's for five seconds after the line. |
 | `session.sector.delta` | `15` | `int32` | `millisecond` | `normal` | `computed` | any | Signed time gained or lost so far in the current sector against the best lap. |
 | `track.position_percent` | `16` | `float32` | `normalized` | `fast` | `common` | any | Vehicle position around the lap, from 0 to 1. |
+| `track.distance_remaining` | `TD` | `uint32` | `meter` | `normal` | `computed` | any | Distance from the car to the end of the lap, so to the finish on a rally stage. |
 ## Session and position
 
 | Canonical name | ID | Type | Unit | Rate | Availability | Games | Meaning |
@@ -153,7 +154,7 @@ Games lists which of the games the SimHub plugin reads per game send a field; `a
 | `vehicle.fuel.current_consumption` | `1q` | `float32` | `liter` | `slow` | `computed` | any | Fuel used on the current lap. |
 | `vehicle.fuel.laps_remaining` | `FL` | `text` | `source` | `slow` | `computed` | any | Estimated fuel laps remaining to three significant figures and at most two decimals, such as 2.37, 12.4 or 123. |
 | `vehicle.fuel.time_remaining` | `1r` | `uint32` | `millisecond` | `slow` | `computed` | any | Driving time left on the fuel, as SimHub's fuel calculator gives it. |
-| `vehicle.fuel.required_to_finish` | `1s` | `float32` | `liter` | `slow` | `computed` | any | Fuel to finish: the laps left, in a timed session the time left over the last lap clear of the pit lane or else the best lap, times the fuel per lap. |
+| `vehicle.fuel.required_to_finish` | `1s` | `float32` | `liter` | `slow` | `computed` | any | Fuel to finish: the laps left times the fuel per lap; in a timed session the laps to the flag less the part of the current lap already driven, and only the rest of that lap once the time has run out. |
 | `vehicle.fuel.to_add` | `1t` | `float32` | `liter` | `slow` | `computed` | any | Fuel to add: what finishing needs plus the fuel margin minus the fuel aboard, at most what the tank still takes, 0 when nothing is needed. |
 | `vehicle.fuel.at_finish` | `67` | `float32` | `liter` | `slow` | `computed` | any | Fuel left over at the finish, 0 when it will not last. |
 | `vehicle.fuel.pit_now` | `68` | `boolean` | `boolean` | `normal` | `computed` | any | Whether to pit at the end of this lap: the fuel left at the line, less the fuel margin, does not cover one more lap; false in the pit lane or when the fuel already covers the rest of the race, empty without a fuel-per-lap figure. |

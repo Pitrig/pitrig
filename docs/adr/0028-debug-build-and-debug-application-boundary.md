@@ -106,3 +106,9 @@ debug-only type.
   longer builds the overlay widgets.
 - Adding a debug hook to production code is a reviewable event rather than an
   invisible one.
+- The performance sampler walks both heaps from the render core, five seconds
+  after start and then every 30 seconds. A walk holds the heap's spinlock with
+  interrupts off, about 5 ms for the PSRAM pool: on the link core it overflowed
+  the Guition ESP32-4848S040's UART receive FIFO, so debug builds alone lost bytes
+  from font uploads and long commands. An allocation or a free in PSRAM on the
+  link core during a walk still waits for the rest of it with interrupts off.

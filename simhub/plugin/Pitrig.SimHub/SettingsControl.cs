@@ -26,10 +26,10 @@ namespace Pitrig.SimHub
             var status = new StatusTab(plugin, Change);
             var buttons = new ButtonsTab(plugin.Hub.Inputs);
             var about = new AboutTab(plugin.Hub);
-            Add("Status", status.Content, status.Show);
-            Add("Settings", new SettingsTab(plugin, Change).Content, null);
-            buttonsTab = Add("Buttons", buttons.Content, buttons.Show);
-            Add("About", about.Content, about.Show);
+            Add(UiText.TabsStatus, status.Content, status.Show);
+            Add(UiText.TabsSettings, new SettingsTab(plugin, Change).Content, null);
+            buttonsTab = Add(UiText.TabsButtons, buttons.Content, buttons.Show);
+            Add(UiText.TabsAbout, about.Content, about.Show);
             AddDiagnostics();
             tabs.SelectedIndex = 0;
             tabs.SelectionChanged += (sender, arguments) =>

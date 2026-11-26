@@ -81,7 +81,8 @@ void load_uploaded_assets(Application& application,
       log::error(kTag, "Images do not fit in external memory");
     } else if (!dashboard_composition::load_images(dashboard_composition::instance(), configuration,
                                                    application.services.image_assets,
-                                                   application.platform.image_memory.bytes())) {
+                                                   application.platform.image_memory.bytes(),
+                                                   color_correction(application))) {
       log::error(kTag, "Images could not be loaded");
     }
   }
@@ -143,7 +144,7 @@ bool start_communication(Application& application, const ConfigurationBuffers& b
           application.services.font_assets, application.services.image_assets,
           application.services.telemetry_provider, *application.telemetry_transport,
           recovery ? nullptr : &apply_configuration, &application, buffers.control_io,
-          buffers.control_line,
+          buffers.busy_line,
           recovery ? communication::Composition::Surface::recovery
                    : communication::Composition::Surface::full)) {
     log::error(kTag, "Communication composition is incomplete");

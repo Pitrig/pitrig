@@ -34,6 +34,7 @@ export function registerIpcHandlers({
   imageAssetService,
   firmwareUpdateService,
   boardUpdateService,
+  firstInstallService,
   configurationFileService,
   dashboardFileService,
   imageLibraryService,
@@ -60,6 +61,7 @@ export function registerIpcHandlers({
     imageAssetService,
     firmwareUpdateService,
     boardUpdateService,
+    firstInstallService,
     imageLibraryService,
     fontLibraryService,
     fontCatalogService

@@ -10,7 +10,7 @@ import {
 } from '../configuration-schema'
 import { arrayOf, pagesOf, widgetSources } from '../configuration-access'
 import { MAXIMUM_HOLD_MS } from '../widget-conditions'
-import { badBinding, badEnum, badList } from './values'
+import { badBinding, badEnum, badList, type UnknownNames } from './values'
 import { t } from '../ui-text'
 
 const LAP_TIMER_BINDING = 'session.lap.current_time'
@@ -49,7 +49,11 @@ export function findModifierError(
   return undefined
 }
 
-export function findSlotError(widget: SlotWidgetConfiguration, label: string): string | undefined {
+export function findSlotError(
+  widget: SlotWidgetConfiguration,
+  label: string,
+  unknownNames: UnknownNames = 'reject'
+): string | undefined {
   const painted =
     widget.background_color !== undefined ||
     widget.background_grad_color !== undefined ||
@@ -76,13 +80,17 @@ export function findSlotError(widget: SlotWidgetConfiguration, label: string): s
     return t('validation.widgetRules.labelHasNoPageIn', { label: label })
   }
   for (const [index, page] of pages.entries()) {
-    const error = findSlotPageError(page, t('validation.ranges.pageOfLabel', { number: index + 1, label }))
+    const error = findSlotPageError(page, t('validation.ranges.pageOfLabel', { number: index + 1, label }), unknownNames)
     if (error) return error
   }
   return undefined
 }
 
-function findSlotPageError(page: SlotPageConfiguration, where: string): string | undefined {
+function findSlotPageError(
+  page: SlotPageConfiguration,
+  where: string,
+  unknownNames: UnknownNames
+): string | undefined {
   const listError = badList(page.conditions, MAXIMUM_WIDGET_CONDITIONS, where, 'rules')
   if (listError) return listError
   const duration = page.duration_ms ?? 0
@@ -104,7 +112,7 @@ function findSlotPageError(page: SlotPageConfiguration, where: string): string |
   if (!page.source?.binding) {
     return t('validation.widgetRules.whereHasATriggerBut', { where: where })
   }
-  const unknown = badBinding(page.source.binding, '', where, t('validation.widgetValues.theSource'))
+  const unknown = badBinding(page.source.binding, '', where, t('validation.widgetValues.theSource'), unknownNames)
   if (unknown) return unknown
   if (trigger === 'value_changed' && duration === 0) {
     return t('validation.widgetRules.whereAppearsOnAChange', { where: where })

@@ -52,6 +52,11 @@ body {
   font-family: var(--font-sans);
 }
 
+:lang(ko) {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 @layer base {
   input[type="checkbox"],
   input[type="radio"] {
