@@ -14,8 +14,6 @@ namespace {
 
 constexpr char kTag[] = "image_widget";
 
-constexpr std::uint32_t kAlphaOnlyColor = 0xFFFFFFU;
-
 void apply_recolor(void* const context, const std::uint32_t rgb) {
   const State& state = *static_cast<const State*>(context);
   const bool authored = rgb == state.authored_color;
@@ -97,7 +95,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   const bool recolored = config.recolor != configuration::kTransparentColor;
   const bool alpha_only = state.descriptor.header.cf == LV_COLOR_FORMAT_A8;
   state.authored_color =
-      recolored ? config.recolor : (alpha_only ? kAlphaOnlyColor : config.frame.border.color);
+      recolored ? config.recolor
+                : (alpha_only ? images.alpha_only_color() : config.frame.border.color);
   constexpr auto kOpaqueCover = static_cast<std::uint8_t>(LV_OPA_COVER);
   state.authored_opa =
       alpha_only ? kOpaqueCover : static_cast<std::uint8_t>(recolored ? config.recolor_opa : 0);

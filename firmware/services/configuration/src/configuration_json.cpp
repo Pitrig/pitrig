@@ -161,7 +161,11 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
       return failure;
     }
   }
-  return validate_configuration(configuration, profile, scratch);
+  const ValidationFailure validated = validate_configuration(configuration, profile, scratch);
+  if (validated.ok() && owns(keys, "dashboard") && profile.dashboard_colors != nullptr) {
+    profile.dashboard_colors->apply(configuration);
+  }
+  return validated;
 }
 
 [[nodiscard]] ValidationFailure parse_payload(const std::span<const std::uint8_t> input,

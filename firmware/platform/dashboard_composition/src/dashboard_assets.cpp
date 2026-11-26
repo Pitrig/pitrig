@@ -169,7 +169,8 @@ std::size_t image_bytes_required(const configuration::ApplicationConfiguration& 
 }
 
 bool load_images(Dashboard& dashboard, const configuration::ApplicationConfiguration& configuration,
-                 const image_assets::Service& image_assets, const std::span<std::uint8_t> storage) {
+                 const image_assets::Service& image_assets, const std::span<std::uint8_t> storage,
+                 display_color::Correction* const correction) {
   const image_assets::Service::Guard guard{image_assets};
   if (!image_assets.package_readable()) {
     return true;
@@ -180,7 +181,7 @@ bool load_images(Dashboard& dashboard, const configuration::ApplicationConfigura
   for (std::size_t index = 0; index < count; ++index) {
     assets[index] = *referenced[index];
   }
-  return dashboard.images.load({assets.data(), count}, storage);
+  return dashboard.images.load({assets.data(), count}, storage, correction);
 }
 
 bool images_available(const configuration::ApplicationConfiguration& configuration,

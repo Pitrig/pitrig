@@ -34,6 +34,10 @@ track_map::Service* track_map_service(Application& application) {
   return service.active() ? &service : nullptr;
 }
 
+display_color::Correction* color_correction(Application& application) {
+  return application.color_correction.has_value() ? &*application.color_correction : nullptr;
+}
+
 namespace {
 
 bool restart_module(Application& application, const module_composition::Module module) {
@@ -50,7 +54,8 @@ bool create_dashboard(Application& application) {
     if (!application.platform.image_memory.ensure(image_bytes) ||
         !dashboard_composition::load_images(dashboard_composition::instance(), configuration,
                                             application.services.image_assets,
-                                            application.platform.image_memory.bytes())) {
+                                            application.platform.image_memory.bytes(),
+                                            color_correction(application))) {
       log::error(kTag, "Images could not be loaded for the new configuration");
       return false;
     }

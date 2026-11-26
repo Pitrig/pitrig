@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <span>
 
 #include "communication_composition.hpp"
 #include "configuration_service.hpp"
+#include "display_color.hpp"
 #include "event_bus.hpp"
 #include "external_memory_buffer.hpp"
 #include "firmware_update_service.hpp"
@@ -58,6 +60,7 @@ struct Application {
   communication::Composition communication{services.telemetry_registry};
   lv_display_t* display{};
   transport::ITransport* telemetry_transport{};
+  std::optional<display_color::Correction> color_correction;
 };
 
 struct ConfigurationBuffers {
@@ -74,6 +77,8 @@ struct ConfigurationBuffers {
     Application& application, const configuration::ApplicationConfiguration& configuration);
 
 [[nodiscard]] track_map::Service* track_map_service(Application& application);
+
+[[nodiscard]] display_color::Correction* color_correction(Application& application);
 
 configuration::ValidationFailure apply_configuration(configuration::ConfigurationDocument document,
                                                      std::span<const std::uint8_t> payload,

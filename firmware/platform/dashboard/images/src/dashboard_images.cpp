@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 
+#include "display_color.hpp"
 #include "esp_heap_caps.h"
 #include "logger.hpp"
 #include "miniz.h"
@@ -43,12 +44,28 @@ using DecompressorPtr = std::unique_ptr<tinfl_decompressor, DecompressorDelete>;
   return LV_COLOR_FORMAT_UNKNOWN;
 }
 
+void correct_colors(const image_assets::ImageAsset& asset, std::uint8_t* const pixels,
+                    display_color::Correction& correction) {
+  if (asset.format != image_assets::ColorFormat::rgb565 &&
+      asset.format != image_assets::ColorFormat::rgb565a8) {
+    return;
+  }
+  const std::size_t color_bytes =
+      image_assets::color_stride(asset.format, asset.width) * asset.height;
+  for (std::size_t frame = 0; frame < asset.frame_count; ++frame) {
+    correction.correct_rgb565({pixels + frame * asset.frame_stride(), color_bytes});
+  }
+}
+
 }
 
 bool Registry::load(const std::span<const image_assets::ImageAsset> assets,
-                    const std::span<std::uint8_t> storage) {
+                    const std::span<std::uint8_t> storage,
+                    display_color::Correction* const correction) {
   entries_ = {};
   count_ = 0;
+  constexpr std::uint32_t kWhite = 0xFFFFFFU;
+  alpha_only_color_ = correction != nullptr ? correction->correct(kWhite) : kWhite;
   DecompressorPtr decompressor;
   std::size_t offset = 0;
   for (const image_assets::ImageAsset& asset : assets) {
@@ -80,6 +97,9 @@ bool Registry::load(const std::span<const image_assets::ImageAsset> assets,
       }
     } else {
       std::copy(asset.bytes.begin(), asset.bytes.end(), destination);
+    }
+    if (correction != nullptr) {
+      correct_colors(asset, destination, *correction);
     }
     Entry& entry = entries_[count_];
     entry.id = asset.id;

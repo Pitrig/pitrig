@@ -98,6 +98,12 @@ struct LedValidationProfile {
   }
 };
 
+class IDashboardColorMap {
+ public:
+  virtual ~IDashboardColorMap() = default;
+  virtual void apply(ApplicationConfiguration& configuration) const = 0;
+};
+
 struct ValidationContext {
   BoardId board{BoardId::t_display_s3};
   DisplayValidationProfile display{};
@@ -107,6 +113,7 @@ struct ValidationContext {
   std::uint8_t uart_port_count{3};
   bool uart_supported{};
   bool native_usb_cdc_supported{};
+  const IDashboardColorMap* dashboard_colors{};
 };
 
 }

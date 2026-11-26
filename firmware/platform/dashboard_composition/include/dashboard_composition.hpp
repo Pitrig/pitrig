@@ -38,6 +38,9 @@ class Service;
 namespace pitrig::controls {
 class DashboardTarget;
 }
+namespace pitrig::display_color {
+class Correction;
+}
 
 namespace pitrig::dashboard_composition {
 
@@ -61,7 +64,8 @@ void dismiss_startup_screen(const configuration::ApplicationConfiguration& confi
 [[nodiscard]] bool load_images(Dashboard& dashboard,
                                const configuration::ApplicationConfiguration& configuration,
                                const image_assets::Service& image_assets,
-                               std::span<std::uint8_t> storage);
+                               std::span<std::uint8_t> storage,
+                               display_color::Correction* correction);
 
 [[nodiscard]] bool images_available(const configuration::ApplicationConfiguration& configuration,
                                     const image_assets::Service& image_assets,

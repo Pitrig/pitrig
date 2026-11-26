@@ -77,7 +77,7 @@ idf_component_register(
     LDFRAGMENTS ${lvgl_ldfragments}
     REQUIRES configuration_contract font_assets font_contract image_assets
              image_contract lvgl__lvgl telemetry track_map value_conditions
-    PRIV_REQUIRES display esp_lvgl_port esp_rom esp_system esp_timer heap logger
+    PRIV_REQUIRES display display_color esp_lvgl_port esp_rom esp_system esp_timer heap logger
                   number_transform performance pitrig_config text_writer
                   time_transform value_smoothing)
 

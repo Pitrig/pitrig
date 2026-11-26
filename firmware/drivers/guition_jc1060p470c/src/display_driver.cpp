@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "color_profile.hpp"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "guition_jc1060p470c_display_driver.hpp"
@@ -75,6 +76,7 @@ const driver::Driver kDriver{
     .release = release,
     .on_display_ready = on_display_ready,
     .backlight_pin = PITRIG_JC1060P470C_BACKLIGHT_GPIO,
+    .color_profile = &kColorProfile,
 };
 
 }

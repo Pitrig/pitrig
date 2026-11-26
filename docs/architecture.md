@@ -123,8 +123,10 @@ What each directory holds:
   over a shared `frame`, plus `conditions`, `fonts`, `images`, `layout`,
   `navigation`, `slots`, `value_text`, `memory` — the allocator that puts every
   LVGL allocation in external RAM — `utilities` and the embedded boot-splash
-  `assets`), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
-  `partition_asset_storage`, `telemetry_transport`, `external_memory`.
+  `assets`), `dashboard_composition`, `display_color` — a driver's measured
+  colour profile applied to dashboard colours and images as they load (ADR 0047) —
+  `module_composition`, `nvs_config_storage`, `partition_asset_storage`,
+  `telemetry_transport`, `external_memory`.
 - `utils/` — `binary`, `pitrig_config` (the Kconfig surface and the `PITRIG_*`
   feature aliases, here because every layer reads it), `transformers/number_transform`,
   `transformers/text_writer`, `transformers/time_transform`.

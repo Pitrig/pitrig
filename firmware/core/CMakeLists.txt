@@ -6,7 +6,7 @@ idf_component_register(
   PRIV_INCLUDE_DIRS "src"
   PRIV_REQUIRES board_registry boot_guard communication configuration
                 configuration_contract dashboard_composition
-                display esp_timer event_bus external_memory firmware_update
+                display display_color esp_timer event_bus external_memory firmware_update
                 font_assets image_assets input logger nvs_config_storage
                 partition_asset_storage
                 module_composition pitrig_config telemetry
