@@ -85,7 +85,7 @@ export function FirmwareStatus({ session }: { session: DeviceSession }): React.J
   const preparing = useUpdateStore((state) => state.preparing)
   const running = useBoardUpdateStore((state) => state.running)
   const busyReason = useBoardActivityReason()
-  const [changesOpen, setChangesOpen] = useState(false)
+  const [changesOpen, setChangesOpen] = useState(true)
   const { boardId, firmwareVersion, schemaVersion } = session.info
   const firmware = session.firmware
   if (firmware?.storageAvailable !== true) return <SelfUpdateNotice session={session} />

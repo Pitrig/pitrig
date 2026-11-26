@@ -34,10 +34,10 @@ export function FirmwareChangeList({
               ? t('updates.firmware.changesRelease', { version: release.firmware })
               : t('updates.firmware.changesUnreleased')}
           </summary>
-          <ul className="space-y-1.5 pb-1 pl-5">
+          <ul className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 pb-1 pl-5">
             {release.changes.map((change, item) => (
-              <li key={item} className="flex gap-2">
-                <span className={`w-14 flex-none ${KIND_STYLE[change.kind]}`}>
+              <li key={item} className="col-span-2 grid grid-cols-subgrid">
+                <span className={`whitespace-nowrap ${KIND_STYLE[change.kind]}`}>
                   {t(`updates.firmware.kind.${change.kind}`)}
                 </span>
                 <span className="min-w-0 text-foreground">
