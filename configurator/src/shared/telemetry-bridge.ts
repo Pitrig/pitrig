@@ -46,7 +46,7 @@ export interface TelemetryBridgeStartRequest {
 }
 
 export interface TelemetryInterest {
-  running: string[]
+  running: string[] | null
   draft: string[]
   all: boolean
   inputs: boolean

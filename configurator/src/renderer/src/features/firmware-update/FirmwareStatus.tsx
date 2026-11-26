@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { boardBehind } from '@shared/app-updates'
 import { CONFIGURATION_SCHEMA_VERSION, type DeviceSession } from '@shared/device'
 import { firmwareChangesFor } from '@shared/firmware-changes'
+import { newerDocumentsReason } from '@shared/newer-documents'
 import { t } from '@shared/ui-text'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -93,6 +94,7 @@ export function FirmwareStatus({ session }: { session: DeviceSession }): React.J
   const released = status?.enabled ? status.releasedFirmware : undefined
   const behind = released !== undefined && boardBehind(session, released)
   const pending = firmware.rebootRequired
+  const restartBlocked = busyReason ?? newerDocumentsReason(session)
   const downloading = status?.firmwareDownload
   const releases = behind ? firmwareChangesFor(__PITRIG_FIRMWARE_CHANGES__, boardId, firmwareVersion) : []
   const count = releases.reduce((total, release) => total + release.changes.length, 0)
@@ -115,8 +117,8 @@ export function FirmwareStatus({ session }: { session: DeviceSession }): React.J
         <div className="mt-3 space-y-2">
           <p className="text-amber-400">{t('firmware.firmwareStatus.restartWaiting')}</p>
           <Button
-            disabled={busyReason !== undefined}
-            title={busyReason}
+            disabled={restartBlocked !== undefined}
+            title={restartBlocked}
             onClick={() => void updateBoard()}
           >
             {t('firmware.firmwareStatus.restartToFinish')}

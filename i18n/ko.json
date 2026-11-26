@@ -91,6 +91,13 @@
       "updateTheBoardFirmware": "보드 펌웨어 업데이트",
       "explanation": "보드 펌웨어가 읽는 구성 스키마는 {schema}이고 이 Configurator가 쓰는 스키마는 {expected}입니다. 그래서 보드의 구성을 여기서 읽을 수는 있지만 보드에 저장할 수는 없습니다. “펌웨어” 페이지의 “보드 업데이트”는 새 펌웨어를 설치하고 보드의 구성을 복원합니다."
     },
+    "newerBoard": {
+      "refused": "더 새로운 버전의 Pitrig가 이 보드의 구성({documents})을 썼기 때문에 이 버전은 보드에 쓰지 않습니다. 먼저 Pitrig를 업데이트하십시오."
+    },
+    "newerBoardBanner": {
+      "title": "이 보드는 더 새로운 버전의 Pitrig로 설정되었습니다",
+      "explanation": "이 보드의 구성({documents})에는 이 버전이 모르는 설정이 들어 있습니다. 그래서 여기서 열지 않으며, Pitrig를 업데이트할 때까지 보드에 아무것도 쓰지 않습니다."
+    },
     "safeModeBanner": {
       "boardIsInSafeMode": "보드가 안전 모드입니다",
       "theLastOnePhase": "(마지막은 {phase})",
@@ -247,6 +254,7 @@
       "theBoardLacksImages": "보드에 아직 없는 이미지: {images}. 저장하면 이미지가 설치됩니다."
     },
     "documentStatus": {
+      "newer": "{label}: 더 새로운 Pitrig에서 작성됨",
       "refused": "{label} 구성 거부됨",
       "notOnBoard": "{label} 구성이 보드에 없음",
       "shownNotSaved": "{label} 구성 표시됨, 저장 안 됨",

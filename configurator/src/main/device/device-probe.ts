@@ -34,7 +34,7 @@ export async function probePitrig(
   onTraffic: TrafficCallback
 ): Promise<DeviceSession> {
   const info = await identifyPitrig(port, onTraffic)
-  const configuration = await readConfiguration(port, info.boardId, onTraffic, 'not_pitrig')
+  const stored = await readConfiguration(port, info.boardId, onTraffic, 'not_pitrig')
   const fontAssets = await probeCapability(
     port,
     FONT_INFO_REQUEST,
@@ -58,7 +58,7 @@ export async function probePitrig(
   )
   return {
     info,
-    configuration,
+    ...stored,
     ...(fontAssets ? { fontAssets } : {}),
     ...(imageAssets ? { imageAssets } : {}),
     ...(firmware ? { firmware } : {})

@@ -15,6 +15,7 @@ import {
   type ConfigurationDocumentId
 } from '../../shared/configuration-schema'
 import { documentOf, mergeDocument } from '../../shared/configuration-documents'
+import { newerDocumentsReason } from '../../shared/newer-documents'
 import { DeviceServiceError, failure, success } from './device-errors'
 import { prepareDeviceConfigurationJson } from './configuration-json'
 import { parseDeviceInfo } from './protocol-parsers'
@@ -29,7 +30,8 @@ import {
   resetConfiguration,
   resetConfigurationDocument,
   saveConfiguration,
-  validateConfiguration
+  validateConfiguration,
+  type StoredConfiguration
 } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
 import { CONTROL_PREFIX } from '@shared/control-protocol'
@@ -39,7 +41,7 @@ export async function readDeviceConfiguration(
   owner: LinkOwner
 ): Promise<DeviceResult<DeviceState>> {
   return owner.command(async ({ port, session, traffic }) => {
-    const configuration = await readConfiguration(
+    const stored = await readConfiguration(
       port,
       session.info.boardId,
       sentTraffic(traffic)
@@ -47,7 +49,7 @@ export async function readDeviceConfiguration(
     if (connection.port !== port || connection.getState().session !== session) {
       throw new DeviceServiceError('serial_error', t('device.deviceConfigCommands.theConnectedDeviceChangedDuring'))
     }
-    connection.setState({ ...connection.getState(), session: { ...session, configuration } })
+    connection.setState({ ...connection.getState(), session: { ...session, ...stored } })
     return success(connection.getState())
   })
 }
@@ -121,7 +123,7 @@ export async function saveDeviceConfiguration(
         connection,
         port,
         session,
-        held,
+        { configuration: held, newerDocuments: session.newerDocuments },
         onTraffic,
         written.length < selected.length && owesRestart(written)
       )
@@ -148,7 +150,8 @@ export async function resetDeviceConfiguration(
     for (const id of erased) {
       configuration = mergeDocument(configuration, id, { board: session.info.boardId })
     }
-    await commitSession(connection, port, session, configuration, onTraffic, true)
+    const newerDocuments = session.newerDocuments.filter((id) => !erased.includes(id))
+    await commitSession(connection, port, session, { configuration, newerDocuments }, onTraffic, true)
     return success({ configuration, documents: erased, rebootRequired: true })
   })
 }
@@ -175,7 +178,7 @@ async function commitSession(
   connection: ConnectionManager,
   port: OpenedDevice['port'],
   session: DeviceSession,
-  configuration: DeviceConfiguration,
+  stored: StoredConfiguration,
   onTraffic: TrafficCallback,
   restartOwed: boolean
 ): Promise<void> {
@@ -186,7 +189,7 @@ async function commitSession(
     ...connection.getState(),
     session: {
       ...session,
-      configuration,
+      ...stored,
       info,
       ...(restartOwed ? { restartOwed: true } : {})
     }
@@ -224,6 +227,8 @@ function prepareConfiguration(
   configuration: DeviceConfiguration
   payloads: Record<ConfigurationDocumentId, string>
 }> {
+  const newer = newerDocumentsReason(session)
+  if (newer) return failure({ code: 'invalid_request', message: newer })
   if (session.info.schemaVersion !== CONFIGURATION_SCHEMA_VERSION) {
     return failure({
       code: 'invalid_request',

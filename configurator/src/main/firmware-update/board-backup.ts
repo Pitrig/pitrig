@@ -4,6 +4,7 @@ import {
   type ConfigurationDocumentId
 } from '../../shared/configuration-schema'
 import type { DeviceConfiguration, DeviceSession } from '../../shared/device'
+import { newerDocumentsReason } from '../../shared/newer-documents'
 import type { ConfigLibraryService } from '../configs/config-library-service'
 import { t } from '@shared/ui-text'
 
@@ -23,6 +24,8 @@ export async function backUpBoard(
   session: DeviceSession,
   onStart: () => void
 ): Promise<BackupOutcome> {
+  const newer = newerDocumentsReason(session)
+  if (newer) return { ok: false, message: newer }
   const documents = CONFIGURATION_DOCUMENT_IDS.filter(
     (document) => session.info.documents[document].outcome === 'valid'
   )

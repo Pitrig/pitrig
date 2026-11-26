@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
 import type { DeviceSession } from '@shared/device'
+import { newerDocumentsReason } from '@shared/newer-documents'
 import { t } from '@shared/ui-text'
 import { Button } from '@/components/ui/button'
 import { useBoardActivityReason } from '@/features/device/board-activity'
@@ -15,13 +16,15 @@ export function FileInstall({ session }: { session: DeviceSession }): React.JSX.
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const firmware = session.firmware
+  const newer = newerDocumentsReason(session)
   const installable =
     Boolean(firmware?.storageAvailable) &&
     !firmware?.rebootRequired &&
     source !== undefined &&
     !running &&
     !busy &&
-    busyReason === undefined
+    busyReason === undefined &&
+    newer === undefined
 
   const select = async (): Promise<void> => {
     setBusy(true)
@@ -65,7 +68,7 @@ export function FileInstall({ session }: { session: DeviceSession }): React.JSX.
             {t('firmware.fileInstall.selectFile')}</Button>
           <Button
             disabled={!installable}
-            title={busyReason}
+            title={busyReason ?? newer}
             onClick={() => void updateBoard(source?.id)}
           >
             {t('firmware.fileInstall.install')}</Button>

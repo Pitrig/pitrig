@@ -23,7 +23,7 @@ a release says when either applies.
 
 ## Unreleased
 
-Same schema and partition table: a board update keeps the configuration. Dashboards with the new field or a sweeping graph need this firmware. An older configurator does not list the templates this one saves.
+Same schema and partition table: a board update keeps the configuration. Dashboards with the new field or a sweeping graph need this firmware, and the 0.4.1 configurator cannot open a board that holds one. An older configurator does not list the templates this one saves.
 
 **Added**
 
@@ -62,6 +62,7 @@ Same schema and partition table: a board update keeps the configuration. Dashboa
 - **Configurator.** Turning the Modules preview off always clears its values on the board.
 - **Configurator.** A language change or an app update waits for a running board action before the app restarts.
 - **Guition ESP32-4848S040.** A board restarted while it starts no longer hangs on its touch controller, and starts without touch if the controller does not answer.
+- **Configurator.** A board set up by a newer Pitrig connects read-only, and a banner asks to update Pitrig.
 - **Configurator.** Install Pitrig asks before it erases a JC1060P470C or a DevKitC-1 on a port that cannot show Pitrig, and refuses one that runs Pitrig there.
 - **SimHub plugin.** In a timed race the fuel to finish, the fuel to add and the pit call count the laps to the flag, so the last stint no longer runs short.
 - **Development.** Debug builds of the Guition ESP32-4848S040 no longer lose serial bytes, which broke font uploads and long commands.

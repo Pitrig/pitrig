@@ -78,7 +78,8 @@ their placeholders — they are specimens, not the dashboard.
 **The configurator dials, the plugin answers.** The configurator names the
 machine SimHub runs on and sends the plugin a request once a second: the header
 and `key=value` lines naming the fields it wants — the running documents' and
-the draft's bindings, or every field while the catalog table is open — and, on
+the draft's bindings, or every field while the catalog table is open or the
+board holds a document from a newer Pitrig — and, on
 loopback, the ports it holds (ADR 0035). The plugin streams those fields to
 whatever address the request came from and forgets it after three seconds of
 silence. The address is knowledge the authoring side already

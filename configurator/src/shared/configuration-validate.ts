@@ -12,6 +12,7 @@ import { findRangeError } from './validate/ranges'
 import { findUnknownProperty } from './validate/schema-keys'
 import { findScreenError } from './validate/structure'
 import { findTransportError } from './validate/transport'
+import type { UnknownNames } from './validate/values'
 
 export interface ValidateOptions {
   supportedBoards: readonly string[]
@@ -25,15 +26,34 @@ export function validateConfigurationDocument(
   value: unknown,
   options: ValidateOptions
 ): ValidationResult {
+  return validateCatching(value, options, 'reject')
+}
+
+export function onlyUnknownNames(value: unknown, options: ValidateOptions): boolean {
+  return (
+    !validateCatching(value, options, 'reject').ok &&
+    validateCatching(value, options, 'accept').ok
+  )
+}
+
+function validateCatching(
+  value: unknown,
+  options: ValidateOptions,
+  unknownNames: UnknownNames
+): ValidationResult {
   try {
-    return validate(value, options)
+    return validate(value, options, unknownNames)
   } catch (error) {
     const detail = error instanceof Error && error.message ? ` (${error.message})` : ''
     return { ok: false, error: t('validation.configuration.theConfigurationCouldNotBe', { detail }) }
   }
 }
 
-function validate(value: unknown, options: ValidateOptions): ValidationResult {
+function validate(
+  value: unknown,
+  options: ValidateOptions,
+  unknownNames: UnknownNames
+): ValidationResult {
   if (!isObject(value)) {
     return { ok: false, error: t('validation.configuration.configurationMustBeAJson') }
   }
@@ -44,19 +64,19 @@ function validate(value: unknown, options: ValidateOptions): ValidationResult {
   ) {
     return { ok: false, error: t('validation.configuration.configurationMustTargetASupported') }
   }
-  const unknown = findUnknownProperty(value, 'ApplicationConfiguration', '')
+  const unknown = findUnknownProperty(value, 'ApplicationConfiguration', '', unknownNames)
   if (unknown) return { ok: false, error: unknown }
 
   const hardwareError = findHardwareError(configuration)
   if (hardwareError) return { ok: false, error: hardwareError }
 
-  const screenError = findScreenError(configuration)
+  const screenError = findScreenError(configuration, unknownNames)
   if (screenError) return { ok: false, error: screenError }
 
   const rangeError = findRangeError(configuration)
   if (rangeError) return { ok: false, error: rangeError }
 
-  const controlsError = findControlsError(configuration)
+  const controlsError = findControlsError(configuration, unknownNames)
   if (controlsError) return { ok: false, error: controlsError }
 
   const transportError = findTransportError(configuration)

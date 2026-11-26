@@ -232,6 +232,7 @@ export type DeviceConfiguration = ApplicationConfiguration
 export interface DeviceSession {
   info: DeviceInfo
   configuration: DeviceConfiguration
+  newerDocuments: ConfigurationDocumentId[]
   fontAssets?: FontAssetDeviceInfo
   imageAssets?: ImageAssetState
   firmware?: FirmwareUpdateState

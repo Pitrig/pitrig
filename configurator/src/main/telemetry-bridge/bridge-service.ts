@@ -108,10 +108,11 @@ export class TelemetryBridgeService {
   }
 
   setInterest(interest: TelemetryInterest): void {
-    const running = wireIdsOf(interest.running).join(',')
-    const fields = interest.all
-      ? EVERY_FIELD
-      : wireIdsOf([...interest.running, ...interest.draft]).join(',')
+    const running = interest.running === null ? null : wireIdsOf(interest.running).join(',')
+    const fields =
+      interest.all || interest.running === null
+        ? EVERY_FIELD
+        : wireIdsOf([...interest.running, ...interest.draft]).join(',')
     const fieldsChanged = this.handover.setInterest(fields, running)
     const inputsChanged = this.handover.setInputs(interest.inputs, interest.wiring)
     if (fieldsChanged || inputsChanged) void this.listener?.requestNow()

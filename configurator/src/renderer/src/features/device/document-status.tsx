@@ -14,6 +14,13 @@ export function DocumentStatusChip({
   if (!connected) return null
   const label = t(`documents.label.${document}`)
 
+  if (session?.newerDocuments.includes(document)) {
+    return (
+      <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-300" variant="outline">
+        {t('device.documentStatus.newer', { label })}
+      </Badge>
+    )
+  }
   const stored = session?.info.documents[document]
   if (stored && stored.outcome !== 'valid' && stored.outcome !== 'absent') {
     return (

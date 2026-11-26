@@ -129,7 +129,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
         connectionRevision: current.connectionRevision + (freshConnection ? 1 : 0),
         activeConfiguration,
         ...(freshConnection ? { runningConfiguration: activeConfiguration } : {}),
-        ...(current.hasLocalDraft
+        ...(current.hasLocalDraft || state.session.newerDocuments.length > 0
           ? {}
           : {
               draft: adopt(activeConfiguration),

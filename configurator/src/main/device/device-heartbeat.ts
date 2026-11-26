@@ -64,8 +64,8 @@ export class DeviceHeartbeat {
       const info = parseDeviceInfo(line)
       const sameDocuments = storedKey(session.info) === storedKey(info)
       if (sameDocuments && sameHealth(session.info, info)) return success(false)
-      const configuration = sameDocuments
-        ? session.configuration
+      const stored = sameDocuments
+        ? { configuration: session.configuration, newerDocuments: session.newerDocuments }
         : await readConfiguration(
             port,
             info.boardId,
@@ -78,7 +78,7 @@ export class DeviceHeartbeat {
       }
       this.connection.setState({
         ...this.connection.getState(),
-        session: { ...session, info, configuration }
+        session: { ...session, info, ...stored }
       })
       return success(true)
     })

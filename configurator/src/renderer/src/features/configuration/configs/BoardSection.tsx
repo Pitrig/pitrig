@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { newerDocumentsReason } from '@shared/newer-documents'
 import { t } from '@shared/ui-text'
 
 import { Button } from '@/components/ui/button'
 import { useBoardActivityReason } from '@/features/device/board-activity'
+import { useDeviceStore } from '@/features/device/device-store'
 import { useDraftState } from '@/features/device/draft-state'
 import { readConfigurationFromBoard, type ActionFeedback } from '../configuration-actions'
 import { FeedbackNote } from './FeedbackNote'
@@ -16,6 +18,7 @@ export function BoardSection({
 }): React.JSX.Element | null {
   const { connected, dirty, boardMismatch } = useDraftState()
   const busyReason = useBoardActivityReason()
+  const newer = newerDocumentsReason(useDeviceStore((state) => state.session))
   const [feedback, setFeedback] = useState<ActionFeedback>()
 
   if (!connected) return null
@@ -39,8 +42,8 @@ export function BoardSection({
         <Button
           className="flex-none"
           variant="outline"
-          disabled={working || busyReason !== undefined}
-          title={busyReason ?? t('configs.boardSection.loadFromBoardHint')}
+          disabled={working || busyReason !== undefined || newer !== undefined}
+          title={busyReason ?? newer ?? t('configs.boardSection.loadFromBoardHint')}
           onClick={() => void load()}
         >
           {t('configs.boardSection.loadFromBoard')}</Button>

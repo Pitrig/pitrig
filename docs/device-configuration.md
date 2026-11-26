@@ -118,7 +118,9 @@ Presence rules:
   survives all of these and has to be changed by hand. The board's factory
   payload names the same rate, and a sparse document is never expanded through a
   board profile, so the property has to be present to have an effect.
-- Unknown properties are rejected.
+- Unknown properties are rejected. In a document read from a board, unknown
+  properties and telemetry fields mark it as written by a newer Pitrig instead
+  (see "Keeping the draft and the board together").
 - Loading a preset inserts only the properties explicitly present in that
   preset.
 
@@ -286,6 +288,12 @@ documents are read and migrated into the draft, and nothing is written to it
 until the Firmware page has installed firmware for this schema. The board then
 draws its built-in dashboard, because it refuses records of the old schema, and
 `Save to board` puts the draft back.
+
+A board document that fails validation only on property or telemetry field
+names this configurator does not know was written by a newer Pitrig. The board
+still connects, the document is not adopted into the draft, and every write to
+the board is refused with advice to update Pitrig, while `Reset to factory`
+stays allowed. Any other failure is a damaged reply.
 
 The board is asked `@PR:INFO` every five seconds while it is connected and no
 operation is running, which is what notices a document written from elsewhere;

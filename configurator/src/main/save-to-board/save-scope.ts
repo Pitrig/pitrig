@@ -4,6 +4,7 @@ import {
   type ConfigurationDocumentId
 } from '../../shared/configuration-schema'
 import { documentsDiffering } from '../../shared/configuration-documents'
+import { newerDocumentsReason } from '../../shared/newer-documents'
 import type { SaveToBoardRequest } from '../../shared/save-to-board'
 import type { DeviceConfiguration, DeviceSession } from '../../shared/device'
 import { stepFailure, type SaveStep } from './save-results'
@@ -22,6 +23,8 @@ export interface BoardView {
 }
 
 export function boardView(scope: SaveScope, session: DeviceSession): SaveStep<BoardView> {
+  const newer = newerDocumentsReason(session)
+  if (newer) return stepFailure('board_newer', newer)
   if (scope.configuration.board !== session.info.boardId) {
     return stepFailure(
       'invalid_configuration',

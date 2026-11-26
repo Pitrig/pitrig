@@ -94,6 +94,13 @@
       "updateTheBoardFirmware": "Zaktualizuj firmware płytki",
       "explanation": "Firmware płytki odczytuje schemat konfiguracji {schema}, a ten konfigurator zapisuje schemat {expected}, więc jej konfigurację można tu odczytać, ale nie można jej zapisać na płytce. „Zaktualizuj płytkę” na stronie Firmware instaluje nowy firmware i przywraca konfigurację płytki."
     },
+    "newerBoard": {
+      "refused": "Konfigurację tej płytki ({documents}) zapisała nowsza wersja Pitrig, więc ta wersja nic nie zapisuje na płytce. Najpierw zaktualizuj Pitrig."
+    },
+    "newerBoardBanner": {
+      "title": "Tę płytkę skonfigurowano w nowszej wersji Pitrig",
+      "explanation": "Jej konfiguracja ({documents}) używa ustawień, których ta wersja nie zna, więc nie jest tu otwierana, a na płytce nic nie zostanie zapisane, dopóki Pitrig nie zostanie zaktualizowany."
+    },
     "safeModeBanner": {
       "boardIsInSafeMode": "Płytka jest w trybie awaryjnym",
       "theLastOnePhase": ", ostatnie {phase}",
@@ -250,6 +257,7 @@
       "theBoardLacksImages": "Na płytce nie ma jeszcze obrazów {images}. Zapisanie zainstaluje obrazy."
     },
     "documentStatus": {
+      "newer": "{label} — z nowszej wersji Pitrig",
       "refused": "{label} — konfiguracja odrzucona",
       "notOnBoard": "{label} — konfiguracji nie ma na płytce",
       "shownNotSaved": "{label} — konfiguracja pokazana, niezapisana",

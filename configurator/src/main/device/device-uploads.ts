@@ -6,6 +6,7 @@ import {
   IMAGE_PACKAGE_FORMAT_VERSION,
   type InstalledImage
 } from '../../shared/image-assets'
+import { newerDocumentsReason } from '../../shared/newer-documents'
 import { readPackageFamilies } from '../font-assets/font-package'
 import { uploadAssetPackage, type AssetNamespace } from './asset-upload'
 import { DeviceServiceError, failure, success } from './device-errors'
@@ -245,6 +246,8 @@ async function clearAssets(
     if (!supported(session)) {
       return failure({ code: 'not_pitrig', message: unsupportedMessage })
     }
+    const newer = newerDocumentsReason(session)
+    if (newer) return failure({ code: 'invalid_request', message: newer })
     await clear(port, sentTraffic(traffic))
     if (connection.port !== port || connection.getState().session !== session) {
       throw new DeviceServiceError('serial_error', changedMessage)

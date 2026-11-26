@@ -221,7 +221,7 @@ export function isTelemetryInterest(value: unknown): value is TelemetryInterest 
   return (
     typeof interest.all === 'boolean' &&
     typeof interest.inputs === 'boolean' &&
-    isBindingList(interest.running) &&
+    (interest.running === null || isBindingList(interest.running)) &&
     isBindingList(interest.draft) &&
     isWiring(interest.wiring)
   )

@@ -5,6 +5,7 @@ import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bri
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
+import { newerDocumentsReason } from '@shared/newer-documents'
 import {
   applyBoardTransportDefaults,
   BOARD_PROFILES,
@@ -154,6 +155,8 @@ function sizeLabel(size: { width: number; height: number }): string {
 }
 
 export async function readConfigurationFromBoard(): Promise<ActionFeedback> {
+  const newer = newerDocumentsReason(useDeviceStore.getState().session)
+  if (newer) return { kind: 'error', message: newer }
   return run('read', () => window.pitrig.readDeviceConfiguration(), (state) => {
     if (state.session) {
       useDeviceStore.getState().reloadDraft(state.session)

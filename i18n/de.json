@@ -92,6 +92,13 @@
       "updateTheBoardFirmware": "Firmware des Boards aktualisieren",
       "explanation": "Seine Firmware liest das Konfigurationsschema {schema}, dieser Konfigurator schreibt das Schema {expected}. Daher lässt sich seine Konfiguration hier lesen, aber nicht darauf speichern. „Board aktualisieren“ auf der Seite „Firmware“ installiert die neue Firmware und spielt die Konfiguration des Boards zurück."
     },
+    "newerBoard": {
+      "refused": "Eine neuere Pitrig-Version hat die Konfiguration dieses Boards ({documents}) geschrieben, daher schreibt diese Version nichts auf das Board. Aktualisieren Sie zuerst Pitrig."
+    },
+    "newerBoardBanner": {
+      "title": "Dieses Board wurde mit einer neueren Pitrig-Version eingerichtet",
+      "explanation": "Seine Konfiguration ({documents}) verwendet Einstellungen, die diese Version nicht kennt. Daher wird sie hier nicht geöffnet, und bis Pitrig aktualisiert ist, wird nichts auf das Board geschrieben."
+    },
     "safeModeBanner": {
       "boardIsInSafeMode": "Board im abgesicherten Modus",
       "theLastOnePhase": ", der letzte {phase}",
@@ -248,6 +255,7 @@
       "theBoardLacksImages": "Auf dem Board fehlt noch: {images}. Beim Speichern werden die Bilder installiert."
     },
     "documentStatus": {
+      "newer": "{label}: aus neuerem Pitrig",
       "refused": "{label}: Konfiguration abgelehnt",
       "notOnBoard": "{label}: Konfiguration nicht auf dem Board",
       "shownNotSaved": "{label}: Konfiguration angezeigt, nicht gespeichert",

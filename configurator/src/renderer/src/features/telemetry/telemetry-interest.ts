@@ -27,6 +27,7 @@ export function useCatalogInterest(): void {
 export function useTelemetryInterest(): void {
   const draft = useDeviceStore((state) => state.draft)
   const running = useDeviceStore((state) => state.runningConfiguration)
+  const newer = useDeviceStore((state) => (state.session?.newerDocuments.length ?? 0) > 0)
   const all = useCatalogWatchers((state) => state.count > 0)
   const inputs = useInputTester((state) => state.watchers > 0)
   const draftKey = useMemo(() => bindingKey(telemetryBindings(draft)), [draft])
@@ -35,11 +36,11 @@ export function useTelemetryInterest(): void {
 
   useEffect(() => {
     void telemetryBridge().setInterest({
-      running: bindingList(runningKey),
+      running: newer ? null : bindingList(runningKey),
       draft: bindingList(draftKey),
       all,
       inputs,
       wiring: wiringKey ? (JSON.parse(wiringKey) as InputsConfiguration) : null
     })
-  }, [draftKey, runningKey, all, inputs, wiringKey])
+  }, [draftKey, runningKey, all, inputs, wiringKey, newer])
 }

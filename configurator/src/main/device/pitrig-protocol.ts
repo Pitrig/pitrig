@@ -3,6 +3,7 @@ import type { SerialPort } from 'serialport'
 import {
   type DeviceConfiguration,
   type DeviceErrorCode,
+  type DeviceSession,
   type PitrigBoardId
 } from '@shared/device'
 import {
@@ -11,7 +12,7 @@ import {
   type ConfigurationDocumentId
 } from '@shared/configuration-schema'
 import { mergeDocuments } from '@shared/configuration-documents'
-import { parseDeviceConfigurationJson } from './configuration-json'
+import { NewerConfigurationError, parseDeviceConfigurationJson } from './configuration-json'
 import { t } from '@shared/ui-text'
 import { DeviceServiceError } from './device-errors'
 import {
@@ -26,6 +27,8 @@ export { requestResponse, sendControlCommand } from './serial-request'
 const CONFIGURATION_TIMEOUT_MS = 2_000
 const COMPOSITION_HOLD_MS = 10_000
 const ASSET_CLEAR_TIMEOUT_MS = 30_000
+
+export type StoredConfiguration = Pick<DeviceSession, 'configuration' | 'newerDocuments'>
 
 function configurationTimeout(port: SerialPort, payloadBytes: number): number {
   const baud = Math.max(port.baudRate, 9_600)
@@ -57,16 +60,27 @@ async function readConfigurationDocument(
   try {
     configuration = parseDeviceConfigurationJson(line.slice(prefix.length))
   } catch (error) {
+    if (error instanceof NewerConfigurationError) {
+      expectBoard(error.board, expectedBoard, rejectionCode)
+      throw error
+    }
     const message = error instanceof Error ? error.message : 'Unknown configuration error.'
     throw new DeviceServiceError('damaged_reply', message)
   }
-  if (configuration.board !== expectedBoard) {
-    throw new DeviceServiceError(
-      rejectionCode,
-      t('device.pitrigProtocol.theDeviceConfigurationBoardDoes')
-    )
-  }
+  expectBoard(configuration.board, expectedBoard, rejectionCode)
   return configuration
+}
+
+function expectBoard(
+  board: PitrigBoardId,
+  expectedBoard: PitrigBoardId,
+  rejectionCode: DeviceErrorCode
+): void {
+  if (board === expectedBoard) return
+  throw new DeviceServiceError(
+    rejectionCode,
+    t('device.pitrigProtocol.theDeviceConfigurationBoardDoes')
+  )
 }
 
 export async function readConfiguration(
@@ -75,21 +89,28 @@ export async function readConfiguration(
   onTraffic: TrafficCallback,
   rejectionCode: DeviceErrorCode = 'configuration_rejected',
   yielding: () => boolean = () => false
-): Promise<DeviceConfiguration> {
+): Promise<StoredConfiguration> {
   const documents = {} as Record<ConfigurationDocumentId, DeviceConfiguration>
+  const newerDocuments: ConfigurationDocumentId[] = []
   for (const document of CONFIGURATION_DOCUMENT_IDS) {
     if (yielding()) {
       throw new DeviceServiceError('cancelled', t('device.lineExchange.theRequestWasCancelled'))
     }
-    documents[document] = await readConfigurationDocument(
-      port,
-      document,
-      expectedBoard,
-      onTraffic,
-      rejectionCode
-    )
+    try {
+      documents[document] = await readConfigurationDocument(
+        port,
+        document,
+        expectedBoard,
+        onTraffic,
+        rejectionCode
+      )
+    } catch (error) {
+      if (!(error instanceof NewerConfigurationError)) throw error
+      documents[document] = { board: expectedBoard }
+      newerDocuments.push(document)
+    }
   }
-  return mergeDocuments(documents)
+  return { configuration: mergeDocuments(documents), newerDocuments }
 }
 
 export async function applyConfiguration(

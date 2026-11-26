@@ -403,6 +403,7 @@ export type UiStringKey =
   | 'device.deviceUploads.theConnectedFirmwareDoesNot'
   | 'device.deviceUploads.theConnectedFirmwareDoesNot2'
   | 'device.documentStatus.inSync'
+  | 'device.documentStatus.newer'
   | 'device.documentStatus.notOnBoard'
   | 'device.documentStatus.refused'
   | 'device.documentStatus.shownNotSaved'
@@ -514,6 +515,9 @@ export type UiStringKey =
   | 'device.liveApplyIndicator.sendingToTheBoard'
   | 'device.liveApplyIndicator.theBoardIsNotFollowing'
   | 'device.liveApplyIndicator.theBoardRunsItsOwn'
+  | 'device.newerBoard.refused'
+  | 'device.newerBoardBanner.explanation'
+  | 'device.newerBoardBanner.title'
   | 'device.pitrigProtocol.theDeviceConfigurationBoardDoes'
   | 'device.protocolParsers.infoData'
   | 'device.protocolParsers.theDeviceReturnedMalformedFieldname'
@@ -2183,6 +2187,7 @@ export interface UiStringParameters {
   'device.connection.connectedAt': { baudRate: string | number, displayName: string | number }
   'device.connection.scanningAt': { baudRate: string | number, displayName: string | number }
   'device.documentStatus.inSync': { label: string | number }
+  'device.documentStatus.newer': { label: string | number }
   'device.documentStatus.notOnBoard': { label: string | number }
   'device.documentStatus.refused': { label: string | number }
   'device.documentStatus.shownNotSaved': { label: string | number }
@@ -2205,6 +2210,8 @@ export interface UiStringParameters {
   'device.infoPage.firmwareSlotsValue': { running: string | number, target: string | number }
   'device.liveApplyIndicator.livePreviewFailedError': { error: string | number }
   'device.liveApplyIndicator.theBoardIsNotFollowing': { liveApplyBlockedReason: string | number }
+  'device.newerBoard.refused': { documents: string | number }
+  'device.newerBoardBanner.explanation': { documents: string | number }
   'device.protocolParsers.theDeviceReturnedMalformedFieldname': { fieldName: string | number }
   'device.protocolParsers.theDeviceReturnedMalformedLabel': { label: string | number }
   'device.protocolParsers.unsupportedConfigurationSchemaSchema': { schema: string | number }

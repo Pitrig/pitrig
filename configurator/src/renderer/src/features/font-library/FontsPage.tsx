@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { useBoardActivityReason } from '@/features/device/board-activity'
 import { useDeviceStore } from '@/features/device/device-store'
+import { newerDocumentsReason } from '@shared/newer-documents'
 import { FaceSpecimen } from './FaceSpecimen'
 import { isIconFace } from './icon-face'
 import { useFontFaceStore, previewFontFamily } from './font-face-store'
@@ -33,6 +34,7 @@ export function FontsPage(): React.JSX.Element {
   const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
   const [busy, setBusy] = useState(false)
   const busyReason = useBoardActivityReason()
+  const eraseBlocked = busyReason ?? newerDocumentsReason(session)
   const [message, setMessage] = useState<string>()
 
   useEffect(() => {
@@ -103,8 +105,8 @@ export function FontsPage(): React.JSX.Element {
           <Button
             className="text-red-400 hover:text-red-300"
             variant="outline"
-            disabled={busy || busyReason !== undefined || !session?.fontAssets?.storageAvailable}
-            title={busyReason ?? t('fonts.fontsPage.eraseThePackageInstalledOn')}
+            disabled={busy || eraseBlocked !== undefined || !session?.fontAssets?.storageAvailable}
+            title={eraseBlocked ?? t('fonts.fontsPage.eraseThePackageInstalledOn')}
             onClick={() => void clearBoard()}
           >
             {t('fonts.fontsPage.eraseOnBoard')}</Button>

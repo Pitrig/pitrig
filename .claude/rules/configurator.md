@@ -127,7 +127,8 @@ before the open, survives a reboot and the scan's second open, and ends with a
 handback on disconnect. A board the plugin feeds counts as found in the scan
 without being opened. The renderer sends what to stream through
 `features/telemetry/telemetry-interest.ts` — the running documents' and the
-draft's bindings, or every field while the catalog table is mounted — and with
+draft's bindings, or every field while the catalog table is mounted or the board
+holds a document from a newer Pitrig — and with
 it whether the Controls page (`features/controls/`) wants the plugin's
 `@PT:INPUT` reports and the draft's `inputs`, which `PluginHandover` sends as
 `button`/`position` lines while it holds a board.

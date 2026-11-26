@@ -30,7 +30,7 @@ export class PluginHandover implements PortClaims {
   private status: PluginStatus | undefined
   private statusAt = Number.NEGATIVE_INFINITY
   private fields = ''
-  private running = ''
+  private running: string | null = ''
   private inputs = false
   private wiring: string[] = []
   private control = true
@@ -41,7 +41,7 @@ export class PluginHandover implements PortClaims {
     this.control = enabled
   }
 
-  setInterest(fields: string, running: string): boolean {
+  setInterest(fields: string, running: string | null): boolean {
     const changed = fields !== this.fields || running !== this.running
     this.fields = fields
     this.running = running
@@ -104,8 +104,9 @@ export class PluginHandover implements PortClaims {
     if (!this.holds.delete(path)) return
     this.sequence += 1
     if (handback && this.control) {
+      const handed = this.running === null ? '' : `:${this.running}`
       this.releases.set(path.toLowerCase(), {
-        line: `release=${path}@${handback.baudRate}:${this.running}`,
+        line: `release=${path}@${handback.baudRate}${handed}`,
         until: performance.now() + RELEASE_REPEAT_MS
       })
     }

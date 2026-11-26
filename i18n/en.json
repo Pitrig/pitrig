@@ -95,6 +95,13 @@
       "updateTheBoardFirmware": "Update the board's firmware",
       "explanation": "Its firmware reads configuration schema {schema} and this configurator writes schema {expected}, so its configuration can be read here but not saved to it. Update board on the Firmware page installs the new firmware and puts the board's configuration back."
     },
+    "newerBoard": {
+      "refused": "A newer Pitrig wrote this board's configuration ({documents}), so this version does not write to the board. Update Pitrig first."
+    },
+    "newerBoardBanner": {
+      "title": "This board was set up with a newer Pitrig",
+      "explanation": "Its configuration ({documents}) uses settings this version does not know, so it is not opened here and nothing is written to the board until Pitrig is updated."
+    },
     "safeModeBanner": {
       "boardIsInSafeMode": "Board is in safe mode",
       "theLastOnePhase": ", the last one {phase}",
@@ -251,6 +258,7 @@
       "theBoardLacksImages": "The board does not hold {images} yet. Saving installs the images."
     },
     "documentStatus": {
+      "newer": "{label} from a newer Pitrig",
       "refused": "{label} config refused",
       "notOnBoard": "{label} config not on the board",
       "shownNotSaved": "{label} config shown, not saved",

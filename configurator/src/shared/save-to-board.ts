@@ -53,6 +53,7 @@ export interface SaveToBoardError {
     | 'images_unavailable'
     | 'assets_too_large'
     | 'firmware_behind'
+    | 'board_newer'
   message: string
 }
 
