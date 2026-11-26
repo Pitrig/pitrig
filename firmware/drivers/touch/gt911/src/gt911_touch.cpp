@@ -1,5 +1,7 @@
 #include "gt911_touch.hpp"
 
+#include <array>
+
 #include "driver/i2c_master.h"
 #include "esp_err.h"
 #include "esp_lcd_panel_io.h"
@@ -14,6 +16,8 @@ constexpr int kGlitchIgnoreCount = 7;
 constexpr std::uint16_t kFirstScannedAddress = 0x08;
 constexpr std::uint16_t kLastScannedAddress = 0x77;
 constexpr int kProbeTimeoutMs = 10;
+constexpr int kAnswerTimeoutMs = 50;
+constexpr std::array<std::uint8_t, 2> kProductIdRegister{0x81, 0x40};
 
 esp_lcd_touch_io_gt911_config_t kAddressCandidates[] = {
     {.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS},
@@ -22,6 +26,33 @@ esp_lcd_touch_io_gt911_config_t kAddressCandidates[] = {
 
 std::uint64_t pin_mask(gpio_num_t pin) {
   return pin == GPIO_NUM_NC ? 0ULL : 1ULL << static_cast<int>(pin);
+}
+
+[[nodiscard]] bool answers(i2c_master_bus_handle_t bus, const std::uint16_t address,
+                           const std::uint32_t clock_hz) {
+  i2c_device_config_t device_configuration = {};
+  device_configuration.dev_addr_length = I2C_ADDR_BIT_LEN_7;
+  device_configuration.device_address = address;
+  device_configuration.scl_speed_hz = clock_hz;
+  i2c_master_dev_handle_t device = nullptr;
+  if (i2c_master_bus_add_device(bus, &device_configuration, &device) != ESP_OK) {
+    return false;
+  }
+  std::array<std::uint8_t, 4> product_id{};
+  const esp_err_t read =
+      i2c_master_transmit_receive(device, kProductIdRegister.data(), kProductIdRegister.size(),
+                                  product_id.data(), product_id.size(), kAnswerTimeoutMs);
+  (void)i2c_master_bus_rm_device(device);
+  return read == ESP_OK;
+}
+
+[[nodiscard]] bool answers_after_reset(i2c_master_bus_handle_t bus, const std::uint16_t address,
+                                       const std::uint32_t clock_hz) {
+  if (answers(bus, address, clock_hz)) {
+    return true;
+  }
+  (void)i2c_master_bus_reset(bus);
+  return answers(bus, address, clock_hz);
 }
 
 void log_bus(i2c_master_bus_handle_t bus, const Pins& pins) {
@@ -71,6 +102,8 @@ driver::Configuration create(const Panel& panel) {
              static_cast<int>(panel.pins.scl));
     return {.touch = nullptr};
   }
+  (void)i2c_master_bus_reset(bus);
+  const bool addressed_by_reset = panel.pins.reset != GPIO_NUM_NC;
 
   esp_lcd_touch_config_t touch_configuration = {};
   touch_configuration.x_max = panel.horizontal_resolution;
@@ -84,6 +117,9 @@ driver::Configuration create(const Panel& panel) {
   touch_configuration.flags.mirror_y = panel.mirror_y ? 1U : 0U;
 
   for (esp_lcd_touch_io_gt911_config_t& candidate : kAddressCandidates) {
+    if (!addressed_by_reset && !answers_after_reset(bus, candidate.dev_addr, panel.clock_hz)) {
+      continue;
+    }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
     esp_lcd_panel_io_i2c_config_t io_configuration = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
